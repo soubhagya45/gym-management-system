@@ -1,0 +1,172 @@
+<div class="attendance-page-wrapper">
+  <!-- Page Header -->
+  <div class="page-header">
+    <div class="title-area">
+      <h1>Attendance Roster</h1>
+      <p>Today is: <strong>{{ todayString }}</strong></p>
+    </div>
+  </div>
+
+  <!-- Attendance Metrics Grid -->
+  <div class="stats-grid">
+    <!-- Present Count -->
+    <div class="mat-card stat-card">
+      <div class="stat-header">
+        <div class="stat-icon-wrapper success">
+          <mat-icon>check_circle</mat-icon>
+        </div>
+      </div>
+      <div class="stat-body">
+        <h3 class="stat-value">{{ presentCount$ | async }}</h3>
+        <p class="stat-label">Checked In Today</p>
+      </div>
+    </div>
+
+    <!-- Absent Count -->
+    <div class="mat-card stat-card">
+      <div class="stat-header">
+        <div class="stat-icon-wrapper danger">
+          <mat-icon>cancel</mat-icon>
+        </div>
+      </div>
+      <div class="stat-body">
+        <h3 class="stat-value">{{ absentCount$ | async }}</h3>
+        <p class="stat-label">Marked Absent</p>
+      </div>
+    </div>
+
+    <!-- Attendance Rate -->
+    <div class="mat-card stat-card">
+      <div class="stat-header">
+        <div class="stat-icon-wrapper primary">
+          <mat-icon>percent</mat-icon>
+        </div>
+      </div>
+      <div class="stat-body">
+        <h3 class="stat-value">{{ attendanceRate$ | async }}%</h3>
+        <p class="stat-label">Attendance Rate</p>
+      </div>
+    </div>
+
+    <!-- Total Roster Size -->
+    <div class="mat-card stat-card">
+      <div class="stat-header">
+        <div class="stat-icon-wrapper info">
+          <mat-icon>people</mat-icon>
+        </div>
+      </div>
+      <div class="stat-body">
+        <h3 class="stat-value">{{ totalEligible$ | async }}</h3>
+        <p class="stat-label">Total Roster size</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- Search Filter Panel -->
+  <div class="mat-card search-panel">
+    <mat-form-field appearance="outline" class="w-100 search-field">
+      <mat-label>Search roster by name or email...</mat-label>
+      <input matInput [(ngModel)]="searchQuery" (ngModelChange)="applySearchFilter()" placeholder="Type a name to check in...">
+      <mat-icon matPrefix>search</mat-icon>
+      <button *ngIf="searchQuery" matSuffix mat-icon-button aria-label="Clear" (click)="searchQuery=''; applySearchFilter()">
+        <mat-icon>close</mat-icon>
+      </button>
+    </mat-form-field>
+  </div>
+
+  <!-- Roster Table Card -->
+  <div class="mat-card roster-card">
+    <div class="table-scroll-wrapper">
+      <table mat-table [dataSource]="(filteredRoster$ | async) || []" class="w-100">
+        
+        <!-- Photo Column -->
+        <ng-container matColumnDef="photo">
+          <th mat-header-cell *matHeaderCellDef style="width: 70px"> Photo </th>
+          <td mat-cell *matCellDef="let element">
+            <div class="member-photo-circle">
+              <img *ngIf="element.avatarUrl; else defaultAvatar" [src]="element.avatarUrl" [alt]="element.name">
+              <ng-template #defaultAvatar>
+                <mat-icon class="def-icon">person</mat-icon>
+              </ng-template>
+            </div>
+          </td>
+        </ng-container>
+
+        <!-- Name Column -->
+        <ng-container matColumnDef="name">
+          <th mat-header-cell *matHeaderCellDef> Member Details </th>
+          <td mat-cell *matCellDef="let element">
+            <div class="member-details-cell">
+              <span class="member-name">{{ element.name }}</span>
+              <span class="member-email">{{ element.email }}</span>
+            </div>
+          </td>
+        </ng-container>
+
+        <!-- Plan Column -->
+        <ng-container matColumnDef="plan">
+          <th mat-header-cell *matHeaderCellDef> Subscription Plan </th>
+          <td mat-cell *matCellDef="let element">
+            {{ element.planName }}
+          </td>
+        </ng-container>
+
+        <!-- Time In Column -->
+        <ng-container matColumnDef="time">
+          <th mat-header-cell *matHeaderCellDef> Time In </th>
+          <td mat-cell *matCellDef="let element">
+            {{ element.timeIn || '—' }}
+          </td>
+        </ng-container>
+
+        <!-- Status Column -->
+        <ng-container matColumnDef="status">
+          <th mat-header-cell *matHeaderCellDef style="width: 120px"> Status </th>
+          <td mat-cell *matCellDef="let element">
+            <span class="status-badge" [ngClass]="element.status">
+              {{ element.status === 'unmarked' ? 'Not Checked In' : element.status }}
+            </span>
+          </td>
+        </ng-container>
+
+        <!-- Actions Column -->
+        <ng-container matColumnDef="actions">
+          <th mat-header-cell *matHeaderCellDef style="width: 220px; text-align: center"> Actions </th>
+          <td mat-cell *matCellDef="let element" style="text-align: center">
+            <div class="actions-wrapper">
+              <!-- Check-In (Present) Button -->
+              <button mat-raised-button 
+                      color="primary" 
+                      class="checkin-btn" 
+                      [disabled]="element.status === 'present'"
+                      (click)="markPresent(element)">
+                <mat-icon>check</mat-icon>
+                <span>Check In</span>
+              </button>
+              
+              <!-- Mark Absent Button -->
+              <button mat-stroked-button 
+                      color="warn" 
+                      class="absent-btn" 
+                      [disabled]="element.status === 'absent'"
+                      (click)="markAbsent(element)">
+                <mat-icon>close</mat-icon>
+                <span>Absent</span>
+              </button>
+            </div>
+          </td>
+        </ng-container>
+
+        <tr mat-header-row *matHeaderRowDef="displayedColumns"></tr>
+        <tr mat-row *matRowDef="let row; columns: displayedColumns;"></tr>
+      </table>
+
+      <!-- Empty state when search yields no matches -->
+      <div class="empty-table-state" *ngIf="!(filteredRoster$ | async)?.length">
+        <mat-icon>search_off</mat-icon>
+        <h3>No matching members found</h3>
+        <p>Try searching for a different name or email address.</p>
+      </div>
+    </div>
+  </div>
+</div>

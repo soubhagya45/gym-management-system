@@ -1,0 +1,264 @@
+<div class="dashboard-wrapper">
+  <!-- Page Header -->
+  <div class="page-header">
+    <div class="title-area">
+      <h1>Admin Dashboard</h1>
+      <p>Here is what is happening at Apex Fit today.</p>
+    </div>
+    <div class="actions-area">
+      <button mat-raised-button color="primary" routerLink="/members">
+        <mat-icon>person_add</mat-icon>
+        <span>Add Member</span>
+      </button>
+    </div>
+  </div>
+
+  <!-- Stats Grid -->
+  <div class="stats-grid" *ngIf="stats$ | async as stats">
+    <!-- Card 1: Total Members -->
+    <div class="mat-card interactive stat-card">
+      <div class="stat-header">
+        <div class="stat-icon-wrapper primary">
+          <mat-icon>people</mat-icon>
+        </div>
+        <span class="stat-badge success">+12%</span>
+      </div>
+      <div class="stat-body">
+        <h3 class="stat-value">{{ stats.totalMembers }}</h3>
+        <p class="stat-label">Total Members Registered</p>
+      </div>
+      <div class="stat-footer">
+        <div class="progress-bar-container">
+          <div class="progress-fill primary" style="width: 100%"></div>
+        </div>
+        <span class="footer-text">100% capacity record</span>
+      </div>
+    </div>
+
+    <!-- Card 2: Active Members -->
+    <div class="mat-card interactive stat-card">
+      <div class="stat-header">
+        <div class="stat-icon-wrapper success">
+          <mat-icon>check_circle</mat-icon>
+        </div>
+        <span class="stat-badge info">{{ stats.activePercentage }}%</span>
+      </div>
+      <div class="stat-body">
+        <h3 class="stat-value">{{ stats.activeMembers }}</h3>
+        <p class="stat-label">Active Members</p>
+      </div>
+      <div class="stat-footer">
+        <div class="progress-bar-container">
+          <div class="progress-fill success" [style.width.%]="stats.activePercentage"></div>
+        </div>
+        <span class="footer-text">{{ stats.activePercentage }}% of total directory</span>
+      </div>
+    </div>
+
+    <!-- Card 3: Monthly Revenue -->
+    <div class="mat-card interactive stat-card">
+      <div class="stat-header">
+        <div class="stat-icon-wrapper warning">
+          <mat-icon>payments</mat-icon>
+        </div>
+        <span class="stat-badge warning">Target 80%</span>
+      </div>
+      <div class="stat-body">
+        <h3 class="stat-value">${{ stats.monthlyRevenue }}</h3>
+        <p class="stat-label">Monthly Projected Revenue</p>
+      </div>
+      <div class="stat-footer">
+        <div class="progress-bar-container">
+          <div class="progress-fill warning" style="width: 78%"></div>
+        </div>
+        <span class="footer-text">$1,200 pending invoice verification</span>
+      </div>
+    </div>
+
+    <!-- Card 4: Expiring memberships -->
+    <div class="mat-card interactive stat-card">
+      <div class="stat-header">
+        <div class="stat-icon-wrapper danger">
+          <mat-icon>hourglass_empty</mat-icon>
+        </div>
+        <span class="stat-badge danger" *ngIf="stats.expiringCount > 0">Action needed</span>
+      </div>
+      <div class="stat-body">
+        <h3 class="stat-value">{{ stats.expiringCount }}</h3>
+        <p class="stat-label">Expiring memberships (30d)</p>
+      </div>
+      <div class="stat-footer">
+        <div class="progress-bar-container">
+          <div class="progress-fill danger" [style.width.%]="stats.expiringCount * 10"></div>
+        </div>
+        <span class="footer-text">Follow up notifications active</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- Charts Section -->
+  <div class="charts-row">
+    <!-- Revenue Trend Chart -->
+    <div class="mat-card chart-card">
+      <div class="chart-header">
+        <h3>Revenue Trend (H1 2026)</h3>
+        <span class="chart-sub">Total earnings from new plans and renewals</span>
+      </div>
+      <div class="chart-wrapper">
+        <div class="y-axis-labels">
+          <span>$5k</span>
+          <span>$3k</span>
+          <span>$1k</span>
+          <span>$0</span>
+        </div>
+        <div class="svg-container">
+          <svg class="line-chart-svg" viewBox="0 0 500 150" preserveAspectRatio="none">
+            <defs>
+              <linearGradient id="chartGradient" x1="0" y1="0" x2="0" y2="1">
+                <stop offset="0%" stop-color="var(--accent-color)" stop-opacity="0.4" />
+                <stop offset="100%" stop-color="var(--accent-color)" stop-opacity="0.0" />
+              </linearGradient>
+            </defs>
+            <!-- Area Fill -->
+            <path [attr.d]="getSVGFillPath()" fill="url(#chartGradient)"></path>
+            <!-- Line Stroke -->
+            <polyline fill="none" stroke="var(--accent-color)" stroke-width="3" [attr.points]="getSVGPath()"></polyline>
+            
+            <!-- Grid Lines -->
+            <line x1="20" y1="20" x2="480" y2="20" stroke="var(--border-color)" stroke-dasharray="4" />
+            <line x1="20" y1="75" x2="480" y2="75" stroke="var(--border-color)" stroke-dasharray="4" />
+            <line x1="20" y1="130" x2="480" y2="130" stroke="var(--border-color)" />
+          </svg>
+          <div class="x-axis-labels">
+            <span *ngFor="let item of revenueChartData">{{ item.label }}</span>
+          </div>
+        </div>
+      </div>
+      <div class="chart-footer-stats">
+        <div class="stat-indicator">
+          <span class="dot primary"></span>
+          <span>Monthly Revenue Growth: <strong>+18%</strong> month over month</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Membership Growth Bar Chart -->
+    <div class="mat-card chart-card">
+      <div class="chart-header">
+        <h3>Membership Growth</h3>
+        <span class="chart-sub">Cumulative total active profiles by month</span>
+      </div>
+      <div class="bar-chart-container">
+        <div class="bars-wrapper">
+          <div class="bar-col" *ngFor="let item of growthChartData">
+            <div class="bar-fill-wrapper">
+              <div class="bar-fill" [style.height.%]="item.height" [matTooltip]="item.members + ' members'">
+                <div class="bar-tooltip-pop">{{ item.members }}</div>
+              </div>
+            </div>
+            <span class="bar-label">{{ item.month }}</span>
+          </div>
+        </div>
+      </div>
+      <div class="chart-footer-stats">
+        <div class="stat-indicator">
+          <span class="dot success"></span>
+          <span>Target reached: <strong>112 Active Users</strong></span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Lower Section: Attendance & Activity -->
+  <div class="dashboard-details-row">
+    <!-- Attendance Table -->
+    <div class="mat-card details-card">
+      <div class="details-header" *ngIf="attendanceSummary$ | async as summary">
+        <div>
+          <h3>Today's Attendance</h3>
+          <span class="chart-sub">Active checking logs for today</span>
+        </div>
+        <div class="attendance-stat-box">
+          <span class="att-counter">{{ summary.present }} / {{ summary.total }}</span>
+          <span class="att-sub">Present Today ({{ summary.percentage }}%)</span>
+        </div>
+      </div>
+      
+      <div class="attendance-table-container">
+        <table mat-table [dataSource]="(todayAttendance$ | async) || []" class="mat-elevation-z0 w-100">
+          <!-- Avatar Column -->
+          <ng-container matColumnDef="avatar">
+            <th mat-header-cell *matHeaderCellDef class="hide-on-mobile" style="width: 50px"></th>
+            <td mat-cell *matCellDef="let element" class="hide-on-mobile">
+              <div class="member-avatar-circle">
+                <mat-icon>person</mat-icon>
+              </div>
+            </td>
+          </ng-container>
+
+          <!-- Name Column -->
+          <ng-container matColumnDef="name">
+            <th mat-header-cell *matHeaderCellDef> Member Name </th>
+            <td mat-cell *matCellDef="let element" class="font-semibold"> {{element.memberName}} </td>
+          </ng-container>
+
+          <!-- Time Column -->
+          <ng-container matColumnDef="time">
+            <th mat-header-cell *matHeaderCellDef> Check-In Time </th>
+            <td mat-cell *matCellDef="let element"> {{element.timeIn || '—'}} </td>
+          </ng-container>
+
+          <!-- Status Column -->
+          <ng-container matColumnDef="status">
+            <th mat-header-cell *matHeaderCellDef> Status </th>
+            <td mat-cell *matCellDef="let element"> 
+              <span class="status-badge" [ngClass]="element.status">{{element.status}}</span>
+            </td>
+          </ng-container>
+
+          <tr mat-header-row *matHeaderRowDef="displayedColumns"></tr>
+          <tr mat-row *matRowDef="let row; columns: displayedColumns;"></tr>
+        </table>
+        
+        <div class="empty-state" *ngIf="!(todayAttendance$ | async)?.length">
+          <mat-icon>event_busy</mat-icon>
+          <p>No attendance logged for today yet.</p>
+        </div>
+      </div>
+      <button mat-button color="primary" routerLink="/attendance" class="view-all-btn">
+        <span>Go to Attendance Roster</span>
+        <mat-icon>arrow_forward</mat-icon>
+      </button>
+    </div>
+
+    <!-- Activity Stream -->
+    <div class="mat-card details-card">
+      <div class="details-header">
+        <div>
+          <h3>Recent System Activities</h3>
+          <span class="chart-sub">Real-time actions audit logs</span>
+        </div>
+      </div>
+
+      <div class="activity-timeline">
+        <div class="activity-item" *ngFor="let log of recentLogs$ | async">
+          <div class="activity-icon-node" [ngClass]="log.type">
+            <mat-icon *ngIf="log.type === 'join'">person_add</mat-icon>
+            <mat-icon *ngIf="log.type === 'payment'">payments</mat-icon>
+            <mat-icon *ngIf="log.type === 'attendance'">check_circle</mat-icon>
+            <mat-icon *ngIf="log.type === 'plan-change'">loop</mat-icon>
+          </div>
+          <div class="activity-content">
+            <p class="activity-text">{{ log.text }}</p>
+            <span class="activity-time">{{ log.time }}</span>
+          </div>
+        </div>
+        
+        <div class="empty-state" *ngIf="!(recentLogs$ | async)?.length">
+          <mat-icon>history</mat-icon>
+          <p>No system activity logged.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>

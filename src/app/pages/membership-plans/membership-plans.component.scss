@@ -1,0 +1,208 @@
+.plans-page-wrapper {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+
+/* Pricing Grid */
+.plans-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 24px;
+}
+
+.pricing-card {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  padding: 32px 24px 24px 24px !important;
+  transition: transform 0.3s ease, box-shadow 0.3s ease, border-color 0.3s ease !important;
+  
+  &:hover {
+    transform: translateY(-8px);
+    box-shadow: var(--shadow-lg) !important;
+  }
+  
+  /* Banners */
+  .popular-tag {
+    position: absolute;
+    top: 0;
+    right: 24px;
+    transform: translateY(-50%);
+    background: var(--accent-gradient);
+    color: #ffffff;
+    font-size: 10px;
+    font-weight: 800;
+    padding: 4px 12px;
+    border-radius: 20px;
+    letter-spacing: 0.1em;
+    box-shadow: 0 4px 10px rgba(99, 102, 241, 0.4);
+  }
+
+  .annual-tag {
+    position: absolute;
+    top: 0;
+    right: 24px;
+    transform: translateY(-50%);
+    background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+    color: #ffffff;
+    font-size: 10px;
+    font-weight: 800;
+    padding: 4px 12px;
+    border-radius: 20px;
+    letter-spacing: 0.1em;
+    box-shadow: 0 4px 10px rgba(16, 185, 129, 0.4);
+  }
+  
+  &.popular-border {
+    border-color: var(--accent-color) !important;
+    box-shadow: 0 10px 30px -10px rgba(99, 102, 241, 0.25) !important;
+  }
+}
+
+.card-header-block {
+  text-align: center;
+  margin-bottom: 24px;
+  
+  .plan-name {
+    font-size: 20px;
+    font-weight: 700;
+    margin-bottom: 12px;
+  }
+  
+  .price-container {
+    display: flex;
+    justify-content: center;
+    align-items: flex-start;
+    margin-bottom: 16px;
+    color: var(--text-primary);
+    
+    .currency {
+      font-size: 24px;
+      font-weight: 600;
+      margin-top: 4px;
+    }
+    
+    .price-val {
+      font-size: 56px;
+      font-weight: 800;
+      line-height: 1;
+      letter-spacing: -0.04em;
+    }
+    
+    .duration {
+      font-size: 14px;
+      color: var(--text-secondary);
+      align-self: flex-end;
+      margin-bottom: 8px;
+      margin-left: 4px;
+      font-weight: 500;
+    }
+  }
+  
+  .plan-desc {
+    font-size: 13px;
+    color: var(--text-secondary);
+    line-height: 1.5;
+    margin: 0;
+    min-height: 40px;
+  }
+}
+
+/* Active Subscribers Count */
+.plan-stats {
+  padding: 16px 0;
+  
+  .stat-row {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    color: var(--text-secondary);
+    font-size: 13px;
+    
+    .stat-icon {
+      font-size: 18px;
+      width: 18px;
+      height: 18px;
+      color: var(--accent-color);
+    }
+  }
+}
+
+/* Features List */
+.features-list {
+  flex: 1;
+  padding: 24px 0;
+  
+  h3 {
+    font-size: 12px;
+    font-weight: 700;
+    letter-spacing: 0.05em;
+    color: var(--text-muted);
+    margin-bottom: 16px;
+  }
+  
+  .feature-item {
+    display: flex;
+    align-items: flex-start;
+    gap: 10px;
+    margin-bottom: 12px;
+    font-size: 13px;
+    line-height: 1.4;
+    color: var(--text-secondary);
+    
+    .check-icon {
+      font-size: 18px;
+      width: 18px;
+      height: 18px;
+      color: var(--success);
+    }
+  }
+}
+
+/* Footer Actions */
+.card-footer-actions {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-top: 16px;
+  
+  .edit-btn {
+    flex: 1;
+    border-radius: 8px !important;
+    font-weight: 600 !important;
+    height: 38px !important;
+    line-height: 38px !important;
+    margin-right: 12px !important;
+    border-color: var(--border-color) !important;
+    
+    &:hover {
+      background-color: var(--border-color) !important;
+    }
+  }
+  
+  .delete-btn {
+    border: 1px solid var(--border-color) !important;
+    border-radius: 8px !important;
+    
+    &:hover {
+      background-color: var(--danger-glow) !important;
+      border-color: rgba(239, 68, 68, 0.3) !important;
+    }
+  }
+}
+
+/* Responsiveness */
+@media (max-width: 959.98px) {
+  .plans-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+@media (max-width: 599.98px) {
+  .plans-grid {
+    grid-template-columns: 1fr;
+  }
+}

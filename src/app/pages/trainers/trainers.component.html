@@ -1,0 +1,74 @@
+<div class="trainers-page-wrapper">
+  <!-- Page Header -->
+  <div class="page-header">
+    <div class="title-area">
+      <h1>Personal Trainers</h1>
+      <p>Manage trainer credentials, client loads, contact data, and active statuses.</p>
+    </div>
+    <div class="actions-area">
+      <button mat-raised-button color="primary" (click)="openAddTrainerDialog()">
+        <mat-icon>sports_kabaddi</mat-icon>
+        <span>Register New Trainer</span>
+      </button>
+    </div>
+  </div>
+
+  <!-- Trainer Grid -->
+  <div class="trainers-grid">
+    <div class="mat-card trainer-card" *ngFor="let trainer of trainers$ | async">
+      
+      <!-- Top Badges Row -->
+      <div class="card-top-row">
+        <!-- Rating -->
+        <div class="rating-badge">
+          <mat-icon class="star-icon">star</mat-icon>
+          <span>{{ trainer.rating }}</span>
+        </div>
+        <!-- Status Badge -->
+        <span class="status-badge" [ngClass]="trainer.status === 'active' ? 'present' : 'inactive'">
+          {{ trainer.status === 'active' ? 'Active' : 'On Leave' }}
+        </span>
+      </div>
+
+      <!-- Main Profile Section -->
+      <div class="profile-section">
+        <div class="avatar-ring">
+          <img [src]="trainer.avatarUrl" [alt]="trainer.name" class="trainer-avatar">
+        </div>
+        <h2 class="trainer-name">{{ trainer.name }}</h2>
+        <span class="specialty-tag">{{ trainer.specialty }}</span>
+      </div>
+
+      <mat-divider></mat-divider>
+
+      <!-- Client load and Contact info -->
+      <div class="trainer-details-body">
+        <div class="metric-row">
+          <span class="metric-label">Active Clients:</span>
+          <span class="metric-value"><strong>{{ trainer.membersCount }}</strong> members</span>
+        </div>
+        <div class="contact-links">
+          <div class="contact-item">
+            <mat-icon class="contact-icon">email</mat-icon>
+            <span class="contact-txt">{{ trainer.email }}</span>
+          </div>
+          <div class="contact-item">
+            <mat-icon class="contact-icon">phone</mat-icon>
+            <span class="contact-txt">{{ trainer.phone }}</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Actions -->
+      <div class="card-footer-actions">
+        <button mat-stroked-button color="accent" class="edit-btn" (click)="openEditTrainerDialog(trainer)">
+          <mat-icon>edit</mat-icon>
+          <span>Edit Profile</span>
+        </button>
+        <button mat-icon-button color="warn" class="delete-btn" (click)="confirmDeleteTrainer(trainer)">
+          <mat-icon>delete</mat-icon>
+        </button>
+      </div>
+    </div>
+  </div>
+</div>

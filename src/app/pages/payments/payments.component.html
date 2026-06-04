@@ -1,0 +1,172 @@
+<div class="payments-page-wrapper">
+  <!-- Page Header -->
+  <div class="page-header">
+    <div class="title-area">
+      <h1>Invoices & Payments</h1>
+      <p>Audit financial ledger accounts, check-ins billing, and invoice receipts.</p>
+    </div>
+    <div class="actions-area">
+      <button mat-raised-button color="primary" (click)="openRecordPaymentDialog()">
+        <mat-icon>add_card</mat-icon>
+        <span>Record Manual Payment</span>
+      </button>
+    </div>
+  </div>
+
+  <!-- Financial Metrics Grid -->
+  <div class="stats-grid" *ngIf="stats$ | async as stats">
+    <!-- Collected Revenue -->
+    <div class="mat-card stat-card">
+      <div class="stat-header">
+        <div class="stat-icon-wrapper success">
+          <mat-icon>monetization_on</mat-icon>
+        </div>
+      </div>
+      <div class="stat-body">
+        <h3 class="stat-value">\${{ stats.totalCollected }}</h3>
+        <p class="stat-label">Revenue Collected Today</p>
+      </div>
+    </div>
+
+    <!-- Outstanding Receivables -->
+    <div class="mat-card stat-card">
+      <div class="stat-header">
+        <div class="stat-icon-wrapper danger">
+          <mat-icon>money_off</mat-icon>
+        </div>
+      </div>
+      <div class="stat-body">
+        <h3 class="stat-value">\${{ stats.outstandingDues }}</h3>
+        <p class="stat-label">Outstanding Receivables</p>
+      </div>
+    </div>
+
+    <!-- Pending Invoices -->
+    <div class="mat-card stat-card">
+      <div class="stat-header">
+        <div class="stat-icon-wrapper warning">
+          <mat-icon>hourglass_empty</mat-icon>
+        </div>
+      </div>
+      <div class="stat-body">
+        <h3 class="stat-value">{{ stats.pendingCount }}</h3>
+        <p class="stat-label">Pending Verification</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- Filters Panel -->
+  <div class="mat-card filters-panel">
+    <div class="filters-grid">
+      <!-- Search Input -->
+      <mat-form-field appearance="outline" class="search-field">
+        <mat-label>Search invoice by name or plan...</mat-label>
+        <input matInput [(ngModel)]="searchQuery" (ngModelChange)="applyFilters()" placeholder="Type a name to search...">
+        <mat-icon matPrefix>search</mat-icon>
+        <button *ngIf="searchQuery" matSuffix mat-icon-button (click)="searchQuery=''; applyFilters()">
+          <mat-icon>close</mat-icon>
+        </button>
+      </mat-form-field>
+
+      <!-- Status Select -->
+      <mat-form-field appearance="outline">
+        <mat-label>Transaction Status</mat-label>
+        <mat-select [(ngModel)]="selectedStatus" (selectionChange)="applyFilters()">
+          <mat-option value="all">All Invoices</mat-option>
+          <mat-option value="paid">Paid / Settled</mat-option>
+          <mat-option value="pending">Pending</mat-option>
+          <mat-option value="overdue">Overdue</mat-option>
+        </mat-select>
+      </mat-form-field>
+
+      <!-- Reset Filters Button -->
+      <button mat-button class="reset-btn" (click)="resetFilters()" [disabled]="!searchQuery && selectedStatus === 'all'">
+        <mat-icon>filter_list_off</mat-icon>
+        <span>Reset Filters</span>
+      </button>
+    </div>
+  </div>
+
+  <!-- Invoices Table Card -->
+  <div class="mat-card table-container-card">
+    <div class="table-scroll-wrapper">
+      <table mat-table [dataSource]="dataSource" class="w-100">
+        
+        <!-- Member Name Column -->
+        <ng-container matColumnDef="name">
+          <th mat-header-cell *matHeaderCellDef> Gym Member </th>
+          <td mat-cell *matCellDef="let element" class="font-semibold text-primary">
+            {{ element.memberName }}
+          </td>
+        </ng-container>
+
+        <!-- Plan Column -->
+        <ng-container matColumnDef="plan">
+          <th mat-header-cell *matHeaderCellDef> Plan Covered </th>
+          <td mat-cell *matCellDef="let element">
+            {{ element.planName }}
+          </td>
+        </ng-container>
+
+        <!-- Amount Column -->
+        <ng-container matColumnDef="amount">
+          <th mat-header-cell *matHeaderCellDef> Amount </th>
+          <td mat-cell *matCellDef="let element" class="font-semibold">
+            \${{ element.amount }}
+          </td>
+        </ng-container>
+
+        <!-- Date Column -->
+        <ng-container matColumnDef="date">
+          <th mat-header-cell *matHeaderCellDef> Date </th>
+          <td mat-cell *matCellDef="let element">
+            {{ element.date | date:'mediumDate' }}
+          </td>
+        </ng-container>
+
+        <!-- Status Column -->
+        <ng-container matColumnDef="status">
+          <th mat-header-cell *matHeaderCellDef style="width: 120px"> Status </th>
+          <td mat-cell *matCellDef="let element">
+            <span class="status-badge" [ngClass]="element.status">{{ element.status }}</span>
+          </td>
+        </ng-container>
+
+        <!-- Actions Column -->
+        <ng-container matColumnDef="actions">
+          <th mat-header-cell *matHeaderCellDef style="width: 140px; text-align: center"> Actions </th>
+          <td mat-cell *matCellDef="let element" style="text-align: center">
+            <div class="actions-wrapper">
+              <!-- Verify Pending Invoices Button -->
+              <button mat-icon-button 
+                      color="primary" 
+                      *ngIf="element.status !== 'paid'"
+                      (click)="confirmPayment(element)"
+                      matTooltip="Confirm Invoice Payment">
+                <mat-icon>check_circle</mat-icon>
+              </button>
+
+              <!-- Print Receipt Button -->
+              <button mat-icon-button 
+                      color="accent" 
+                      (click)="printInvoice(element)"
+                      matTooltip="Print Invoice Slip">
+                <mat-icon>print</mat-icon>
+              </button>
+            </div>
+          </td>
+        </ng-container>
+
+        <tr mat-header-row *matHeaderRowDef="displayedColumns"></tr>
+        <tr mat-row *matRowDef="let row; columns: displayedColumns;"></tr>
+      </table>
+
+      <!-- Empty State -->
+      <div class="empty-table-state" *ngIf="dataSource.filteredData.length === 0">
+        <mat-icon>search_off</mat-icon>
+        <h3>No matching invoices found</h3>
+        <p>Try refining your search text or resetting filters.</p>
+      </div>
+    </div>
+  </div>
+</div>

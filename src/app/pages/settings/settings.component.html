@@ -1,0 +1,120 @@
+<div class="settings-page-wrapper">
+  <!-- Page Header -->
+  <div class="page-header">
+    <div class="title-area">
+      <h1>System Settings</h1>
+      <p>Configure gym branding details, billing parameters, alerts, and user interface preferences.</p>
+    </div>
+  </div>
+
+  <form [formGroup]="settingsForm" (ngSubmit)="onSaveSettings()">
+    <div class="settings-grid">
+      <!-- Card 1: Gym Profile -->
+      <div class="mat-card settings-card">
+        <div class="card-title-row">
+          <mat-icon class="title-icon">business</mat-icon>
+          <h2>Gym Branding Profile</h2>
+        </div>
+        <p class="section-desc">Manage logo representations, branch location, and contact information for invoice displays.</p>
+        
+        <div class="fields-stack">
+          <!-- Gym Name -->
+          <mat-form-field appearance="outline">
+            <mat-label>Gym Business Name</mat-label>
+            <input matInput formControlName="gymName">
+            <mat-error *ngIf="settingsForm.get('gymName')?.hasError('required')">Gym name is required</mat-error>
+          </mat-form-field>
+
+          <!-- Email -->
+          <mat-form-field appearance="outline">
+            <mat-label>Support Email Address</mat-label>
+            <input matInput type="email" formControlName="contactEmail">
+            <mat-error *ngIf="settingsForm.get('contactEmail')?.hasError('required')">Email is required</mat-error>
+            <mat-error *ngIf="settingsForm.get('contactEmail')?.hasError('email')">Enter a valid email</mat-error>
+          </mat-form-field>
+
+          <!-- Phone -->
+          <mat-form-field appearance="outline">
+            <mat-label>Contact Hotline</mat-label>
+            <input matInput formControlName="contactPhone">
+            <mat-error *ngIf="settingsForm.get('contactPhone')?.hasError('required')">Phone is required</mat-error>
+          </mat-form-field>
+
+          <!-- Address -->
+          <mat-form-field appearance="outline">
+            <mat-label>Gym Branch Address</mat-label>
+            <textarea matInput formControlName="address" rows="3"></textarea>
+            <mat-error *ngIf="settingsForm.get('address')?.hasError('required')">Address is required</mat-error>
+          </mat-form-field>
+        </div>
+      </div>
+
+      <!-- Card 2: System Preferences -->
+      <div class="mat-card settings-card">
+        <div class="card-title-row">
+          <mat-icon class="title-icon">settings_suggest</mat-icon>
+          <h2>Preferences & Billing</h2>
+        </div>
+        <p class="section-desc">Control pricing currency tokens, local tax indices, notifications, and dark mode overrides.</p>
+
+        <div class="fields-stack">
+          <div class="form-row">
+            <!-- Currency -->
+            <mat-form-field appearance="outline">
+              <mat-label>Base Currency Symbol</mat-label>
+              <mat-select formControlName="currency">
+                <mat-option value="$">USD ($)</mat-option>
+                <mat-option value="€">EUR (€)</mat-option>
+                <mat-option value="£">GBP (£)</mat-option>
+              </mat-select>
+            </mat-form-field>
+
+            <!-- Tax Rate -->
+            <mat-form-field appearance="outline">
+              <mat-label>Local Sales Tax Rate (%)</mat-label>
+              <input matInput type="number" step="0.1" formControlName="taxRate">
+              <mat-error *ngIf="settingsForm.get('taxRate')?.hasError('required')">Tax rate is required</mat-error>
+            </mat-form-field>
+          </div>
+
+          <div class="toggles-list">
+            <!-- Theme Toggle Slider -->
+            <div class="toggle-item">
+              <div class="toggle-info">
+                <span class="toggle-title">System Dark Mode Theme</span>
+                <span class="toggle-desc">Enable premium glowing dark dashboard skins.</span>
+              </div>
+              <mat-slide-toggle [checked]="isDarkMode" (change)="onThemeToggle($event.checked)"></mat-slide-toggle>
+            </div>
+
+            <!-- Guest Pass slider -->
+            <div class="toggle-item">
+              <div class="toggle-info">
+                <span class="toggle-title">Allow Guest Trial Passes</span>
+                <span class="toggle-desc">Permit single-day temporary check-ins.</span>
+              </div>
+              <mat-slide-toggle formControlName="allowGuestPass"></mat-slide-toggle>
+            </div>
+
+            <!-- Expiry alerts slider -->
+            <div class="toggle-item">
+              <div class="toggle-info">
+                <span class="toggle-title">Send Automated Renewal Alerts</span>
+                <span class="toggle-desc">Email members when plans expire within 7 days.</span>
+              </div>
+              <mat-slide-toggle formControlName="sendExpiryAlerts"></mat-slide-toggle>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Save Action Bar -->
+    <div class="action-bar-footer">
+      <button mat-raised-button color="primary" type="submit" [disabled]="settingsForm.invalid" class="save-settings-btn">
+        <mat-icon>save</mat-icon>
+        <span>Save Configurations</span>
+      </button>
+    </div>
+  </form>
+</div>

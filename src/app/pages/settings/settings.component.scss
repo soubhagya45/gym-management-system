@@ -1,0 +1,130 @@
+.settings-page-wrapper {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+
+/* Settings Card Grid */
+.settings-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 24px;
+  margin-bottom: 24px;
+}
+
+.settings-card {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+}
+
+.card-title-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 8px;
+  
+  .title-icon {
+    font-size: 24px;
+    width: 24px;
+    height: 24px;
+    color: var(--accent-color);
+  }
+  
+  h2 {
+    font-size: 18px;
+    font-weight: 700;
+    margin: 0;
+  }
+}
+
+.section-desc {
+  font-size: 13px;
+  color: var(--text-secondary);
+  line-height: 1.5;
+  margin: 0 0 24px 0;
+}
+
+.fields-stack {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  flex: 1;
+}
+
+.form-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+}
+
+/* Toggles List */
+.toggles-list {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  border-top: 1px solid var(--border-color);
+  padding-top: 20px;
+  margin-top: auto;
+}
+
+.toggle-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 16px;
+  
+  .toggle-info {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    
+    .toggle-title {
+      font-size: 14px;
+      font-weight: 600;
+      color: var(--text-primary);
+    }
+    
+    .toggle-desc {
+      font-size: 12px;
+      color: var(--text-muted);
+    }
+  }
+}
+
+/* Footer Action Bar */
+.action-bar-footer {
+  display: flex;
+  justify-content: flex-end;
+  border-top: 1px solid var(--border-color);
+  padding-top: 20px;
+  
+  .save-settings-btn {
+    height: 46px !important;
+    line-height: 46px !important;
+    font-weight: 600 !important;
+    border-radius: 8px !important;
+    padding: 0 24px !important;
+    box-shadow: var(--shadow-md) !important;
+    
+    mat-icon {
+      font-size: 18px;
+      width: 18px;
+      height: 18px;
+      margin-right: 8px;
+    }
+  }
+}
+
+/* Responsiveness */
+@media (max-width: 959.98px) {
+  .settings-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 599.98px) {
+  .form-row {
+    grid-template-columns: 1fr;
+  }
+}

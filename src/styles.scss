@@ -1,1 +1,440 @@
-/* You can add global styles to this file, and also import other style files */
+/* Custom variables and theme tokens */
+:root {
+  /* System font */
+  --font-sans: 'Outfit', 'Roboto', 'Helvetica Neue', sans-serif;
+  
+  /* Status Colors */
+  --success: #10b981;
+  --success-glow: rgba(16, 185, 129, 0.15);
+  --warning: #f59e0b;
+  --warning-glow: rgba(245, 158, 11, 0.15);
+  --danger: #ef4444;
+  --danger-glow: rgba(239, 68, 68, 0.15);
+  --info: #3b82f6;
+  --info-glow: rgba(59, 130, 246, 0.15);
+
+  /* Transitions */
+  --transition-speed: 0.3s;
+  --transition-curve: cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* Light Theme Variables */
+body.light-theme {
+  --bg-primary: #f8fafc;
+  --bg-secondary: #ffffff;
+  --bg-sidebar: #1e293b; /* Premium dark navy sidebar for light theme too! */
+  --bg-sidebar-active: #334155;
+  --text-sidebar: #f8fafc;
+  --text-sidebar-muted: #94a3b8;
+  --border-color: rgba(0, 0, 0, 0.08);
+  --text-primary: #0f172a;
+  --text-secondary: #475569;
+  --text-muted: #94a3b8;
+  --accent-color: #4f46e5;
+  --accent-hover: #4338ca;
+  --accent-gradient: linear-gradient(135deg, #4f46e5 0%, #7c3aed 100%);
+  --accent-light: rgba(79, 70, 229, 0.08);
+  
+  --shadow-sm: 0 1px 3px rgba(0,0,0,0.05), 0 1px 2px rgba(0,0,0,0.02);
+  --shadow-md: 0 10px 15px -3px rgba(0,0,0,0.05), 0 4px 6px -4px rgba(0,0,0,0.02);
+  --shadow-lg: 0 20px 25px -5px rgba(0,0,0,0.06), 0 8px 10px -6px rgba(0,0,0,0.02);
+  --card-border: 1px solid rgba(0, 0, 0, 0.05);
+
+  /* MDC Variables Override for Outlined Inputs & Selects */
+  --mdc-outlined-field-label-text-color: var(--text-secondary);
+  --mdc-outlined-field-focus-label-text-color: var(--accent-color);
+  --mdc-outlined-field-outline-color: rgba(0, 0, 0, 0.12);
+  --mdc-outlined-field-focus-outline-color: var(--accent-color);
+  --mdc-outlined-field-hover-outline-color: rgba(0, 0, 0, 0.24);
+  --mdc-outlined-field-input-text-color: var(--text-primary);
+  --mdc-outlined-field-input-text-placeholder-color: var(--text-muted);
+  --mat-select-trigger-text-color: var(--text-primary);
+  --mat-select-arrow-color: var(--text-secondary);
+  --mdc-dialog-container-color: var(--bg-secondary);
+}
+
+/* Dark Theme Variables (Default) */
+body.dark-theme {
+  --bg-primary: #0b0c10;
+  --bg-secondary: #12131a;
+  --bg-sidebar: #07080b;
+  --bg-sidebar-active: #1c1d26;
+  --text-sidebar: #ffffff;
+  --text-sidebar-muted: #718096;
+  --border-color: rgba(255, 255, 255, 0.08);
+  --text-primary: #f7fafc;
+  --text-secondary: #a0aec0;
+  --text-muted: #718096;
+  --accent-color: #6366f1;
+  --accent-hover: #818cf8;
+  --accent-gradient: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%);
+  --accent-light: rgba(99, 102, 241, 0.15);
+  
+  --shadow-sm: 0 4px 6px -1px rgba(0, 0, 0, 0.2), 0 2px 4px -1px rgba(0, 0, 0, 0.1);
+  --shadow-md: 0 10px 15px -3px rgba(0, 0, 0, 0.3), 0 4px 6px -2px rgba(0, 0, 0, 0.15);
+  --shadow-lg: 0 20px 25px -5px rgba(0, 0, 0, 0.4), 0 10px 10px -5px rgba(0, 0, 0, 0.2);
+  --card-border: 1px solid rgba(255, 255, 255, 0.06);
+
+  /* MDC Variables Override for Outlined Inputs & Selects */
+  --mdc-outlined-field-label-text-color: var(--text-secondary);
+  --mdc-outlined-field-focus-label-text-color: var(--accent-color);
+  --mdc-outlined-field-outline-color: rgba(255, 255, 255, 0.12);
+  --mdc-outlined-field-focus-outline-color: var(--accent-color);
+  --mdc-outlined-field-hover-outline-color: rgba(255, 255, 255, 0.24);
+  --mdc-outlined-field-input-text-color: var(--text-primary);
+  --mdc-outlined-field-input-text-placeholder-color: var(--text-muted);
+  --mat-select-trigger-text-color: var(--text-primary);
+  --mat-select-arrow-color: var(--text-secondary);
+  --mdc-dialog-container-color: var(--bg-secondary);
+}
+
+/* Global Reset & Base Styling */
+html, body {
+  height: 100%;
+  margin: 0;
+  font-family: var(--font-sans);
+  background-color: var(--bg-primary);
+  color: var(--text-primary);
+  transition: background-color var(--transition-speed) var(--transition-curve),
+              color var(--transition-speed) var(--transition-curve);
+  overflow: hidden;
+}
+
+/* Scrollbar Customization */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  background: var(--border-color);
+  border-radius: 4px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: var(--text-muted);
+}
+
+/* Typography settings */
+h1, h2, h3, h4, h5, h6 {
+  font-family: var(--font-sans);
+  font-weight: 600;
+  margin: 0 0 0.5rem 0;
+  color: var(--text-primary);
+}
+
+/* Material Global Overrides */
+.mat-typography {
+  font-family: var(--font-sans) !important;
+}
+
+.mat-drawer-container {
+  background-color: var(--bg-primary) !important;
+  color: var(--text-primary) !important;
+}
+
+.mat-card {
+  background-color: var(--bg-secondary) !important;
+  color: var(--text-primary) !important;
+  border-radius: 16px !important;
+  border: var(--card-border) !important;
+  box-shadow: var(--shadow-md) !important;
+  padding: 24px !important;
+  transition: transform 0.2s ease, box-shadow 0.2s ease !important;
+  
+  &.interactive:hover {
+    transform: translateY(-4px);
+    box-shadow: var(--shadow-lg) !important;
+  }
+}
+
+/* Tables Styling */
+.mat-table {
+  background: var(--bg-secondary) !important;
+  border-radius: 12px;
+  overflow: hidden;
+  border: var(--card-border);
+}
+
+.mat-header-cell {
+  color: var(--text-secondary) !important;
+  font-family: var(--font-sans) !important;
+  font-weight: 600 !important;
+  font-size: 13px !important;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  background-color: var(--bg-secondary) !important;
+  padding: 16px !important;
+  border-bottom: 2px solid var(--border-color) !important;
+}
+
+.mat-cell {
+  color: var(--text-primary) !important;
+  font-family: var(--font-sans) !important;
+  font-size: 14px !important;
+  padding: 16px !important;
+  border-bottom: 1px solid var(--border-color) !important;
+  transition: background-color 0.2s ease;
+}
+
+.mat-row {
+  transition: background-color 0.2s ease;
+  &:hover {
+    background-color: rgba(99, 102, 241, 0.03) !important;
+  }
+}
+
+/* Form Fields Styling (MDC Compliant) */
+.mat-mdc-form-field {
+  width: 100%;
+  font-family: var(--font-sans) !important;
+  
+  .mdc-text-field {
+    font-family: var(--font-sans) !important;
+  }
+}
+
+.mat-mdc-select-value {
+  color: var(--text-primary) !important;
+}
+
+/* Select Popover Overlay Option Styles */
+.mat-mdc-select-panel {
+  background-color: var(--bg-secondary) !important;
+  border: var(--card-border) !important;
+  box-shadow: var(--shadow-lg) !important;
+}
+
+.mat-mdc-option {
+  color: var(--text-primary) !important;
+  font-family: var(--font-sans) !important;
+  font-size: 14px !important;
+  
+  &.mdc-list-item--selected:not(.mdc-list-item--disabled) {
+    background-color: var(--accent-light) !important;
+    .mdc-list-item__primary-text {
+      color: var(--accent-color) !important;
+      font-weight: 600;
+    }
+  }
+  
+  &:hover:not(.mdc-list-item--disabled) {
+    background-color: rgba(99, 102, 241, 0.05) !important;
+  }
+}
+
+/* Dialog Styling (MDC Compliant) */
+.mat-mdc-dialog-container {
+  .mdc-dialog__surface {
+    background-color: var(--bg-secondary) !important;
+    color: var(--text-primary) !important;
+    border-radius: 20px !important;
+    border: var(--card-border) !important;
+    box-shadow: var(--shadow-lg) !important;
+    padding: 24px !important;
+  }
+}
+
+/* Datepicker Overlay Styling */
+.mat-datepicker-content {
+  background-color: var(--bg-secondary) !important;
+  color: var(--text-primary) !important;
+  border: var(--card-border) !important;
+  border-radius: 16px !important;
+  box-shadow: var(--shadow-lg) !important;
+  
+  .mat-calendar {
+    font-family: var(--font-sans) !important;
+  }
+  
+  .mat-calendar-body-label {
+    color: var(--text-primary) !important;
+    font-weight: 600;
+  }
+  
+  .mat-calendar-body-cell-content {
+    color: var(--text-secondary) !important;
+    font-family: var(--font-sans) !important;
+    border-radius: 8px !important;
+    
+    &.mat-calendar-body-selected {
+      background: var(--accent-gradient) !important;
+      color: #ffffff !important;
+    }
+  }
+  
+  .mat-calendar-header {
+    color: var(--text-primary) !important;
+  }
+  
+  .mat-calendar-arrow {
+    fill: var(--text-secondary) !important;
+  }
+  
+  button {
+    color: var(--text-primary) !important;
+  }
+}
+
+/* Paginator Styling (MDC Compliant) */
+.mat-mdc-paginator {
+  background-color: var(--bg-secondary) !important;
+  color: var(--text-secondary) !important;
+  font-family: var(--font-sans) !important;
+  border-top: 1px solid var(--border-color) !important;
+  border-radius: 0 0 16px 16px;
+  
+  .mat-mdc-paginator-range-label {
+    color: var(--text-secondary) !important;
+  }
+  
+  button {
+    color: var(--text-secondary) !important;
+    
+    &:disabled {
+      color: var(--text-muted) !important;
+      opacity: 0.4;
+    }
+  }
+}
+
+/* Buttons */
+.mat-flat-button.mat-primary, .mat-raised-button.mat-primary {
+  background: var(--accent-gradient) !important;
+  color: #ffffff !important;
+  border-radius: 8px !important;
+  font-family: var(--font-sans) !important;
+  font-weight: 500 !important;
+  padding: 4px 16px !important;
+}
+
+/* Badge Badges */
+.status-badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 4px 10px;
+  border-radius: 30px;
+  font-size: 12px;
+  font-weight: 600;
+  text-transform: capitalize;
+  letter-spacing: 0.02em;
+
+  &.active, &.paid, &.present {
+    background-color: var(--success-glow);
+    color: var(--success);
+  }
+
+  &.expiring, &.pending {
+    background-color: var(--warning-glow);
+    color: var(--warning);
+  }
+
+  &.inactive, &.overdue, &.absent {
+    background-color: var(--danger-glow);
+    color: var(--danger);
+  }
+}
+
+/* Premium utility classes */
+.gradient-text {
+  background: var(--accent-gradient);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+.glass-panel {
+  background: rgba(18, 19, 26, 0.7);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: var(--card-border);
+}
+
+body.light-theme .glass-panel {
+  background: rgba(255, 255, 255, 0.7);
+}
+
+.page-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 24px;
+  
+  .title-area {
+    h1 {
+      font-size: 28px;
+      font-weight: 700;
+      margin-bottom: 4px;
+    }
+    p {
+      color: var(--text-secondary);
+      margin: 0;
+      font-size: 14px;
+    }
+  }
+  
+  .actions-area {
+    display: flex;
+    gap: 12px;
+  }
+}
+
+.stat-icon-wrapper {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 48px;
+  height: 48px;
+  border-radius: 12px;
+  margin-bottom: 16px;
+  
+  &.primary {
+    background: var(--accent-light);
+    color: var(--accent-color);
+  }
+  &.success {
+    background: var(--success-glow);
+    color: var(--success);
+  }
+  &.warning {
+    background: var(--warning-glow);
+    color: var(--warning);
+  }
+  &.danger {
+    background: var(--danger-glow);
+    color: var(--danger);
+  }
+}
+
+/* Button Color Customizations to Override Prebuilt Amber Accent */
+button.mat-mdc-icon-button[color="accent"] {
+  color: var(--accent-color) !important;
+  
+  &:hover:not(:disabled) {
+    color: var(--accent-hover) !important;
+    background-color: var(--accent-light) !important;
+  }
+}
+
+button.mat-mdc-icon-button[color="primary"] {
+  color: var(--accent-color) !important;
+  
+  &:hover:not(:disabled) {
+    color: var(--accent-hover) !important;
+    background-color: var(--accent-light) !important;
+  }
+}
+
+button.mat-mdc-button[color="accent"], button.mat-mdc-outlined-button[color="accent"] {
+  color: var(--accent-color) !important;
+  border-color: var(--border-color) !important;
+}
+
+button.mat-mdc-raised-button[color="accent"], button.mat-mdc-unelevated-button[color="accent"] {
+  background: var(--accent-gradient) !important;
+  color: #ffffff !important;
+  
+  &:hover:not(:disabled) {
+    background: var(--accent-hover) !important;
+  }
+}

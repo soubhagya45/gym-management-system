@@ -1,0 +1,69 @@
+<div class="plans-page-wrapper">
+  <!-- Page Header -->
+  <div class="page-header">
+    <div class="title-area">
+      <h1>Gym Membership Plans</h1>
+      <p>Configure subscription pricing packages, duration terms, and features.</p>
+    </div>
+    <div class="actions-area">
+      <button mat-raised-button color="primary" (click)="openAddPlanDialog()">
+        <mat-icon>add</mat-icon>
+        <span>Create Custom Plan</span>
+      </button>
+    </div>
+  </div>
+
+  <!-- Plans Pricing Card Grid -->
+  <div class="plans-grid">
+    <div class="mat-card pricing-card" 
+         *ngFor="let plan of plans$ | async" 
+         [ngClass]="{'popular-border': plan.durationMonths === 3}">
+      
+      <!-- Recommended Popular Banner badge -->
+      <div class="popular-tag" *ngIf="plan.durationMonths === 3">MOST POPULAR</div>
+      <div class="annual-tag" *ngIf="plan.durationMonths === 12">BEST VALUE</div>
+      
+      <div class="card-header-block">
+        <h2 class="plan-name">{{ plan.name }}</h2>
+        <div class="price-container">
+          <span class="currency">$</span>
+          <span class="price-val">{{ plan.price }}</span>
+          <span class="duration">/ {{ plan.durationMonths === 1 ? 'month' : plan.durationMonths + ' mos' }}</span>
+        </div>
+        <p class="plan-desc">{{ plan.description }}</p>
+      </div>
+
+      <mat-divider></mat-divider>
+
+      <!-- Stats section -->
+      <div class="plan-stats">
+        <div class="stat-row">
+          <mat-icon class="stat-icon">people</mat-icon>
+          <span class="stat-text"><strong>{{ plan.activeMembersCount }}</strong> active subscribers</span>
+        </div>
+      </div>
+
+      <mat-divider></mat-divider>
+
+      <!-- Features list -->
+      <div class="features-list">
+        <h3>INCLUDED FEATURES:</h3>
+        <div class="feature-item" *ngFor="let feat of plan.features">
+          <mat-icon class="check-icon">check</mat-icon>
+          <span>{{ feat }}</span>
+        </div>
+      </div>
+
+      <!-- Action Buttons Footer -->
+      <div class="card-footer-actions">
+        <button mat-stroked-button color="accent" class="edit-btn" (click)="openEditPlanDialog(plan)">
+          <mat-icon>edit</mat-icon>
+          <span>Modify</span>
+        </button>
+        <button mat-icon-button color="warn" class="delete-btn" (click)="confirmDeletePlan(plan)">
+          <mat-icon>delete</mat-icon>
+        </button>
+      </div>
+    </div>
+  </div>
+</div>

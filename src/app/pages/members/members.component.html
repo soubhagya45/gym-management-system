@@ -1,0 +1,156 @@
+<div class="members-page-wrapper">
+  <!-- Page Header -->
+  <div class="page-header">
+    <div class="title-area">
+      <h1>Members Directory</h1>
+      <p>Manage gym subscriptions, billing balances, and profile states.</p>
+    </div>
+    <div class="actions-area">
+      <button mat-raised-button color="primary" (click)="openAddMemberDialog()">
+        <mat-icon>person_add</mat-icon>
+        <span>Register New Member</span>
+      </button>
+    </div>
+  </div>
+
+  <!-- Filters Panel -->
+  <div class="mat-card filters-panel">
+    <div class="filters-grid">
+      <!-- Search Input -->
+      <mat-form-field appearance="outline" class="search-field">
+        <mat-label>Search members...</mat-label>
+        <input matInput [(ngModel)]="searchQuery" (ngModelChange)="applyFilters()" placeholder="Search by name, email, phone...">
+        <mat-icon matPrefix>search</mat-icon>
+        <button *ngIf="searchQuery" matSuffix mat-icon-button aria-label="Clear" (click)="searchQuery=''; applyFilters()">
+          <mat-icon>close</mat-icon>
+        </button>
+      </mat-form-field>
+
+      <!-- Status Filter -->
+      <mat-form-field appearance="outline">
+        <mat-label>Filter by Status</mat-label>
+        <mat-select [(ngModel)]="selectedStatus" (selectionChange)="applyFilters()">
+          <mat-option value="all">All Statuses</mat-option>
+          <mat-option value="active">Active</mat-option>
+          <mat-option value="expiring">Expiring</mat-option>
+          <mat-option value="inactive">Inactive</mat-option>
+        </mat-select>
+      </mat-form-field>
+
+      <!-- Plan Filter -->
+      <mat-form-field appearance="outline">
+        <mat-label>Filter by Plan</mat-label>
+        <mat-select [(ngModel)]="selectedPlan" (selectionChange)="applyFilters()">
+          <mat-option value="all">All Plans</mat-option>
+          <mat-option *ngFor="let plan of plans" [value]="plan.id">{{ plan.name }}</mat-option>
+        </mat-select>
+      </mat-form-field>
+
+      <!-- Reset button -->
+      <button mat-button class="reset-btn" (click)="resetFilters()" [disabled]="!searchQuery && selectedStatus === 'all' && selectedPlan === 'all'">
+        <mat-icon>filter_list_off</mat-icon>
+        <span>Reset Filters</span>
+      </button>
+    </div>
+  </div>
+
+  <!-- Data Table Panel -->
+  <div class="table-container-card mat-card">
+    <div class="table-scroll-wrapper">
+      <table mat-table [dataSource]="dataSource" matSort class="w-100">
+        
+        <!-- Photo/Avatar Column -->
+        <ng-container matColumnDef="photo">
+          <th mat-header-cell *matHeaderCellDef style="width: 70px"> Photo </th>
+          <td mat-cell *matCellDef="let element">
+            <div class="member-photo-circle">
+              <img *ngIf="element.avatarUrl; else defaultAvatar" [src]="element.avatarUrl" [alt]="element.name">
+              <ng-template #defaultAvatar>
+                <mat-icon class="def-icon">person</mat-icon>
+              </ng-template>
+            </div>
+          </td>
+        </ng-container>
+
+        <!-- Name & Email Column -->
+        <ng-container matColumnDef="name">
+          <th mat-header-cell *matHeaderCellDef mat-sort-header> Member Details </th>
+          <td mat-cell *matCellDef="let element">
+            <div class="member-details-cell">
+              <span class="member-name">{{ element.name }}</span>
+              <span class="member-email">{{ element.email }}</span>
+            </div>
+          </td>
+        </ng-container>
+
+        <!-- Contact Column -->
+        <ng-container matColumnDef="contact">
+          <th mat-header-cell *matHeaderCellDef> Contact Phone </th>
+          <td mat-cell *matCellDef="let element"> {{ element.phone }} </td>
+        </ng-container>
+
+        <!-- Plan Column -->
+        <ng-container matColumnDef="plan">
+          <th mat-header-cell *matHeaderCellDef mat-sort-header> Plan Type </th>
+          <td mat-cell *matCellDef="let element">
+            <div class="plan-cell">
+              <span class="plan-name-txt">{{ element.planName }}</span>
+              <span class="plan-balance" *ngIf="element.balance > 0" color="warn">
+                Due: \${{ element.balance }}
+              </span>
+            </div>
+          </td>
+        </ng-container>
+
+        <!-- Dates Column -->
+        <ng-container matColumnDef="dates">
+          <th mat-header-cell *matHeaderCellDef> Membership Window </th>
+          <td mat-cell *matCellDef="let element">
+            <div class="dates-cell">
+              <span class="date-row"><strong>Start:</strong> {{ element.startDate | date:'mediumDate' }}</span>
+              <span class="date-row"><strong>End:</strong> {{ element.endDate | date:'mediumDate' }}</span>
+            </div>
+          </td>
+        </ng-container>
+
+        <!-- Status Column -->
+        <ng-container matColumnDef="status">
+          <th mat-header-cell *matHeaderCellDef mat-sort-header style="width: 100px"> Status </th>
+          <td mat-cell *matCellDef="let element">
+            <span class="status-badge" [ngClass]="element.status">{{ element.status }}</span>
+          </td>
+        </ng-container>
+
+        <!-- Actions Column -->
+        <ng-container matColumnDef="actions">
+          <th mat-header-cell *matHeaderCellDef style="width: 110px; text-align: center"> Actions </th>
+          <td mat-cell *matCellDef="let element" style="text-align: center">
+            <div class="actions-wrapper">
+              <button mat-icon-button color="accent" (click)="openEditMemberDialog(element)" matTooltip="Edit Profile">
+                <mat-icon>edit</mat-icon>
+              </button>
+              <button mat-icon-button color="warn" (click)="confirmDeleteMember(element)" matTooltip="Delete Profile">
+                <mat-icon>delete</mat-icon>
+              </button>
+            </div>
+          </td>
+        </ng-container>
+
+        <!-- Row Declarations -->
+        <tr mat-header-row *matHeaderRowDef="displayedColumns"></tr>
+        <tr mat-row *matRowDef="let row; columns: displayedColumns;"></tr>
+      </table>
+
+      <!-- Empty state when search yields no matches -->
+      <div class="empty-table-state" *ngIf="dataSource.filteredData.length === 0">
+        <mat-icon>search_off</mat-icon>
+        <h3>No matching members found</h3>
+        <p>Try adjusting your search query or switching your status/plan filters.</p>
+        <button mat-flat-button color="primary" (click)="resetFilters()">Clear All Filters</button>
+      </div>
+    </div>
+
+    <!-- Paginator -->
+    <mat-paginator [pageSizeOptions]="[5, 10, 20]" showFirstLastButtons aria-label="Select page of members"></mat-paginator>
+  </div>
+</div>
