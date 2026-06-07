@@ -6,8 +6,9 @@ import { MatIconModule } from '@angular/material/icon';
 import { MatButtonModule } from '@angular/material/button';
 import { MatTableModule } from '@angular/material/table';
 import { MatTooltipModule } from '@angular/material/tooltip';
+import { MatTabsModule } from '@angular/material/tabs';
 import { GymService } from '../../services/gym.service';
-import { Member, Attendance, ActivityLog } from '../../interfaces/gym.model';
+import { Member, Attendance, ActivityLog, Payment, Lead } from '../../interfaces/gym.model';
 import { Observable, combineLatest } from 'rxjs';
 import { map } from 'rxjs/operators';
 
@@ -29,17 +30,23 @@ interface DashboardStats {
     MatIconModule,
     MatButtonModule,
     MatTableModule,
-    MatTooltipModule
+    MatTooltipModule,
+    MatTabsModule
   ],
   templateUrl: './dashboard.component.html',
   styleUrls: ['./dashboard.component.scss']
 })
 export class DashboardComponent implements OnInit {
-  stats$: Observable<DashboardStats> | undefined;
+  stats$: Observable<any> | undefined;
   todayAttendance$: Observable<Attendance[]> | undefined;
   recentLogs$: Observable<ActivityLog[]> | undefined;
   
   attendanceSummary$: Observable<{ present: number; total: number; percentage: number }> | undefined;
+  
+  expiringMembers$: Observable<Member[]> | undefined;
+  pendingPayments$: Observable<Payment[]> | undefined;
+  newMembers$: Observable<Member[]> | undefined;
+  leadFollowUps$: Observable<Lead[]> | undefined;
   
   displayedColumns = ['avatar', 'name', 'time', 'status'];
 
@@ -69,25 +76,43 @@ export class DashboardComponent implements OnInit {
     // 1. Calculate stats dynamically based on active member lists
     this.stats$ = combineLatest([
       this.gymService.members$,
-      this.gymService.payments$
+      this.gymService.payments$,
+      this.gymService.leads$
     ]).pipe(
-      map(([members, payments]) => {
+      map(([members, payments, leads]) => {
         const totalMembers = members.length;
         const activeMembers = members.filter(m => m.status === 'active').length;
-        const expiringCount = members.filter(m => m.status === 'expiring').length;
         const activePercentage = totalMembers > 0 ? Math.round((activeMembers / totalMembers) * 100) : 0;
         
-        // Sum paid amounts in the current month/year (or total revenue for simple demo)
+        // Expiring this week: endDate within 7 days
+        const now = new Date();
+        const nextWeek = new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000);
+        const expiringThisWeek = members.filter(m => {
+          if (m.status === 'inactive') return false;
+          const end = new Date(m.endDate);
+          return end >= now && end <= nextWeek;
+        }).length;
+
+        const pendingPaymentsCount = payments.filter(p => p.status === 'pending').length;
+        
+        // Total monthly revenue (paid payments)
         const monthlyRevenue = payments
           .filter(p => p.status === 'paid')
           .reduce((sum, p) => sum + p.amount, 0);
+
+        // Lead conversion rate
+        const totalLeads = leads.length;
+        const converted = leads.filter(l => l.status === 'Converted').length;
+        const leadsConversionRate = totalLeads > 0 ? Math.round((converted / totalLeads) * 100) : 0;
 
         return {
           totalMembers,
           activeMembers,
           activePercentage,
+          expiringThisWeek,
+          pendingPaymentsCount,
           monthlyRevenue,
-          expiringCount
+          leadsConversionRate
         };
       })
     );
@@ -104,7 +129,6 @@ export class DashboardComponent implements OnInit {
       this.todayAttendance$
     ]).pipe(
       map(([members, todayAtt]) => {
-        // eligible members for attendance (exclude inactive)
         const eligibleCount = members.filter(m => m.status !== 'inactive').length;
         const presentCount = todayAtt.filter(a => a.status === 'present').length;
         const percentage = eligibleCount > 0 ? Math.round((presentCount / eligibleCount) * 100) : 0;
@@ -120,6 +144,26 @@ export class DashboardComponent implements OnInit {
     // 4. Fetch last 5 logs
     this.recentLogs$ = this.gymService.logs$.pipe(
       map(logs => logs.slice(0, 5))
+    );
+
+    // 5. Fetch expiring members list (top 5)
+    this.expiringMembers$ = this.gymService.members$.pipe(
+      map(list => list.filter(m => m.status === 'expiring').slice(0, 5))
+    );
+
+    // 6. Fetch pending payments list (top 5)
+    this.pendingPayments$ = this.gymService.payments$.pipe(
+      map(list => list.filter(p => p.status === 'pending').slice(0, 5))
+    );
+
+    // 7. Fetch new members list (sorted by startDate desc, top 5)
+    this.newMembers$ = this.gymService.members$.pipe(
+      map(list => [...list].sort((a, b) => new Date(b.startDate).getTime() - new Date(a.startDate).getTime()).slice(0, 5))
+    );
+
+    // 8. Fetch lead follow ups (top 5)
+    this.leadFollowUps$ = this.gymService.leads$.pipe(
+      map(list => list.filter(l => l.status === 'Follow Up').slice(0, 5))
     );
   }
 
