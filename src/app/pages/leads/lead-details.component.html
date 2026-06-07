@@ -1,0 +1,163 @@
+<div class="details-page-wrapper" *ngIf="lead; else notFound">
+  <!-- Back Button & Page Header -->
+  <div class="page-header-nav">
+    <a routerLink="/leads" class="back-link">
+      <mat-icon>arrow_back</mat-icon>
+      <span>Back to Leads</span>
+    </a>
+  </div>
+
+  <!-- Main Profile Card Header -->
+  <mat-card class="profile-header-card mat-card">
+    <div class="profile-header-flex">
+      <div class="profile-avatar-wrapper">
+        <div class="profile-avatar-circle">
+          <mat-icon>person</mat-icon>
+        </div>
+      </div>
+      <div class="profile-title-details">
+        <div class="profile-name-row">
+          <h2>{{ lead.name }}</h2>
+          <span class="status-badge" [ngClass]="getStatusClass(lead.status)">{{ lead.status }}</span>
+        </div>
+        <p class="profile-meta"><mat-icon>mail</mat-icon> {{ lead.email }}</p>
+        <p class="profile-meta"><mat-icon>phone</mat-icon> {{ lead.phone }}</p>
+      </div>
+      <div class="profile-actions">
+        <button mat-flat-button color="primary" (click)="openConvertDialog()" *ngIf="lead.status !== 'Converted'">
+          <mat-icon>how_to_reg</mat-icon>
+          <span>Convert to Member</span>
+        </button>
+        <button mat-stroked-button (click)="openEditDialog()" class="edit-btn">
+          <mat-icon>edit</mat-icon>
+          <span>Edit Details</span>
+        </button>
+        <button mat-icon-button color="warn" (click)="confirmDelete()" matTooltip="Delete Lead">
+          <mat-icon>delete</mat-icon>
+        </button>
+      </div>
+    </div>
+  </mat-card>
+
+  <!-- Converted Member Alert -->
+  <mat-card class="converted-alert-card mat-card" *ngIf="lead.status === 'Converted' && convertedMember">
+    <div class="alert-content">
+      <mat-icon class="alert-icon">check_circle</mat-icon>
+      <div class="alert-text">
+        <h3>Converted to Active Member</h3>
+        <p>This lead has been successfully converted. A member profile exists for <strong>{{ convertedMember.name }}</strong>.</p>
+      </div>
+      <button mat-raised-button color="primary" [routerLink]="['/members', convertedMember.id]" class="view-profile-btn">
+        <mat-icon>visibility</mat-icon>
+        <span>View Member Profile</span>
+      </button>
+    </div>
+  </mat-card>
+
+  <!-- Detail Content Grid -->
+  <div class="details-grid-layout">
+    <!-- Left Column: Details Overview -->
+    <mat-card class="details-card mat-card">
+      <h3 class="card-section-title"><mat-icon>info</mat-icon> Lead Information</h3>
+      
+      <div class="info-list">
+        <div class="info-item">
+          <span class="info-label">Lead ID</span>
+          <span class="info-value font-mono">{{ lead.id }}</span>
+        </div>
+
+        <mat-divider></mat-divider>
+
+        <div class="info-item">
+          <span class="info-label">Lead Source</span>
+          <span class="info-value">{{ lead.leadSource }}</span>
+        </div>
+
+        <mat-divider></mat-divider>
+
+        <div class="info-item">
+          <span class="info-label">Trial Date</span>
+          <span class="info-value">{{ lead.trialDate | date:'fullDate' }}</span>
+        </div>
+
+        <mat-divider></mat-divider>
+
+        <div class="info-item">
+          <span class="info-label">Follow Up Date</span>
+          <span class="info-value">{{ lead.followUpDate | date:'fullDate' }}</span>
+        </div>
+
+        <mat-divider></mat-divider>
+
+        <div class="info-item">
+          <span class="info-label">Interested Plan</span>
+          <span class="info-value">{{ lead.interestedPlan }}</span>
+        </div>
+
+        <mat-divider></mat-divider>
+
+        <div class="info-item">
+          <span class="info-label">Assigned Staff</span>
+          <span class="info-value highlight-value">{{ lead.assignedStaff || 'Unassigned' }}</span>
+        </div>
+      </div>
+    </mat-card>
+
+    <!-- Right Column: Notes & History -->
+    <mat-card class="details-card mat-card">
+      <h3 class="card-section-title"><mat-icon>notes</mat-icon> Notes & Requirements</h3>
+      <div class="notes-content">
+        <p *ngIf="lead.notes; else noNotes">{{ lead.notes }}</p>
+        <ng-template #noNotes>
+          <div class="empty-notes">
+            <mat-icon>description</mat-icon>
+            <p>No additional notes or requirements recorded for this lead.</p>
+          </div>
+        </ng-template>
+      </div>
+
+      <div class="timeline-log mt-lg">
+        <h3 class="card-section-title"><mat-icon>history</mat-icon> Action Timeline</h3>
+        <div class="timeline-wrapper">
+          <div class="timeline-step active">
+            <span class="timeline-dot"></span>
+            <div class="timeline-details">
+              <span class="timeline-title">Lead Created</span>
+              <span class="timeline-time">First inquiry logged</span>
+            </div>
+          </div>
+          <div class="timeline-step" [ngClass]="{ active: lead.status !== 'New' }">
+            <span class="timeline-dot"></span>
+            <div class="timeline-details">
+              <span class="timeline-title">Contacted</span>
+              <span class="timeline-time">Follow up call / email sent</span>
+            </div>
+          </div>
+          <div class="timeline-step" [ngClass]="{ active: lead.status === 'Trial Scheduled' || lead.status === 'Converted' }">
+            <span class="timeline-dot"></span>
+            <div class="timeline-details">
+              <span class="timeline-title">Trial Scheduled</span>
+              <span class="timeline-time">Registered trial session: {{ lead.trialDate | date:'shortDate' }}</span>
+            </div>
+          </div>
+          <div class="timeline-step" [ngClass]="{ active: lead.status === 'Converted', lost: lead.status === 'Lost' }">
+            <span class="timeline-dot"></span>
+            <div class="timeline-details">
+              <span class="timeline-title">{{ lead.status === 'Lost' ? 'Lost' : 'Converted' }}</span>
+              <span class="timeline-time">Outcome finalized</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </mat-card>
+  </div>
+</div>
+
+<ng-template #notFound>
+  <div class="not-found-container">
+    <mat-icon>error_outline</mat-icon>
+    <h2>Lead Profile Not Found</h2>
+    <p>The requested lead ID does not exist or may have been deleted.</p>
+    <button mat-raised-button color="primary" routerLink="/leads">Back to Leads Directory</button>
+  </div>
+</ng-template>

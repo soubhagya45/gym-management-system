@@ -1,6 +1,7 @@
 import { Component, OnInit, ViewChild, AfterViewInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
+import { Router, RouterModule } from '@angular/router';
 import { MatTableModule, MatTableDataSource } from '@angular/material/table';
 import { MatPaginator, MatPaginatorModule } from '@angular/material/paginator';
 import { MatSort, MatSortModule } from '@angular/material/sort';
@@ -17,10 +18,11 @@ import { GymService } from '../../services/gym.service';
 import { Lead } from '../../interfaces/gym.model';
 import { LeadDialogComponent } from './lead-dialog.component';
 import { ConfirmDialogComponent } from '../members/confirm-dialog.component';
+import { ConvertDialogComponent } from './convert-dialog.component';
 
 interface LeadStats {
   total: number;
-  activeTrials: number;
+  newLeads: number;
   converted: number;
   conversionRate: number;
 }
@@ -31,6 +33,7 @@ interface LeadStats {
   imports: [
     CommonModule,
     FormsModule,
+    RouterModule,
     MatTableModule,
     MatPaginatorModule,
     MatSortModule,
@@ -48,7 +51,7 @@ interface LeadStats {
   styleUrls: ['./leads.component.scss']
 })
 export class LeadsComponent implements OnInit, AfterViewInit {
-  displayedColumns: string[] = ['name', 'phone', 'trialDate', 'leadSource', 'followUpDate', 'status', 'actions'];
+  displayedColumns: string[] = ['name', 'phone', 'trialDate', 'leadSource', 'interestedPlan', 'assignedStaff', 'status', 'actions'];
   dataSource = new MatTableDataSource<Lead>();
 
   searchQuery = '';
@@ -57,7 +60,7 @@ export class LeadsComponent implements OnInit, AfterViewInit {
 
   stats: LeadStats = {
     total: 0,
-    activeTrials: 0,
+    newLeads: 0,
     converted: 0,
     conversionRate: 0
   };
@@ -68,7 +71,8 @@ export class LeadsComponent implements OnInit, AfterViewInit {
   constructor(
     private gymService: GymService,
     private dialog: MatDialog,
-    private snackBar: MatSnackBar
+    private snackBar: MatSnackBar,
+    private router: Router
   ) {}
 
   ngOnInit(): void {
@@ -79,14 +83,19 @@ export class LeadsComponent implements OnInit, AfterViewInit {
       this.applyFilters();
     });
 
-    // Custom filtering algorithm that handles name, phone, source, status
+    // Custom filtering algorithm that handles name, phone, source, status, plan, notes, staff
     this.dataSource.filterPredicate = (data: Lead, filter: string) => {
       const searchTerms = JSON.parse(filter);
       
+      const query = searchTerms.query;
       const matchesSearch = 
-        data.name.toLowerCase().includes(searchTerms.query) ||
-        data.phone.includes(searchTerms.query) ||
-        data.leadSource.toLowerCase().includes(searchTerms.query);
+        data.name.toLowerCase().includes(query) ||
+        data.phone.includes(query) ||
+        data.email?.toLowerCase().includes(query) ||
+        data.leadSource.toLowerCase().includes(query) ||
+        data.interestedPlan.toLowerCase().includes(query) ||
+        (data.notes && data.notes.toLowerCase().includes(query)) ||
+        (data.assignedStaff && data.assignedStaff.toLowerCase().includes(query));
         
       const matchesStatus = 
         searchTerms.status === 'all' || 
@@ -96,7 +105,7 @@ export class LeadsComponent implements OnInit, AfterViewInit {
         searchTerms.source === 'all' || 
         data.leadSource === searchTerms.source;
 
-      return matchesSearch && matchesStatus && matchesSource;
+      return !!(matchesSearch && matchesStatus && matchesSource);
     };
   }
 
@@ -109,6 +118,8 @@ export class LeadsComponent implements OnInit, AfterViewInit {
       switch(property) {
         case 'name': return item.name.toLowerCase();
         case 'leadSource': return item.leadSource.toLowerCase();
+        case 'interestedPlan': return item.interestedPlan.toLowerCase();
+        case 'assignedStaff': return (item.assignedStaff || '').toLowerCase();
         case 'status': return item.status.toLowerCase();
         default: return (item as any)[property];
       }
@@ -117,13 +128,13 @@ export class LeadsComponent implements OnInit, AfterViewInit {
 
   calculateStats(leads: Lead[]): void {
     const total = leads.length;
-    const activeTrials = leads.filter(l => l.status === 'Trial Booked').length;
+    const newLeads = leads.filter(l => l.status === 'New').length;
     const converted = leads.filter(l => l.status === 'Converted').length;
     const conversionRate = total > 0 ? Math.round((converted / total) * 100) : 0;
 
     this.stats = {
       total,
-      activeTrials,
+      newLeads,
       converted,
       conversionRate
     };
@@ -151,20 +162,8 @@ export class LeadsComponent implements OnInit, AfterViewInit {
 
   // --- Add Lead ---
   openAddLeadDialog(): void {
-    const dialogRef = this.dialog.open(LeadDialogComponent, {
-      width: '600px',
-      data: null
-    });
-
-    dialogRef.afterClosed().subscribe(result => {
-      if (result) {
-        this.gymService.addLead(result);
-        this.snackBar.open('New lead registered successfully!', 'Dismiss', {
-          duration: 3000,
-          panelClass: ['premium-snack']
-        });
-      }
-    });
+    // Navigate to dedicated Add Lead Page
+    this.router.navigate(['/leads/add']);
   }
 
   // --- Edit Lead ---
@@ -208,11 +207,30 @@ export class LeadsComponent implements OnInit, AfterViewInit {
     });
   }
 
+  // --- Convert Lead to Member ---
+  openConvertDialog(lead: Lead): void {
+    const dialogRef = this.dialog.open(ConvertDialogComponent, {
+      width: '650px',
+      data: lead
+    });
+
+    dialogRef.afterClosed().subscribe(result => {
+      if (result) {
+        this.gymService.convertLeadToMember(lead.id, result);
+        this.snackBar.open(`Successfully converted ${lead.name} to a member!`, 'Dismiss', {
+          duration: 3000,
+          panelClass: ['premium-snack']
+        });
+      }
+    });
+  }
+
   // Helper method for status CSS classes
   getStatusClass(status: string): string {
     switch (status) {
-      case 'New Lead': return 'new-lead-badge';
-      case 'Trial Booked': return 'trial-booked-badge';
+      case 'New': return 'new-badge';
+      case 'Contacted': return 'contacted-badge';
+      case 'Trial Scheduled': return 'trial-scheduled-badge';
       case 'Follow Up': return 'follow-up-badge';
       case 'Converted': return 'converted-badge';
       case 'Lost': return 'lost-badge';

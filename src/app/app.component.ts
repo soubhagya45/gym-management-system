@@ -61,6 +61,10 @@ export class AppComponent implements OnInit {
     ).subscribe((event: any) => {
       if (event.urlAfterRedirects.includes('/members/') && event.urlAfterRedirects.match(/\/members\/[a-zA-Z0-9-]+/)) {
         this.pageTitle = 'Member Profile';
+      } else if (event.urlAfterRedirects.includes('/leads/add')) {
+        this.pageTitle = 'Add New Lead';
+      } else if (event.urlAfterRedirects.includes('/leads/') && event.urlAfterRedirects.match(/\/leads\/[a-zA-Z0-9-]+/)) {
+        this.pageTitle = 'Lead Details';
       } else {
         const currentRoute = this.menuItems.find(item => event.urlAfterRedirects.includes(item.route));
         this.pageTitle = currentRoute ? currentRoute.label : 'Dashboard';
