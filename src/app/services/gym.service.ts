@@ -1,6 +1,6 @@
 import { Injectable } from '@angular/core';
 import { BehaviorSubject, Observable } from 'rxjs';
-import { Member, Attendance, Payment, MembershipPlan, Trainer, ActivityLog } from '../interfaces/gym.model';
+import { Member, Attendance, Payment, MembershipPlan, Trainer, ActivityLog, Lead } from '../interfaces/gym.model';
 
 @Injectable({
   providedIn: 'root'
@@ -261,6 +261,14 @@ export class GymService {
     { id: 'att-h15', memberId: 'mem-7', memberName: 'Ryan Gosling', date: '2026-06-02', timeIn: '10:05 AM', status: 'present' }
   ];
 
+  private initialLeads: Lead[] = [
+    { id: 'lead-1', name: 'Robert Downey', phone: '+1 (555) 901-4433', trialDate: '2026-06-10', leadSource: 'Social Media', followUpDate: '2026-06-12', status: 'New Lead' },
+    { id: 'lead-2', name: 'Scarlett Johansson', phone: '+1 (555) 888-2211', trialDate: '2026-06-05', leadSource: 'Referral', followUpDate: '2026-06-08', status: 'Trial Booked' },
+    { id: 'lead-3', name: 'Chris Evans', phone: '+1 (555) 777-1199', trialDate: '2026-06-01', leadSource: 'Website', followUpDate: '2026-06-04', status: 'Follow Up' },
+    { id: 'lead-4', name: 'Mark Ruffalo', phone: '+1 (555) 666-8800', trialDate: '2026-05-20', leadSource: 'Walk-in', followUpDate: '2026-05-22', status: 'Converted' },
+    { id: 'lead-5', name: 'Jeremy Renner', phone: '+1 (555) 555-9988', trialDate: '2026-05-15', leadSource: 'Social Media', followUpDate: '2026-05-18', status: 'Lost' }
+  ];
+
   private initialLogs: ActivityLog[] = [
     { id: 'log-1', text: 'Sophia Chen checked in today at 07:30 AM', time: '1 hour ago', type: 'attendance' },
     { id: 'log-2', text: 'Recorded payment of $399 from Emma Watson', time: '3 hours ago', type: 'payment' },
@@ -275,6 +283,7 @@ export class GymService {
   private paymentsSubject = new BehaviorSubject<Payment[]>(this.initialPayments);
   private attendanceSubject = new BehaviorSubject<Attendance[]>(this.initialAttendance);
   private logsSubject = new BehaviorSubject<ActivityLog[]>(this.initialLogs);
+  private leadsSubject = new BehaviorSubject<Lead[]>(this.initialLeads);
 
   // 3. Exposed Observables
   members$ = this.membersSubject.asObservable();
@@ -283,6 +292,7 @@ export class GymService {
   payments$ = this.paymentsSubject.asObservable();
   attendance$ = this.attendanceSubject.asObservable();
   logs$ = this.logsSubject.asObservable();
+  leads$ = this.leadsSubject.asObservable();
 
   constructor() {}
 
@@ -518,5 +528,36 @@ export class GymService {
     });
 
     this.plansSubject.next(plans);
+  }
+
+  // --- Lead Actions ---
+  addLead(lead: Omit<Lead, 'id'>): void {
+    const newLead: Lead = {
+      ...lead,
+      id: 'lead-' + Math.random().toString(36).substring(2, 9)
+    };
+    const currentLeads = this.leadsSubject.value;
+    this.leadsSubject.next([newLead, ...currentLeads]);
+    this.addLog(`New trial lead registered: ${newLead.name} via ${newLead.leadSource}`, 'join');
+  }
+
+  updateLead(updatedLead: Lead): void {
+    const currentLeads = this.leadsSubject.value;
+    const index = currentLeads.findIndex(l => l.id === updatedLead.id);
+    if (index !== -1) {
+      const updated = [...currentLeads];
+      updated[index] = updatedLead;
+      this.leadsSubject.next(updated);
+      this.addLog(`Updated lead file for: ${updatedLead.name}`, 'plan-change');
+    }
+  }
+
+  deleteLead(id: string): void {
+    const currentLeads = this.leadsSubject.value;
+    const leadToDelete = currentLeads.find(l => l.id === id);
+    if (leadToDelete) {
+      this.leadsSubject.next(currentLeads.filter(l => l.id !== id));
+      this.addLog(`Removed lead profile: ${leadToDelete.name}`, 'plan-change');
+    }
   }
 }

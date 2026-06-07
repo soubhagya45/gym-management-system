@@ -1,0 +1,187 @@
+<div class="leads-page-wrapper">
+  <!-- Page Header -->
+  <div class="page-header">
+    <div class="title-area">
+      <h1>Leads Directory</h1>
+      <p>Track prospective trial members, scheduled follow ups, and conversion outcomes.</p>
+    </div>
+    <div class="actions-area">
+      <button mat-raised-button color="primary" (click)="openAddLeadDialog()">
+        <mat-icon>person_add</mat-icon>
+        <span>Add Trial Lead</span>
+      </button>
+    </div>
+  </div>
+
+  <!-- Summary Stats Panel -->
+  <div class="stats-panel-grid">
+    <!-- Total Leads -->
+    <mat-card class="stat-card-box">
+      <div class="stat-icon-wrapper primary">
+        <mat-icon>groups</mat-icon>
+      </div>
+      <div class="stat-info">
+        <span class="value">{{ stats.total }}</span>
+        <span class="label">Total Leads</span>
+      </div>
+    </mat-card>
+
+    <!-- Active Trials -->
+    <mat-card class="stat-card-box">
+      <div class="stat-icon-wrapper success">
+        <mat-icon>event_available</mat-icon>
+      </div>
+      <div class="stat-info">
+        <span class="value">{{ stats.activeTrials }}</span>
+        <span class="label">Active Trials</span>
+      </div>
+    </mat-card>
+
+    <!-- Converted Leads -->
+    <mat-card class="stat-card-box">
+      <div class="stat-icon-wrapper warning">
+        <mat-icon>person_add_alt_1</mat-icon>
+      </div>
+      <div class="stat-info">
+        <span class="value">{{ stats.converted }}</span>
+        <span class="label">Converted Leads</span>
+      </div>
+    </mat-card>
+
+    <!-- Conversion Rate -->
+    <mat-card class="stat-card-box">
+      <div class="stat-icon-wrapper danger">
+        <mat-icon>insights</mat-icon>
+      </div>
+      <div class="stat-info">
+        <span class="value">{{ stats.conversionRate }}%</span>
+        <span class="label">Conversion Rate</span>
+      </div>
+    </mat-card>
+  </div>
+
+  <!-- Filters Panel -->
+  <div class="mat-card filters-panel">
+    <div class="filters-grid">
+      <!-- Search Input -->
+      <mat-form-field appearance="outline" class="search-field">
+        <mat-label>Search leads...</mat-label>
+        <input matInput [(ngModel)]="searchQuery" (ngModelChange)="applyFilters()" placeholder="Search by name, phone, source...">
+        <mat-icon matPrefix>search</mat-icon>
+        <button *ngIf="searchQuery" matSuffix mat-icon-button aria-label="Clear" (click)="searchQuery=''; applyFilters()">
+          <mat-icon>close</mat-icon>
+        </button>
+      </mat-form-field>
+
+      <!-- Status Filter -->
+      <mat-form-field appearance="outline">
+        <mat-label>Filter by Status</mat-label>
+        <mat-select [(ngModel)]="selectedStatus" (selectionChange)="applyFilters()">
+          <mat-option value="all">All Statuses</mat-option>
+          <mat-option value="New Lead">New Lead</mat-option>
+          <mat-option value="Trial Booked">Trial Booked</mat-option>
+          <mat-option value="Follow Up">Follow Up</mat-option>
+          <mat-option value="Converted">Converted</mat-option>
+          <mat-option value="Lost">Lost</mat-option>
+        </mat-select>
+      </mat-form-field>
+
+      <!-- Source Filter -->
+      <mat-form-field appearance="outline">
+        <mat-label>Filter by Source</mat-label>
+        <mat-select [(ngModel)]="selectedSource" (selectionChange)="applyFilters()">
+          <mat-option value="all">All Sources</mat-option>
+          <mat-option value="Website">Website</mat-option>
+          <mat-option value="Social Media">Social Media</mat-option>
+          <mat-option value="Referral">Referral</mat-option>
+          <mat-option value="Walk-in">Walk-in</mat-option>
+          <mat-option value="Other">Other</mat-option>
+        </mat-select>
+      </mat-form-field>
+
+      <!-- Reset button -->
+      <button mat-button class="reset-btn" (click)="resetFilters()" [disabled]="!searchQuery && selectedStatus === 'all' && selectedSource === 'all'">
+        <mat-icon>filter_list_off</mat-icon>
+        <span>Reset Filters</span>
+      </button>
+    </div>
+  </div>
+
+  <!-- Data Table Panel -->
+  <div class="table-container-card mat-card">
+    <div class="table-scroll-wrapper">
+      <table mat-table [dataSource]="dataSource" matSort class="w-100">
+        
+        <!-- Name Column -->
+        <ng-container matColumnDef="name">
+          <th mat-header-cell *matHeaderCellDef mat-sort-header> Lead Name </th>
+          <td mat-cell *matCellDef="let element" class="name-cell"> {{ element.name }} </td>
+        </ng-container>
+
+        <!-- Phone Column -->
+        <ng-container matColumnDef="phone">
+          <th mat-header-cell *matHeaderCellDef mat-sort-header> Phone Number </th>
+          <td mat-cell *matCellDef="let element"> {{ element.phone }} </td>
+        </ng-container>
+
+        <!-- Trial Date Column -->
+        <ng-container matColumnDef="trialDate">
+          <th mat-header-cell *matHeaderCellDef mat-sort-header> Trial Date </th>
+          <td mat-cell *matCellDef="let element"> {{ element.trialDate | date:'mediumDate' }} </td>
+        </ng-container>
+
+        <!-- Source Column -->
+        <ng-container matColumnDef="leadSource">
+          <th mat-header-cell *matHeaderCellDef mat-sort-header> Lead Source </th>
+          <td mat-cell *matCellDef="let element"> {{ element.leadSource }} </td>
+        </ng-container>
+
+        <!-- Follow Up Date Column -->
+        <ng-container matColumnDef="followUpDate">
+          <th mat-header-cell *matHeaderCellDef mat-sort-header> Follow Up Date </th>
+          <td mat-cell *matCellDef="let element"> {{ element.followUpDate | date:'mediumDate' }} </td>
+        </ng-container>
+
+        <!-- Status Column -->
+        <ng-container matColumnDef="status">
+          <th mat-header-cell *matHeaderCellDef mat-sort-header style="width: 130px"> Status </th>
+          <td mat-cell *matCellDef="let element">
+            <span class="status-badge" [ngClass]="getStatusClass(element.status)">
+              {{ element.status }}
+            </span>
+          </td>
+        </ng-container>
+
+        <!-- Actions Column -->
+        <ng-container matColumnDef="actions">
+          <th mat-header-cell *matHeaderCellDef style="width: 110px; text-align: center"> Actions </th>
+          <td mat-cell *matCellDef="let element" style="text-align: center">
+            <div class="actions-wrapper">
+              <button mat-icon-button color="accent" (click)="openEditLeadDialog(element)" matTooltip="Edit Lead">
+                <mat-icon>edit</mat-icon>
+              </button>
+              <button mat-icon-button color="warn" (click)="confirmDeleteLead(element)" matTooltip="Delete Lead">
+                <mat-icon>delete</mat-icon>
+              </button>
+            </div>
+          </td>
+        </ng-container>
+
+        <!-- Row Declarations -->
+        <tr mat-header-row *matHeaderRowDef="displayedColumns"></tr>
+        <tr mat-row *matRowDef="let row; columns: displayedColumns;"></tr>
+      </table>
+
+      <!-- Empty state -->
+      <div class="empty-table-state" *ngIf="dataSource.filteredData.length === 0">
+        <mat-icon>search_off</mat-icon>
+        <h3>No matching trial leads found</h3>
+        <p>Try adjusting your search query or switching your status/source filters.</p>
+        <button mat-flat-button color="primary" (click)="resetFilters()">Clear All Filters</button>
+      </div>
+    </div>
+
+    <!-- Paginator -->
+    <mat-paginator [pageSizeOptions]="[5, 10, 20]" showFirstLastButtons aria-label="Select page of trial leads"></mat-paginator>
+  </div>
+</div>

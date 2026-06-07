@@ -26,6 +26,7 @@ export class AppComponent implements OnInit {
   menuItems: MenuItem[] = [
     { label: 'Dashboard', route: '/dashboard', icon: 'dashboard' },
     { label: 'Members', route: '/members', icon: 'people' },
+    { label: 'Leads', route: '/leads', icon: 'leaderboard' },
     { label: 'Attendance', route: '/attendance', icon: 'event_available' },
     { label: 'Payments', route: '/payments', icon: 'payments' },
     { label: 'Membership Plans', route: '/plans', icon: 'fitness_center' },
