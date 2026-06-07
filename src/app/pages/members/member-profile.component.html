@@ -1,0 +1,348 @@
+<div class="profile-page-wrapper" *ngIf="member; else notFound">
+  <!-- Page Header -->
+  <div class="page-header">
+    <div class="title-area">
+      <h1>Member Profile</h1>
+      <p>View fitness parameters, membership logs, and payment sheets.</p>
+    </div>
+    <div class="actions-area">
+      <a mat-button class="back-btn" routerLink="/members">
+        <mat-icon>arrow_back</mat-icon>
+        <span>Back to Directory</span>
+      </a>
+      <button mat-raised-button color="primary" (click)="openEditDialog()">
+        <mat-icon>edit</mat-icon>
+        <span>Edit Profile</span>
+      </button>
+    </div>
+  </div>
+
+  <div class="profile-grid">
+    <!-- Left Column: Personal info card -->
+    <div class="left-col">
+      <mat-card class="member-info-card">
+        <div class="profile-avatar-wrapper">
+          <div class="profile-avatar-circle">
+            <img *ngIf="member.avatarUrl; else defaultAvatar" [src]="member.avatarUrl" [alt]="member.name">
+            <ng-template #defaultAvatar>
+              <mat-icon class="def-icon">person</mat-icon>
+            </ng-template>
+          </div>
+          <span class="status-badge" [ngClass]="member.status">{{ member.status }}</span>
+        </div>
+
+        <div class="member-header-details">
+          <h2>{{ member.name }}</h2>
+          <span class="member-id-tag">ID: {{ member.id }}</span>
+        </div>
+
+        <mat-divider></mat-divider>
+
+        <div class="info-details-list">
+          <div class="info-row">
+            <mat-icon class="info-icon">email</mat-icon>
+            <div class="info-content">
+              <label>Email Address</label>
+              <span>{{ member.email }}</span>
+            </div>
+          </div>
+
+          <div class="info-row">
+            <mat-icon class="info-icon">phone</mat-icon>
+            <div class="info-content">
+              <label>Phone Number</label>
+              <span>{{ member.phone }}</span>
+            </div>
+          </div>
+
+          <div class="info-row">
+            <mat-icon class="info-icon">wc</mat-icon>
+            <div class="info-content">
+              <label>Gender / Sex</label>
+              <span>{{ member.gender }}</span>
+            </div>
+          </div>
+
+          <div class="info-row">
+            <mat-icon class="info-icon">cake</mat-icon>
+            <div class="info-content">
+              <label>Age</label>
+              <span>{{ member.age }} years old</span>
+            </div>
+          </div>
+        </div>
+
+        <mat-divider></mat-divider>
+
+        <!-- Physical Parameters quick glance -->
+        <div class="physical-params-grid">
+          <div class="param-box">
+            <mat-icon>height</mat-icon>
+            <span class="value">{{ member.height }} <small>cm</small></span>
+            <span class="label">Height</span>
+          </div>
+          <div class="param-box">
+            <mat-icon>monitor_weight</mat-icon>
+            <span class="value">{{ member.weight }} <small>kg</small></span>
+            <span class="label">Weight</span>
+          </div>
+          <div class="param-box">
+            <mat-icon>track_changes</mat-icon>
+            <span class="value font-sm">{{ member.fitnessGoal }}</span>
+            <span class="label">Primary Goal</span>
+          </div>
+        </div>
+      </mat-card>
+    </div>
+
+    <!-- Right Column: Detail tabs -->
+    <div class="right-col">
+      <mat-card class="details-tab-card">
+        <mat-tab-group animationDuration="300ms">
+          
+          <!-- Tab 1: Membership Details -->
+          <mat-tab>
+            <ng-template mat-tab-label>
+              <mat-icon class="tab-icon">card_membership</mat-icon>
+              <span>Membership</span>
+            </ng-template>
+            
+            <div class="tab-content membership-tab">
+              <div class="plan-hero-panel">
+                <div class="hero-left">
+                  <span class="label">Current Subscription</span>
+                  <h3>{{ member.planName }}</h3>
+                </div>
+                <div class="hero-right">
+                  <span class="days-indicator">{{ getDaysRemaining() }} days left</span>
+                </div>
+              </div>
+
+              <!-- Dates and Status rows -->
+              <div class="plan-timeline-grid">
+                <div class="timeline-item">
+                  <mat-icon>login</mat-icon>
+                  <div class="item-details">
+                    <label>Join Date</label>
+                    <span>{{ member.startDate | date:'longDate' }}</span>
+                  </div>
+                </div>
+                <div class="timeline-item">
+                  <mat-icon>logout</mat-icon>
+                  <div class="item-details">
+                    <label>Expiry Date</label>
+                    <span>{{ member.endDate | date:'longDate' }}</span>
+                  </div>
+                </div>
+              </div>
+
+              <mat-divider></mat-divider>
+
+              <div class="progress-section">
+                <div class="progress-labels">
+                  <span>Subscription Progress</span>
+                  <span>{{ getDaysPercent() }}% Elapsed</span>
+                </div>
+                <mat-progress-bar mode="determinate" [value]="getDaysPercent()" color="primary" class="premium-progress"></mat-progress-bar>
+              </div>
+
+              <div class="financial-quick-status">
+                <div class="status-item">
+                  <label>Total Balance Due</label>
+                  <span class="balance-amount" [class.due]="member.balance > 0">
+                    \${{ member.balance }}
+                  </span>
+                </div>
+                <div class="status-item">
+                  <label>Payment State</label>
+                  <span class="status-badge" [ngClass]="member.balance > 0 ? 'pending' : 'paid'">
+                    {{ member.balance > 0 ? 'Payment Due' : 'Paid / Clean' }}
+                  </span>
+                </div>
+              </div>
+            </div>
+          </mat-tab>
+
+          <!-- Tab 2: Attendance History -->
+          <mat-tab>
+            <ng-template mat-tab-label>
+              <mat-icon class="tab-icon">event_available</mat-icon>
+              <span>Attendance</span>
+            </ng-template>
+            
+            <div class="tab-content attendance-tab">
+              <div class="section-summary-header">
+                <h3>Attendance Check-in History</h3>
+                <span class="metric-tag">Total Visits: {{ member.attendanceCount }}</span>
+              </div>
+
+              <div class="table-scroll-wrapper" *ngIf="attendance.length > 0; else noAttendance">
+                <table mat-table [dataSource]="attendance" class="w-100">
+                  <ng-container matColumnDef="date">
+                    <th mat-header-cell *matHeaderCellDef> Check-in Date </th>
+                    <td mat-cell *matCellDef="let element"> {{ element.date | date:'fullDate' }} </td>
+                  </ng-container>
+
+                  <ng-container matColumnDef="timeIn">
+                    <th mat-header-cell *matHeaderCellDef> Time In </th>
+                    <td mat-cell *matCellDef="let element"> {{ element.timeIn || 'N/A' }} </td>
+                  </ng-container>
+
+                  <ng-container matColumnDef="status">
+                    <th mat-header-cell *matHeaderCellDef> Status </th>
+                    <td mat-cell *matCellDef="let element">
+                      <span class="status-badge" [ngClass]="element.status">{{ element.status }}</span>
+                    </td>
+                  </ng-container>
+
+                  <tr mat-header-row *matHeaderRowDef="attendanceColumns"></tr>
+                  <tr mat-row *matRowDef="let row; columns: attendanceColumns;"></tr>
+                </table>
+              </div>
+              <ng-template #noAttendance>
+                <div class="empty-tab-state">
+                  <mat-icon>event_busy</mat-icon>
+                  <h4>No attendance records found</h4>
+                  <p>This member has not checked into the gym yet.</p>
+                </div>
+              </ng-template>
+            </div>
+          </mat-tab>
+
+          <!-- Tab 3: Payment History -->
+          <mat-tab>
+            <ng-template mat-tab-label>
+              <mat-icon class="tab-icon">payments</mat-icon>
+              <span>Payment History</span>
+            </ng-template>
+            
+            <div class="tab-content payments-tab">
+              <div class="section-summary-header">
+                <h3>Billing & Transactions</h3>
+                <span class="metric-tag">Invoices: {{ payments.length }}</span>
+              </div>
+
+              <div class="table-scroll-wrapper" *ngIf="payments.length > 0; else noPayments">
+                <table mat-table [dataSource]="payments" class="w-100">
+                  <ng-container matColumnDef="id">
+                    <th mat-header-cell *matHeaderCellDef> Invoice ID </th>
+                    <td mat-cell *matCellDef="let element" class="invoice-id"> {{ element.id }} </td>
+                  </ng-container>
+
+                  <ng-container matColumnDef="planName">
+                    <th mat-header-cell *matHeaderCellDef> Item / Plan </th>
+                    <td mat-cell *matCellDef="let element"> {{ element.planName }} </td>
+                  </ng-container>
+
+                  <ng-container matColumnDef="date">
+                    <th mat-header-cell *matHeaderCellDef> Transaction Date </th>
+                    <td mat-cell *matCellDef="let element"> {{ element.date | date:'mediumDate' }} </td>
+                  </ng-container>
+
+                  <ng-container matColumnDef="amount">
+                    <th mat-header-cell *matHeaderCellDef> Amount </th>
+                    <td mat-cell *matCellDef="let element"> \${{ element.amount }} </td>
+                  </ng-container>
+
+                  <ng-container matColumnDef="status">
+                    <th mat-header-cell *matHeaderCellDef> Status </th>
+                    <td mat-cell *matCellDef="let element">
+                      <span class="status-badge" [ngClass]="element.status">{{ element.status }}</span>
+                    </td>
+                  </ng-container>
+
+                  <tr mat-header-row *matHeaderRowDef="paymentColumns"></tr>
+                  <tr mat-row *matRowDef="let row; columns: paymentColumns;"></tr>
+                </table>
+              </div>
+              <ng-template #noPayments>
+                <div class="empty-tab-state">
+                  <mat-icon>receipt_long</mat-icon>
+                  <h4>No invoices found</h4>
+                  <p>There are no recorded transactions for this member.</p>
+                </div>
+              </ng-template>
+            </div>
+          </mat-tab>
+
+          <!-- Tab 4: Fitness Progress -->
+          <mat-tab>
+            <ng-template mat-tab-label>
+              <mat-icon class="tab-icon">fitness_center</mat-icon>
+              <span>Fitness Progress</span>
+            </ng-template>
+            
+            <div class="tab-content fitness-tab">
+              <div class="section-summary-header">
+                <h3>Physical Health Metrics</h3>
+                <span class="metric-tag goal-tag">Goal: {{ member.fitnessGoal }}</span>
+              </div>
+
+              <!-- Stat Boxes Grid -->
+              <div class="fitness-stats-row">
+                <div class="stat-card">
+                  <span class="val">{{ member.weight }} <small>kg</small></span>
+                  <span class="lbl">Current Weight</span>
+                </div>
+                <div class="stat-card">
+                  <span class="val">{{ getBMI() }}</span>
+                  <span class="lbl">BMI Rating</span>
+                </div>
+                <div class="stat-card">
+                  <span class="val font-sm">{{ getBMICategory() }}</span>
+                  <span class="lbl">BMI Class</span>
+                </div>
+              </div>
+
+              <div class="weight-chart-wrapper">
+                <h4>Weight Progress Chart (5-Month Trend)</h4>
+                
+                <!-- SVG Line Chart rendering -->
+                <div class="svg-chart-container">
+                  <svg viewBox="0 0 450 150" class="progress-svg">
+                    <!-- Grid Lines -->
+                    <line x1="20" y1="20" x2="430" y2="20" stroke="var(--border-color)" stroke-dasharray="4"/>
+                    <line x1="20" y1="75" x2="430" y2="75" stroke="var(--border-color)" stroke-dasharray="4"/>
+                    <line x1="20" y1="130" x2="430" y2="130" stroke="var(--border-color)" stroke-dasharray="4"/>
+                    
+                    <!-- Fill Area under the line -->
+                    <path [attr.d]="getSVGFillPath(weightHistory)" fill="url(#chartGradient)" opacity="0.15"></path>
+                    
+                    <!-- Main Line -->
+                    <path [attr.d]="getSVGPath(weightHistory)" fill="none" stroke="var(--accent-color)" stroke-width="3"></path>
+                    
+                    <!-- Gradient definitions -->
+                    <defs>
+                      <linearGradient id="chartGradient" x1="0" y1="0" x2="0" y2="1">
+                        <stop offset="0%" stop-color="var(--accent-color)"/>
+                        <stop offset="100%" stop-color="transparent"/>
+                      </linearGradient>
+                    </defs>
+                  </svg>
+                  
+                  <!-- Labels under chart -->
+                  <div class="chart-labels">
+                    <div class="label-item" *ngFor="let item of weightHistory">
+                      <span class="lbl-month">{{ item.label }}</span>
+                      <span class="lbl-val">{{ item.value }} kg</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </mat-tab>
+          
+        </mat-tab-group>
+      </mat-card>
+    </div>
+  </div>
+</div>
+
+<ng-template #notFound>
+  <div class="empty-table-state not-found-wrapper">
+    <mat-icon>person_search</mat-icon>
+    <h3>Member profile not found</h3>
+    <p>We couldn't retrieve the details of the member you requested. They might have been removed.</p>
+    <a mat-flat-button color="primary" routerLink="/members">Back to Members Directory</a>
+  </div>
+</ng-template>

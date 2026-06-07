@@ -97,7 +97,12 @@ export class GymService {
       endDate: '2026-07-10',
       avatarUrl: 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=150',
       attendanceCount: 18,
-      balance: 0
+      balance: 0,
+      gender: 'Male',
+      age: 28,
+      height: 182,
+      weight: 79,
+      fitnessGoal: 'Muscle Gain'
     },
     {
       id: 'mem-2',
@@ -111,7 +116,12 @@ export class GymService {
       endDate: '2027-01-15',
       avatarUrl: 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=150',
       attendanceCount: 42,
-      balance: 0
+      balance: 0,
+      gender: 'Female',
+      age: 25,
+      height: 165,
+      weight: 58,
+      fitnessGoal: 'Cardio Fitness'
     },
     {
       id: 'mem-3',
@@ -125,7 +135,12 @@ export class GymService {
       endDate: '2026-06-08',
       avatarUrl: 'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=150',
       attendanceCount: 11,
-      balance: 49
+      balance: 49,
+      gender: 'Male',
+      age: 45,
+      height: 193,
+      weight: 88,
+      fitnessGoal: 'Strength Training'
     },
     {
       id: 'mem-4',
@@ -139,7 +154,12 @@ export class GymService {
       endDate: '2026-08-01',
       avatarUrl: 'https://images.unsplash.com/photo-1544005313-94ddf0286df2?w=150',
       attendanceCount: 8,
-      balance: 0
+      balance: 0,
+      gender: 'Female',
+      age: 31,
+      height: 168,
+      weight: 62,
+      fitnessGoal: 'Weight Loss'
     },
     {
       id: 'mem-5',
@@ -153,7 +173,12 @@ export class GymService {
       endDate: '2026-03-10',
       avatarUrl: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=150',
       attendanceCount: 4,
-      balance: 0
+      balance: 0,
+      gender: 'Male',
+      age: 38,
+      height: 178,
+      weight: 75,
+      fitnessGoal: 'General Fitness'
     },
     {
       id: 'mem-6',
@@ -167,7 +192,12 @@ export class GymService {
       endDate: '2027-03-20',
       avatarUrl: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150',
       attendanceCount: 29,
-      balance: 0
+      balance: 0,
+      gender: 'Female',
+      age: 29,
+      height: 165,
+      weight: 54,
+      fitnessGoal: 'Flexibility & Mobility'
     },
     {
       id: 'mem-7',
@@ -181,7 +211,12 @@ export class GymService {
       endDate: '2026-06-10',
       avatarUrl: 'https://images.unsplash.com/photo-1506794778202-cad84cf45f1d?w=150',
       attendanceCount: 22,
-      balance: 129
+      balance: 129,
+      gender: 'Male',
+      age: 34,
+      height: 184,
+      weight: 82,
+      fitnessGoal: 'Muscle Gain'
     }
   ];
 
@@ -191,7 +226,14 @@ export class GymService {
     { id: 'pay-3', memberId: 'mem-4', memberName: 'Olivia Martinez', amount: 129, date: '2026-05-01', status: 'paid', planName: 'Premium Quarterly' },
     { id: 'pay-4', memberId: 'mem-6', memberName: 'Emma Watson', amount: 399, date: '2026-03-20', status: 'paid', planName: 'Elite Annual Platinum' },
     { id: 'pay-5', memberId: 'mem-3', memberName: 'Liam Neeson', amount: 49, date: '2026-05-08', status: 'pending', planName: 'Essential Monthly' },
-    { id: 'pay-6', memberId: 'mem-7', memberName: 'Ryan Gosling', amount: 129, date: '2026-03-10', status: 'overdue', planName: 'Premium Quarterly' }
+    { id: 'pay-6', memberId: 'mem-7', memberName: 'Ryan Gosling', amount: 129, date: '2026-03-10', status: 'overdue', planName: 'Premium Quarterly' },
+    // Historical payments
+    { id: 'pay-h1', memberId: 'mem-1', memberName: 'Jonathan Miller', amount: 129, date: '2026-01-10', status: 'paid', planName: 'Premium Quarterly' },
+    { id: 'pay-h2', memberId: 'mem-2', memberName: 'Sophia Chen', amount: 399, date: '2025-01-15', status: 'paid', planName: 'Elite Annual Platinum' },
+    { id: 'pay-h3', memberId: 'mem-3', memberName: 'Liam Neeson', amount: 49, date: '2026-04-08', status: 'paid', planName: 'Essential Monthly' },
+    { id: 'pay-h4', memberId: 'mem-5', memberName: 'Ethan Hunt', amount: 49, date: '2026-02-10', status: 'paid', planName: 'Essential Monthly' },
+    { id: 'pay-h5', memberId: 'mem-6', memberName: 'Emma Watson', amount: 399, date: '2025-03-20', status: 'paid', planName: 'Elite Annual Platinum' },
+    { id: 'pay-h6', memberId: 'mem-7', memberName: 'Ryan Gosling', amount: 129, date: '2025-12-10', status: 'paid', planName: 'Premium Quarterly' }
   ];
 
   private initialAttendance: Attendance[] = [
@@ -200,7 +242,23 @@ export class GymService {
     { id: 'att-3', memberId: 'mem-4', memberName: 'Olivia Martinez', date: '2026-06-04', timeIn: '09:45 AM', status: 'present' },
     { id: 'att-4', memberId: 'mem-6', memberName: 'Emma Watson', date: '2026-06-04', timeIn: '06:05 AM', status: 'present' },
     { id: 'att-5', memberId: 'mem-3', memberName: 'Liam Neeson', date: '2026-06-04', timeIn: '', status: 'absent' },
-    { id: 'att-6', memberId: 'mem-7', memberName: 'Ryan Gosling', date: '2026-06-04', timeIn: '10:00 AM', status: 'present' }
+    { id: 'att-6', memberId: 'mem-7', memberName: 'Ryan Gosling', date: '2026-06-04', timeIn: '10:00 AM', status: 'present' },
+    // Historical attendance records
+    { id: 'att-h1', memberId: 'mem-1', memberName: 'Jonathan Miller', date: '2026-06-03', timeIn: '08:00 AM', status: 'present' },
+    { id: 'att-h2', memberId: 'mem-1', memberName: 'Jonathan Miller', date: '2026-06-02', timeIn: '08:10 AM', status: 'present' },
+    { id: 'att-h3', memberId: 'mem-1', memberName: 'Jonathan Miller', date: '2026-06-01', timeIn: '08:05 AM', status: 'present' },
+    { id: 'att-h4', memberId: 'mem-1', memberName: 'Jonathan Miller', date: '2026-05-31', timeIn: '', status: 'absent' },
+    { id: 'att-h5', memberId: 'mem-2', memberName: 'Sophia Chen', date: '2026-06-03', timeIn: '07:45 AM', status: 'present' },
+    { id: 'att-h6', memberId: 'mem-2', memberName: 'Sophia Chen', date: '2026-06-02', timeIn: '07:30 AM', status: 'present' },
+    { id: 'att-h7', memberId: 'mem-2', memberName: 'Sophia Chen', date: '2026-06-01', timeIn: '07:25 AM', status: 'present' },
+    { id: 'att-h8', memberId: 'mem-3', memberName: 'Liam Neeson', date: '2026-06-03', timeIn: '06:30 PM', status: 'present' },
+    { id: 'att-h9', memberId: 'mem-3', memberName: 'Liam Neeson', date: '2026-06-02', timeIn: '06:15 PM', status: 'present' },
+    { id: 'att-h10', memberId: 'mem-4', memberName: 'Olivia Martinez', date: '2026-06-03', timeIn: '10:00 AM', status: 'present' },
+    { id: 'att-h11', memberId: 'mem-4', memberName: 'Olivia Martinez', date: '2026-06-02', timeIn: '09:30 AM', status: 'present' },
+    { id: 'att-h12', memberId: 'mem-6', memberName: 'Emma Watson', date: '2026-06-03', timeIn: '06:10 AM', status: 'present' },
+    { id: 'att-h13', memberId: 'mem-6', memberName: 'Emma Watson', date: '2026-06-02', timeIn: '06:00 AM', status: 'present' },
+    { id: 'att-h14', memberId: 'mem-7', memberName: 'Ryan Gosling', date: '2026-06-03', timeIn: '10:15 AM', status: 'present' },
+    { id: 'att-h15', memberId: 'mem-7', memberName: 'Ryan Gosling', date: '2026-06-02', timeIn: '10:05 AM', status: 'present' }
   ];
 
   private initialLogs: ActivityLog[] = [

@@ -11,6 +11,11 @@ export interface Member {
   avatarUrl?: string;
   attendanceCount: number;
   balance: number;
+  gender: 'Male' | 'Female' | 'Other';
+  age: number;
+  height: number;      // in cm
+  weight: number;      // in kg
+  fitnessGoal: string; // e.g. 'Weight Loss', 'Muscle Gain', etc.
 }
 
 export interface Attendance {

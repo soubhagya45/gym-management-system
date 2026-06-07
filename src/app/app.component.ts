@@ -58,8 +58,12 @@ export class AppComponent implements OnInit {
     this.router.events.pipe(
       filter(event => event instanceof NavigationEnd)
     ).subscribe((event: any) => {
-      const currentRoute = this.menuItems.find(item => event.urlAfterRedirects.includes(item.route));
-      this.pageTitle = currentRoute ? currentRoute.label : 'Dashboard';
+      if (event.urlAfterRedirects.includes('/members/') && event.urlAfterRedirects.match(/\/members\/[a-zA-Z0-9-]+/)) {
+        this.pageTitle = 'Member Profile';
+      } else {
+        const currentRoute = this.menuItems.find(item => event.urlAfterRedirects.includes(item.route));
+        this.pageTitle = currentRoute ? currentRoute.label : 'Dashboard';
+      }
       
       // Auto-close drawer on mobile navigation
       if (this.isMobile) {
