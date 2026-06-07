@@ -1,6 +1,8 @@
 import { Component, OnInit, HostListener } from '@angular/core';
 import { Router, NavigationEnd } from '@angular/router';
+import { Observable } from 'rxjs';
 import { filter } from 'rxjs/operators';
+import { AuthService, UserProfile } from './services/auth.service';
 
 interface MenuItem {
   label: string;
@@ -19,6 +21,7 @@ export class AppComponent implements OnInit {
   isDarkMode = true;
   isMobile = false;
   sidenavOpened = true;
+  currentUser$: Observable<UserProfile | null>;
 
   menuItems: MenuItem[] = [
     { label: 'Dashboard', route: '/dashboard', icon: 'dashboard' },
@@ -30,7 +33,11 @@ export class AppComponent implements OnInit {
     { label: 'Settings', route: '/settings', icon: 'settings' }
   ];
 
-  constructor(private router: Router) {
+  constructor(
+    private router: Router,
+    private authService: AuthService
+  ) {
+    this.currentUser$ = this.authService.currentUser$;
     this.checkScreenSize();
   }
 
@@ -91,4 +98,18 @@ export class AppComponent implements OnInit {
       localStorage.setItem('theme', 'light');
     }
   }
+
+  getRoleLabel(role: string): string {
+    switch (role) {
+      case 'owner': return 'Administrator';
+      case 'trainer': return 'Personal Trainer';
+      case 'member': return 'Gym Member';
+      default: return 'User';
+    }
+  }
+
+  onLogout(): void {
+    this.authService.logout();
+  }
 }
+

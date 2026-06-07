@@ -1,0 +1,186 @@
+<div class="login-page-wrapper">
+  <!-- Cybernetic Grid & Particle background -->
+  <div class="cyber-grid"></div>
+  <div class="glow-sphere sphere-one"></div>
+  <div class="glow-sphere sphere-two"></div>
+  <div class="glow-sphere sphere-three"></div>
+
+  <div class="portal-container">
+    
+    <!-- Branding Header -->
+    <div class="portal-header">
+      <div class="logo-wrapper animate-pulse">
+        <mat-icon class="logo-icon">fitness_center</mat-icon>
+        <h1 class="logo-text">APEX<span class="logo-highlight">FIT</span></h1>
+      </div>
+      <div class="system-status">
+        <span class="status-dot"></span>
+        <span class="status-label">SYS_ONLINE // v1.0.0</span>
+      </div>
+    </div>
+
+    <!-- Main Dynamic Glass Layout -->
+    <div class="glass-panel portal-main-card">
+      <div class="progress-bar-container" *ngIf="isLoading">
+        <mat-progress-bar mode="indeterminate" class="cyber-progress"></mat-progress-bar>
+      </div>
+
+      <div class="card-grid">
+        
+        <!-- Left Side: Login Form -->
+        <div class="form-section">
+          <h2 class="section-title">Authenticate</h2>
+          <p class="section-subtitle">Establish secure connection with Apex Fit Core.</p>
+
+          <form [formGroup]="loginForm" (ngSubmit)="onSubmit()">
+            
+            <!-- Email Input -->
+            <div class="cyber-form-group">
+              <label class="cyber-label">IDENTITY NODE (EMAIL)</label>
+              <div class="cyber-input-wrapper">
+                <mat-icon class="input-icon">alternate_email</mat-icon>
+                <input 
+                  type="email" 
+                  formControlName="email" 
+                  placeholder="name@apexfit.com" 
+                  class="cyber-input"
+                  [readonly]="isLoading">
+              </div>
+              <span class="error-msg" *ngIf="loginForm.get('email')?.touched && loginForm.get('email')?.hasError('required')">
+                Identity email required.
+              </span>
+              <span class="error-msg" *ngIf="loginForm.get('email')?.touched && loginForm.get('email')?.hasError('email')">
+                Invalid email layout format.
+              </span>
+            </div>
+
+            <!-- Password Input -->
+            <div class="cyber-form-group">
+              <label class="cyber-label">ACCESS KEY (PASSWORD)</label>
+              <div class="cyber-input-wrapper">
+                <mat-icon class="input-icon">vpn_key</mat-icon>
+                <input 
+                  [type]="hidePassword ? 'password' : 'text'" 
+                  formControlName="password" 
+                  placeholder="••••••••" 
+                  class="cyber-input"
+                  [readonly]="isLoading">
+                <button 
+                  type="button" 
+                  class="password-toggle-btn" 
+                  (click)="hidePassword = !hidePassword"
+                  [disabled]="isLoading">
+                  <mat-icon>{{ hidePassword ? 'visibility_off' : 'visibility' }}</mat-icon>
+                </button>
+              </div>
+              <span class="error-msg" *ngIf="loginForm.get('password')?.touched && loginForm.get('password')?.hasError('required')">
+                Access key is required.
+              </span>
+            </div>
+
+            <!-- General Error Message Display -->
+            <div class="auth-error-alert" *ngIf="errorMessage">
+              <mat-icon class="alert-icon">report_problem</mat-icon>
+              <span class="alert-text">{{ errorMessage }}</span>
+            </div>
+
+            <!-- Standard Submit Button -->
+            <button 
+              type="submit" 
+              class="cyber-btn primary-submit" 
+              [disabled]="loginForm.invalid || isLoading">
+              <span class="btn-glow"></span>
+              <span class="btn-content" *ngIf="!isLoading">
+                INITIALIZE SIGN_IN
+                <mat-icon class="btn-arrow">arrow_forward</mat-icon>
+              </span>
+              <span class="btn-content loading-content" *ngIf="isLoading">
+                DECRYPTING CREDENTIALS...
+              </span>
+            </button>
+          </form>
+        </div>
+
+        <!-- Right Side: Identity Core (Quick Select Router) -->
+        <div class="identity-selector-section">
+          <h2 class="section-title">Identity Node</h2>
+          <p class="section-subtitle">Select role matrix module for instant verification.</p>
+
+          <!-- Module Picker Grid -->
+          <div class="role-grid">
+            
+            <!-- Owner Card -->
+            <div 
+              class="role-card" 
+              [class.active]="activeRole === 'owner'" 
+              (click)="selectRole('owner')"
+              [style.--active-color]="roleDetails.owner.color">
+              <div class="role-card-header">
+                <mat-icon class="role-icon">admin_panel_settings</mat-icon>
+                <span class="role-badge badge-owner">{{ roleDetails.owner.badge }}</span>
+              </div>
+              <div class="role-card-body">
+                <h3 class="role-name">Owner</h3>
+                <p class="role-description">{{ roleDetails.owner.desc }}</p>
+              </div>
+            </div>
+
+            <!-- Trainer Card -->
+            <div 
+              class="role-card" 
+              [class.active]="activeRole === 'trainer'" 
+              (click)="selectRole('trainer')"
+              [style.--active-color]="roleDetails.trainer.color">
+              <div class="role-card-header">
+                <mat-icon class="role-icon">sports</mat-icon>
+                <span class="role-badge badge-trainer">{{ roleDetails.trainer.badge }}</span>
+              </div>
+              <div class="role-card-body">
+                <h3 class="role-name">Trainer</h3>
+                <p class="role-description">{{ roleDetails.trainer.desc }}</p>
+              </div>
+            </div>
+
+            <!-- Member Card -->
+            <div 
+              class="role-card" 
+              [class.active]="activeRole === 'member'" 
+              (click)="selectRole('member')"
+              [style.--active-color]="roleDetails.member.color">
+              <div class="role-card-header">
+                <mat-icon class="role-icon">person</mat-icon>
+                <span class="role-badge badge-member">{{ roleDetails.member.badge }}</span>
+              </div>
+              <div class="role-card-body">
+                <h3 class="role-name">Member</h3>
+                <p class="role-description">{{ roleDetails.member.desc }}</p>
+              </div>
+            </div>
+
+          </div>
+
+          <!-- Quick Bypass Link Button -->
+          <div class="quick-action-area">
+            <button 
+              type="button" 
+              class="cyber-btn outline-btn" 
+              (click)="onQuickLoginClick()"
+              [disabled]="isLoading">
+              <span class="btn-content">
+                SYNC SELECT NODES & ENTER
+                <mat-icon>vpn_lock</mat-icon>
+              </span>
+            </button>
+          </div>
+        </div>
+
+      </div>
+    </div>
+
+    <!-- Portal Footer -->
+    <div class="portal-footer">
+      <span>SECURE TRANSCEIVER NODE // APEX GYM SERVICES</span>
+      <span>RESTRICTED ACCESS ONLY</span>
+    </div>
+  </div>
+</div>

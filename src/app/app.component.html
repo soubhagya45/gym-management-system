@@ -1,117 +1,123 @@
-<mat-sidenav-container class="app-container">
-  <!-- Sidebar Navigation -->
-  <mat-sidenav #sidenav 
-               [mode]="isMobile ? 'over' : 'side'" 
-               [opened]="sidenavOpened" 
-               class="sidebar-nav">
-    <div class="sidebar-header">
-      <div class="logo-wrapper">
-        <mat-icon class="logo-icon">fitness_center</mat-icon>
-        <span class="logo-text">APEX<span class="logo-highlight">FIT</span></span>
-      </div>
-      <div class="logo-sub">GYM SUITE</div>
-    </div>
-    
-    <mat-nav-list class="nav-list">
-      <a mat-list-item 
-         *ngFor="let item of menuItems" 
-         [routerLink]="[item.route]" 
-         routerLinkActive="active-link"
-         class="nav-item">
-        <div class="nav-item-content">
-          <mat-icon class="nav-icon">{{ item.icon }}</mat-icon>
-          <span class="nav-label">{{ item.label }}</span>
+<ng-container *ngIf="currentUser$ | async as user; else loginView">
+  <mat-sidenav-container class="app-container">
+    <!-- Sidebar Navigation -->
+    <mat-sidenav #sidenav 
+                 [mode]="isMobile ? 'over' : 'side'" 
+                 [opened]="sidenavOpened" 
+                 class="sidebar-nav">
+      <div class="sidebar-header">
+        <div class="logo-wrapper">
+          <mat-icon class="logo-icon">fitness_center</mat-icon>
+          <span class="logo-text">APEX<span class="logo-highlight">FIT</span></span>
         </div>
-      </a>
-    </mat-nav-list>
-
-    <div class="sidebar-footer">
-      <div class="user-profile-summary">
-        <img src="https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=80" alt="Admin Profile" class="footer-avatar">
-        <div class="user-info">
-          <div class="user-name">Alex Johnson</div>
-          <div class="user-role">Administrator</div>
-        </div>
+        <div class="logo-sub">GYM SUITE</div>
       </div>
-      <div class="app-version">Apex Fit v1.0.0</div>
-    </div>
-  </mat-sidenav>
-
-  <!-- Main Content Layout -->
-  <mat-sidenav-content class="main-content">
-    <!-- Top Sticky Toolbar -->
-    <mat-toolbar class="top-navbar glass-panel">
-      <button mat-icon-button (click)="toggleSidenav()" class="menu-toggle-btn">
-        <mat-icon>menu</mat-icon>
-      </button>
-
-      <span class="toolbar-title">{{ pageTitle }}</span>
-
-      <span class="spacer"></span>
-
-      <!-- System Actions -->
-      <div class="navbar-actions">
-        <!-- Date Display -->
-        <span class="date-display hide-on-mobile">
-          <mat-icon>calendar_today</mat-icon>
-          <span>Thursday, June 4, 2026</span>
-        </span>
-
-        <!-- Theme Toggle -->
-        <button mat-icon-button (click)="toggleTheme()" [matTooltip]="isDarkMode ? 'Switch to Light Mode' : 'Switch to Dark Mode'" class="action-btn">
-          <mat-icon>{{ isDarkMode ? 'light_mode' : 'dark_mode' }}</mat-icon>
-        </button>
-
-        <!-- Notifications -->
-        <button mat-icon-button [matMenuTriggerFor]="notificationMenu" class="action-btn">
-          <mat-icon matBadge="3" matBadgeColor="warn" matBadgeSize="small">notifications</mat-icon>
-        </button>
-        <mat-menu #notificationMenu="matMenu" xPosition="before" class="premium-menu">
-          <div class="menu-header">Notifications</div>
-          <button mat-menu-item>
-            <mat-icon color="warn">warning</mat-icon>
-            <span>Membership expiring: Liam Neeson</span>
-          </button>
-          <button mat-menu-item>
-            <mat-icon color="primary">payment</mat-icon>
-            <span>New payment pending verification</span>
-          </button>
-          <button mat-menu-item>
-            <mat-icon color="accent">people</mat-icon>
-            <span>New member joined today</span>
-          </button>
-        </mat-menu>
-
-        <!-- Admin Profile Dropdown -->
-        <button mat-icon-button [matMenuTriggerFor]="profileMenu" class="avatar-menu-btn">
-          <img src="https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=80" alt="Admin" class="toolbar-avatar">
-        </button>
-        <mat-menu #profileMenu="matMenu" xPosition="before" class="premium-menu">
-          <div class="profile-menu-header">
-            <div class="name">Alex Johnson</div>
-            <div class="email">alex.johnson@apexfit.com</div>
+      
+      <mat-nav-list class="nav-list">
+        <a mat-list-item 
+           *ngFor="let item of menuItems" 
+           [routerLink]="[item.route]" 
+           routerLinkActive="active-link"
+           class="nav-item">
+          <div class="nav-item-content">
+            <mat-icon class="nav-icon">{{ item.icon }}</mat-icon>
+            <span class="nav-label">{{ item.label }}</span>
           </div>
-          <mat-divider></mat-divider>
-          <button mat-menu-item routerLink="/settings">
-            <mat-icon>settings</mat-icon>
-            <span>Settings</span>
-          </button>
-          <button mat-menu-item routerLink="/trainers">
-            <mat-icon>sports</mat-icon>
-            <span>Trainers</span>
-          </button>
-          <mat-divider></mat-divider>
-          <button mat-menu-item>
-            <mat-icon color="warn">logout</mat-icon>
-            <span>Logout</span>
-          </button>
-        </mat-menu>
-      </div>
-    </mat-toolbar>
+        </a>
+      </mat-nav-list>
 
-    <!-- Main Dynamic Content Wrapper -->
-    <div class="content-body">
-      <router-outlet></router-outlet>
-    </div>
-  </mat-sidenav-content>
-</mat-sidenav-container>
+      <div class="sidebar-footer">
+        <div class="user-profile-summary">
+          <img [src]="user.avatarUrl" [alt]="user.name" class="footer-avatar">
+          <div class="user-info">
+            <div class="user-name">{{ user.name }}</div>
+            <div class="user-role">{{ getRoleLabel(user.role) }}</div>
+          </div>
+        </div>
+        <div class="app-version">Apex Fit v1.0.0</div>
+      </div>
+    </mat-sidenav>
+
+    <!-- Main Content Layout -->
+    <mat-sidenav-content class="main-content">
+      <!-- Top Sticky Toolbar -->
+      <mat-toolbar class="top-navbar glass-panel">
+        <button mat-icon-button (click)="toggleSidenav()" class="menu-toggle-btn">
+          <mat-icon>menu</mat-icon>
+        </button>
+
+        <span class="toolbar-title">{{ pageTitle }}</span>
+
+        <span class="spacer"></span>
+
+        <!-- System Actions -->
+        <div class="navbar-actions">
+          <!-- Date Display -->
+          <span class="date-display hide-on-mobile">
+            <mat-icon>calendar_today</mat-icon>
+            <span>Thursday, June 4, 2026</span>
+          </span>
+
+          <!-- Theme Toggle -->
+          <button mat-icon-button (click)="toggleTheme()" [matTooltip]="isDarkMode ? 'Switch to Light Mode' : 'Switch to Dark Mode'" class="action-btn">
+            <mat-icon>{{ isDarkMode ? 'light_mode' : 'dark_mode' }}</mat-icon>
+          </button>
+
+          <!-- Notifications -->
+          <button mat-icon-button [matMenuTriggerFor]="notificationMenu" class="action-btn">
+            <mat-icon matBadge="3" matBadgeColor="warn" matBadgeSize="small">notifications</mat-icon>
+          </button>
+          <mat-menu #notificationMenu="matMenu" xPosition="before" class="premium-menu">
+            <div class="menu-header">Notifications</div>
+            <button mat-menu-item>
+              <mat-icon color="warn">warning</mat-icon>
+              <span>Membership expiring: Liam Neeson</span>
+            </button>
+            <button mat-menu-item>
+              <mat-icon color="primary">payment</mat-icon>
+              <span>New payment pending verification</span>
+            </button>
+            <button mat-menu-item>
+              <mat-icon color="accent">people</mat-icon>
+              <span>New member joined today</span>
+            </button>
+          </mat-menu>
+
+          <!-- Dynamic Profile Dropdown -->
+          <button mat-icon-button [matMenuTriggerFor]="profileMenu" class="avatar-menu-btn">
+            <img [src]="user.avatarUrl" [alt]="user.name" class="toolbar-avatar">
+          </button>
+          <mat-menu #profileMenu="matMenu" xPosition="before" class="premium-menu">
+            <div class="profile-menu-header">
+              <div class="name">{{ user.name }}</div>
+              <div class="email">{{ user.email }}</div>
+            </div>
+            <mat-divider></mat-divider>
+            <button mat-menu-item routerLink="/settings">
+              <mat-icon>settings</mat-icon>
+              <span>Settings</span>
+            </button>
+            <button mat-menu-item routerLink="/trainers">
+              <mat-icon>sports</mat-icon>
+              <span>Trainers</span>
+            </button>
+            <mat-divider></mat-divider>
+            <button mat-menu-item (click)="onLogout()">
+              <mat-icon color="warn">logout</mat-icon>
+              <span>Logout</span>
+            </button>
+          </mat-menu>
+        </div>
+      </mat-toolbar>
+
+      <!-- Main Dynamic Content Wrapper -->
+      <div class="content-body">
+        <router-outlet></router-outlet>
+      </div>
+    </mat-sidenav-content>
+  </mat-sidenav-container>
+</ng-container>
+
+<ng-template #loginView>
+  <router-outlet></router-outlet>
+</ng-template>
