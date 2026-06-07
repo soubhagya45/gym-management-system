@@ -65,3 +65,13 @@ export interface ActivityLog {
   time: string;
   type: 'join' | 'payment' | 'attendance' | 'plan-change';
 }
+
+export interface Lead {
+  id: string;
+  name: string;
+  phone: string;
+  trialDate: string;
+  leadSource: string;
+  followUpDate: string;
+  status: 'New Lead' | 'Trial Booked' | 'Follow Up' | 'Converted' | 'Lost';
+}

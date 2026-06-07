@@ -29,6 +29,11 @@ const routes: Routes = [
     canActivate: [authGuard]
   },
   {
+    path: 'leads',
+    loadComponent: () => import('./pages/leads/leads.component').then(m => m.LeadsComponent),
+    canActivate: [authGuard]
+  },
+  {
     path: 'attendance',
     loadComponent: () => import('./pages/attendance/attendance.component').then(m => m.AttendanceComponent),
     canActivate: [authGuard]
