@@ -7,7 +7,7 @@
 /* Stats Cards Grid */
 .stats-grid {
   display: grid;
-  grid-template-columns: repeat(4, 1fr);
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
   gap: 20px;
 }
 
@@ -511,4 +511,201 @@
   .bar-fill-wrapper {
     width: 16px !important;
   }
+}
+
+/* Operational Hub Tab styling overrides */
+.hub-card {
+  padding: 16px 20px !important;
+  
+  ::ng-deep {
+    .mat-mdc-tab-header {
+      border-bottom: 1px solid var(--border-color);
+      margin-bottom: 12px;
+    }
+    
+    .mat-mdc-tab {
+      height: 40px;
+      min-width: 80px;
+      
+      .mdc-tab__text-label {
+        font-family: var(--font-sans) !important;
+        font-weight: 600;
+        font-size: 13px;
+        color: var(--text-secondary);
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        
+        .tab-icon {
+          font-size: 16px;
+          width: 16px;
+          height: 16px;
+        }
+      }
+      
+      &.mdc-tab--active .mdc-tab__text-label {
+        color: var(--accent-color) !important;
+      }
+    }
+    
+    .mat-mdc-tab-body-wrapper {
+      padding-top: 4px;
+    }
+  }
+}
+
+.tab-pane-content {
+  height: 290px;
+  overflow-y: auto;
+  padding-right: 4px;
+}
+
+.list-wrapper {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.list-item-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 14px;
+  background: var(--bg-primary);
+  border: var(--card-border);
+  border-radius: 10px;
+  transition: transform 0.2s ease;
+  
+  &:hover {
+    transform: translateX(4px);
+  }
+  
+  .item-avatar {
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: var(--border-color);
+    
+    .icon-avatar {
+      font-size: 16px;
+      width: 16px;
+      height: 16px;
+      color: var(--text-secondary);
+    }
+    
+    &.primary-node {
+      background: var(--accent-light);
+      .primary-color { color: var(--accent-color); }
+    }
+    &.success-node {
+      background: var(--success-glow);
+      .success-color { color: var(--success); }
+    }
+    &.warning-node {
+      background: var(--warning-glow);
+      .warning-color { color: var(--warning); }
+    }
+    &.danger-node {
+      background: var(--danger-glow);
+      .danger-color { color: var(--danger); }
+    }
+  }
+  
+  .item-info {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    
+    .main-title {
+      font-size: 14px;
+      font-weight: 600;
+      color: var(--text-primary);
+    }
+    
+    .sub-title {
+      font-size: 11px;
+      color: var(--text-muted);
+      margin-top: 1px;
+    }
+  }
+  
+  .item-meta {
+    text-align: right;
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    gap: 2px;
+    
+    .follow-up-badge-txt {
+      font-size: 11px;
+      font-weight: 600;
+      color: var(--accent-color);
+      background: var(--accent-light);
+      padding: 2px 8px;
+      border-radius: 4px;
+    }
+    
+    .payment-amount-txt {
+      font-size: 14px;
+      font-weight: 700;
+      color: var(--danger);
+    }
+    
+    .payment-date-txt {
+      font-size: 10px;
+      color: var(--text-muted);
+    }
+    
+    .expiring-badge-txt {
+      font-size: 11px;
+      font-weight: 600;
+      color: var(--warning);
+      background: var(--warning-glow);
+      padding: 2px 8px;
+      border-radius: 4px;
+    }
+    
+    .join-date-txt {
+      font-size: 11px;
+      color: var(--text-secondary);
+      font-weight: 500;
+    }
+  }
+}
+
+.empty-pane-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  height: 200px;
+  color: var(--text-muted);
+  text-align: center;
+  
+  mat-icon {
+    font-size: 36px;
+    width: 36px;
+    height: 36px;
+    margin-bottom: 8px;
+    color: var(--text-muted);
+  }
+  
+  p {
+    margin: 0;
+    font-size: 13px;
+  }
+}
+
+.loading-state {
+  padding: 24px;
+  text-align: center;
+  color: var(--text-muted);
+  font-size: 13px;
+}
+
+.margin-top-sm {
+  margin-top: 8px;
 }
