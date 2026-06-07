@@ -69,6 +69,56 @@ import { Member, MembershipPlan } from '../../interfaces/gym.model';
             <mat-error *ngIf="memberForm.get('phone')?.hasError('required')">Phone number is required</mat-error>
           </mat-form-field>
 
+          <!-- Gender -->
+          <mat-form-field appearance="outline">
+            <mat-label>Gender</mat-label>
+            <mat-select formControlName="gender">
+              <mat-option value="Male">Male</mat-option>
+              <mat-option value="Female">Female</mat-option>
+              <mat-option value="Other">Other</mat-option>
+            </mat-select>
+            <mat-error *ngIf="memberForm.get('gender')?.hasError('required')">Gender is required</mat-error>
+          </mat-form-field>
+
+          <!-- Age -->
+          <mat-form-field appearance="outline">
+            <mat-label>Age</mat-label>
+            <input matInput type="number" formControlName="age" placeholder="25">
+            <mat-error *ngIf="memberForm.get('age')?.hasError('required')">Age is required</mat-error>
+            <mat-error *ngIf="memberForm.get('age')?.hasError('min')">Age must be at least 1</mat-error>
+            <mat-error *ngIf="memberForm.get('age')?.hasError('max')">Age must be at most 120</mat-error>
+          </mat-form-field>
+
+          <!-- Height -->
+          <mat-form-field appearance="outline">
+            <mat-label>Height (cm)</mat-label>
+            <input matInput type="number" formControlName="height" placeholder="170">
+            <mat-error *ngIf="memberForm.get('height')?.hasError('required')">Height is required</mat-error>
+            <mat-error *ngIf="memberForm.get('height')?.hasError('min')">Height must be at least 50 cm</mat-error>
+          </mat-form-field>
+
+          <!-- Weight -->
+          <mat-form-field appearance="outline">
+            <mat-label>Weight (kg)</mat-label>
+            <input matInput type="number" formControlName="weight" placeholder="70">
+            <mat-error *ngIf="memberForm.get('weight')?.hasError('required')">Weight is required</mat-error>
+            <mat-error *ngIf="memberForm.get('weight')?.hasError('min')">Weight must be at least 10 kg</mat-error>
+          </mat-form-field>
+
+          <!-- Fitness Goal -->
+          <mat-form-field appearance="outline">
+            <mat-label>Fitness Goal</mat-label>
+            <mat-select formControlName="fitnessGoal">
+              <mat-option value="Weight Loss">Weight Loss</mat-option>
+              <mat-option value="Muscle Gain">Muscle Gain</mat-option>
+              <mat-option value="Cardio Fitness">Cardio Fitness</mat-option>
+              <mat-option value="Strength Training">Strength Training</mat-option>
+              <mat-option value="General Fitness">General Fitness</mat-option>
+              <mat-option value="Flexibility & Mobility">Flexibility & Mobility</mat-option>
+            </mat-select>
+            <mat-error *ngIf="memberForm.get('fitnessGoal')?.hasError('required')">Fitness Goal is required</mat-error>
+          </mat-form-field>
+
           <!-- Status -->
           <mat-form-field appearance="outline">
             <mat-label>Membership Status</mat-label>
@@ -93,20 +143,20 @@ import { Member, MembershipPlan } from '../../interfaces/gym.model';
 
           <!-- Start Date -->
           <mat-form-field appearance="outline">
-            <mat-label>Start Date</mat-label>
+            <mat-label>Join Date</mat-label>
             <input matInput [matDatepicker]="startPicker" formControlName="startDate" (dateChange)="onStartDateChange()">
             <mat-datepicker-toggle matSuffix [for]="startPicker"></mat-datepicker-toggle>
             <mat-datepicker #startPicker></mat-datepicker>
-            <mat-error *ngIf="memberForm.get('startDate')?.hasError('required')">Start date is required</mat-error>
+            <mat-error *ngIf="memberForm.get('startDate')?.hasError('required')">Join date is required</mat-error>
           </mat-form-field>
 
           <!-- End Date -->
           <mat-form-field appearance="outline">
-            <mat-label>End Date</mat-label>
+            <mat-label>Expiry Date</mat-label>
             <input matInput [matDatepicker]="endPicker" formControlName="endDate">
             <mat-datepicker-toggle matSuffix [for]="endPicker"></mat-datepicker-toggle>
             <mat-datepicker #endPicker></mat-datepicker>
-            <mat-error *ngIf="memberForm.get('endDate')?.hasError('required')">End date is required</mat-error>
+            <mat-error *ngIf="memberForm.get('endDate')?.hasError('required')">Expiry date is required</mat-error>
           </mat-form-field>
         </div>
       </mat-dialog-content>
@@ -203,7 +253,12 @@ export class MemberDialogComponent implements OnInit {
       planId: [this.data?.planId || 'plan-1', [Validators.required]],
       startDate: [startVal, [Validators.required]],
       endDate: [endVal, [Validators.required]],
-      avatarUrl: [this.data?.avatarUrl || '']
+      avatarUrl: [this.data?.avatarUrl || ''],
+      gender: [this.data?.gender || 'Male', [Validators.required]],
+      age: [this.data?.age || '', [Validators.required, Validators.min(1), Validators.max(120)]],
+      height: [this.data?.height || '', [Validators.required, Validators.min(50), Validators.max(250)]],
+      weight: [this.data?.weight || '', [Validators.required, Validators.min(10), Validators.max(300)]],
+      fitnessGoal: [this.data?.fitnessGoal || 'General Fitness', [Validators.required]]
     });
 
     if (!this.data) {

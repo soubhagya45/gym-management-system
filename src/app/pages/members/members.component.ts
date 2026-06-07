@@ -1,6 +1,7 @@
 import { Component, OnInit, ViewChild, AfterViewInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
+import { Router } from '@angular/router';
 import { MatTableModule, MatTableDataSource } from '@angular/material/table';
 import { MatPaginator, MatPaginatorModule } from '@angular/material/paginator';
 import { MatSort, MatSortModule } from '@angular/material/sort';
@@ -39,7 +40,7 @@ import { ConfirmDialogComponent } from './confirm-dialog.component';
   styleUrls: ['./members.component.scss']
 })
 export class MembersComponent implements OnInit, AfterViewInit {
-  displayedColumns: string[] = ['photo', 'name', 'contact', 'plan', 'dates', 'status', 'actions'];
+  displayedColumns: string[] = ['id', 'photo', 'name', 'phone', 'email', 'planName', 'startDate', 'endDate', 'status', 'actions'];
   dataSource = new MatTableDataSource<Member>();
   
   plans: MembershipPlan[] = [];
@@ -55,8 +56,13 @@ export class MembersComponent implements OnInit, AfterViewInit {
   constructor(
     private gymService: GymService,
     private dialog: MatDialog,
-    private snackBar: MatSnackBar
+    private snackBar: MatSnackBar,
+    private router: Router
   ) {}
+
+  viewProfile(member: Member) {
+    this.router.navigate(['/members', member.id]);
+  }
 
   ngOnInit(): void {
     // 1. Subscribe to members list
@@ -75,6 +81,7 @@ export class MembersComponent implements OnInit, AfterViewInit {
       const searchTerms = JSON.parse(filter);
       
       const matchesSearch = 
+        data.id.toLowerCase().includes(searchTerms.query) ||
         data.name.toLowerCase().includes(searchTerms.query) ||
         data.email.toLowerCase().includes(searchTerms.query) ||
         data.phone.includes(searchTerms.query);
@@ -98,8 +105,13 @@ export class MembersComponent implements OnInit, AfterViewInit {
     // Custom sort accessor to sort by nested elements if needed
     this.dataSource.sortingDataAccessor = (item, property) => {
       switch(property) {
+        case 'id': return item.id.toLowerCase();
         case 'name': return item.name.toLowerCase();
-        case 'plan': return item.planName.toLowerCase();
+        case 'phone': return item.phone.toLowerCase();
+        case 'email': return item.email.toLowerCase();
+        case 'planName': return item.planName.toLowerCase();
+        case 'startDate': return item.startDate;
+        case 'endDate': return item.endDate;
         case 'status': return item.status.toLowerCase();
         default: return (item as any)[property];
       }

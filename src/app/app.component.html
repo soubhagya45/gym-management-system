@@ -1,10 +1,7 @@
 <ng-container *ngIf="currentUser$ | async as user; else loginView">
   <mat-sidenav-container class="app-container">
     <!-- Sidebar Navigation -->
-    <mat-sidenav #sidenav 
-                 [mode]="isMobile ? 'over' : 'side'" 
-                 [opened]="sidenavOpened" 
-                 class="sidebar-nav">
+    <mat-sidenav #sidenav [mode]="isMobile ? 'over' : 'side'" [opened]="sidenavOpened" class="sidebar-nav">
       <div class="sidebar-header">
         <div class="logo-wrapper">
           <mat-icon class="logo-icon">fitness_center</mat-icon>
@@ -12,13 +9,10 @@
         </div>
         <div class="logo-sub">GYM SUITE</div>
       </div>
-      
+
       <mat-nav-list class="nav-list">
-        <a mat-list-item 
-           *ngFor="let item of menuItems" 
-           [routerLink]="[item.route]" 
-           routerLinkActive="active-link"
-           class="nav-item">
+        <a mat-list-item *ngFor="let item of menuItems" [routerLink]="[item.route]" routerLinkActive="active-link"
+          class="nav-item">
           <div class="nav-item-content">
             <mat-icon class="nav-icon">{{ item.icon }}</mat-icon>
             <span class="nav-label">{{ item.label }}</span>
@@ -59,7 +53,8 @@
           </span>
 
           <!-- Theme Toggle -->
-          <button mat-icon-button (click)="toggleTheme()" [matTooltip]="isDarkMode ? 'Switch to Light Mode' : 'Switch to Dark Mode'" class="action-btn">
+          <button mat-icon-button (click)="toggleTheme()"
+            [matTooltip]="isDarkMode ? 'Switch to Light Mode' : 'Switch to Dark Mode'" class="action-btn">
             <mat-icon>{{ isDarkMode ? 'light_mode' : 'dark_mode' }}</mat-icon>
           </button>
 

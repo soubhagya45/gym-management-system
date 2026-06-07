@@ -205,3 +205,20 @@
     }
   }
 }
+
+.id-cell {
+  font-family: 'Consolas', 'Monaco', monospace;
+  font-weight: 600;
+  color: var(--text-secondary);
+  font-size: 13px;
+  letter-spacing: 0.03em;
+}
+
+.name-cell {
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.email-cell {
+  color: var(--text-secondary);
+}

@@ -24,6 +24,11 @@ const routes: Routes = [
     canActivate: [authGuard]
   },
   {
+    path: 'members/:id',
+    loadComponent: () => import('./pages/members/member-profile.component').then(m => m.MemberProfileComponent),
+    canActivate: [authGuard]
+  },
+  {
     path: 'attendance',
     loadComponent: () => import('./pages/attendance/attendance.component').then(m => m.AttendanceComponent),
     canActivate: [authGuard]
