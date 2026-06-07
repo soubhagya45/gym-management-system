@@ -262,11 +262,11 @@ export class GymService {
   ];
 
   private initialLeads: Lead[] = [
-    { id: 'lead-1', name: 'Robert Downey', phone: '+1 (555) 901-4433', trialDate: '2026-06-10', leadSource: 'Social Media', followUpDate: '2026-06-12', status: 'New Lead' },
-    { id: 'lead-2', name: 'Scarlett Johansson', phone: '+1 (555) 888-2211', trialDate: '2026-06-05', leadSource: 'Referral', followUpDate: '2026-06-08', status: 'Trial Booked' },
-    { id: 'lead-3', name: 'Chris Evans', phone: '+1 (555) 777-1199', trialDate: '2026-06-01', leadSource: 'Website', followUpDate: '2026-06-04', status: 'Follow Up' },
-    { id: 'lead-4', name: 'Mark Ruffalo', phone: '+1 (555) 666-8800', trialDate: '2026-05-20', leadSource: 'Walk-in', followUpDate: '2026-05-22', status: 'Converted' },
-    { id: 'lead-5', name: 'Jeremy Renner', phone: '+1 (555) 555-9988', trialDate: '2026-05-15', leadSource: 'Social Media', followUpDate: '2026-05-18', status: 'Lost' }
+    { id: 'lead-1', name: 'Robert Downey', phone: '+1 (555) 901-4433', email: 'robert.d@gmail.com', trialDate: '2026-06-10', leadSource: 'Instagram', followUpDate: '2026-06-12', interestedPlan: 'Elite Annual Platinum', notes: 'Wants a customized meal plan and strength classes.', assignedStaff: 'Marcus Vance', status: 'New' },
+    { id: 'lead-2', name: 'Scarlett Johansson', phone: '+1 (555) 888-2211', email: 'scarlett.j@gmail.com', trialDate: '2026-06-05', leadSource: 'Referral', followUpDate: '2026-06-08', interestedPlan: 'Premium Quarterly', notes: 'Highly interested in functional training and yoga.', assignedStaff: 'Serena Sterling', status: 'Trial Scheduled' },
+    { id: 'lead-3', name: 'Chris Evans', phone: '+1 (555) 777-1199', email: 'chris.e@gmail.com', trialDate: '2026-06-01', leadSource: 'Website', followUpDate: '2026-06-04', interestedPlan: 'Essential Monthly', notes: 'Inquired about standard cardio gym hours.', assignedStaff: 'Alex Rivera', status: 'Contacted' },
+    { id: 'lead-4', name: 'Mark Ruffalo', phone: '+1 (555) 666-8800', email: 'mark.r@gmail.com', trialDate: '2026-05-20', leadSource: 'Walk-in', followUpDate: '2026-05-22', interestedPlan: 'Premium Quarterly', notes: 'Successfully converted to full membership.', assignedStaff: 'Marcus Vance', status: 'Converted' },
+    { id: 'lead-5', name: 'Jeremy Renner', phone: '+1 (555) 555-9988', email: 'jeremy.r@gmail.com', trialDate: '2026-05-15', leadSource: 'Facebook', followUpDate: '2026-05-18', interestedPlan: 'Essential Monthly', notes: 'Found a different gym closer to his home.', assignedStaff: 'Alex Rivera', status: 'Lost' }
   ];
 
   private initialLogs: ActivityLog[] = [
@@ -558,6 +558,22 @@ export class GymService {
     if (leadToDelete) {
       this.leadsSubject.next(currentLeads.filter(l => l.id !== id));
       this.addLog(`Removed lead profile: ${leadToDelete.name}`, 'plan-change');
+    }
+  }
+
+  convertLeadToMember(leadId: string, memberDetails: Omit<Member, 'id' | 'attendanceCount' | 'balance'>): void {
+    this.addMember(memberDetails);
+
+    const currentLeads = this.leadsSubject.value;
+    const leadIndex = currentLeads.findIndex(l => l.id === leadId);
+    if (leadIndex !== -1) {
+      const updatedLeads = [...currentLeads];
+      updatedLeads[leadIndex] = {
+        ...updatedLeads[leadIndex],
+        status: 'Converted'
+      };
+      this.leadsSubject.next(updatedLeads);
+      this.addLog(`Lead ${updatedLeads[leadIndex].name} converted to Member!`, 'plan-change');
     }
   }
 }

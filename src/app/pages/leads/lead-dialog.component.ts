@@ -8,7 +8,8 @@ import { MatSelectModule } from '@angular/material/select';
 import { MatButtonModule } from '@angular/material/button';
 import { MatDatepickerModule } from '@angular/material/datepicker';
 import { MatNativeDateModule } from '@angular/material/core';
-import { Lead } from '../../interfaces/gym.model';
+import { Lead, MembershipPlan, Trainer } from '../../interfaces/gym.model';
+import { GymService } from '../../services/gym.service';
 
 @Component({
   selector: 'app-lead-dialog',
@@ -46,6 +47,27 @@ import { Lead } from '../../interfaces/gym.model';
             <mat-error *ngIf="leadForm.get('phone')?.hasError('required')">Phone is required</mat-error>
           </mat-form-field>
 
+          <!-- Email -->
+          <mat-form-field appearance="outline">
+            <mat-label>Email Address</mat-label>
+            <input matInput type="email" formControlName="email" placeholder="john.doe@example.com">
+            <mat-error *ngIf="leadForm.get('email')?.hasError('required')">Email is required</mat-error>
+            <mat-error *ngIf="leadForm.get('email')?.hasError('email')">Invalid email address</mat-error>
+          </mat-form-field>
+
+          <!-- Lead Source -->
+          <mat-form-field appearance="outline">
+            <mat-label>Lead Source</mat-label>
+            <mat-select formControlName="leadSource">
+              <mat-option value="Walk-in">Walk-in</mat-option>
+              <mat-option value="Instagram">Instagram</mat-option>
+              <mat-option value="Facebook">Facebook</mat-option>
+              <mat-option value="Referral">Referral</mat-option>
+              <mat-option value="Website">Website</mat-option>
+            </mat-select>
+            <mat-error *ngIf="leadForm.get('leadSource')?.hasError('required')">Lead source is required</mat-error>
+          </mat-form-field>
+
           <!-- Trial Date -->
           <mat-form-field appearance="outline">
             <mat-label>Trial Date</mat-label>
@@ -64,30 +86,42 @@ import { Lead } from '../../interfaces/gym.model';
             <mat-error *ngIf="leadForm.get('followUpDate')?.hasError('required')">Follow up date is required</mat-error>
           </mat-form-field>
 
-          <!-- Lead Source -->
+          <!-- Interested Plan -->
           <mat-form-field appearance="outline">
-            <mat-label>Lead Source</mat-label>
-            <mat-select formControlName="leadSource">
-              <mat-option value="Website">Website</mat-option>
-              <mat-option value="Social Media">Social Media</mat-option>
-              <mat-option value="Referral">Referral</mat-option>
-              <mat-option value="Walk-in">Walk-in</mat-option>
-              <mat-option value="Other">Other</mat-option>
+            <mat-label>Interested Plan</mat-label>
+            <mat-select formControlName="interestedPlan">
+              <mat-option *ngFor="let plan of plans" [value]="plan.name">{{ plan.name }}</mat-option>
             </mat-select>
-            <mat-error *ngIf="leadForm.get('leadSource')?.hasError('required')">Lead source is required</mat-error>
+            <mat-error *ngIf="leadForm.get('interestedPlan')?.hasError('required')">Interested plan is required</mat-error>
+          </mat-form-field>
+
+          <!-- Assigned Staff -->
+          <mat-form-field appearance="outline">
+            <mat-label>Assigned Staff</mat-label>
+            <mat-select formControlName="assignedStaff">
+              <mat-option value="">Unassigned</mat-option>
+              <mat-option *ngFor="let trainer of trainers" [value]="trainer.name">{{ trainer.name }}</mat-option>
+            </mat-select>
           </mat-form-field>
 
           <!-- Status -->
           <mat-form-field appearance="outline">
             <mat-label>Lead Status</mat-label>
             <mat-select formControlName="status">
-              <mat-option value="New Lead">New Lead</mat-option>
-              <mat-option value="Trial Booked">Trial Booked</mat-option>
+              <mat-option value="New">New</mat-option>
+              <mat-option value="Contacted">Contacted</mat-option>
+              <mat-option value="Trial Scheduled">Trial Scheduled</mat-option>
               <mat-option value="Follow Up">Follow Up</mat-option>
               <mat-option value="Converted">Converted</mat-option>
               <mat-option value="Lost">Lost</mat-option>
             </mat-select>
             <mat-error *ngIf="leadForm.get('status')?.hasError('required')">Status is required</mat-error>
+          </mat-form-field>
+
+          <!-- Notes -->
+          <mat-form-field appearance="outline" class="notes-field">
+            <mat-label>Notes & Requirements</mat-label>
+            <textarea matInput formControlName="notes" rows="3" placeholder="Add custom notes, fitness level, schedule preferences..."></textarea>
           </mat-form-field>
         </div>
       </mat-dialog-content>
@@ -117,6 +151,9 @@ import { Lead } from '../../interfaces/gym.model';
       grid-template-columns: repeat(2, 1fr);
       gap: 16px;
     }
+    .notes-field {
+      grid-column: span 2;
+    }
     .dialog-actions {
       padding: 16px 0 0 0 !important;
       gap: 8px;
@@ -126,21 +163,31 @@ import { Lead } from '../../interfaces/gym.model';
       .form-grid {
         grid-template-columns: 1fr;
       }
+      .notes-field {
+        grid-column: span 1;
+      }
     }
   `]
 })
 export class LeadDialogComponent implements OnInit {
   leadForm!: FormGroup;
   isEdit = false;
+  plans: MembershipPlan[] = [];
+  trainers: Trainer[] = [];
 
   constructor(
     private fb: FormBuilder,
+    private gymService: GymService,
     private dialogRef: MatDialogRef<LeadDialogComponent>,
     @Inject(MAT_DIALOG_DATA) public data: Lead | null
-  ) {}
+  ) { }
 
   ngOnInit(): void {
     this.isEdit = !!this.data;
+
+    // Load available plans and trainers from service
+    this.gymService.plans$.subscribe(plans => this.plans = plans);
+    this.gymService.trainers$.subscribe(trainers => this.trainers = trainers);
 
     const trialVal = this.data ? new Date(this.data.trialDate) : new Date();
     const followVal = this.data ? new Date(this.data.followUpDate) : new Date(Date.now() + 2 * 24 * 60 * 60 * 1000);
@@ -148,10 +195,14 @@ export class LeadDialogComponent implements OnInit {
     this.leadForm = this.fb.group({
       name: [this.data?.name || '', [Validators.required]],
       phone: [this.data?.phone || '', [Validators.required]],
+      email: [this.data?.email || '', [Validators.required, Validators.email]],
       trialDate: [trialVal, [Validators.required]],
       leadSource: [this.data?.leadSource || 'Website', [Validators.required]],
       followUpDate: [followVal, [Validators.required]],
-      status: [this.data?.status || 'New Lead', [Validators.required]]
+      interestedPlan: [this.data?.interestedPlan || (this.plans[0]?.name || ''), [Validators.required]],
+      notes: [this.data?.notes || ''],
+      assignedStaff: [this.data?.assignedStaff || ''],
+      status: [this.data?.status || 'New', [Validators.required]]
     });
   }
 

@@ -1,0 +1,124 @@
+<div class="add-lead-page-wrapper">
+  <!-- Page Header -->
+  <div class="page-header">
+    <div class="title-area">
+      <div class="back-nav">
+        <a routerLink="/leads" class="back-link">
+          <mat-icon>arrow_back</mat-icon>
+          <span>Back to Leads</span>
+        </a>
+      </div>
+      <h1>Register New Lead</h1>
+      <p>Enter contact details and gym preferences to create a new trial profile.</p>
+    </div>
+  </div>
+
+  <!-- Form Card -->
+  <mat-card class="form-card mat-card">
+    <form [formGroup]="leadForm" (ngSubmit)="onSubmit()">
+      <div class="form-grid-layout">
+        <!-- Section 1: Contact Details -->
+        <div class="form-section">
+          <h3 class="section-title"><mat-icon>contact_phone</mat-icon> Contact Info</h3>
+          
+          <mat-form-field appearance="outline">
+            <mat-label>Full Name</mat-label>
+            <input matInput formControlName="name" placeholder="John Doe">
+            <mat-error *ngIf="leadForm.get('name')?.hasError('required')">Name is required</mat-error>
+          </mat-form-field>
+
+          <mat-form-field appearance="outline">
+            <mat-label>Phone Number</mat-label>
+            <input matInput formControlName="phone" placeholder="+1 (555) 000-0000">
+            <mat-error *ngIf="leadForm.get('phone')?.hasError('required')">Phone is required</mat-error>
+          </mat-form-field>
+
+          <mat-form-field appearance="outline">
+            <mat-label>Email Address</mat-label>
+            <input matInput type="email" formControlName="email" placeholder="john.doe@example.com">
+            <mat-error *ngIf="leadForm.get('email')?.hasError('required')">Email is required</mat-error>
+            <mat-error *ngIf="leadForm.get('email')?.hasError('email')">Invalid email address</mat-error>
+          </mat-form-field>
+        </div>
+
+        <!-- Section 2: Trial Details & Settings -->
+        <div class="form-section">
+          <h3 class="section-title"><mat-icon>settings_accessibility</mat-icon> Trial Details</h3>
+
+          <mat-form-field appearance="outline">
+            <mat-label>Lead Source</mat-label>
+            <mat-select formControlName="leadSource">
+              <mat-option value="Walk-in">Walk-in</mat-option>
+              <mat-option value="Instagram">Instagram</mat-option>
+              <mat-option value="Facebook">Facebook</mat-option>
+              <mat-option value="Referral">Referral</mat-option>
+              <mat-option value="Website">Website</mat-option>
+            </mat-select>
+          </mat-form-field>
+
+          <div class="dates-row">
+            <mat-form-field appearance="outline">
+              <mat-label>Trial Date</mat-label>
+              <input matInput [matDatepicker]="trialPicker" formControlName="trialDate">
+              <mat-datepicker-toggle matSuffix [for]="trialPicker"></mat-datepicker-toggle>
+              <mat-datepicker #trialPicker></mat-datepicker>
+            </mat-form-field>
+
+            <mat-form-field appearance="outline">
+              <mat-label>Follow Up Date</mat-label>
+              <input matInput [matDatepicker]="followUpPicker" formControlName="followUpDate">
+              <mat-datepicker-toggle matSuffix [for]="followUpPicker"></mat-datepicker-toggle>
+              <mat-datepicker #followUpPicker></mat-datepicker>
+            </mat-form-field>
+          </div>
+
+          <div class="meta-row">
+            <mat-form-field appearance="outline">
+              <mat-label>Interested Plan</mat-label>
+              <mat-select formControlName="interestedPlan">
+                <mat-option *ngFor="let plan of plans" [value]="plan.name">{{ plan.name }}</mat-option>
+              </mat-select>
+            </mat-form-field>
+
+            <mat-form-field appearance="outline">
+              <mat-label>Assigned Staff</mat-label>
+              <mat-select formControlName="assignedStaff">
+                <mat-option value="">Unassigned</mat-option>
+                <mat-option *ngFor="let trainer of trainers" [value]="trainer.name">{{ trainer.name }}</mat-option>
+              </mat-select>
+            </mat-form-field>
+          </div>
+
+          <mat-form-field appearance="outline">
+            <mat-label>Lead Status</mat-label>
+            <mat-select formControlName="status">
+              <mat-option value="New">New</mat-option>
+              <mat-option value="Contacted">Contacted</mat-option>
+              <mat-option value="Trial Scheduled">Trial Scheduled</mat-option>
+              <mat-option value="Follow Up">Follow Up</mat-option>
+              <mat-option value="Converted">Converted</mat-option>
+              <mat-option value="Lost">Lost</mat-option>
+            </mat-select>
+          </mat-form-field>
+        </div>
+
+        <!-- Section 3: Notes (Full Width) -->
+        <div class="form-section full-width">
+          <h3 class="section-title"><mat-icon>notes</mat-icon> Additional Notes</h3>
+          <mat-form-field appearance="outline">
+            <mat-label>Notes & Requirements</mat-label>
+            <textarea matInput formControlName="notes" rows="4" placeholder="Enter fitness level, goals, preferred schedules, or check-in restrictions..."></textarea>
+          </mat-form-field>
+        </div>
+      </div>
+
+      <div class="form-actions">
+        <button mat-button type="button" routerLink="/leads" class="cancel-btn">Cancel</button>
+        <button mat-raised-button color="primary" type="submit" [disabled]="leadForm.invalid" class="submit-btn">
+          <mat-icon>person_add</mat-icon>
+          <span>Save Lead</span>
+        </button>
+      </div>
+    </form>
+  </mat-card>
+</div>

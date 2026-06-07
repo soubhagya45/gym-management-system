@@ -1,0 +1,116 @@
+.add-lead-page-wrapper {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+
+.back-nav {
+  margin-bottom: 8px;
+  
+  .back-link {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    color: var(--text-secondary);
+    text-decoration: none;
+    font-size: 13px;
+    font-weight: 500;
+    transition: color 0.2s ease;
+    
+    mat-icon {
+      font-size: 16px;
+      width: 16px;
+      height: 16px;
+    }
+    
+    &:hover {
+      color: var(--accent-color);
+    }
+  }
+}
+
+.form-card {
+  padding: 32px !important;
+}
+
+.form-grid-layout {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 32px;
+}
+
+.form-section {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  
+  &.full-width {
+    grid-column: span 2;
+  }
+  
+  .section-title {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 16px;
+    font-weight: 600;
+    color: var(--text-primary);
+    border-bottom: 1px solid var(--border-color);
+    padding-bottom: 8px;
+    margin-bottom: 8px;
+    
+    mat-icon {
+      color: var(--accent-color);
+    }
+  }
+}
+
+.dates-row, .meta-row {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 16px;
+}
+
+.form-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 12px;
+  margin-top: 32px;
+  border-top: 1px solid var(--border-color);
+  padding-top: 24px;
+  
+  .cancel-btn {
+    height: 44px !important;
+    border-radius: 8px !important;
+    font-weight: 600 !important;
+    color: var(--text-secondary) !important;
+    
+    &:hover {
+      background-color: var(--border-color) !important;
+    }
+  }
+  
+  .submit-btn {
+    height: 44px !important;
+    padding: 0 24px !important;
+  }
+}
+
+@media (max-width: 959.98px) {
+  .form-grid-layout {
+    grid-template-columns: 1fr;
+  }
+  
+  .form-section.full-width {
+    grid-column: span 1;
+  }
+}
+
+@media (max-width: 599.98px) {
+  .dates-row, .meta-row {
+    grid-template-columns: 1fr;
+  }
+  .form-card {
+    padding: 20px !important;
+  }
+}

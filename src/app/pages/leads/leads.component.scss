@@ -108,13 +108,41 @@
   gap: 4px;
 }
 
+.name-info-container {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.lead-link-name {
+  color: var(--accent-color);
+  text-decoration: none;
+  font-weight: 600;
+  
+  &:hover {
+    color: var(--accent-hover);
+    text-decoration: underline;
+  }
+}
+
+.lead-email-subtext {
+  font-size: 11px;
+  color: var(--text-muted);
+  font-weight: 400;
+}
+
 /* Status badges */
-.new-lead-badge {
+.new-badge {
   background-color: var(--info-glow);
   color: var(--info);
 }
 
-.trial-booked-badge {
+.contacted-badge {
+  background-color: var(--accent-light);
+  color: var(--accent-color);
+}
+
+.trial-scheduled-badge {
   background-color: var(--success-glow);
   color: var(--success);
 }

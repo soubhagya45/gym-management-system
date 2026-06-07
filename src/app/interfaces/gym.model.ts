@@ -70,8 +70,13 @@ export interface Lead {
   id: string;
   name: string;
   phone: string;
+  email: string;
+  leadSource: 'Walk-in' | 'Instagram' | 'Facebook' | 'Referral' | 'Website';
   trialDate: string;
-  leadSource: string;
   followUpDate: string;
-  status: 'New Lead' | 'Trial Booked' | 'Follow Up' | 'Converted' | 'Lost';
+  interestedPlan: string;
+  notes?: string;
+  assignedStaff?: string;
+  status: 'New' | 'Contacted' | 'Trial Scheduled' | 'Follow Up' | 'Converted' | 'Lost';
 }
+

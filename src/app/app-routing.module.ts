@@ -34,6 +34,16 @@ const routes: Routes = [
     canActivate: [authGuard]
   },
   {
+    path: 'leads/add',
+    loadComponent: () => import('./pages/leads/add-lead.component').then(m => m.AddLeadComponent),
+    canActivate: [authGuard]
+  },
+  {
+    path: 'leads/:id',
+    loadComponent: () => import('./pages/leads/lead-details.component').then(m => m.LeadDetailsComponent),
+    canActivate: [authGuard]
+  },
+  {
     path: 'attendance',
     loadComponent: () => import('./pages/attendance/attendance.component').then(m => m.AttendanceComponent),
     canActivate: [authGuard]
