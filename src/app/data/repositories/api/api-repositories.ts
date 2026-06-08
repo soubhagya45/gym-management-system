@@ -10,6 +10,8 @@ import { Trainer } from '../../../core/models/trainer.entity';
 import { Attendance } from '../../../core/models/attendance.entity';
 import { MembershipPlan } from '../../../core/models/membership-plan.entity';
 import { ActivityLog } from '../../../core/models/activity-log.entity';
+import { WhatsAppTemplate } from '../../../core/models/whatsapp-template.entity';
+import { WhatsAppReminder } from '../../../core/models/whatsapp-reminder.entity';
 
 import {
   IAuthRepository,
@@ -20,7 +22,8 @@ import {
   ITrainerRepository,
   IAttendanceRepository,
   IMembershipPlanRepository,
-  IActivityLogRepository
+  IActivityLogRepository,
+  IWhatsAppRepository
 } from '../../../core/interfaces/repository.interfaces';
 
 /**
@@ -117,4 +120,15 @@ export class ApiActivityLogRepository implements IActivityLogRepository {
   constructor(private http: HttpClient) {}
   getLogs(gymId: string): Observable<ActivityLog[]> { return throwError(() => new Error('API integration is not enabled.')); }
   addLog(gymId: string, text: string, type: 'join' | 'payment' | 'attendance' | 'plan-change'): Observable<ActivityLog> { return throwError(() => new Error('API integration is not enabled.')); }
+}
+
+@Injectable({ providedIn: 'root' })
+export class ApiWhatsAppRepository implements IWhatsAppRepository {
+  constructor(private http: HttpClient) {}
+  getTemplates(gymId: string): Observable<WhatsAppTemplate[]> { return throwError(() => new Error('API integration is not enabled.')); }
+  updateTemplate(gymId: string, template: WhatsAppTemplate): Observable<void> { return throwError(() => new Error('API integration is not enabled.')); }
+  getReminders(gymId: string): Observable<WhatsAppReminder[]> { return throwError(() => new Error('API integration is not enabled.')); }
+  addReminder(gymId: string, reminder: Omit<WhatsAppReminder, 'id'>): Observable<WhatsAppReminder> { return throwError(() => new Error('API integration is not enabled.')); }
+  updateReminder(gymId: string, reminder: WhatsAppReminder): Observable<void> { return throwError(() => new Error('API integration is not enabled.')); }
+  deleteReminder(gymId: string, id: string): Observable<void> { return throwError(() => new Error('API integration is not enabled.')); }
 }

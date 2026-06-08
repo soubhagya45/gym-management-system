@@ -1,0 +1,164 @@
+<div class="whatsapp-dialog-container">
+  <!-- Dialog Header -->
+  <div class="dialog-header">
+    <div class="dialog-title-group">
+      <mat-icon class="header-icon">message</mat-icon>
+      <div>
+        <h2>WhatsApp Reminder Dispatch</h2>
+        <p>Preview, edit, and schedule automated WhatsApp dispatches.</p>
+      </div>
+    </div>
+    <button mat-icon-button class="close-btn" (click)="onCancel()">
+      <mat-icon>close</mat-icon>
+    </button>
+  </div>
+
+  <!-- Dialog Body Grid -->
+  <div class="dialog-body-grid">
+    <!-- Left Panel: Message Configuration & Edit -->
+    <div class="config-panel">
+      <!-- Target Recipient Info -->
+      <div class="recipient-card">
+        <div class="recipient-avatar">
+          <span>{{ data.name.charAt(0) }}</span>
+        </div>
+        <div class="recipient-details">
+          <div class="name-label">{{ data.name }}</div>
+          <div class="phone-label">{{ data.phone }}</div>
+        </div>
+        <span class="type-badge" [ngClass]="data.recipientType">{{ data.recipientType }}</span>
+      </div>
+
+      <!-- Template Selector -->
+      <mat-form-field appearance="outline" class="w-100 mt-3">
+        <mat-label>Select Message Template</mat-label>
+        <mat-select [(ngModel)]="selectedTemplate" (selectionChange)="onTemplateChange()">
+          <mat-option *ngFor="let tpl of templates" [value]="tpl">
+            {{ tpl.name }}
+          </mat-option>
+        </mat-select>
+      </mat-form-field>
+
+      <!-- Message Content Textarea -->
+      <div class="content-textarea-container mt-2">
+        <div class="textarea-header">
+          <span>Message Body</span>
+          <button mat-button color="accent" class="edit-toggle-btn" (click)="toggleEditMode()">
+            <mat-icon>{{ isEditing ? 'done' : 'edit' }}</mat-icon>
+            <span>{{ isEditing ? 'Lock Draft' : 'Edit Text' }}</span>
+          </button>
+        </div>
+        <mat-form-field appearance="outline" class="w-100">
+          <textarea matInput rows="6" [(ngModel)]="messageContent" [disabled]="!isEditing"
+                    placeholder="Message body will load from template..."></textarea>
+          <mat-hint *ngIf="!isEditing">Click "Edit Text" to customize the default template text.</mat-hint>
+          <mat-hint *ngIf="isEditing">Customizing draft. Placeholders are already interpolated.</mat-hint>
+        </mat-form-field>
+      </div>
+
+      <!-- Schedule panel toggle -->
+      <div class="scheduling-action-wrapper mt-3">
+        <button mat-stroked-button color="accent" class="w-100 schedule-toggle-btn" 
+                [class.active]="isScheduling" (click)="toggleScheduling()">
+          <mat-icon>{{ isScheduling ? 'arrow_drop_up' : 'schedule' }}</mat-icon>
+          <span>{{ isScheduling ? 'Hide Scheduling Options' : 'Schedule for Later' }}</span>
+        </button>
+      </div>
+
+      <!-- Expandable Scheduling Options -->
+      <div class="scheduling-panel" *ngIf="isScheduling">
+        <div class="scheduling-grid mt-2">
+          <!-- Date Picker -->
+          <mat-form-field appearance="outline" class="w-100">
+            <mat-label>Choose date</mat-label>
+            <input matInput [matDatepicker]="picker" [(ngModel)]="scheduleDate">
+            <mat-hint>MM/DD/YYYY</mat-hint>
+            <mat-datepicker-toggle matIconSuffix [for]="picker"></mat-datepicker-toggle>
+            <mat-datepicker #picker></mat-datepicker>
+          </mat-form-field>
+
+          <!-- Time Selector -->
+          <mat-form-field appearance="outline" class="w-100">
+            <mat-label>Choose Time</mat-label>
+            <input matInput type="time" [(ngModel)]="scheduleTime">
+            <mat-hint>HH:MM (24-hour)</mat-hint>
+          </mat-form-field>
+        </div>
+      </div>
+    </div>
+
+    <!-- Right Panel: Simulated WhatsApp Screen -->
+    <div class="simulator-panel">
+      <div class="phone-frame shadow-lg">
+        <!-- Phone Top Bar -->
+        <div class="phone-header">
+          <div class="phone-back">
+            <mat-icon>arrow_back</mat-icon>
+          </div>
+          <div class="phone-avatar">
+            <span>{{ data.name.charAt(0) }}</span>
+          </div>
+          <div class="phone-user-info">
+            <div class="phone-username">{{ data.name }}</div>
+            <div class="phone-status">online</div>
+          </div>
+          <div class="phone-actions">
+            <mat-icon class="action-icon">videocam</mat-icon>
+            <mat-icon class="action-icon">call</mat-icon>
+            <mat-icon class="action-icon">more_vert</mat-icon>
+          </div>
+        </div>
+
+        <!-- Phone Chat Body -->
+        <div class="phone-chat-body">
+          <div class="chat-doodle-bg"></div>
+          <div class="chat-messages-container">
+            <!-- Simulated Message Bubble -->
+            <div class="message-bubble outgoing" *ngIf="messageContent">
+              <div class="message-text">{{ messageContent }}</div>
+              <div class="message-metadata">
+                <span class="message-time">{{ currentTime }}</span>
+                <mat-icon class="message-checkmark">done_all</mat-icon>
+              </div>
+            </div>
+            
+            <div class="empty-bubble-state" *ngIf="!messageContent">
+              <mat-icon>chat_bubble_outline</mat-icon>
+              <p>Select a template or type content to preview.</p>
+            </div>
+          </div>
+        </div>
+
+        <!-- Phone Chat Input Bar -->
+        <div class="phone-chat-footer">
+          <mat-icon class="footer-emoji">insert_emoticon</mat-icon>
+          <div class="footer-input">Type a message</div>
+          <mat-icon class="footer-attach">attach_file</mat-icon>
+          <div class="footer-mic-circle">
+            <mat-icon class="mic-icon">mic</mat-icon>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Dialog Actions -->
+  <div class="dialog-actions-footer">
+    <button mat-button (click)="onCancel()" class="cancel-btn">Cancel</button>
+    <span class="spacer"></span>
+    
+    <ng-container *ngIf="isScheduling; else sendNowView">
+      <button mat-raised-button color="accent" (click)="onScheduleSubmit()" class="schedule-btn">
+        <mat-icon>calendar_today</mat-icon>
+        <span>Schedule Message</span>
+      </button>
+    </ng-container>
+    
+    <ng-template #sendNowView>
+      <button mat-raised-button color="primary" (click)="onSendNow()" class="send-btn">
+        <mat-icon>send</mat-icon>
+        <span>Send Now</span>
+      </button>
+    </ng-template>
+  </div>
+</div>

@@ -19,6 +19,7 @@ import { Member } from '../../core/models/member.entity';
 import { MembershipPlan } from '../../core/models/membership-plan.entity';
 import { MemberDialogComponent } from './member-dialog.component';
 import { ConfirmDialogComponent } from './confirm-dialog.component';
+import { WhatsAppPreviewModalComponent } from '../whatsapp/whatsapp-preview-modal.component';
 
 @Component({
   selector: 'app-members',
@@ -36,7 +37,8 @@ import { ConfirmDialogComponent } from './confirm-dialog.component';
     MatIconModule,
     MatDialogModule,
     MatSnackBarModule,
-    MatTooltipModule
+    MatTooltipModule,
+    WhatsAppPreviewModalComponent
   ],
   templateUrl: './members.component.html',
   styleUrls: ['./members.component.scss']
@@ -211,6 +213,23 @@ export class MembersComponent implements OnInit, AfterViewInit {
             panelClass: ['premium-snack']
           });
         });
+      }
+    });
+  }
+
+  openWhatsAppDialog(member: Member) {
+    this.dialog.open(WhatsAppPreviewModalComponent, {
+      width: '800px',
+      data: {
+        name: member.name,
+        phone: member.phone,
+        recipientType: member.status === 'expiring' ? 'renewal' : 'member',
+        variables: {
+          planName: member.planName,
+          dueDate: member.endDate,
+          amount: member.balance,
+          gymName: 'Apex Fit Downtown'
+        }
       }
     });
   }

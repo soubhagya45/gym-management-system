@@ -75,6 +75,11 @@ const routes: Routes = [
     canActivate: [authGuard]
   },
   {
+    path: 'whatsapp',
+    loadComponent: () => import('./pages/whatsapp/whatsapp.component').then(m => m.WhatsAppComponent),
+    canActivate: [authGuard]
+  },
+  {
     path: '**',
     redirectTo: 'dashboard'
   }

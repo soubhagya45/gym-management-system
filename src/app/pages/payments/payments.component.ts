@@ -26,7 +26,8 @@ import { PaymentDialogComponent } from './payment-dialog.component';
 import { RenewDialogComponent } from './renew-dialog.component';
 import { ActivatedRoute } from '@angular/router';
 import { Observable } from 'rxjs';
-import { map } from 'rxjs/operators';
+import { map, take } from 'rxjs/operators';
+import { WhatsAppPreviewModalComponent } from '../whatsapp/whatsapp-preview-modal.component';
 
 interface PaymentStats {
   totalCollected: number;
@@ -51,7 +52,8 @@ interface PaymentStats {
     MatSnackBarModule,
     MatTooltipModule,
     MatTabsModule,
-    MatProgressBarModule
+    MatProgressBarModule,
+    WhatsAppPreviewModalComponent
   ],
   templateUrl: './payments.component.html',
   styleUrls: ['./payments.component.scss']
@@ -269,6 +271,52 @@ export class PaymentsComponent implements OnInit {
   printInvoice(payment: Payment) {
     this.snackBar.open(`Generating invoice slip for ${payment.memberName}...`, 'Dismiss', {
       duration: 2000
+    });
+  }
+
+  getMemberPhone(memberId: string): string {
+    let phone = '+91 99887 76655';
+    this.memberState.members$.pipe(take(1)).subscribe(members => {
+      const found = members.find(m => m.id === memberId);
+      if (found) {
+        phone = found.phone;
+      }
+    });
+    return phone;
+  }
+
+  openWhatsAppPaymentDialog(payment: Payment) {
+    const phone = this.getMemberPhone(payment.memberId);
+    this.dialog.open(WhatsAppPreviewModalComponent, {
+      width: '800px',
+      data: {
+        name: payment.memberName,
+        phone,
+        recipientType: 'payment',
+        variables: {
+          planName: payment.planName,
+          amount: payment.dueAmount,
+          dueDate: payment.dueDate,
+          gymName: 'Apex Fit Downtown'
+        }
+      }
+    });
+  }
+
+  openWhatsAppRenewalDialog(member: Member) {
+    this.dialog.open(WhatsAppPreviewModalComponent, {
+      width: '800px',
+      data: {
+        name: member.name,
+        phone: member.phone,
+        recipientType: 'renewal',
+        variables: {
+          planName: member.planName,
+          dueDate: member.endDate,
+          amount: member.balance,
+          gymName: 'Apex Fit Downtown'
+        }
+      }
     });
   }
 }

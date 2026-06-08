@@ -20,6 +20,7 @@ import { Lead } from '../../core/models/lead.entity';
 import { LeadDialogComponent } from './lead-dialog.component';
 import { ConfirmDialogComponent } from '../members/confirm-dialog.component';
 import { ConvertDialogComponent } from './convert-dialog.component';
+import { WhatsAppPreviewModalComponent } from '../whatsapp/whatsapp-preview-modal.component';
 
 interface LeadStats {
   total: number;
@@ -46,7 +47,8 @@ interface LeadStats {
     MatDialogModule,
     MatSnackBarModule,
     MatTooltipModule,
-    MatCardModule
+    MatCardModule,
+    WhatsAppPreviewModalComponent
   ],
   templateUrl: './leads.component.html',
   styleUrls: ['./leads.component.scss']
@@ -238,5 +240,21 @@ export class LeadsComponent implements OnInit, AfterViewInit {
       case 'Lost': return 'lost-badge';
       default: return '';
     }
+  }
+
+  openWhatsAppDialog(lead: Lead): void {
+    this.dialog.open(WhatsAppPreviewModalComponent, {
+      width: '800px',
+      data: {
+        name: lead.name,
+        phone: lead.phone,
+        recipientType: 'lead',
+        variables: {
+          trialDate: lead.trialDate,
+          planName: lead.interestedPlan,
+          gymName: 'Apex Fit Downtown'
+        }
+      }
+    });
   }
 }
