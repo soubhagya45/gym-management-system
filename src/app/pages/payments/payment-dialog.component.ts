@@ -36,7 +36,7 @@ import { Member } from '../../interfaces/gym.model';
             <mat-label>Select Member</mat-label>
             <mat-select formControlName="memberId" (selectionChange)="onMemberSelect($event.value)">
               <mat-option *ngFor="let member of members" [value]="member.id">
-                {{ member.name }} (Outstanding: \${{ member.balance }})
+                {{ member.name }} (Outstanding: ₹{{ member.balance }})
               </mat-option>
             </mat-select>
             <mat-error *ngIf="paymentForm.get('memberId')?.hasError('required')">Member selection is required</mat-error>
@@ -44,7 +44,7 @@ import { Member } from '../../interfaces/gym.model';
 
           <!-- Amount -->
           <mat-form-field appearance="outline">
-            <mat-label>Amount ($)</mat-label>
+            <mat-label>Amount (₹)</mat-label>
             <input matInput type="number" formControlName="amount" placeholder="0.00">
             <mat-error *ngIf="paymentForm.get('amount')?.hasError('required')">Amount is required</mat-error>
             <mat-error *ngIf="paymentForm.get('amount')?.hasError('min')">Amount must be greater than 0</mat-error>
@@ -142,8 +142,8 @@ export class PaymentDialogComponent implements OnInit {
   onMemberSelect(memberId: string): void {
     const selectedMember = this.members.find(m => m.id === memberId);
     if (selectedMember) {
-      // If outstanding balance is > 0, set that as amount, otherwise set plan price or default to 49
-      const price = selectedMember.balance > 0 ? selectedMember.balance : 49;
+      // If outstanding balance is > 0, set that as amount, otherwise set plan price or default to 1500
+      const price = selectedMember.balance > 0 ? selectedMember.balance : 1500;
       this.paymentForm.get('amount')?.setValue(price);
     }
   }

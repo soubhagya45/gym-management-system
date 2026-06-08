@@ -42,7 +42,7 @@ import { GymService } from '../../services/gym.service';
             <mat-label>Membership Plan</mat-label>
             <mat-select formControlName="planId">
               <mat-option *ngFor="let plan of plans" [value]="plan.id">
-                {{ plan.name }} (\${{ plan.price }})
+                {{ plan.name }} (₹{{ plan.price }})
               </mat-option>
             </mat-select>
             <mat-error *ngIf="convertForm.get('planId')?.hasError('required')">Membership Plan is required</mat-error>

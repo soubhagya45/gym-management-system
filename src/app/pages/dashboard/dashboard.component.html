@@ -3,7 +3,7 @@
   <div class="page-header">
     <div class="title-area">
       <h1>Admin Dashboard</h1>
-      <p>Here is what is happening at Apex Fit today.</p>
+      <p>Real-time metrics and operations for Apex Fit.</p>
     </div>
     <div class="actions-area">
       <button mat-raised-button color="primary" routerLink="/members">
@@ -21,7 +21,6 @@
         <div class="stat-icon-wrapper primary">
           <mat-icon>people</mat-icon>
         </div>
-        <span class="stat-badge success">+12%</span>
       </div>
       <div class="stat-body">
         <h3 class="stat-value">{{ stats.totalMembers }}</h3>
@@ -31,7 +30,7 @@
         <div class="progress-bar-container">
           <div class="progress-fill primary" style="width: 100%"></div>
         </div>
-        <span class="footer-text">Registered directories</span>
+        <span class="footer-text">Registered profiles</span>
       </div>
     </div>
 
@@ -55,23 +54,23 @@
       </div>
     </div>
 
-    <!-- Card 3: Expiring This Week -->
+    <!-- Card 3: Expiring Memberships -->
     <div class="mat-card interactive stat-card">
       <div class="stat-header">
         <div class="stat-icon-wrapper danger">
           <mat-icon>hourglass_empty</mat-icon>
         </div>
-        <span class="stat-badge danger" *ngIf="stats.expiringThisWeek > 0">Action Required</span>
+        <span class="stat-badge danger" *ngIf="stats.expiringMemberships > 0">Action Required</span>
       </div>
       <div class="stat-body">
-        <h3 class="stat-value">{{ stats.expiringThisWeek }}</h3>
-        <p class="stat-label">Expiring This Week</p>
+        <h3 class="stat-value">{{ stats.expiringMemberships }}</h3>
+        <p class="stat-label">Expiring Memberships</p>
       </div>
       <div class="stat-footer">
         <div class="progress-bar-container">
-          <div class="progress-fill danger" [style.width.%]="stats.expiringThisWeek * 10"></div>
+          <div class="progress-fill danger" [style.width.%]="stats.totalMembers > 0 ? (stats.expiringMemberships / stats.totalMembers * 100) : 0"></div>
         </div>
-        <span class="footer-text">Renewal follow ups ready</span>
+        <span class="footer-text">Renewals due soon</span>
       </div>
     </div>
 
@@ -81,7 +80,7 @@
         <div class="stat-icon-wrapper warning">
           <mat-icon>money_off</mat-icon>
         </div>
-        <span class="stat-badge warning" *ngIf="stats.pendingPaymentsCount > 0">Alert</span>
+        <span class="stat-badge warning" *ngIf="stats.pendingPaymentsCount > 0">Verification Due</span>
       </div>
       <div class="stat-body">
         <h3 class="stat-value">{{ stats.pendingPaymentsCount }}</h3>
@@ -91,7 +90,7 @@
         <div class="progress-bar-container">
           <div class="progress-fill warning" [style.width.%]="stats.pendingPaymentsCount * 15"></div>
         </div>
-        <span class="footer-text">Awaiting verification</span>
+        <span class="footer-text">Invoices to clear</span>
       </div>
     </div>
 
@@ -101,55 +100,53 @@
         <div class="stat-icon-wrapper success">
           <mat-icon>payments</mat-icon>
         </div>
-        <span class="stat-badge success">Target Met</span>
       </div>
       <div class="stat-body">
-        <h3 class="stat-value">\${{ stats.monthlyRevenue }}</h3>
+        <h3 class="stat-value">₹{{ stats.monthlyRevenue }}</h3>
         <p class="stat-label">Monthly Revenue</p>
       </div>
       <div class="stat-footer">
         <div class="progress-bar-container">
-          <div class="progress-fill success" style="width: 82%"></div>
+          <div class="progress-fill success" style="width: 100%"></div>
         </div>
-        <span class="footer-text">Total paid transactions</span>
+        <span class="footer-text">Settle ledger payments</span>
       </div>
     </div>
 
-    <!-- Card 6: Leads Conversion Rate -->
+    <!-- Card 6: Total Leads -->
     <div class="mat-card interactive stat-card">
       <div class="stat-header">
         <div class="stat-icon-wrapper primary">
           <mat-icon>insights</mat-icon>
         </div>
-        <span class="stat-badge info">+4% vs May</span>
       </div>
       <div class="stat-body">
-        <h3 class="stat-value">{{ stats.leadsConversionRate }}%</h3>
-        <p class="stat-label">Leads Conversion Rate</p>
+        <h3 class="stat-value">{{ stats.totalLeads }}</h3>
+        <p class="stat-label">Total Leads</p>
       </div>
       <div class="stat-footer">
         <div class="progress-bar-container">
-          <div class="progress-fill primary" [style.width.%]="stats.leadsConversionRate"></div>
+          <div class="progress-fill primary" style="width: 100%"></div>
         </div>
-        <span class="footer-text">Trial member conversions</span>
+        <span class="footer-text">Marketing pipeline</span>
       </div>
     </div>
   </div>
 
-  <!-- Charts Section -->
+  <!-- Row 1: Charts Section -->
   <div class="charts-row">
-    <!-- Revenue Trend Chart -->
+    <!-- Widget 6: Revenue Trend -->
     <div class="mat-card chart-card">
       <div class="chart-header">
         <h3>Revenue Trend (H1 2026)</h3>
-        <span class="chart-sub">Total earnings from new plans and renewals</span>
+        <span class="chart-sub">Total earnings from plans and renewals in ₹</span>
       </div>
       <div class="chart-wrapper">
         <div class="y-axis-labels">
-          <span>$5k</span>
-          <span>$3k</span>
-          <span>$1k</span>
-          <span>$0</span>
+          <span>₹1.2L</span>
+          <span>₹80k</span>
+          <span>₹40k</span>
+          <span>₹0</span>
         </div>
         <div class="svg-container">
           <svg class="line-chart-svg" viewBox="0 0 500 150" preserveAspectRatio="none">
@@ -159,12 +156,8 @@
                 <stop offset="100%" stop-color="var(--accent-color)" stop-opacity="0.0" />
               </linearGradient>
             </defs>
-            <!-- Area Fill -->
             <path [attr.d]="getSVGFillPath()" fill="url(#chartGradient)"></path>
-            <!-- Line Stroke -->
             <polyline fill="none" stroke="var(--accent-color)" stroke-width="3" [attr.points]="getSVGPath()"></polyline>
-            
-            <!-- Grid Lines -->
             <line x1="20" y1="20" x2="480" y2="20" stroke="var(--border-color)" stroke-dasharray="4" />
             <line x1="20" y1="75" x2="480" y2="75" stroke="var(--border-color)" stroke-dasharray="4" />
             <line x1="20" y1="130" x2="480" y2="130" stroke="var(--border-color)" />
@@ -177,259 +170,224 @@
       <div class="chart-footer-stats">
         <div class="stat-indicator">
           <span class="dot primary"></span>
-          <span>Monthly Revenue Growth: <strong>+18%</strong> month over month</span>
+          <span>Highest Month: <strong>June (₹1,25,000)</strong></span>
         </div>
       </div>
     </div>
 
-    <!-- Membership Growth Bar Chart -->
+    <!-- Widget 7: Membership Plan Distribution -->
     <div class="mat-card chart-card">
       <div class="chart-header">
-        <h3>Membership Growth</h3>
-        <span class="chart-sub">Cumulative total active profiles by month</span>
+        <h3>Membership Plan Distribution</h3>
+        <span class="chart-sub">Active members split by plans</span>
       </div>
-      <div class="bar-chart-container">
-        <div class="bars-wrapper">
-          <div class="bar-col" *ngFor="let item of growthChartData">
-            <div class="bar-fill-wrapper">
-              <div class="bar-fill" [style.height.%]="item.height" [matTooltip]="item.members + ' members'">
-                <div class="bar-tooltip-pop">{{ item.members }}</div>
-              </div>
-            </div>
-            <span class="bar-label">{{ item.month }}</span>
+      <div class="plan-distribution-container">
+        <div class="plan-dist-item" *ngFor="let item of planDistribution$ | async">
+          <div class="plan-dist-meta">
+            <span class="plan-dist-name">{{ item.name }}</span>
+            <span class="plan-dist-stats"><strong>{{ item.count }}</strong> Active ({{ item.percentage }}%)</span>
+          </div>
+          <div class="progress-bar-container">
+            <div class="progress-fill" [ngClass]="item.colorClass" [style.width.%]="item.percentage"></div>
           </div>
         </div>
-      </div>
-      <div class="chart-footer-stats">
-        <div class="stat-indicator">
-          <span class="dot success"></span>
-          <span>Target reached: <strong>112 Active Users</strong></span>
+        <div class="empty-state" *ngIf="!(planDistribution$ | async)?.length">
+          <mat-icon>pie_chart_outline</mat-icon>
+          <p>No active plans data.</p>
         </div>
       </div>
     </div>
   </div>
 
-  <!-- Lower Section: Operational Hub & Activity -->
-  <div class="dashboard-details-row">
-    <!-- Operational Hub Tabs -->
-    <div class="mat-card details-card hub-card">
-      <div class="details-header">
+  <!-- Row 2: Attendance & Leads Section -->
+  <div class="widgets-row-two">
+    <!-- Widget 3: Today's Attendance -->
+    <div class="mat-card details-card">
+      <div class="details-header flex-header">
         <div>
-          <h3>Operational Hub</h3>
-          <span class="chart-sub">Manage active follow ups, invoices, check-ins, and renewals</span>
+          <h3>Today's Attendance</h3>
+          <span class="chart-sub">Check-in status audit details</span>
+        </div>
+        <div class="attendance-stat-box" *ngIf="attendanceSummary$ | async as summary">
+          <span class="att-counter">{{ summary.present }} / {{ summary.total }}</span>
+          <span class="att-sub">{{ summary.percentage }}% Present</span>
         </div>
       </div>
       
-      <div class="hub-tabs-container">
-        <mat-tab-group animationDuration="300ms">
-          
-          <!-- Tab 1: Lead Follow Ups -->
-          <mat-tab>
-            <ng-template mat-tab-label>
-              <mat-icon class="tab-icon">leaderboard</mat-icon>
-              <span>Lead Follow Ups</span>
-            </ng-template>
-            <div class="tab-pane-content">
-              <div class="list-wrapper" *ngIf="leadFollowUps$ | async as followUps; else noLeads">
-                <div class="list-item-row" *ngFor="let lead of followUps">
-                  <div class="item-avatar primary-node">
-                    <mat-icon class="icon-avatar primary-color">assignment_ind</mat-icon>
-                  </div>
-                  <div class="item-info">
-                    <span class="main-title">{{ lead.name }}</span>
-                    <span class="sub-title">Phone: {{ lead.phone }} • Source: {{ lead.leadSource }}</span>
-                  </div>
-                  <div class="item-meta">
-                    <span class="follow-up-badge-txt">Follow Up: {{ lead.followUpDate | date:'mediumDate' }}</span>
-                  </div>
-                </div>
-                <div class="empty-pane-state" *ngIf="!followUps.length">
-                  <mat-icon>done_all</mat-icon>
-                  <p>No pending lead follow ups today.</p>
-                </div>
+      <div class="attendance-table-container scrollable-widget">
+        <table mat-table [dataSource]="(todayAttendance$ | async) || []" class="mat-elevation-z0 w-100">
+          <ng-container matColumnDef="avatar">
+            <th mat-header-cell *matHeaderCellDef class="hide-on-mobile" style="width: 50px"></th>
+            <td mat-cell *matCellDef="let element" class="hide-on-mobile">
+              <div class="member-avatar-circle">
+                <mat-icon>person</mat-icon>
               </div>
-              <ng-template #noLeads>
-                <div class="loading-state">Loading leads...</div>
-              </ng-template>
-            </div>
-          </mat-tab>
+            </td>
+          </ng-container>
 
-          <!-- Tab 2: Pending Payments -->
-          <mat-tab>
-            <ng-template mat-tab-label>
-              <mat-icon class="tab-icon">payments</mat-icon>
-              <span>Pending Payments</span>
-            </ng-template>
-            <div class="tab-pane-content">
-              <div class="list-wrapper" *ngIf="pendingPayments$ | async as pending; else noPayments">
-                <div class="list-item-row" *ngFor="let payment of pending">
-                  <div class="item-avatar danger-node">
-                    <mat-icon class="icon-avatar danger-color">money_off</mat-icon>
-                  </div>
-                  <div class="item-info">
-                    <span class="main-title">{{ payment.memberName }}</span>
-                    <span class="sub-title">{{ payment.planName }}</span>
-                  </div>
-                  <div class="item-meta">
-                    <span class="payment-amount-txt">\${{ payment.amount }}</span>
-                    <span class="payment-date-txt">Due: {{ payment.date | date:'mediumDate' }}</span>
-                  </div>
-                </div>
-                <div class="empty-pane-state" *ngIf="!pending.length">
-                  <mat-icon>check_circle</mat-icon>
-                  <p>All client invoices verified.</p>
-                </div>
-              </div>
-              <ng-template #noPayments>
-                <div class="loading-state">Loading payments...</div>
-              </ng-template>
-            </div>
-          </mat-tab>
+          <ng-container matColumnDef="name">
+            <th mat-header-cell *matHeaderCellDef> Member Name </th>
+            <td mat-cell *matCellDef="let element" class="font-semibold"> {{element.memberName}} </td>
+          </ng-container>
 
-          <!-- Tab 3: Expiring Memberships -->
-          <mat-tab>
-            <ng-template mat-tab-label>
-              <mat-icon class="tab-icon">hourglass_empty</mat-icon>
-              <span>Expiring Members</span>
-            </ng-template>
-            <div class="tab-pane-content">
-              <div class="list-wrapper" *ngIf="expiringMembers$ | async as expiring; else noExpiring">
-                <div class="list-item-row" *ngFor="let member of expiring">
-                  <div class="item-avatar warning-node">
-                    <mat-icon class="icon-avatar warning-color">history</mat-icon>
-                  </div>
-                  <div class="item-info">
-                    <span class="main-title">{{ member.name }}</span>
-                    <span class="sub-title">{{ member.planName }}</span>
-                  </div>
-                  <div class="item-meta">
-                    <span class="expiring-badge-txt expiring">Expires: {{ member.endDate | date:'mediumDate' }}</span>
-                  </div>
-                </div>
-                <div class="empty-pane-state" *ngIf="!expiring.length">
-                  <mat-icon>verified</mat-icon>
-                  <p>No memberships expiring soon.</p>
-                </div>
-              </div>
-              <ng-template #noExpiring>
-                <div class="loading-state">Loading members...</div>
-              </ng-template>
-            </div>
-          </mat-tab>
+          <ng-container matColumnDef="time">
+            <th mat-header-cell *matHeaderCellDef> Time Checked-In </th>
+            <td mat-cell *matCellDef="let element"> {{element.timeIn || '—'}} </td>
+          </ng-container>
 
-          <!-- Tab 4: New Members -->
-          <mat-tab>
-            <ng-template mat-tab-label>
-              <mat-icon class="tab-icon">person_add_alt_1</mat-icon>
-              <span>New Members</span>
-            </ng-template>
-            <div class="tab-pane-content">
-              <div class="list-wrapper" *ngIf="newMembers$ | async as newMembers; else noNew">
-                <div class="list-item-row" *ngFor="let member of newMembers">
-                  <div class="item-avatar success-node">
-                    <mat-icon class="icon-avatar success-color">person_add</mat-icon>
-                  </div>
-                  <div class="item-info">
-                    <span class="main-title">{{ member.name }}</span>
-                    <span class="sub-title">{{ member.email }} • Plan: {{ member.planName }}</span>
-                  </div>
-                  <div class="item-meta">
-                    <span class="join-date-txt">Joined: {{ member.startDate | date:'mediumDate' }}</span>
-                  </div>
-                </div>
-                <div class="empty-pane-state" *ngIf="!newMembers.length">
-                  <mat-icon>sentiment_dissatisfied</mat-icon>
-                  <p>No new members registered.</p>
-                </div>
-              </div>
-              <ng-template #noNew>
-                <div class="loading-state">Loading new members...</div>
-              </ng-template>
-            </div>
-          </mat-tab>
+          <ng-container matColumnDef="status">
+            <th mat-header-cell *matHeaderCellDef> Status </th>
+            <td mat-cell *matCellDef="let element"> 
+              <span class="status-badge" [ngClass]="element.status">{{element.status}}</span>
+            </td>
+          </ng-container>
 
-          <!-- Tab 5: Today's Attendance -->
-          <mat-tab>
-            <ng-template mat-tab-label>
-              <mat-icon class="tab-icon">event_available</mat-icon>
-              <span>Today's Attendance</span>
-            </ng-template>
-            <div class="tab-pane-content">
-              <div class="attendance-table-container margin-top-sm">
-                <table mat-table [dataSource]="(todayAttendance$ | async) || []" class="mat-elevation-z0 w-100">
-                  <!-- Avatar Column -->
-                  <ng-container matColumnDef="avatar">
-                    <th mat-header-cell *matHeaderCellDef class="hide-on-mobile" style="width: 50px"></th>
-                    <td mat-cell *matCellDef="let element" class="hide-on-mobile">
-                      <div class="member-avatar-circle">
-                        <mat-icon>person</mat-icon>
-                      </div>
-                    </td>
-                  </ng-container>
-
-                  <!-- Name Column -->
-                  <ng-container matColumnDef="name">
-                    <th mat-header-cell *matHeaderCellDef> Member Name </th>
-                    <td mat-cell *matCellDef="let element" class="font-semibold"> {{element.memberName}} </td>
-                  </ng-container>
-
-                  <!-- Time Column -->
-                  <ng-container matColumnDef="time">
-                    <th mat-header-cell *matHeaderCellDef> Check-In Time </th>
-                    <td mat-cell *matCellDef="let element"> {{element.timeIn || '—'}} </td>
-                  </ng-container>
-
-                  <!-- Status Column -->
-                  <ng-container matColumnDef="status">
-                    <th mat-header-cell *matHeaderCellDef> Status </th>
-                    <td mat-cell *matCellDef="let element"> 
-                      <span class="status-badge" [ngClass]="element.status">{{element.status}}</span>
-                    </td>
-                  </ng-container>
-
-                  <tr mat-header-row *matHeaderRowDef="displayedColumns"></tr>
-                  <tr mat-row *matRowDef="let row; columns: displayedColumns;"></tr>
-                </table>
-                
-                <div class="empty-pane-state" *ngIf="!(todayAttendance$ | async)?.length">
-                  <mat-icon>event_busy</mat-icon>
-                  <p>No attendance logged for today yet.</p>
-                </div>
-              </div>
-            </div>
-          </mat-tab>
-
-        </mat-tab-group>
+          <tr mat-header-row *matHeaderRowDef="displayedColumns"></tr>
+          <tr mat-row *matRowDef="let row; columns: displayedColumns;"></tr>
+        </table>
+        
+        <div class="empty-pane-state" *ngIf="!(todayAttendance$ | async)?.length">
+          <mat-icon>event_busy</mat-icon>
+          <p>No check-ins registered today yet.</p>
+        </div>
       </div>
     </div>
 
-    <!-- Activity Stream -->
+    <!-- Widget 5: Lead Follow Ups -->
     <div class="mat-card details-card">
       <div class="details-header">
         <div>
-          <h3>Recent System Activities</h3>
-          <span class="chart-sub">Real-time actions audit logs</span>
+          <h3>Lead Follow Ups</h3>
+          <span class="chart-sub">Interested trials requiring contact today</span>
         </div>
       </div>
+      <div class="scrollable-widget">
+        <div class="list-wrapper" *ngIf="leadFollowUps$ | async as followUps; else loadingLeads">
+          <div class="list-item-row" *ngFor="let lead of followUps">
+            <div class="item-avatar primary-node">
+              <mat-icon class="icon-avatar primary-color">assignment_ind</mat-icon>
+            </div>
+            <div class="item-info">
+              <span class="main-title">{{ lead.name }}</span>
+              <span class="sub-title">Phone: {{ lead.phone }} • Source: {{ lead.leadSource }}</span>
+            </div>
+            <div class="item-meta">
+              <span class="follow-up-badge-txt">Follow Up: {{ lead.followUpDate | date:'mediumDate' }}</span>
+            </div>
+          </div>
+          <div class="empty-pane-state" *ngIf="!followUps.length">
+            <mat-icon>done_all</mat-icon>
+            <p>No pending lead follow ups today.</p>
+          </div>
+        </div>
+        <ng-template #loadingLeads>
+          <div class="loading-state">Loading leads...</div>
+        </ng-template>
+      </div>
+    </div>
+  </div>
 
-      <div class="activity-timeline">
-        <div class="activity-item" *ngFor="let log of recentLogs$ | async">
-          <div class="activity-icon-node" [ngClass]="log.type">
-            <mat-icon *ngIf="log.type === 'join'">person_add</mat-icon>
-            <mat-icon *ngIf="log.type === 'payment'">payments</mat-icon>
-            <mat-icon *ngIf="log.type === 'attendance'">check_circle</mat-icon>
-            <mat-icon *ngIf="log.type === 'plan-change'">loop</mat-icon>
+  <!-- Row 3: Action Lists -->
+  <div class="widgets-row-three">
+    <!-- Widget 1: Memberships Expiring Soon -->
+    <div class="mat-card details-card">
+      <div class="details-header">
+        <div>
+          <h3>Memberships Expiring Soon</h3>
+          <span class="chart-sub">Renewal follow ups to secure</span>
+        </div>
+      </div>
+      <div class="scrollable-widget">
+        <div class="list-wrapper" *ngIf="expiringMembers$ | async as expiring; else loadingExpiring">
+          <div class="list-item-row" *ngFor="let member of expiring">
+            <div class="item-avatar warning-node">
+              <mat-icon class="icon-avatar warning-color">history</mat-icon>
+            </div>
+            <div class="item-info">
+              <span class="main-title">{{ member.name }}</span>
+              <span class="sub-title">{{ member.planName }}</span>
+            </div>
+            <div class="item-meta">
+              <span class="expiring-badge-txt expiring">Expires: {{ member.endDate | date:'mediumDate' }}</span>
+            </div>
           </div>
-          <div class="activity-content">
-            <p class="activity-text">{{ log.text }}</p>
-            <span class="activity-time">{{ log.time }}</span>
+          <div class="empty-pane-state" *ngIf="!expiring.length">
+            <mat-icon>verified</mat-icon>
+            <p>No memberships expiring soon.</p>
           </div>
         </div>
-        
-        <div class="empty-state" *ngIf="!(recentLogs$ | async)?.length">
-          <mat-icon>history</mat-icon>
-          <p>No system activity logged.</p>
+        <ng-template #loadingExpiring>
+          <div class="loading-state">Loading expiring profiles...</div>
+        </ng-template>
+      </div>
+    </div>
+
+    <!-- Widget 2: Pending Payments -->
+    <div class="mat-card details-card">
+      <div class="details-header">
+        <div>
+          <h3>Pending Payments</h3>
+          <span class="chart-sub">Outstanding receipts awaiting settlement</span>
         </div>
+      </div>
+      <div class="scrollable-widget">
+        <div class="list-wrapper" *ngIf="pendingPayments$ | async as pending; else loadingPayments">
+          <div class="list-item-row" *ngFor="let payment of pending">
+            <div class="item-avatar danger-node">
+              <mat-icon class="icon-avatar danger-color">money_off</mat-icon>
+            </div>
+            <div class="item-info">
+              <span class="main-title">{{ payment.memberName }}</span>
+              <span class="sub-title">{{ payment.planName }} <span class="status-badge-text" [ngClass]="payment.status">({{payment.status}})</span></span>
+            </div>
+            <div class="item-meta action-meta">
+              <span class="payment-amount-txt text-danger">₹{{ payment.amount }}</span>
+              <button mat-icon-button color="primary" class="inline-verify-btn" (click)="onConfirmPayment(payment.id)" matTooltip="Approve & Clear Invoice">
+                <mat-icon>check_circle</mat-icon>
+              </button>
+            </div>
+          </div>
+          <div class="empty-pane-state" *ngIf="!pending.length">
+            <mat-icon>check_circle</mat-icon>
+            <p>All client invoices settled.</p>
+          </div>
+        </div>
+        <ng-template #loadingPayments>
+          <div class="loading-state">Loading payments ledger...</div>
+        </ng-template>
+      </div>
+    </div>
+
+    <!-- Widget 4: Recent Members -->
+    <div class="mat-card details-card">
+      <div class="details-header">
+        <div>
+          <h3>Recent Members</h3>
+          <span class="chart-sub">New registrations registered recently</span>
+        </div>
+      </div>
+      <div class="scrollable-widget">
+        <div class="list-wrapper" *ngIf="newMembers$ | async as newMembers; else loadingNew">
+          <div class="list-item-row" *ngFor="let member of newMembers">
+            <div class="item-avatar success-node">
+              <mat-icon class="icon-avatar success-color">person_add</mat-icon>
+            </div>
+            <div class="item-info">
+              <span class="main-title">{{ member.name }}</span>
+              <span class="sub-title">Plan: {{ member.planName }} • Status: <span class="status-text-inline" [ngClass]="member.status">{{member.status}}</span></span>
+            </div>
+            <div class="item-meta">
+              <span class="join-date-txt">Joined: {{ member.startDate | date:'mediumDate' }}</span>
+            </div>
+          </div>
+          <div class="empty-pane-state" *ngIf="!newMembers.length">
+            <mat-icon>sentiment_dissatisfied</mat-icon>
+            <p>No new members registered.</p>
+          </div>
+        </div>
+        <ng-template #loadingNew>
+          <div class="loading-state">Loading registrations...</div>
+        </ng-template>
       </div>
     </div>
   </div>

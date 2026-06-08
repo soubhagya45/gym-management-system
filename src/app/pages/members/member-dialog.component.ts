@@ -135,7 +135,7 @@ import { Member, MembershipPlan } from '../../interfaces/gym.model';
             <mat-label>Select Membership Plan</mat-label>
             <mat-select formControlName="planId" (selectionChange)="onPlanChange($event.value)">
               <mat-option *ngFor="let plan of plans" [value]="plan.id">
-                {{ plan.name }} - \${{ plan.price }}
+                {{ plan.name }} - ₹{{ plan.price }}
               </mat-option>
             </mat-select>
             <mat-error *ngIf="memberForm.get('planId')?.hasError('required')">Plan selection is required</mat-error>

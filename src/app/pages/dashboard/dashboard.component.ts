@@ -47,27 +47,18 @@ export class DashboardComponent implements OnInit {
   pendingPayments$: Observable<Payment[]> | undefined;
   newMembers$: Observable<Member[]> | undefined;
   leadFollowUps$: Observable<Lead[]> | undefined;
+  planDistribution$: Observable<any[]> | undefined;
   
   displayedColumns = ['avatar', 'name', 'time', 'status'];
 
-  // Mock revenue chart points (months and amounts)
+  // Mock revenue chart points (months and amounts in ₹)
   revenueChartData = [
-    { label: 'Jan', value: 1800, percent: 35 },
-    { label: 'Feb', value: 2400, percent: 48 },
-    { label: 'Mar', value: 2900, percent: 58 },
-    { label: 'Apr', value: 3500, percent: 70 },
-    { label: 'May', value: 4200, percent: 84 },
-    { label: 'Jun', value: 5000, percent: 100 }
-  ];
-
-  // Mock growth data (bars)
-  growthChartData = [
-    { month: 'Jan', members: 45, height: 40 },
-    { month: 'Feb', members: 58, height: 52 },
-    { month: 'Mar', members: 72, height: 64 },
-    { month: 'Apr', members: 85, height: 75 },
-    { month: 'May', members: 98, height: 87 },
-    { month: 'Jun', members: 112, height: 100 }
+    { label: 'Jan', value: 45000, percent: 36 },
+    { label: 'Feb', value: 60000, percent: 48 },
+    { label: 'Mar', value: 75000, percent: 60 },
+    { label: 'Apr', value: 90000, percent: 72 },
+    { label: 'May', value: 110000, percent: 88 },
+    { label: 'Jun', value: 125000, percent: 100 }
   ];
 
   constructor(private gymService: GymService) {}
@@ -83,36 +74,24 @@ export class DashboardComponent implements OnInit {
         const totalMembers = members.length;
         const activeMembers = members.filter(m => m.status === 'active').length;
         const activePercentage = totalMembers > 0 ? Math.round((activeMembers / totalMembers) * 100) : 0;
-        
-        // Expiring this week: endDate within 7 days
-        const now = new Date();
-        const nextWeek = new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000);
-        const expiringThisWeek = members.filter(m => {
-          if (m.status === 'inactive') return false;
-          const end = new Date(m.endDate);
-          return end >= now && end <= nextWeek;
-        }).length;
-
-        const pendingPaymentsCount = payments.filter(p => p.status === 'pending').length;
+        const expiringMemberships = members.filter(m => m.status === 'expiring').length;
+        const pendingPaymentsCount = payments.filter(p => p.status === 'pending' || p.status === 'overdue').length;
         
         // Total monthly revenue (paid payments)
         const monthlyRevenue = payments
           .filter(p => p.status === 'paid')
           .reduce((sum, p) => sum + p.amount, 0);
 
-        // Lead conversion rate
         const totalLeads = leads.length;
-        const converted = leads.filter(l => l.status === 'Converted').length;
-        const leadsConversionRate = totalLeads > 0 ? Math.round((converted / totalLeads) * 100) : 0;
 
         return {
           totalMembers,
           activeMembers,
           activePercentage,
-          expiringThisWeek,
+          expiringMemberships,
           pendingPaymentsCount,
           monthlyRevenue,
-          leadsConversionRate
+          totalLeads
         };
       })
     );
@@ -153,7 +132,7 @@ export class DashboardComponent implements OnInit {
 
     // 6. Fetch pending payments list (top 5)
     this.pendingPayments$ = this.gymService.payments$.pipe(
-      map(list => list.filter(p => p.status === 'pending').slice(0, 5))
+      map(list => list.filter(p => p.status === 'pending' || p.status === 'overdue').slice(0, 5))
     );
 
     // 7. Fetch new members list (sorted by startDate desc, top 5)
@@ -165,6 +144,34 @@ export class DashboardComponent implements OnInit {
     this.leadFollowUps$ = this.gymService.leads$.pipe(
       map(list => list.filter(l => l.status === 'Follow Up').slice(0, 5))
     );
+
+    // 9. Fetch active plan distribution details
+    this.planDistribution$ = combineLatest([
+      this.gymService.members$,
+      this.gymService.plans$
+    ]).pipe(
+      map(([members, plans]) => {
+        const activeMembers = members.filter(m => m.status === 'active');
+        const totalActive = activeMembers.length;
+        const colors = ['primary', 'success', 'warning', 'info'];
+
+        return plans.map((plan, index) => {
+          const count = activeMembers.filter(m => m.planId === plan.id).length;
+          const percentage = totalActive > 0 ? Math.round((count / totalActive) * 100) : 0;
+          return {
+            name: plan.name,
+            count,
+            percentage,
+            colorClass: colors[index % colors.length]
+          };
+        });
+      })
+    );
+  }
+
+  // Quick Action to confirm a pending payment from dashboard
+  onConfirmPayment(paymentId: string): void {
+    this.gymService.confirmPayment(paymentId);
   }
 
   // Get SVG polyline points for the revenue chart

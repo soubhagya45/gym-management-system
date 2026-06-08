@@ -134,7 +134,7 @@ export class PaymentsComponent implements OnInit {
   // Verify / confirm a pending payment
   confirmPayment(payment: Payment) {
     this.gymService.confirmPayment(payment.id);
-    this.snackBar.open(`Payment of $${payment.amount} from ${payment.memberName} confirmed.`, 'Dismiss', {
+    this.snackBar.open(`Payment of ₹${payment.amount} from ${payment.memberName} confirmed.`, 'Dismiss', {
       duration: 3000
     });
   }

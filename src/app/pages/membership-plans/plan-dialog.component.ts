@@ -35,8 +35,8 @@ import { MembershipPlan } from '../../interfaces/gym.model';
         <div class="form-row">
           <!-- Price -->
           <mat-form-field appearance="outline">
-            <mat-label>Monthly/Plan Price ($)</mat-label>
-            <input matInput type="number" formControlName="price" placeholder="49">
+            <mat-label>Monthly/Plan Price (₹)</mat-label>
+            <input matInput type="number" formControlName="price" placeholder="1500">
             <mat-error *ngIf="planForm.get('price')?.hasError('required')">Price is required</mat-error>
             <mat-error *ngIf="planForm.get('price')?.hasError('min')">Price must be greater than 0</mat-error>
           </mat-form-field>
