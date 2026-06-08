@@ -24,6 +24,7 @@ import { MembershipPlan } from '../../core/models/membership-plan.entity';
 
 import { PaymentDialogComponent } from './payment-dialog.component';
 import { RenewDialogComponent } from './renew-dialog.component';
+import { ActivatedRoute } from '@angular/router';
 import { Observable } from 'rxjs';
 import { map } from 'rxjs/operators';
 
@@ -71,13 +72,15 @@ export class PaymentsComponent implements OnInit {
   selectedStatus = 'all';
   selectedPendingStatus = 'all';
   selectedRenewalStatus = 'all';
+  activeTab = 0;
 
   constructor(
     private paymentState: PaymentState,
     private memberState: MemberState,
     private planState: MembershipPlanState,
     private dialog: MatDialog,
-    private snackBar: MatSnackBar
+    private snackBar: MatSnackBar,
+    private route: ActivatedRoute
   ) {}
 
   ngOnInit(): void {
@@ -85,6 +88,24 @@ export class PaymentsComponent implements OnInit {
     this.paymentState.payments$.subscribe(payments => {
       this.dataSource.data = payments;
       this.pendingDataSource.data = payments.filter(p => p.status === 'pending' || p.status === 'overdue');
+      this.applyFilters();
+    });
+
+    // 1b. Listen to query params for tab selection & status pre-filtering
+    this.route.queryParams.subscribe(params => {
+      if (params['tab'] !== undefined) {
+        this.activeTab = parseInt(params['tab'], 10);
+      }
+      if (params['status'] !== undefined) {
+        const targetStatus = params['status'];
+        if (this.activeTab === 0) {
+          this.selectedStatus = targetStatus;
+        } else if (this.activeTab === 1) {
+          this.selectedPendingStatus = targetStatus;
+        } else if (this.activeTab === 2) {
+          this.selectedRenewalStatus = targetStatus;
+        }
+      }
       this.applyFilters();
     });
 

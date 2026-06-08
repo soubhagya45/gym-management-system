@@ -16,7 +16,7 @@
   <!-- Stats Grid -->
   <div class="stats-grid" *ngIf="stats$ | async as stats">
     <!-- Card 1: Total Members -->
-    <div class="mat-card interactive stat-card">
+    <div class="mat-card interactive stat-card" routerLink="/members">
       <div class="stat-header">
         <div class="stat-icon-wrapper primary">
           <mat-icon>people</mat-icon>
@@ -35,7 +35,7 @@
     </div>
 
     <!-- Card 2: Active Members -->
-    <div class="mat-card interactive stat-card">
+    <div class="mat-card interactive stat-card" routerLink="/members" [queryParams]="{ status: 'active' }">
       <div class="stat-header">
         <div class="stat-icon-wrapper success">
           <mat-icon>check_circle</mat-icon>
@@ -55,7 +55,7 @@
     </div>
 
     <!-- Card 3: Renewals This Week -->
-    <div class="mat-card interactive stat-card">
+    <div class="mat-card interactive stat-card" routerLink="/payments" [queryParams]="{ tab: 2 }">
       <div class="stat-header">
         <div class="stat-icon-wrapper warning">
           <mat-icon>history</mat-icon>
@@ -75,7 +75,7 @@
     </div>
 
     <!-- Card 4: Payments Due Today -->
-    <div class="mat-card interactive stat-card">
+    <div class="mat-card interactive stat-card" routerLink="/payments" [queryParams]="{ tab: 1, status: 'pending' }">
       <div class="stat-header">
         <div class="stat-icon-wrapper info">
           <mat-icon>hourglass_empty</mat-icon>
@@ -95,7 +95,7 @@
     </div>
 
     <!-- Card 5: Overdue Payments -->
-    <div class="mat-card interactive stat-card">
+    <div class="mat-card interactive stat-card" routerLink="/payments" [queryParams]="{ tab: 1, status: 'overdue' }">
       <div class="stat-header">
         <div class="stat-icon-wrapper danger">
           <mat-icon>money_off</mat-icon>
@@ -115,7 +115,7 @@
     </div>
 
     <!-- Card 6: Monthly Revenue -->
-    <div class="mat-card interactive stat-card">
+    <div class="mat-card interactive stat-card" routerLink="/payments" [queryParams]="{ tab: 0 }">
       <div class="stat-header">
         <div class="stat-icon-wrapper success">
           <mat-icon>payments</mat-icon>
@@ -244,7 +244,7 @@
           </ng-container>
 
           <tr mat-header-row *matHeaderRowDef="displayedColumns"></tr>
-          <tr mat-row *matRowDef="let row; columns: displayedColumns;"></tr>
+          <tr mat-row *matRowDef="let row; columns: displayedColumns;" [routerLink]="['/members', row.memberId]" class="clickable-row"></tr>
         </table>
         
         <div class="empty-pane-state" *ngIf="!(todayAttendance$ | async)?.length">
@@ -264,7 +264,7 @@
       </div>
       <div class="scrollable-widget">
         <div class="list-wrapper" *ngIf="leadFollowUps$ | async as followUps; else loadingLeads">
-          <div class="list-item-row" *ngFor="let lead of followUps">
+          <div class="list-item-row clickable-row" *ngFor="let lead of followUps" [routerLink]="['/leads', lead.id]">
             <div class="item-avatar primary-node">
               <mat-icon class="icon-avatar primary-color">assignment_ind</mat-icon>
             </div>
@@ -300,7 +300,7 @@
       </div>
       <div class="scrollable-widget">
         <div class="list-wrapper" *ngIf="paymentsDueToday$ | async as list; else loadingDue">
-          <div class="list-item-row" *ngFor="let payment of list">
+          <div class="list-item-row clickable-row" *ngFor="let payment of list" [routerLink]="['/members', payment.memberId]">
             <div class="item-avatar info-node">
               <mat-icon class="icon-avatar info-color">hourglass_empty</mat-icon>
             </div>
@@ -309,10 +309,10 @@
               <span class="sub-title">{{ payment.planName }} • Due: ₹{{ payment.dueAmount }}</span>
             </div>
             <div class="item-meta action-meta">
-              <button mat-icon-button color="primary" class="inline-verify-btn" (click)="onMarkPaid(payment)" matTooltip="Mark Paid">
+              <button mat-icon-button color="primary" class="inline-verify-btn" (click)="onMarkPaid(payment); $event.stopPropagation()" matTooltip="Mark Paid">
                 <mat-icon>check_circle</mat-icon>
               </button>
-              <button mat-icon-button color="accent" class="inline-verify-btn" (click)="onSendReminder(payment)" matTooltip="Send Reminder">
+              <button mat-icon-button color="accent" class="inline-verify-btn" (click)="onSendReminder(payment); $event.stopPropagation()" matTooltip="Send Reminder">
                 <mat-icon>notification_important</mat-icon>
               </button>
             </div>
@@ -338,7 +338,7 @@
       </div>
       <div class="scrollable-widget">
         <div class="list-wrapper" *ngIf="overduePaymentsList$ | async as list; else loadingOverdue">
-          <div class="list-item-row" *ngFor="let payment of list">
+          <div class="list-item-row clickable-row" *ngFor="let payment of list" [routerLink]="['/members', payment.memberId]">
             <div class="item-avatar danger-node">
               <mat-icon class="icon-avatar danger-color">money_off</mat-icon>
             </div>
@@ -347,10 +347,10 @@
               <span class="sub-title">{{ payment.planName }} • Overdue: <strong class="text-danger">₹{{ payment.dueAmount }}</strong></span>
             </div>
             <div class="item-meta action-meta">
-              <button mat-icon-button color="primary" class="inline-verify-btn" (click)="onMarkPaid(payment)" matTooltip="Mark Paid">
+              <button mat-icon-button color="primary" class="inline-verify-btn" (click)="onMarkPaid(payment); $event.stopPropagation()" matTooltip="Mark Paid">
                 <mat-icon>check_circle</mat-icon>
               </button>
-              <button mat-icon-button color="accent" class="inline-verify-btn" (click)="onSendReminder(payment)" matTooltip="Send Reminder">
+              <button mat-icon-button color="accent" class="inline-verify-btn" (click)="onSendReminder(payment); $event.stopPropagation()" matTooltip="Send Reminder">
                 <mat-icon>notification_important</mat-icon>
               </button>
             </div>
@@ -376,7 +376,7 @@
       </div>
       <div class="scrollable-widget">
         <div class="list-wrapper" *ngIf="renewalsThisWeek$ | async as list; else loadingRenewals">
-          <div class="list-item-row" *ngFor="let member of list">
+          <div class="list-item-row clickable-row" *ngFor="let member of list" [routerLink]="['/members', member.id]">
             <div class="item-avatar warning-node">
               <mat-icon class="icon-avatar warning-color">history</mat-icon>
             </div>
@@ -385,7 +385,7 @@
               <span class="sub-title">{{ member.planName }} • Exp: {{ member.endDate | date:'mediumDate' }}</span>
             </div>
             <div class="item-meta action-meta">
-              <button mat-flat-button color="primary" class="dashboard-renew-btn" (click)="onRenewMembership(member)" matTooltip="Renew Membership">
+              <button mat-flat-button color="primary" class="dashboard-renew-btn" (click)="onRenewMembership(member); $event.stopPropagation()" matTooltip="Renew Membership">
                 <mat-icon>autorenew</mat-icon>
                 <span>Renew</span>
               </button>

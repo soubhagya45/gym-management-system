@@ -1,4 +1,5 @@
 import { NgModule } from '@angular/core';
+// Force reload comment to wake up file watcher
 import { RouterModule, Routes } from '@angular/router';
 import { authGuard, loginGuard } from './guards/auth.guard';
 
@@ -11,6 +12,11 @@ const routes: Routes = [
   {
     path: 'login',
     loadComponent: () => import('./pages/login/login.component').then(m => m.LoginComponent),
+    canActivate: [loginGuard]
+  },
+  {
+    path: 'register',
+    loadComponent: () => import('./pages/register/register.component').then(m => m.RegisterComponent),
     canActivate: [loginGuard]
   },
   {

@@ -53,6 +53,18 @@ export class AuthState {
     );
   }
 
+  register(
+    gymName: string,
+    ownerName: string,
+    email: string,
+    phone: string,
+    password?: string
+  ): Observable<UserProfile> {
+    return this.authRepository.register(gymName, ownerName, email, phone, password).pipe(
+      tap(user => this.setSession(user))
+    );
+  }
+
   loginWithRole(role: 'owner' | 'trainer' | 'member'): Observable<UserProfile> {
     return this.authRepository.loginWithRole(role).pipe(
       tap(user => this.setSession(user))

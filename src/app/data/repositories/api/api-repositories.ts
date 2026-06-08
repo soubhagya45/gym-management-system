@@ -40,6 +40,15 @@ export class ApiAuthRepository implements IAuthRepository {
   logout(): Observable<void> {
     return throwError(() => new Error('API integration is not enabled.'));
   }
+  register(
+    gymName: string,
+    ownerName: string,
+    email: string,
+    phone: string,
+    password?: string
+  ): Observable<UserProfile> {
+    return throwError(() => new Error('API integration is not enabled.'));
+  }
 }
 
 @Injectable({ providedIn: 'root' })

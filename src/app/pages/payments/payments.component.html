@@ -70,7 +70,7 @@
 
       <!-- Status dropdown based on active tab -->
       <!-- Tab 0 (History) Filter -->
-      <mat-form-field appearance="outline" *ngIf="tabGroup.selectedIndex === 0">
+      <mat-form-field appearance="outline" *ngIf="activeTab === 0">
         <mat-label>Transaction Status</mat-label>
         <mat-select [(ngModel)]="selectedStatus" (selectionChange)="applyFilters()">
           <mat-option value="all">All Invoices</mat-option>
@@ -81,7 +81,7 @@
       </mat-form-field>
 
       <!-- Tab 1 (Pending & Overdue) Filter -->
-      <mat-form-field appearance="outline" *ngIf="tabGroup.selectedIndex === 1">
+      <mat-form-field appearance="outline" *ngIf="activeTab === 1">
         <mat-label>Unresolved Filter</mat-label>
         <mat-select [(ngModel)]="selectedPendingStatus" (selectionChange)="applyFilters()">
           <mat-option value="all">All Unresolved</mat-option>
@@ -91,7 +91,7 @@
       </mat-form-field>
 
       <!-- Tab 2 (Renewals) Filter -->
-      <mat-form-field appearance="outline" *ngIf="tabGroup.selectedIndex === 2">
+      <mat-form-field appearance="outline" *ngIf="activeTab === 2">
         <mat-label>Member Status</mat-label>
         <mat-select [(ngModel)]="selectedRenewalStatus" (selectionChange)="applyFilters()">
           <mat-option value="all">All Members</mat-option>
@@ -112,7 +112,7 @@
 
   <!-- Main Tabs Card -->
   <div class="mat-card table-container-card">
-    <mat-tab-group #tabGroup animationDuration="250ms" (selectedTabChange)="applyFilters()">
+    <mat-tab-group #tabGroup [selectedIndex]="activeTab" (selectedIndexChange)="activeTab = $event; applyFilters()" animationDuration="250ms">
       
       <!-- Tab 1: Payment History -->
       <mat-tab>

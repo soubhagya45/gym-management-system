@@ -1,7 +1,7 @@
 import { Component, OnInit, ViewChild, AfterViewInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import { Router } from '@angular/router';
+import { Router, ActivatedRoute } from '@angular/router';
 import { MatTableModule, MatTableDataSource } from '@angular/material/table';
 import { MatPaginator, MatPaginatorModule } from '@angular/material/paginator';
 import { MatSort, MatSortModule } from '@angular/material/sort';
@@ -60,7 +60,8 @@ export class MembersComponent implements OnInit, AfterViewInit {
     private planState: MembershipPlanState,
     private dialog: MatDialog,
     private snackBar: MatSnackBar,
-    private router: Router
+    private router: Router,
+    private route: ActivatedRoute
   ) {}
 
   viewProfile(member: Member) {
@@ -77,6 +78,17 @@ export class MembersComponent implements OnInit, AfterViewInit {
     // 2. Fetch plans for filter dropdown
     this.planState.plans$.subscribe(plans => {
       this.plans = plans;
+    });
+
+    // 3. Listen to query params to apply external filters
+    this.route.queryParams.subscribe(params => {
+      if (params['status']) {
+        this.selectedStatus = params['status'];
+      }
+      if (params['plan']) {
+        this.selectedPlan = params['plan'];
+      }
+      this.applyFilters();
     });
 
     // Custom filtering algorithm that handles name, email, plan, and status

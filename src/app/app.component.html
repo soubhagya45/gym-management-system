@@ -1,7 +1,7 @@
 <ng-container *ngIf="currentUser$ | async as user; else loginView">
   <mat-sidenav-container class="app-container">
     <!-- Sidebar Navigation -->
-    <mat-sidenav #sidenav [mode]="isMobile ? 'over' : 'side'" [opened]="sidenavOpened" class="sidebar-nav">
+    <mat-sidenav #sidenav [mode]="isMobile ? 'over' : 'side'" [(opened)]="sidenavOpened" class="sidebar-nav">
       <div class="sidebar-header">
         <div class="logo-wrapper">
           <mat-icon class="logo-icon">fitness_center</mat-icon>

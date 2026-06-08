@@ -161,6 +161,10 @@ export class LeadsComponent implements OnInit, AfterViewInit {
     this.applyFilters();
   }
 
+  viewLead(lead: Lead): void {
+    this.router.navigate(['/leads', lead.id]);
+  }
+
   openAddLeadDialog(): void {
     this.router.navigate(['/leads/add']);
   }

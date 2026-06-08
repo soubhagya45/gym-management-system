@@ -1,0 +1,232 @@
+<div class="login-page-wrapper">
+  <!-- Cybernetic Grid & Particle background -->
+  <div class="cyber-grid"></div>
+  <div class="glow-sphere sphere-one"></div>
+  <div class="glow-sphere sphere-two"></div>
+  <div class="glow-sphere sphere-three"></div>
+
+  <div class="portal-container">
+    
+    <!-- Branding Header -->
+    <div class="portal-header">
+      <div class="logo-wrapper animate-pulse">
+        <mat-icon class="logo-icon">fitness_center</mat-icon>
+        <h1 class="logo-text">APEX<span class="logo-highlight">FIT</span></h1>
+      </div>
+      <div class="system-status">
+        <span class="status-dot"></span>
+        <span class="status-label">REG_SERVER // ONLINE</span>
+      </div>
+    </div>
+
+    <!-- Main Dynamic Glass Layout -->
+    <div class="glass-panel portal-main-card">
+      <div class="progress-bar-container" *ngIf="isLoading">
+        <mat-progress-bar mode="indeterminate" class="cyber-progress"></mat-progress-bar>
+      </div>
+
+      <div class="card-grid">
+        
+        <!-- Left Side: Registration Form -->
+        <div class="form-section">
+          <h2 class="section-title">Register Gym Node</h2>
+          <p class="section-subtitle">Initialize a new gym ecosystem and link owner access key.</p>
+
+          <form [formGroup]="registerForm" (ngSubmit)="onSubmit()">
+            
+            <!-- Gym Name Input -->
+            <div class="cyber-form-group">
+              <label class="cyber-label">GYM NAME</label>
+              <div class="cyber-input-wrapper">
+                <mat-icon class="input-icon">storefront</mat-icon>
+                <input 
+                  type="text" 
+                  formControlName="gymName" 
+                  placeholder="e.g. Apex Fit Downtown" 
+                  class="cyber-input"
+                  [readonly]="isLoading">
+              </div>
+              <span class="error-msg" *ngIf="registerForm.get('gymName')?.touched && registerForm.get('gymName')?.hasError('required')">
+                Gym name is required.
+              </span>
+              <span class="error-msg" *ngIf="registerForm.get('gymName')?.touched && registerForm.get('gymName')?.hasError('minlength')">
+                Gym name must be at least 3 characters.
+              </span>
+            </div>
+
+            <!-- Owner Name Input -->
+            <div class="cyber-form-group">
+              <label class="cyber-label">OWNER FULL NAME</label>
+              <div class="cyber-input-wrapper">
+                <mat-icon class="input-icon">person</mat-icon>
+                <input 
+                  type="text" 
+                  formControlName="ownerName" 
+                  placeholder="e.g. Alex Johnson" 
+                  class="cyber-input"
+                  [readonly]="isLoading">
+              </div>
+              <span class="error-msg" *ngIf="registerForm.get('ownerName')?.touched && registerForm.get('ownerName')?.hasError('required')">
+                Owner name is required.
+              </span>
+              <span class="error-msg" *ngIf="registerForm.get('ownerName')?.touched && registerForm.get('ownerName')?.hasError('minlength')">
+                Owner name must be at least 2 characters.
+              </span>
+            </div>
+
+            <!-- Email Input -->
+            <div class="cyber-form-group">
+              <label class="cyber-label">IDENTITY NODE (EMAIL)</label>
+              <div class="cyber-input-wrapper">
+                <mat-icon class="input-icon">alternate_email</mat-icon>
+                <input 
+                  type="email" 
+                  formControlName="email" 
+                  placeholder="owner@yourgym.com" 
+                  class="cyber-input"
+                  [readonly]="isLoading">
+              </div>
+              <span class="error-msg" *ngIf="registerForm.get('email')?.touched && registerForm.get('email')?.hasError('required')">
+                Email node is required.
+              </span>
+              <span class="error-msg" *ngIf="registerForm.get('email')?.touched && registerForm.get('email')?.hasError('email')">
+                Invalid email format layout.
+              </span>
+            </div>
+
+            <!-- Phone Input -->
+            <div class="cyber-form-group">
+              <label class="cyber-label">CONTACT TERMINAL (PHONE)</label>
+              <div class="cyber-input-wrapper">
+                <mat-icon class="input-icon">phone</mat-icon>
+                <input 
+                  type="text" 
+                  formControlName="phone" 
+                  placeholder="e.g. +91 99887 76655" 
+                  class="cyber-input"
+                  [readonly]="isLoading">
+              </div>
+              <span class="error-msg" *ngIf="registerForm.get('phone')?.touched && registerForm.get('phone')?.hasError('required')">
+                Phone contact number is required.
+              </span>
+              <span class="error-msg" *ngIf="registerForm.get('phone')?.touched && registerForm.get('phone')?.hasError('pattern')">
+                Please enter a valid phone number format.
+              </span>
+            </div>
+
+            <!-- Password Input -->
+            <div class="cyber-form-group">
+              <label class="cyber-label">ACCESS KEY (PASSWORD)</label>
+              <div class="cyber-input-wrapper">
+                <mat-icon class="input-icon">vpn_key</mat-icon>
+                <input 
+                  [type]="hidePassword ? 'password' : 'text'" 
+                  formControlName="password" 
+                  placeholder="••••••••" 
+                  class="cyber-input"
+                  [readonly]="isLoading">
+                <button 
+                  type="button" 
+                  class="password-toggle-btn" 
+                  (click)="hidePassword = !hidePassword"
+                  [disabled]="isLoading">
+                  <mat-icon>{{ hidePassword ? 'visibility_off' : 'visibility' }}</mat-icon>
+                </button>
+              </div>
+              <span class="error-msg" *ngIf="registerForm.get('password')?.touched && registerForm.get('password')?.hasError('required')">
+                Password access key is required.
+              </span>
+              <span class="error-msg" *ngIf="registerForm.get('password')?.touched && registerForm.get('password')?.hasError('minlength')">
+                Password must be at least 4 characters.
+              </span>
+            </div>
+
+            <!-- General Error Message Display -->
+            <div class="auth-error-alert" *ngIf="errorMessage">
+              <mat-icon class="alert-icon">report_problem</mat-icon>
+              <span class="alert-text">{{ errorMessage }}</span>
+            </div>
+
+            <!-- Submit Button -->
+            <button 
+              type="submit" 
+              class="cyber-btn primary-submit" 
+              [disabled]="registerForm.invalid || isLoading">
+              <span class="btn-glow"></span>
+              <span class="btn-content" *ngIf="!isLoading">
+                PROCEED REGISTER GYM
+                <mat-icon class="btn-arrow">arrow_forward</mat-icon>
+              </span>
+              <span class="btn-content loading-content" *ngIf="isLoading">
+                CREATING GYM & OWNER NODES...
+              </span>
+            </button>
+          </form>
+        </div>
+
+        <!-- Right Side: Tech specs and node guide -->
+        <div class="tech-spec-section">
+          <h2 class="section-title">Apex Core Specs</h2>
+          <p class="section-subtitle font-mono text-xs">MODULE://GYM_PROVISIONING_SERVICES</p>
+
+          <div class="spec-list">
+            
+            <div class="spec-card">
+              <div class="spec-card-header">
+                <mat-icon class="spec-icon">dns</mat-icon>
+                <span class="spec-badge">NODE_ISO</span>
+              </div>
+              <div class="spec-card-body">
+                <h3 class="spec-name">Isolated Tenancy</h3>
+                <p class="spec-description">Your registered gym receives a dedicated workspace node with complete member database isolation and secure system boundaries.</p>
+              </div>
+            </div>
+
+            <div class="spec-card">
+              <div class="spec-card-header">
+                <mat-icon class="spec-icon">admin_panel_settings</mat-icon>
+                <span class="spec-badge">AUTH_L3</span>
+              </div>
+              <div class="spec-card-body">
+                <h3 class="spec-name">Level 3 Owner Access</h3>
+                <p class="spec-description">Provision supreme administrator credentials to access financial ledgers, staff assignments, security logs, and subscription features.</p>
+              </div>
+            </div>
+
+            <div class="spec-card">
+              <div class="spec-card-header">
+                <mat-icon class="spec-icon">auto_awesome</mat-icon>
+                <span class="spec-badge">FREE_TRIAL</span>
+              </div>
+              <div class="spec-card-body">
+                <h3 class="spec-name">Automatic Free Trial</h3>
+                <p class="spec-description">New registration endpoints automatically assign a Pro Tier trial plan, unlocking trainers management, leads tracking, and attendance portals.</p>
+              </div>
+            </div>
+
+          </div>
+
+          <div class="back-action-area">
+            <button 
+              type="button" 
+              class="cyber-btn outline-btn" 
+              routerLink="/login"
+              [disabled]="isLoading">
+              <span class="btn-content">
+                <mat-icon class="btn-arrow-back">arrow_back</mat-icon>
+                RETURN TO AUTHENTICATE
+              </span>
+            </button>
+          </div>
+        </div>
+
+      </div>
+    </div>
+
+    <!-- Portal Footer -->
+    <div class="portal-footer">
+      <span>SECURE TRANSCEIVER NODE // APEX GYM SERVICES</span>
+      <span>RESTRICTED ACCESS ONLY</span>
+    </div>
+  </div>
+</div>
