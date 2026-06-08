@@ -47,7 +47,7 @@ export class SettingsComponent implements OnInit {
       contactEmail: ['contact@apexfit.com', [Validators.required, Validators.email]],
       contactPhone: ['+1 (555) 900-2000', [Validators.required]],
       address: ['742 Luxury Boulevard, Suite 100, Beverly Hills, CA 90210', [Validators.required]],
-      currency: ['$', [Validators.required]],
+      currency: ['₹', [Validators.required]],
       taxRate: [8.5, [Validators.required, Validators.min(0), Validators.max(100)]],
       allowGuestPass: [true],
       sendExpiryAlerts: [true]

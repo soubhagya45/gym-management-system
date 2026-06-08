@@ -23,7 +23,7 @@
         </div>
       </div>
       <div class="stat-body">
-        <h3 class="stat-value">\${{ stats.totalCollected }}</h3>
+        <h3 class="stat-value">₹{{ stats.totalCollected }}</h3>
         <p class="stat-label">Revenue Collected Today</p>
       </div>
     </div>
@@ -36,7 +36,7 @@
         </div>
       </div>
       <div class="stat-body">
-        <h3 class="stat-value">\${{ stats.outstandingDues }}</h3>
+        <h3 class="stat-value">₹{{ stats.outstandingDues }}</h3>
         <p class="stat-label">Outstanding Receivables</p>
       </div>
     </div>
@@ -112,7 +112,7 @@
         <ng-container matColumnDef="amount">
           <th mat-header-cell *matHeaderCellDef> Amount </th>
           <td mat-cell *matCellDef="let element" class="font-semibold">
-            \${{ element.amount }}
+            ₹{{ element.amount }}
           </td>
         </ng-container>
 
