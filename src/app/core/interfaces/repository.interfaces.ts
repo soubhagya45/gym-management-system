@@ -16,6 +16,13 @@ export interface IAuthRepository {
   login(email: string, password: string): Observable<UserProfile>;
   loginWithRole(role: 'owner' | 'trainer' | 'member'): Observable<UserProfile>;
   logout(): Observable<void>;
+  register(
+    gymName: string,
+    ownerName: string,
+    email: string,
+    phone: string,
+    password?: string
+  ): Observable<UserProfile>;
 }
 
 export interface IGymRepository {

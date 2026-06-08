@@ -86,6 +86,14 @@ const dbMockAccounts: Record<string, UserProfile> = {
   }
 };
 
+const dbPasswords: Record<string, string> = {
+  'superadmin@apexfit.com': 'password',
+  'owner@apexfit.com': 'password',
+  'owner-b@apexfit.com': 'password',
+  'trainer@apexfit.com': 'password',
+  'member@apexfit.com': 'password'
+};
+
 const dbPlans: MembershipPlan[] = [
   { id: 'plan-1', gymId: 'gym-a', name: 'Essential Monthly', durationMonths: 1, price: 1500, description: 'Access to standard gym facilities, weights, and cardio area.', features: ['Full gym access', '1 Fitness assessment', 'Locker room access'], activeMembersCount: 15 },
   { id: 'plan-2', gymId: 'gym-a', name: 'Premium Quarterly', durationMonths: 3, price: 4000, description: 'Full access with trainer guidance, group classes, and sauna.', features: ['All Essential features', '10 Group fitness classes', 'Sauna & Steam room access', '2 Personal trainer sessions'], activeMembersCount: 24 },
@@ -157,8 +165,10 @@ const dbLogs: ActivityLog[] = [
 @Injectable({ providedIn: 'root' })
 export class MockAuthRepository implements IAuthRepository {
   login(email: string, password: string): Observable<UserProfile> {
-    const user = dbMockAccounts[email.toLowerCase().trim()];
-    if (user && password === 'password') {
+    const emailKey = email.toLowerCase().trim();
+    const user = dbMockAccounts[emailKey];
+    const storedPassword = dbPasswords[emailKey] || 'password';
+    if (user && password === storedPassword) {
       return of(user).pipe(delay(800));
     }
     return throwError(() => new Error('Invalid email or password. Hint: password'));
@@ -172,6 +182,46 @@ export class MockAuthRepository implements IAuthRepository {
 
   logout(): Observable<void> {
     return of(undefined).pipe(delay(200));
+  }
+
+  register(
+    gymName: string,
+    ownerName: string,
+    email: string,
+    phone: string,
+    password?: string
+  ): Observable<UserProfile> {
+    const emailKey = email.toLowerCase().trim();
+    if (dbMockAccounts[emailKey]) {
+      return throwError(() => new Error('This email address is already registered.'));
+    }
+
+    const gymId = 'gym-' + Math.random().toString(36).substring(2, 9);
+    const newGym: Gym = {
+      gymId,
+      gymName,
+      ownerName,
+      email,
+      phone,
+      subscriptionPlan: SubscriptionPlan.FreeTrial,
+      status: 'active',
+      createdAt: new Date().toISOString().split('T')[0]
+    };
+    dbGyms.push(newGym);
+
+    const newUser: UserProfile = {
+      name: ownerName,
+      email,
+      avatarUrl: `https://api.dicebear.com/7.x/initials/svg?seed=${encodeURIComponent(ownerName)}`,
+      role: 'owner',
+      gymId
+    };
+    dbMockAccounts[emailKey] = newUser;
+    if (password) {
+      dbPasswords[emailKey] = password;
+    }
+
+    return of(newUser).pipe(delay(800));
   }
 }
 

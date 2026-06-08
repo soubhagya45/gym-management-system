@@ -1,4 +1,4 @@
-// Futuristic Login Page Styles
+// Futuristic Gym Registration Page Styles
 .login-page-wrapper {
   position: relative;
   width: 100vw;
@@ -109,10 +109,15 @@
   }
 }
 
-@keyframes glitchPulse {
-  0% { text-shadow: 0 0 4px rgba(99, 102, 241, 0.6); }
-  50% { text-shadow: 0 0 16px rgba(6, 182, 212, 0.9), 0 0 24px rgba(99, 102, 241, 0.4); }
-  100% { text-shadow: 0 0 4px rgba(99, 102, 241, 0.6); }
+@keyframes pulse {
+  0%, 100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 0.6;
+    transform: scale(0.9);
+  }
 }
 
 // Layout Container
@@ -125,7 +130,7 @@
   gap: 20px;
   z-index: 10;
   padding: 20px 0;
-  margin: auto 0; // Vertically center when viewport is tall, overflow-friendly!
+  margin: auto 0; // Vertically center when viewport is tall
 }
 
 // Logo and status
@@ -179,8 +184,8 @@
       width: 6px;
       height: 6px;
       border-radius: 50%;
-      background-color: #10b981;
-      box-shadow: 0 0 8px #10b981;
+      background-color: #06b6d4;
+      box-shadow: 0 0 8px #06b6d4;
       animation: pulse 2s infinite;
     }
   }
@@ -235,7 +240,7 @@
 
 // Form Section Styling
 .form-section {
-  padding: 48px;
+  padding: 40px 48px;
   border-right: 1px solid rgba(255, 255, 255, 0.06);
   display: flex;
   flex-direction: column;
@@ -259,13 +264,13 @@
 .section-subtitle {
   font-size: 13px;
   color: #94a3b8;
-  margin: 0 0 32px 0;
+  margin: 0 0 24px 0;
   line-height: 1.5;
 }
 
 // Futuristic Forms
 .cyber-form-group {
-  margin-bottom: 22px;
+  margin-bottom: 18px;
   display: flex;
   flex-direction: column;
   gap: 6px;
@@ -305,10 +310,10 @@
       width: 100%;
       background: transparent;
       border: none;
-      padding: 14px 14px 14px 10px;
+      padding: 12px 14px 12px 10px;
       color: #ffffff;
       font-family: 'Outfit', sans-serif;
-      font-size: 14.5px;
+      font-size: 14px;
       outline: none;
 
       &::placeholder {
@@ -363,7 +368,7 @@
   border: 1px solid rgba(239, 68, 68, 0.2);
   border-radius: 12px;
   padding: 12px 16px;
-  margin-bottom: 24px;
+  margin-bottom: 20px;
 
   .alert-icon {
     color: #ef4444;
@@ -392,7 +397,7 @@
   letter-spacing: 0.03em;
   cursor: pointer;
   transition: transform 0.2s, box-shadow 0.2s, background-color 0.25s, border-color 0.25s;
-  padding: 15px 24px;
+  padding: 14px 24px;
   width: 100%;
   border: none;
   outline: none;
@@ -412,7 +417,6 @@
     box-shadow: none !important;
   }
 
-  // Active glowing state
   &.primary-submit {
     background: linear-gradient(90deg, #6366f1, #8b5cf6);
     color: #ffffff;
@@ -470,14 +474,25 @@
     transition: transform 0.2s;
   }
 
+  .btn-arrow-back {
+    font-size: 18px;
+    width: 18px;
+    height: 18px;
+    transition: transform 0.2s;
+  }
+
   &:hover:not(:disabled) .btn-arrow {
     transform: translateX(4px);
   }
+
+  &:hover:not(:disabled) .btn-arrow-back {
+    transform: translateX(-4px);
+  }
 }
 
-// Selector Section
-.identity-selector-section {
-  padding: 48px;
+// Technical specifications column on the right
+.tech-spec-section {
+  padding: 40px 48px;
   background: rgba(255, 255, 255, 0.01);
   display: flex;
   flex-direction: column;
@@ -487,84 +502,52 @@
     padding: 36px 24px;
     background: transparent;
   }
+
+  .section-subtitle {
+    margin-bottom: 24px;
+    font-family: monospace;
+    color: #06b6d4;
+    letter-spacing: 0.1em;
+  }
 }
 
-// Role Cards Grid
-.role-grid {
+// Spec List and Cards
+.spec-list {
   display: flex;
   flex-direction: column;
   gap: 14px;
   margin-bottom: 24px;
 }
 
-// Single Role Interactive Card
-.role-card {
-  position: relative;
+.spec-card {
   background: rgba(255, 255, 255, 0.02);
   border: 1px solid rgba(255, 255, 255, 0.05);
   border-radius: 16px;
   padding: 16px;
-  cursor: pointer;
   display: flex;
   flex-direction: column;
   gap: 8px;
-  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-
-  &::before {
-    content: '';
-    position: absolute;
-    top: 0;
-    left: 0;
-    right: 0;
-    bottom: 0;
-    border-radius: 16px;
-    padding: 1.5px; // Width of border
-    background: transparent;
-    -webkit-mask: 
-      linear-gradient(#fff 0 0) content-box, 
-      linear-gradient(#fff 0 0);
-    -webkit-mask-composite: xor;
-    mask-composite: exclude;
-    pointer-events: none;
-    transition: background-color 0.3s;
-  }
+  transition: all 0.3s ease;
 
   &:hover {
     background: rgba(255, 255, 255, 0.04);
     transform: translateY(-2px);
-    border-color: rgba(255, 255, 255, 0.1);
+    border-color: rgba(6, 182, 212, 0.2);
   }
 
-  // Active glowing role card state
-  &.active {
-    background: rgba(255, 255, 255, 0.05);
-    box-shadow: 0 10px 25px -10px rgba(0, 0, 0, 0.5);
-    border-color: transparent;
-
-    &::before {
-      background: linear-gradient(135deg, var(--active-color), #ffffff);
-    }
-
-    .role-card-header .role-icon {
-      color: var(--active-color);
-      transform: scale(1.1);
-    }
-  }
-
-  .role-card-header {
+  .spec-card-header {
     display: flex;
     justify-content: space-between;
     align-items: center;
 
-    .role-icon {
-      color: #64748b;
+    .spec-icon {
+      color: #06b6d4;
       font-size: 22px;
       width: 22px;
       height: 22px;
-      transition: color 0.3s, transform 0.3s;
     }
 
-    .role-badge {
+    .spec-badge {
       font-family: monospace;
       font-size: 9px;
       font-weight: 700;
@@ -572,36 +555,21 @@
       padding: 3px 8px;
       border-radius: 20px;
       letter-spacing: 0.05em;
-
-      &.badge-owner {
-        background: rgba(99, 102, 241, 0.1);
-        color: #818cf8;
-        border: 1px solid rgba(99, 102, 241, 0.2);
-      }
-
-      &.badge-trainer {
-        background: rgba(16, 185, 129, 0.1);
-        color: #34d399;
-        border: 1px solid rgba(16, 185, 129, 0.2);
-      }
-
-      &.badge-member {
-        background: rgba(6, 182, 212, 0.1);
-        color: #22d3ee;
-        border: 1px solid rgba(6, 182, 212, 0.2);
-      }
+      background: rgba(6, 182, 212, 0.1);
+      color: #22d3ee;
+      border: 1px solid rgba(6, 182, 212, 0.2);
     }
   }
 
-  .role-card-body {
-    .role-name {
+  .spec-card-body {
+    .spec-name {
       font-size: 15px;
       font-weight: 700;
       margin: 0 0 4px 0;
       color: #ffffff;
     }
 
-    .role-description {
+    .spec-description {
       font-size: 11.5px;
       color: #64748b;
       margin: 0;
@@ -611,51 +579,7 @@
   }
 }
 
-// Portal Footer
-.portal-footer {
+.back-action-area {
   display: flex;
-  justify-content: space-between;
-  padding: 0 10px;
-  font-family: monospace;
-  font-size: 9.5px;
-  color: #475569;
-  letter-spacing: 0.1em;
-
-  @media (max-width: 600px) {
-    flex-direction: column;
-    align-items: center;
-    gap: 6px;
-    text-align: center;
-  }
-}
-
-.registration-link-wrapper {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
   justify-content: center;
-  margin-top: 24px;
-  gap: 8px;
-  font-family: 'Outfit', sans-serif;
-
-  .registration-text {
-    font-size: 13px;
-    color: #64748b;
-  }
-
-  .registration-link {
-    font-family: monospace;
-    font-size: 11px;
-    font-weight: 700;
-    color: #6366f1;
-    text-decoration: none;
-    letter-spacing: 0.1em;
-    transition: color 0.25s, text-shadow 0.25s;
-    cursor: pointer;
-
-    &:hover {
-      color: #06b6d4;
-      text-shadow: 0 0 8px rgba(6, 182, 212, 0.4);
-    }
-  }
 }

@@ -185,6 +185,14 @@ h1, h2, h3, h4, h5, h6 {
   }
 }
 
+.clickable-row {
+  cursor: pointer;
+  
+  &:hover {
+    background-color: rgba(99, 102, 241, 0.06) !important;
+  }
+}
+
 /* Form Fields Styling (MDC Compliant) */
 .mat-mdc-form-field {
   width: 100%;
