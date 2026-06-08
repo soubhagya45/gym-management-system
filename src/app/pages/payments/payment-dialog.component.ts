@@ -42,31 +42,56 @@ import { Member } from '../../interfaces/gym.model';
             <mat-error *ngIf="paymentForm.get('memberId')?.hasError('required')">Member selection is required</mat-error>
           </mat-form-field>
 
-          <!-- Amount -->
+          <!-- Total Amount -->
           <mat-form-field appearance="outline">
-            <mat-label>Amount (₹)</mat-label>
-            <input matInput type="number" formControlName="amount" placeholder="0.00">
+            <mat-label>Total Amount (₹)</mat-label>
+            <input matInput type="number" formControlName="amount" placeholder="0.00" (input)="updateDueCalculations()">
             <mat-error *ngIf="paymentForm.get('amount')?.hasError('required')">Amount is required</mat-error>
             <mat-error *ngIf="paymentForm.get('amount')?.hasError('min')">Amount must be greater than 0</mat-error>
           </mat-form-field>
 
-          <!-- Status -->
+          <!-- Paid Amount -->
           <mat-form-field appearance="outline">
-            <mat-label>Payment Status</mat-label>
-            <mat-select formControlName="status">
-              <mat-option value="paid">Paid / Confirmed</mat-option>
-              <mat-option value="pending">Pending Verification</mat-option>
-            </mat-select>
-            <mat-error *ngIf="paymentForm.get('status')?.hasError('required')">Status is required</mat-error>
+            <mat-label>Paid Amount (₹)</mat-label>
+            <input matInput type="number" formControlName="paidAmount" placeholder="0.00" (input)="updateDueCalculations()">
+            <mat-error *ngIf="paymentForm.get('paidAmount')?.hasError('required')">Paid amount is required</mat-error>
+            <mat-error *ngIf="paymentForm.get('paidAmount')?.hasError('min')">Paid amount must be 0 or greater</mat-error>
+            <mat-error *ngIf="paymentForm.get('paidAmount')?.hasError('max')">Paid amount cannot exceed total amount</mat-error>
           </mat-form-field>
 
-          <!-- Payment Date -->
+          <!-- Due Amount (Read-only) -->
           <mat-form-field appearance="outline" class="full-width">
-            <mat-label>Invoice/Payment Date</mat-label>
+            <mat-label>Due Amount (₹)</mat-label>
+            <input matInput type="number" formControlName="dueAmount" [readonly]="true">
+          </mat-form-field>
+
+          <!-- Invoice Date -->
+          <mat-form-field appearance="outline" class="full-width">
+            <mat-label>Invoice/Billing Date</mat-label>
             <input matInput [matDatepicker]="datePicker" formControlName="date">
             <mat-datepicker-toggle matSuffix [for]="datePicker"></mat-datepicker-toggle>
             <mat-datepicker #datePicker></mat-datepicker>
-            <mat-error *ngIf="paymentForm.get('date')?.hasError('required')">Date is required</mat-error>
+            <mat-error *ngIf="paymentForm.get('date')?.hasError('required')">Invoice date is required</mat-error>
+          </mat-form-field>
+
+          <!-- Due Date (shown only if dueAmount > 0) -->
+          <mat-form-field appearance="outline" class="full-width" *ngIf="showDueDateField">
+            <mat-label>Payment Due Date</mat-label>
+            <input matInput [matDatepicker]="dueDatePicker" formControlName="dueDate">
+            <mat-datepicker-toggle matSuffix [for]="dueDatePicker"></mat-datepicker-toggle>
+            <mat-datepicker #dueDatePicker></mat-datepicker>
+            <mat-error *ngIf="paymentForm.get('dueDate')?.hasError('required')">Due date is required for pending balance</mat-error>
+          </mat-form-field>
+
+          <!-- Select Status -->
+          <mat-form-field appearance="outline" class="full-width">
+            <mat-label>Invoice Status</mat-label>
+            <mat-select formControlName="status">
+              <mat-option value="paid">Paid / Settled</mat-option>
+              <mat-option value="pending">Pending</mat-option>
+              <mat-option value="overdue">Overdue</mat-option>
+            </mat-select>
+            <mat-error *ngIf="paymentForm.get('status')?.hasError('required')">Status is required</mat-error>
           </mat-form-field>
         </div>
       </mat-dialog-content>
@@ -117,6 +142,7 @@ import { Member } from '../../interfaces/gym.model';
 export class PaymentDialogComponent implements OnInit {
   paymentForm!: FormGroup;
   members: Member[] = [];
+  showDueDateField = false;
 
   constructor(
     private fb: FormBuilder,
@@ -127,25 +153,57 @@ export class PaymentDialogComponent implements OnInit {
   ngOnInit(): void {
     // Load members
     this.gymService.members$.subscribe(members => {
-      // Show members who are not inactive
       this.members = members.filter(m => m.status !== 'inactive');
     });
 
     this.paymentForm = this.fb.group({
       memberId: ['', [Validators.required]],
       amount: ['', [Validators.required, Validators.min(1)]],
-      status: ['paid', [Validators.required]],
-      date: [new Date(), [Validators.required]]
+      paidAmount: ['', [Validators.required, Validators.min(0)]],
+      dueAmount: [{ value: 0, disabled: true }],
+      dueDate: [new Date()],
+      date: [new Date(), [Validators.required]],
+      status: ['paid', [Validators.required]]
     });
   }
 
   onMemberSelect(memberId: string): void {
     const selectedMember = this.members.find(m => m.id === memberId);
     if (selectedMember) {
-      // If outstanding balance is > 0, set that as amount, otherwise set plan price or default to 1500
       const price = selectedMember.balance > 0 ? selectedMember.balance : 1500;
       this.paymentForm.get('amount')?.setValue(price);
+      this.paymentForm.get('paidAmount')?.setValue(price);
+      this.updateDueCalculations();
     }
+  }
+
+  updateDueCalculations(): void {
+    const amount = Number(this.paymentForm.get('amount')?.value || 0);
+    const paid = Number(this.paymentForm.get('paidAmount')?.value || 0);
+
+    // Add validators for paidAmount max bounds
+    this.paymentForm.get('paidAmount')?.setValidators([
+      Validators.required,
+      Validators.min(0),
+      Validators.max(amount)
+    ]);
+    this.paymentForm.get('paidAmount')?.updateValueAndValidity({ emitEvent: false });
+
+    const due = Math.max(0, amount - paid);
+    this.paymentForm.get('dueAmount')?.setValue(due);
+
+    // Auto set status based on due value (convenience)
+    if (due > 0) {
+      this.showDueDateField = true;
+      this.paymentForm.get('dueDate')?.setValidators([Validators.required]);
+      this.paymentForm.get('status')?.setValue('pending');
+    } else {
+      this.showDueDateField = false;
+      this.paymentForm.get('dueDate')?.clearValidators();
+      this.paymentForm.get('status')?.setValue('paid');
+    }
+    this.paymentForm.get('dueDate')?.updateValueAndValidity();
+    this.paymentForm.get('status')?.updateValueAndValidity();
   }
 
   onCancel(): void {
@@ -154,16 +212,19 @@ export class PaymentDialogComponent implements OnInit {
 
   onSubmit(): void {
     if (this.paymentForm.valid) {
-      const formValue = this.paymentForm.value;
+      const formValue = this.paymentForm.getRawValue();
       const member = this.members.find(m => m.id === formValue.memberId);
       
       const paymentResult = {
         memberId: formValue.memberId,
         memberName: member ? member.name : 'Unknown Member',
         amount: formValue.amount,
+        paidAmount: formValue.paidAmount,
+        dueAmount: formValue.dueAmount,
+        dueDate: this.formatDate(formValue.dueDate || new Date()),
+        date: this.formatDate(formValue.date),
         status: formValue.status,
-        planName: member ? member.planName : 'Custom Plan',
-        date: this.formatDate(formValue.date)
+        planName: member ? member.planName : 'Custom Plan'
       };
 
       this.dialogRef.close(paymentResult);

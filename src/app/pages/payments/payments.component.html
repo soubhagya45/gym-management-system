@@ -2,8 +2,8 @@
   <!-- Page Header -->
   <div class="page-header">
     <div class="title-area">
-      <h1>Invoices & Payments</h1>
-      <p>Audit financial ledger accounts, check-ins billing, and invoice receipts.</p>
+      <h1>Payment & Renewal Management</h1>
+      <p>Audit financial ledger accounts, track member renewals, and dispatch reminders.</p>
     </div>
     <div class="actions-area">
       <button mat-raised-button color="primary" (click)="openRecordPaymentDialog()">
@@ -16,20 +16,20 @@
   <!-- Financial Metrics Grid -->
   <div class="stats-grid" *ngIf="stats$ | async as stats">
     <!-- Collected Revenue -->
-    <div class="mat-card stat-card">
+    <div class="mat-card stat-card interactive">
       <div class="stat-header">
         <div class="stat-icon-wrapper success">
-          <mat-icon>monetization_on</mat-icon>
+          <mat-icon>payments</mat-icon>
         </div>
       </div>
       <div class="stat-body">
         <h3 class="stat-value">₹{{ stats.totalCollected }}</h3>
-        <p class="stat-label">Revenue Collected Today</p>
+        <p class="stat-label">Revenue Collected (Paid)</p>
       </div>
     </div>
 
     <!-- Outstanding Receivables -->
-    <div class="mat-card stat-card">
+    <div class="mat-card stat-card interactive">
       <div class="stat-header">
         <div class="stat-icon-wrapper danger">
           <mat-icon>money_off</mat-icon>
@@ -42,7 +42,7 @@
     </div>
 
     <!-- Pending Invoices -->
-    <div class="mat-card stat-card">
+    <div class="mat-card stat-card interactive">
       <div class="stat-header">
         <div class="stat-icon-wrapper warning">
           <mat-icon>hourglass_empty</mat-icon>
@@ -50,7 +50,7 @@
       </div>
       <div class="stat-body">
         <h3 class="stat-value">{{ stats.pendingCount }}</h3>
-        <p class="stat-label">Pending Verification</p>
+        <p class="stat-label">Pending Invoices</p>
       </div>
     </div>
   </div>
@@ -60,16 +60,17 @@
     <div class="filters-grid">
       <!-- Search Input -->
       <mat-form-field appearance="outline" class="search-field">
-        <mat-label>Search invoice by name or plan...</mat-label>
-        <input matInput [(ngModel)]="searchQuery" (ngModelChange)="applyFilters()" placeholder="Type a name to search...">
+        <mat-label>Search by name or plan...</mat-label>
+        <input matInput [(ngModel)]="searchQuery" (ngModelChange)="applyFilters()" placeholder="Type query to filter...">
         <mat-icon matPrefix>search</mat-icon>
         <button *ngIf="searchQuery" matSuffix mat-icon-button (click)="searchQuery=''; applyFilters()">
           <mat-icon>close</mat-icon>
         </button>
       </mat-form-field>
 
-      <!-- Status Select -->
-      <mat-form-field appearance="outline">
+      <!-- Status dropdown based on active tab -->
+      <!-- Tab 0 (History) Filter -->
+      <mat-form-field appearance="outline" *ngIf="tabGroup.selectedIndex === 0">
         <mat-label>Transaction Status</mat-label>
         <mat-select [(ngModel)]="selectedStatus" (selectionChange)="applyFilters()">
           <mat-option value="all">All Invoices</mat-option>
@@ -79,94 +80,304 @@
         </mat-select>
       </mat-form-field>
 
+      <!-- Tab 1 (Pending & Overdue) Filter -->
+      <mat-form-field appearance="outline" *ngIf="tabGroup.selectedIndex === 1">
+        <mat-label>Unresolved Filter</mat-label>
+        <mat-select [(ngModel)]="selectedPendingStatus" (selectionChange)="applyFilters()">
+          <mat-option value="all">All Unresolved</mat-option>
+          <mat-option value="pending">Pending</mat-option>
+          <mat-option value="overdue">Overdue</mat-option>
+        </mat-select>
+      </mat-form-field>
+
+      <!-- Tab 2 (Renewals) Filter -->
+      <mat-form-field appearance="outline" *ngIf="tabGroup.selectedIndex === 2">
+        <mat-label>Member Status</mat-label>
+        <mat-select [(ngModel)]="selectedRenewalStatus" (selectionChange)="applyFilters()">
+          <mat-option value="all">All Members</mat-option>
+          <mat-option value="active">Active</mat-option>
+          <mat-option value="expiring">Expiring Soon</mat-option>
+          <mat-option value="inactive">Inactive</mat-option>
+        </mat-select>
+      </mat-form-field>
+
       <!-- Reset Filters Button -->
-      <button mat-button class="reset-btn" (click)="resetFilters()" [disabled]="!searchQuery && selectedStatus === 'all'">
+      <button mat-button class="reset-btn" (click)="resetFilters()" 
+              [disabled]="!searchQuery && selectedStatus === 'all' && selectedPendingStatus === 'all' && selectedRenewalStatus === 'all'">
         <mat-icon>filter_list_off</mat-icon>
-        <span>Reset Filters</span>
+        <span>Reset</span>
       </button>
     </div>
   </div>
 
-  <!-- Invoices Table Card -->
+  <!-- Main Tabs Card -->
   <div class="mat-card table-container-card">
-    <div class="table-scroll-wrapper">
-      <table mat-table [dataSource]="dataSource" class="w-100">
-        
-        <!-- Member Name Column -->
-        <ng-container matColumnDef="name">
-          <th mat-header-cell *matHeaderCellDef> Gym Member </th>
-          <td mat-cell *matCellDef="let element" class="font-semibold text-primary">
-            {{ element.memberName }}
-          </td>
-        </ng-container>
+    <mat-tab-group #tabGroup animationDuration="250ms" (selectedTabChange)="applyFilters()">
+      
+      <!-- Tab 1: Payment History -->
+      <mat-tab>
+        <ng-template mat-tab-label>
+          <mat-icon class="tab-icon">history</mat-icon>
+          <span>Payment History</span>
+        </ng-template>
 
-        <!-- Plan Column -->
-        <ng-container matColumnDef="plan">
-          <th mat-header-cell *matHeaderCellDef> Plan Covered </th>
-          <td mat-cell *matCellDef="let element">
-            {{ element.planName }}
-          </td>
-        </ng-container>
+        <div class="tab-content">
+          <div class="table-scroll-wrapper">
+            <table mat-table [dataSource]="dataSource" class="w-100">
+              <!-- Member Column -->
+              <ng-container matColumnDef="name">
+                <th mat-header-cell *matHeaderCellDef> Member Name </th>
+                <td mat-cell *matCellDef="let element" class="font-semibold text-primary">
+                  {{ element.memberName }}
+                </td>
+              </ng-container>
 
-        <!-- Amount Column -->
-        <ng-container matColumnDef="amount">
-          <th mat-header-cell *matHeaderCellDef> Amount </th>
-          <td mat-cell *matCellDef="let element" class="font-semibold">
-            ₹{{ element.amount }}
-          </td>
-        </ng-container>
+              <!-- Plan Column -->
+              <ng-container matColumnDef="plan">
+                <th mat-header-cell *matHeaderCellDef> Plan </th>
+                <td mat-cell *matCellDef="let element"> {{ element.planName }} </td>
+              </ng-container>
 
-        <!-- Date Column -->
-        <ng-container matColumnDef="date">
-          <th mat-header-cell *matHeaderCellDef> Date </th>
-          <td mat-cell *matCellDef="let element">
-            {{ element.date | date:'mediumDate' }}
-          </td>
-        </ng-container>
+              <!-- Total Amount Column -->
+              <ng-container matColumnDef="amount">
+                <th mat-header-cell *matHeaderCellDef> Total Amount </th>
+                <td mat-cell *matCellDef="let element" class="font-semibold"> ₹{{ element.amount }} </td>
+              </ng-container>
 
-        <!-- Status Column -->
-        <ng-container matColumnDef="status">
-          <th mat-header-cell *matHeaderCellDef style="width: 120px"> Status </th>
-          <td mat-cell *matCellDef="let element">
-            <span class="status-badge" [ngClass]="element.status">{{ element.status }}</span>
-          </td>
-        </ng-container>
+              <!-- Paid Amount Column -->
+              <ng-container matColumnDef="paidAmount">
+                <th mat-header-cell *matHeaderCellDef> Paid Amount </th>
+                <td mat-cell *matCellDef="let element" class="text-success font-semibold"> ₹{{ element.paidAmount }} </td>
+              </ng-container>
 
-        <!-- Actions Column -->
-        <ng-container matColumnDef="actions">
-          <th mat-header-cell *matHeaderCellDef style="width: 140px; text-align: center"> Actions </th>
-          <td mat-cell *matCellDef="let element" style="text-align: center">
-            <div class="actions-wrapper">
-              <!-- Verify Pending Invoices Button -->
-              <button mat-icon-button 
-                      color="primary" 
-                      *ngIf="element.status !== 'paid'"
-                      (click)="confirmPayment(element)"
-                      matTooltip="Confirm Invoice Payment">
-                <mat-icon>check_circle</mat-icon>
-              </button>
+              <!-- Due Amount Column -->
+              <ng-container matColumnDef="dueAmount">
+                <th mat-header-cell *matHeaderCellDef> Due Amount </th>
+                <td mat-cell *matCellDef="let element" [class.text-danger]="element.dueAmount > 0" class="font-semibold">
+                  ₹{{ element.dueAmount }}
+                </td>
+              </ng-container>
 
-              <!-- Print Receipt Button -->
-              <button mat-icon-button 
-                      color="accent" 
-                      (click)="printInvoice(element)"
-                      matTooltip="Print Invoice Slip">
-                <mat-icon>print</mat-icon>
-              </button>
+              <!-- Date Column -->
+              <ng-container matColumnDef="date">
+                <th mat-header-cell *matHeaderCellDef> Invoice Date </th>
+                <td mat-cell *matCellDef="let element"> {{ element.date | date:'mediumDate' }} </td>
+              </ng-container>
+
+              <!-- Due Date Column -->
+              <ng-container matColumnDef="dueDate">
+                <th mat-header-cell *matHeaderCellDef> Due Date </th>
+                <td mat-cell *matCellDef="let element"> {{ element.dueDate ? (element.dueDate | date:'mediumDate') : '—' }} </td>
+              </ng-container>
+
+              <!-- Status Column -->
+              <ng-container matColumnDef="status">
+                <th mat-header-cell *matHeaderCellDef style="width: 110px"> Status </th>
+                <td mat-cell *matCellDef="let element">
+                  <span class="status-badge" [ngClass]="element.status">{{ element.status }}</span>
+                </td>
+              </ng-container>
+
+              <!-- Actions Column -->
+              <ng-container matColumnDef="actions">
+                <th mat-header-cell *matHeaderCellDef style="width: 140px; text-align: center"> Actions </th>
+                <td mat-cell *matCellDef="let element" style="text-align: center">
+                  <div class="actions-wrapper">
+                    <!-- Mark Paid Action -->
+                    <button mat-icon-button color="primary" *ngIf="element.status !== 'paid'"
+                            (click)="markAsPaid(element)" matTooltip="Mark as Paid">
+                      <mat-icon>check_circle</mat-icon>
+                    </button>
+                    <!-- Print invoice -->
+                    <button mat-icon-button color="accent" (click)="printInvoice(element)" matTooltip="Print Invoice Slip">
+                      <mat-icon>print</mat-icon>
+                    </button>
+                  </div>
+                </td>
+              </ng-container>
+
+              <tr mat-header-row *matHeaderRowDef="historyColumns"></tr>
+              <tr mat-row *matRowDef="let row; columns: historyColumns;"></tr>
+            </table>
+
+            <!-- Empty State -->
+            <div class="empty-table-state" *ngIf="dataSource.filteredData.length === 0">
+              <mat-icon>search_off</mat-icon>
+              <h3>No transaction logs found</h3>
+              <p>Try refining your search query or reset status filters.</p>
             </div>
-          </td>
-        </ng-container>
+          </div>
+        </div>
+      </mat-tab>
 
-        <tr mat-header-row *matHeaderRowDef="displayedColumns"></tr>
-        <tr mat-row *matRowDef="let row; columns: displayedColumns;"></tr>
-      </table>
+      <!-- Tab 2: Pending & Overdue Invoices -->
+      <mat-tab>
+        <ng-template mat-tab-label>
+          <mat-icon class="tab-icon">error_outline</mat-icon>
+          <span>Pending & Overdue Invoices</span>
+        </ng-template>
 
-      <!-- Empty State -->
-      <div class="empty-table-state" *ngIf="dataSource.filteredData.length === 0">
-        <mat-icon>search_off</mat-icon>
-        <h3>No matching invoices found</h3>
-        <p>Try refining your search text or resetting filters.</p>
-      </div>
-    </div>
+        <div class="tab-content">
+          <div class="table-scroll-wrapper">
+            <table mat-table [dataSource]="pendingDataSource" class="w-100">
+              <!-- Member Column -->
+              <ng-container matColumnDef="name">
+                <th mat-header-cell *matHeaderCellDef> Member Name </th>
+                <td mat-cell *matCellDef="let element" class="font-semibold text-primary">
+                  {{ element.memberName }}
+                </td>
+              </ng-container>
+
+              <!-- Plan Column -->
+              <ng-container matColumnDef="plan">
+                <th mat-header-cell *matHeaderCellDef> Plan </th>
+                <td mat-cell *matCellDef="let element"> {{ element.planName }} </td>
+              </ng-container>
+
+              <!-- Total Amount Column -->
+              <ng-container matColumnDef="amount">
+                <th mat-header-cell *matHeaderCellDef> Total Amount </th>
+                <td mat-cell *matCellDef="let element" class="font-semibold"> ₹{{ element.amount }} </td>
+              </ng-container>
+
+              <!-- Due Amount Column -->
+              <ng-container matColumnDef="dueAmount">
+                <th mat-header-cell *matHeaderCellDef> Due Amount </th>
+                <td mat-cell *matCellDef="let element" class="text-danger font-semibold"> ₹{{ element.dueAmount }} </td>
+              </ng-container>
+
+              <!-- Due Date Column -->
+              <ng-container matColumnDef="dueDate">
+                <th mat-header-cell *matHeaderCellDef> Due Date </th>
+                <td mat-cell *matCellDef="let element" class="font-semibold">
+                  {{ element.dueDate | date:'mediumDate' }}
+                </td>
+              </ng-container>
+
+              <!-- Status Column -->
+              <ng-container matColumnDef="status">
+                <th mat-header-cell *matHeaderCellDef style="width: 110px"> Status </th>
+                <td mat-cell *matCellDef="let element">
+                  <span class="status-badge" [ngClass]="element.status">{{ element.status }}</span>
+                </td>
+              </ng-container>
+
+              <!-- Actions Column -->
+              <ng-container matColumnDef="actions">
+                <th mat-header-cell *matHeaderCellDef style="width: 160px; text-align: center"> Actions </th>
+                <td mat-cell *matCellDef="let element" style="text-align: center">
+                  <div class="actions-wrapper">
+                    <!-- Mark Paid Action -->
+                    <button mat-icon-button color="primary" (click)="markAsPaid(element)" matTooltip="Mark as Paid">
+                      <mat-icon>check_circle</mat-icon>
+                    </button>
+                    <!-- Send Reminder Action -->
+                    <button mat-icon-button color="accent" (click)="sendReminder(element)" matTooltip="Send Payment Reminder">
+                      <mat-icon>notification_important</mat-icon>
+                    </button>
+                  </div>
+                </td>
+              </ng-container>
+
+              <tr mat-header-row *matHeaderRowDef="pendingColumns"></tr>
+              <tr mat-row *matRowDef="let row; columns: pendingColumns;"></tr>
+            </table>
+
+            <!-- Empty State -->
+            <div class="empty-table-state" *ngIf="pendingDataSource.filteredData.length === 0">
+              <mat-icon>done_all</mat-icon>
+              <h3>All invoices settled!</h3>
+              <p>There are no outstanding pending or overdue invoices.</p>
+            </div>
+          </div>
+        </div>
+      </mat-tab>
+
+      <!-- Tab 3: Membership Renewal Tracking -->
+      <mat-tab>
+        <ng-template mat-tab-label>
+          <mat-icon class="tab-icon">autorenew</mat-icon>
+          <span>Membership Renewal Tracking</span>
+        </ng-template>
+
+        <div class="tab-content">
+          <div class="table-scroll-wrapper">
+            <table mat-table [dataSource]="membersDataSource" class="w-100">
+              <!-- Member Name -->
+              <ng-container matColumnDef="name">
+                <th mat-header-cell *matHeaderCellDef> Member Name </th>
+                <td mat-cell *matCellDef="let element" class="font-semibold text-primary">
+                  {{ element.name }}
+                </td>
+              </ng-container>
+
+              <!-- Current Plan -->
+              <ng-container matColumnDef="plan">
+                <th mat-header-cell *matHeaderCellDef> Current Plan </th>
+                <td mat-cell *matCellDef="let element"> {{ element.planName }} </td>
+              </ng-container>
+
+              <!-- Expiry Date -->
+              <ng-container matColumnDef="endDate">
+                <th mat-header-cell *matHeaderCellDef> Expiry Date </th>
+                <td mat-cell *matCellDef="let element"> {{ element.endDate | date:'mediumDate' }} </td>
+              </ng-container>
+
+              <!-- Days Remaining -->
+              <ng-container matColumnDef="daysRemaining">
+                <th mat-header-cell *matHeaderCellDef> Status Track </th>
+                <td mat-cell *matCellDef="let element">
+                  <div class="days-remaining-block">
+                    <span class="days-pill" [ngClass]="{
+                      'expired': getDaysRemaining(element) <= 0,
+                      'warning': getDaysRemaining(element) > 0 && getDaysRemaining(element) <= 14,
+                      'active': getDaysRemaining(element) > 14
+                    }">
+                      {{ getDaysRemaining(element) <= 0 ? 'Expired' : getDaysRemaining(element) + ' days left' }}
+                    </span>
+                    <mat-progress-bar mode="determinate" [value]="getDaysPercent(element)" 
+                                      [color]="getDaysRemaining(element) <= 0 ? 'warn' : 'primary'" class="compact-progress">
+                    </mat-progress-bar>
+                  </div>
+                </td>
+              </ng-container>
+
+              <!-- Status -->
+              <ng-container matColumnDef="status">
+                <th mat-header-cell *matHeaderCellDef style="width: 110px"> Status </th>
+                <td mat-cell *matCellDef="let element">
+                  <span class="status-badge" [ngClass]="element.status">{{ element.status }}</span>
+                </td>
+              </ng-container>
+
+              <!-- Actions -->
+              <ng-container matColumnDef="actions">
+                <th mat-header-cell *matHeaderCellDef style="width: 160px; text-align: center"> Actions </th>
+                <td mat-cell *matCellDef="let element" style="text-align: center">
+                  <div class="actions-wrapper">
+                    <!-- Renew Membership Button -->
+                    <button mat-flat-button color="primary" class="renew-action-btn" (click)="openRenewDialog(element)">
+                      <mat-icon>autorenew</mat-icon>
+                      <span>Renew</span>
+                    </button>
+                  </div>
+                </td>
+              </ng-container>
+
+              <tr mat-header-row *matHeaderRowDef="renewalColumns"></tr>
+              <tr mat-row *matRowDef="let row; columns: renewalColumns;"></tr>
+            </table>
+
+            <!-- Empty State -->
+            <div class="empty-table-state" *ngIf="membersDataSource.filteredData.length === 0">
+              <mat-icon>people_outline</mat-icon>
+              <h3>No members registered</h3>
+              <p>Register new members in the directory to manage their renewals.</p>
+            </div>
+          </div>
+        </div>
+      </mat-tab>
+
+    </mat-tab-group>
   </div>
 </div>

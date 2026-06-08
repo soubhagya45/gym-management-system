@@ -7,18 +7,13 @@ import { MatButtonModule } from '@angular/material/button';
 import { MatTableModule } from '@angular/material/table';
 import { MatTooltipModule } from '@angular/material/tooltip';
 import { MatTabsModule } from '@angular/material/tabs';
+import { MatDialog, MatDialogModule } from '@angular/material/dialog';
+import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
 import { GymService } from '../../services/gym.service';
 import { Member, Attendance, ActivityLog, Payment, Lead } from '../../interfaces/gym.model';
+import { RenewDialogComponent } from '../payments/renew-dialog.component';
 import { Observable, combineLatest } from 'rxjs';
 import { map } from 'rxjs/operators';
-
-interface DashboardStats {
-  totalMembers: number;
-  activeMembers: number;
-  activePercentage: number;
-  monthlyRevenue: number;
-  expiringCount: number;
-}
 
 @Component({
   selector: 'app-dashboard',
@@ -31,7 +26,9 @@ interface DashboardStats {
     MatButtonModule,
     MatTableModule,
     MatTooltipModule,
-    MatTabsModule
+    MatTabsModule,
+    MatDialogModule,
+    MatSnackBarModule
   ],
   templateUrl: './dashboard.component.html',
   styleUrls: ['./dashboard.component.scss']
@@ -48,6 +45,11 @@ export class DashboardComponent implements OnInit {
   newMembers$: Observable<Member[]> | undefined;
   leadFollowUps$: Observable<Lead[]> | undefined;
   planDistribution$: Observable<any[]> | undefined;
+
+  // New Widgets Observables
+  paymentsDueToday$: Observable<Payment[]> | undefined;
+  overduePaymentsList$: Observable<Payment[]> | undefined;
+  renewalsThisWeek$: Observable<Member[]> | undefined;
   
   displayedColumns = ['avatar', 'name', 'time', 'status'];
 
@@ -61,9 +63,15 @@ export class DashboardComponent implements OnInit {
     { label: 'Jun', value: 125000, percent: 100 }
   ];
 
-  constructor(private gymService: GymService) {}
+  constructor(
+    private gymService: GymService,
+    private dialog: MatDialog,
+    private snackBar: MatSnackBar
+  ) {}
 
   ngOnInit(): void {
+    const todayStr = new Date().toISOString().split('T')[0];
+
     // 1. Calculate stats dynamically based on active member lists
     this.stats$ = combineLatest([
       this.gymService.members$,
@@ -80,9 +88,19 @@ export class DashboardComponent implements OnInit {
         // Total monthly revenue (paid payments)
         const monthlyRevenue = payments
           .filter(p => p.status === 'paid')
-          .reduce((sum, p) => sum + p.amount, 0);
+          .reduce((sum, p) => sum + p.paidAmount, 0);
 
         const totalLeads = leads.length;
+
+        // Dynamic widget counts
+        const dueTodayCount = payments.filter(p => p.status !== 'paid' && p.dueDate === todayStr).length;
+        const overdueCount = payments.filter(p => p.status === 'overdue' || (p.status === 'pending' && p.dueDate < todayStr)).length;
+        
+        const { start, end } = this.getStartAndEndOfWeek();
+        const renewalsThisWeekCount = members.filter(m => {
+          const expiry = new Date(m.endDate);
+          return expiry >= start && expiry <= end;
+        }).length;
 
         return {
           totalMembers,
@@ -91,13 +109,15 @@ export class DashboardComponent implements OnInit {
           expiringMemberships,
           pendingPaymentsCount,
           monthlyRevenue,
-          totalLeads
+          totalLeads,
+          dueTodayCount,
+          overdueCount,
+          renewalsThisWeekCount
         };
       })
     );
 
     // 2. Fetch today's attendance roster
-    const todayStr = new Date().toISOString().split('T')[0];
     this.todayAttendance$ = this.gymService.attendance$.pipe(
       map(list => list.filter(a => a.date === todayStr))
     );
@@ -167,11 +187,78 @@ export class DashboardComponent implements OnInit {
         });
       })
     );
+
+    // 10. Load Specific Widgets Lists
+    this.paymentsDueToday$ = this.gymService.payments$.pipe(
+      map(payments => payments.filter(p => p.status !== 'paid' && p.dueDate === todayStr))
+    );
+
+    this.overduePaymentsList$ = this.gymService.payments$.pipe(
+      map(payments => payments.filter(p => p.status === 'overdue' || (p.status === 'pending' && p.dueDate < todayStr)))
+    );
+
+    const { start, end } = this.getStartAndEndOfWeek();
+    this.renewalsThisWeek$ = this.gymService.members$.pipe(
+      map(members => members.filter(m => {
+        const expiry = new Date(m.endDate);
+        return expiry >= start && expiry <= end;
+      }))
+    );
   }
 
   // Quick Action to confirm a pending payment from dashboard
   onConfirmPayment(paymentId: string): void {
     this.gymService.confirmPayment(paymentId);
+    this.snackBar.open('Invoice marked as paid.', 'Dismiss', { duration: 3000 });
+  }
+
+  onMarkPaid(payment: Payment): void {
+    this.gymService.confirmPayment(payment.id);
+    this.snackBar.open(`Invoice of ₹${payment.amount} from ${payment.memberName} marked as PAID.`, 'Dismiss', { duration: 3000 });
+  }
+
+  onSendReminder(payment: Payment): void {
+    this.gymService.sendPaymentReminder(payment.id);
+    this.snackBar.open(`Reminder dispatch logged for ${payment.memberName}.`, 'Dismiss', { duration: 3000 });
+  }
+
+  onRenewMembership(member: Member): void {
+    const dialogRef = this.dialog.open(RenewDialogComponent, {
+      width: '550px',
+      data: { member }
+    });
+
+    dialogRef.afterClosed().subscribe(result => {
+      if (result) {
+        this.gymService.renewMembership(
+          result.memberId,
+          result.planId,
+          result.startDate,
+          result.price,
+          result.paidAmount,
+          result.dueAmount,
+          result.dueDate,
+          result.paymentStatus
+        );
+        this.snackBar.open(`Membership renewed for ${member.name}!`, 'Dismiss', { duration: 3000 });
+      }
+    });
+  }
+
+  // Week calculation helper
+  private getStartAndEndOfWeek(): { start: Date; end: Date } {
+    const today = new Date();
+    const dayOfWeek = today.getDay(); // 0 is Sunday, 1 is Monday...
+    const startOffset = dayOfWeek === 0 ? -6 : 1 - dayOfWeek;
+    const start = new Date(today);
+    start.setDate(today.getDate() + startOffset);
+    start.setHours(0, 0, 0, 0);
+    
+    const end = new Date(start);
+    end.setDate(start.getDate() + 6);
+    end.setHours(23, 59, 59, 999);
+    
+    return { start, end };
   }
 
   // Get SVG polyline points for the revenue chart
