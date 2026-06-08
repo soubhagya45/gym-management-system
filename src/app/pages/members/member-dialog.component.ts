@@ -8,8 +8,9 @@ import { MatSelectModule } from '@angular/material/select';
 import { MatButtonModule } from '@angular/material/button';
 import { MatDatepickerModule } from '@angular/material/datepicker';
 import { MatNativeDateModule } from '@angular/material/core';
-import { GymService } from '../../services/gym.service';
-import { Member, MembershipPlan } from '../../interfaces/gym.model';
+import { MembershipPlanState } from '../../presentation/state/membership-plan.state';
+import { Member } from '../../core/models/member.entity';
+import { MembershipPlan } from '../../core/models/membership-plan.entity';
 
 @Component({
   selector: 'app-member-dialog',
@@ -227,15 +228,21 @@ export class MemberDialogComponent implements OnInit {
 
   constructor(
     private fb: FormBuilder,
-    private gymService: GymService,
+    private planState: MembershipPlanState,
     private dialogRef: MatDialogRef<MemberDialogComponent>,
     @Inject(MAT_DIALOG_DATA) public data: Member | null
   ) {}
 
   ngOnInit(): void {
     // 1. Fetch available plans
-    this.gymService.plans$.subscribe(plans => {
+    this.planState.plans$.subscribe(plans => {
       this.plans = plans;
+      if (!this.data && plans.length > 0) {
+        // Auto-set the initial plan and end date based on first plan
+        const defaultPlanId = plans[0].id;
+        this.memberForm.patchValue({ planId: defaultPlanId });
+        this.onPlanChange(defaultPlanId);
+      }
     });
 
     this.isEdit = !!this.data;
@@ -243,14 +250,14 @@ export class MemberDialogComponent implements OnInit {
 
     // Convert string dates to Date objects for datepicker
     const startVal = this.data ? new Date(this.data.startDate) : new Date();
-    const endVal = this.data ? new Date(this.data.endDate) : this.calculateEndDate(startVal, 'plan-1');
+    const endVal = this.data ? new Date(this.data.endDate) : new Date();
 
     this.memberForm = this.fb.group({
       name: [this.data?.name || '', [Validators.required]],
       email: [this.data?.email || '', [Validators.required, Validators.email]],
       phone: [this.data?.phone || '', [Validators.required]],
       status: [this.data?.status || 'active', [Validators.required]],
-      planId: [this.data?.planId || 'plan-1', [Validators.required]],
+      planId: [this.data?.planId || '', [Validators.required]],
       startDate: [startVal, [Validators.required]],
       endDate: [endVal, [Validators.required]],
       avatarUrl: [this.data?.avatarUrl || ''],
@@ -260,11 +267,6 @@ export class MemberDialogComponent implements OnInit {
       weight: [this.data?.weight || '', [Validators.required, Validators.min(10), Validators.max(300)]],
       fitnessGoal: [this.data?.fitnessGoal || 'General Fitness', [Validators.required]]
     });
-
-    if (!this.data) {
-      // Auto-set the initial end date based on selected plan (default plan-1)
-      this.onPlanChange('plan-1');
-    }
   }
 
   onAvatarChange(event: any): void {

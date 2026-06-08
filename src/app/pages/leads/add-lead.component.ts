@@ -11,8 +11,13 @@ import { MatDatepickerModule } from '@angular/material/datepicker';
 import { MatNativeDateModule } from '@angular/material/core';
 import { MatIconModule } from '@angular/material/icon';
 import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
-import { GymService } from '../../services/gym.service';
-import { MembershipPlan, Trainer } from '../../interfaces/gym.model';
+
+import { LeadState } from '../../presentation/state/lead.state';
+import { MembershipPlanState } from '../../presentation/state/membership-plan.state';
+import { TrainerState } from '../../presentation/state/trainer.state';
+
+import { MembershipPlan } from '../../core/models/membership-plan.entity';
+import { Trainer } from '../../core/models/trainer.entity';
 
 @Component({
   selector: 'app-add-lead',
@@ -41,15 +46,21 @@ export class AddLeadComponent implements OnInit {
 
   constructor(
     private fb: FormBuilder,
-    private gymService: GymService,
+    private leadState: LeadState,
+    private planState: MembershipPlanState,
+    private trainerState: TrainerState,
     private snackBar: MatSnackBar,
     private router: Router
   ) {}
 
   ngOnInit(): void {
-    // Load plans and trainers
-    this.gymService.plans$.subscribe(plans => this.plans = plans);
-    this.gymService.trainers$.subscribe(trainers => this.trainers = trainers);
+    this.planState.plans$.subscribe(plans => {
+      this.plans = plans;
+      if (plans.length > 0 && !this.leadForm.get('interestedPlan')?.value) {
+        this.leadForm.patchValue({ interestedPlan: plans[0].name });
+      }
+    });
+    this.trainerState.trainers$.subscribe(trainers => this.trainers = trainers);
 
     const today = new Date();
     const followUpDefault = new Date(Date.now() + 2 * 24 * 60 * 60 * 1000);
@@ -61,7 +72,7 @@ export class AddLeadComponent implements OnInit {
       trialDate: [today, [Validators.required]],
       leadSource: ['Website', [Validators.required]],
       followUpDate: [followUpDefault, [Validators.required]],
-      interestedPlan: [this.plans[0]?.name || '', [Validators.required]],
+      interestedPlan: ['', [Validators.required]],
       notes: [''],
       assignedStaff: [''],
       status: ['New', [Validators.required]]
@@ -77,12 +88,13 @@ export class AddLeadComponent implements OnInit {
         followUpDate: this.formatDate(formValue.followUpDate)
       };
 
-      this.gymService.addLead(formattedLead);
-      this.snackBar.open('New lead registered successfully!', 'Dismiss', {
-        duration: 3000,
-        panelClass: ['premium-snack']
+      this.leadState.addLead(formattedLead).subscribe(() => {
+        this.snackBar.open('New lead registered successfully!', 'Dismiss', {
+          duration: 3000,
+          panelClass: ['premium-snack']
+        });
+        this.router.navigate(['/leads']);
       });
-      this.router.navigate(['/leads']);
     }
   }
 

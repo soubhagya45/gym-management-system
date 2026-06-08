@@ -6,8 +6,8 @@ import { MatButtonModule } from '@angular/material/button';
 import { MatDialog, MatDialogModule } from '@angular/material/dialog';
 import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
 import { MatDividerModule } from '@angular/material/divider';
-import { GymService } from '../../services/gym.service';
-import { MembershipPlan } from '../../interfaces/gym.model';
+import { MembershipPlanState } from '../../presentation/state/membership-plan.state';
+import { MembershipPlan } from '../../core/models/membership-plan.entity';
 import { PlanDialogComponent } from './plan-dialog.component';
 import { ConfirmDialogComponent } from '../members/confirm-dialog.component';
 import { Observable } from 'rxjs';
@@ -31,13 +31,13 @@ export class MembershipPlansComponent implements OnInit {
   plans$: Observable<MembershipPlan[]> | undefined;
 
   constructor(
-    private gymService: GymService,
+    private planState: MembershipPlanState,
     private dialog: MatDialog,
     private snackBar: MatSnackBar
   ) {}
 
   ngOnInit(): void {
-    this.plans$ = this.gymService.plans$;
+    this.plans$ = this.planState.plans$;
   }
 
   // Add Plan Dialog
@@ -49,9 +49,10 @@ export class MembershipPlansComponent implements OnInit {
 
     dialogRef.afterClosed().subscribe(result => {
       if (result) {
-        this.gymService.addPlan(result);
-        this.snackBar.open('Membership plan created successfully!', 'Dismiss', {
-          duration: 3000
+        this.planState.addPlan(result).subscribe(() => {
+          this.snackBar.open('Membership plan created successfully!', 'Dismiss', {
+            duration: 3000
+          });
         });
       }
     });
@@ -66,9 +67,10 @@ export class MembershipPlansComponent implements OnInit {
 
     dialogRef.afterClosed().subscribe(result => {
       if (result) {
-        this.gymService.updatePlan(result);
-        this.snackBar.open('Membership plan updated!', 'Dismiss', {
-          duration: 3000
+        this.planState.updatePlan(result).subscribe(() => {
+          this.snackBar.open('Membership plan updated!', 'Dismiss', {
+            duration: 3000
+          });
         });
       }
     });
@@ -88,9 +90,10 @@ export class MembershipPlansComponent implements OnInit {
 
     dialogRef.afterClosed().subscribe(confirm => {
       if (confirm) {
-        this.gymService.deletePlan(plan.id);
-        this.snackBar.open('Membership plan deleted.', 'Dismiss', {
-          duration: 3000
+        this.planState.deletePlan(plan.id).subscribe(() => {
+          this.snackBar.open('Membership plan deleted.', 'Dismiss', {
+            duration: 3000
+          });
         });
       }
     });

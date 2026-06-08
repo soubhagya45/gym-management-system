@@ -6,7 +6,7 @@ import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatInputModule } from '@angular/material/input';
 import { MatSelectModule } from '@angular/material/select';
 import { MatButtonModule } from '@angular/material/button';
-import { Trainer } from '../../interfaces/gym.model';
+import { Trainer } from '../../core/models/trainer.entity';
 
 @Component({
   selector: 'app-trainer-dialog',

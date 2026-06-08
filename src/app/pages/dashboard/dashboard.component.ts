@@ -9,8 +9,20 @@ import { MatTooltipModule } from '@angular/material/tooltip';
 import { MatTabsModule } from '@angular/material/tabs';
 import { MatDialog, MatDialogModule } from '@angular/material/dialog';
 import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
-import { GymService } from '../../services/gym.service';
-import { Member, Attendance, ActivityLog, Payment, Lead } from '../../interfaces/gym.model';
+
+import { Member } from '../../core/models/member.entity';
+import { Attendance } from '../../core/models/attendance.entity';
+import { ActivityLog } from '../../core/models/activity-log.entity';
+import { Payment } from '../../core/models/payment.entity';
+import { Lead } from '../../core/models/lead.entity';
+
+import { MemberState } from '../../presentation/state/member.state';
+import { PaymentState } from '../../presentation/state/payment.state';
+import { LeadState } from '../../presentation/state/lead.state';
+import { AttendanceState } from '../../presentation/state/attendance.state';
+import { ActivityLogState } from '../../presentation/state/activity-log.state';
+import { MembershipPlanState } from '../../presentation/state/membership-plan.state';
+
 import { RenewDialogComponent } from '../payments/renew-dialog.component';
 import { Observable, combineLatest } from 'rxjs';
 import { map } from 'rxjs/operators';
@@ -64,7 +76,12 @@ export class DashboardComponent implements OnInit {
   ];
 
   constructor(
-    private gymService: GymService,
+    private memberState: MemberState,
+    private paymentState: PaymentState,
+    private leadState: LeadState,
+    private attendanceState: AttendanceState,
+    private logState: ActivityLogState,
+    private planState: MembershipPlanState,
     private dialog: MatDialog,
     private snackBar: MatSnackBar
   ) {}
@@ -74,9 +91,9 @@ export class DashboardComponent implements OnInit {
 
     // 1. Calculate stats dynamically based on active member lists
     this.stats$ = combineLatest([
-      this.gymService.members$,
-      this.gymService.payments$,
-      this.gymService.leads$
+      this.memberState.members$,
+      this.paymentState.payments$,
+      this.leadState.leads$
     ]).pipe(
       map(([members, payments, leads]) => {
         const totalMembers = members.length;
@@ -118,13 +135,13 @@ export class DashboardComponent implements OnInit {
     );
 
     // 2. Fetch today's attendance roster
-    this.todayAttendance$ = this.gymService.attendance$.pipe(
+    this.todayAttendance$ = this.attendanceState.attendance$.pipe(
       map(list => list.filter(a => a.date === todayStr))
     );
 
     // 3. Fetch attendance stats summary
     this.attendanceSummary$ = combineLatest([
-      this.gymService.members$,
+      this.memberState.members$,
       this.todayAttendance$
     ]).pipe(
       map(([members, todayAtt]) => {
@@ -141,34 +158,35 @@ export class DashboardComponent implements OnInit {
     );
 
     // 4. Fetch last 5 logs
-    this.recentLogs$ = this.gymService.logs$.pipe(
+    this.recentLogs$ = this.logState.logs$.pipe(
       map(logs => logs.slice(0, 5))
     );
 
     // 5. Fetch expiring members list (top 5)
-    this.expiringMembers$ = this.gymService.members$.pipe(
+    this.expiringMembers$ = this.memberState.members$.pipe(
       map(list => list.filter(m => m.status === 'expiring').slice(0, 5))
     );
 
     // 6. Fetch pending payments list (top 5)
-    this.pendingPayments$ = this.gymService.payments$.pipe(
+    this.pendingPayments$ = this.paymentState.payments$.pipe(
       map(list => list.filter(p => p.status === 'pending' || p.status === 'overdue').slice(0, 5))
     );
 
     // 7. Fetch new members list (sorted by startDate desc, top 5)
-    this.newMembers$ = this.gymService.members$.pipe(
+    this.newMembers$ = this.memberState.members$.pipe(
       map(list => [...list].sort((a, b) => new Date(b.startDate).getTime() - new Date(a.startDate).getTime()).slice(0, 5))
     );
 
     // 8. Fetch lead follow ups (top 5)
-    this.leadFollowUps$ = this.gymService.leads$.pipe(
+    this.leadState.leads$.subscribe(); // Ensure trigger
+    this.leadFollowUps$ = this.leadState.leads$.pipe(
       map(list => list.filter(l => l.status === 'Follow Up').slice(0, 5))
     );
 
     // 9. Fetch active plan distribution details
     this.planDistribution$ = combineLatest([
-      this.gymService.members$,
-      this.gymService.plans$
+      this.memberState.members$,
+      this.planState.plans$
     ]).pipe(
       map(([members, plans]) => {
         const activeMembers = members.filter(m => m.status === 'active');
@@ -189,16 +207,16 @@ export class DashboardComponent implements OnInit {
     );
 
     // 10. Load Specific Widgets Lists
-    this.paymentsDueToday$ = this.gymService.payments$.pipe(
+    this.paymentsDueToday$ = this.paymentState.payments$.pipe(
       map(payments => payments.filter(p => p.status !== 'paid' && p.dueDate === todayStr))
     );
 
-    this.overduePaymentsList$ = this.gymService.payments$.pipe(
+    this.overduePaymentsList$ = this.paymentState.payments$.pipe(
       map(payments => payments.filter(p => p.status === 'overdue' || (p.status === 'pending' && p.dueDate < todayStr)))
     );
 
     const { start, end } = this.getStartAndEndOfWeek();
-    this.renewalsThisWeek$ = this.gymService.members$.pipe(
+    this.renewalsThisWeek$ = this.memberState.members$.pipe(
       map(members => members.filter(m => {
         const expiry = new Date(m.endDate);
         return expiry >= start && expiry <= end;
@@ -208,17 +226,19 @@ export class DashboardComponent implements OnInit {
 
   // Quick Action to confirm a pending payment from dashboard
   onConfirmPayment(paymentId: string): void {
-    this.gymService.confirmPayment(paymentId);
-    this.snackBar.open('Invoice marked as paid.', 'Dismiss', { duration: 3000 });
+    this.paymentState.confirmPayment(paymentId).subscribe(() => {
+      this.snackBar.open('Invoice marked as paid.', 'Dismiss', { duration: 3000 });
+    });
   }
 
   onMarkPaid(payment: Payment): void {
-    this.gymService.confirmPayment(payment.id);
-    this.snackBar.open(`Invoice of ₹${payment.amount} from ${payment.memberName} marked as PAID.`, 'Dismiss', { duration: 3000 });
+    this.paymentState.confirmPayment(payment.id).subscribe(() => {
+      this.snackBar.open(`Invoice of ₹${payment.amount} from ${payment.memberName} marked as PAID.`, 'Dismiss', { duration: 3000 });
+    });
   }
 
   onSendReminder(payment: Payment): void {
-    this.gymService.sendPaymentReminder(payment.id);
+    this.paymentState.sendPaymentReminder(payment.id);
     this.snackBar.open(`Reminder dispatch logged for ${payment.memberName}.`, 'Dismiss', { duration: 3000 });
   }
 
@@ -230,10 +250,12 @@ export class DashboardComponent implements OnInit {
 
     dialogRef.afterClosed().subscribe(result => {
       if (result) {
-        this.gymService.renewMembership(
+        this.memberState.renewMembership(
           result.memberId,
           result.planId,
+          result.planName,
           result.startDate,
+          this.addMonths(result.startDate, result.durationMonths || 1),
           result.price,
           result.paidAmount,
           result.dueAmount,
@@ -243,6 +265,12 @@ export class DashboardComponent implements OnInit {
         this.snackBar.open(`Membership renewed for ${member.name}!`, 'Dismiss', { duration: 3000 });
       }
     });
+  }
+
+  private addMonths(dateStr: string, months: number): string {
+    const date = new Date(dateStr);
+    date.setMonth(date.getMonth() + months);
+    return date.toISOString().split('T')[0];
   }
 
   // Week calculation helper
@@ -271,7 +299,6 @@ export class DashboardComponent implements OnInit {
     
     return this.revenueChartData.map((data, index) => {
       const x = padding + index * stepX;
-      // High value means low y coordinate (invert chart)
       const y = height - padding - ((data.percent / 100) * (height - padding * 2));
       return `${x},${y}`;
     }).join(' ');

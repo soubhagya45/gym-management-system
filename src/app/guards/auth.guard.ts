@@ -1,15 +1,15 @@
 import { inject } from '@angular/core';
 import { CanActivateFn, Router } from '@angular/router';
-import { AuthService } from '../services/auth.service';
+import { AuthState } from '../presentation/state/auth.state';
 
 /**
  * Guard to restrict access to authenticated users only.
  */
 export const authGuard: CanActivateFn = (route, state) => {
-  const authService = inject(AuthService);
+  const authState = inject(AuthState);
   const router = inject(Router);
 
-  if (authService.isAuthenticated) {
+  if (authState.isAuthenticated) {
     return true;
   }
 
@@ -23,20 +23,20 @@ export const authGuard: CanActivateFn = (route, state) => {
  * Redirects them to their appropriate workspace dashboard.
  */
 export const loginGuard: CanActivateFn = (route, state) => {
-  const authService = inject(AuthService);
+  const authState = inject(AuthState);
   const router = inject(Router);
 
-  if (!authService.isAuthenticated) {
+  if (!authState.isAuthenticated) {
     return true;
   }
 
-  const user = authService.currentUserValue;
+  const user = authState.currentUserValue;
   if (user) {
-    if (user.role === 'owner') {
+    if (user.role === 'owner' || user.role === 'super-admin') {
       router.navigate(['/dashboard']);
     } else if (user.role === 'trainer') {
       router.navigate(['/trainers']);
-    } else if (user.role === 'member') {
+    } else if (user.role === 'staff') {
       router.navigate(['/members']);
     } else {
       router.navigate(['/dashboard']);

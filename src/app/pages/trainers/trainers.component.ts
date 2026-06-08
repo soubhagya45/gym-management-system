@@ -7,8 +7,8 @@ import { MatDialog, MatDialogModule } from '@angular/material/dialog';
 import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
 import { MatTooltipModule } from '@angular/material/tooltip';
 import { MatDividerModule } from '@angular/material/divider';
-import { GymService } from '../../services/gym.service';
-import { Trainer } from '../../interfaces/gym.model';
+import { TrainerState } from '../../presentation/state/trainer.state';
+import { Trainer } from '../../core/models/trainer.entity';
 import { TrainerDialogComponent } from './trainer-dialog.component';
 import { ConfirmDialogComponent } from '../members/confirm-dialog.component';
 import { Observable } from 'rxjs';
@@ -33,13 +33,13 @@ export class TrainersComponent implements OnInit {
   trainers$: Observable<Trainer[]> | undefined;
 
   constructor(
-    private gymService: GymService,
+    private trainerState: TrainerState,
     private dialog: MatDialog,
     private snackBar: MatSnackBar
   ) {}
 
   ngOnInit(): void {
-    this.trainers$ = this.gymService.trainers$;
+    this.trainers$ = this.trainerState.trainers$;
   }
 
   // Add Trainer
@@ -51,9 +51,10 @@ export class TrainersComponent implements OnInit {
 
     dialogRef.afterClosed().subscribe(result => {
       if (result) {
-        this.gymService.addTrainer(result);
-        this.snackBar.open('Trainer profile registered successfully!', 'Dismiss', {
-          duration: 3000
+        this.trainerState.addTrainer(result).subscribe(() => {
+          this.snackBar.open('Trainer profile registered successfully!', 'Dismiss', {
+            duration: 3000
+          });
         });
       }
     });
@@ -68,9 +69,10 @@ export class TrainersComponent implements OnInit {
 
     dialogRef.afterClosed().subscribe(result => {
       if (result) {
-        this.gymService.updateTrainer(result);
-        this.snackBar.open('Trainer profile updated!', 'Dismiss', {
-          duration: 3000
+        this.trainerState.updateTrainer(result).subscribe(() => {
+          this.snackBar.open('Trainer profile updated!', 'Dismiss', {
+            duration: 3000
+          });
         });
       }
     });
@@ -90,9 +92,10 @@ export class TrainersComponent implements OnInit {
 
     dialogRef.afterClosed().subscribe(confirm => {
       if (confirm) {
-        this.gymService.deleteTrainer(trainer.id);
-        this.snackBar.open('Trainer profile removed.', 'Dismiss', {
-          duration: 3000
+        this.trainerState.deleteTrainer(trainer.id).subscribe(() => {
+          this.snackBar.open('Trainer profile removed.', 'Dismiss', {
+            duration: 3000
+          });
         });
       }
     });

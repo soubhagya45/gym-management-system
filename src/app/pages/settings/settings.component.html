@@ -25,6 +25,13 @@
             <mat-error *ngIf="settingsForm.get('gymName')?.hasError('required')">Gym name is required</mat-error>
           </mat-form-field>
 
+          <!-- Owner Name -->
+          <mat-form-field appearance="outline">
+            <mat-label>Owner Name</mat-label>
+            <input matInput formControlName="ownerName">
+            <mat-error *ngIf="settingsForm.get('ownerName')?.hasError('required')">Owner name is required</mat-error>
+          </mat-form-field>
+
           <!-- Email -->
           <mat-form-field appearance="outline">
             <mat-label>Support Email Address</mat-label>

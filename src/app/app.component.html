@@ -42,15 +42,53 @@
 
         <span class="toolbar-title">{{ pageTitle }}</span>
 
+        <!-- Active Gym Tenant Indicator -->
+        <span class="gym-badge hide-on-mobile" *ngIf="activeGym$ | async as gym">
+          <mat-icon>storefront</mat-icon>
+          <span>{{ gym.gymName }}</span>
+        </span>
+
         <span class="spacer"></span>
 
         <!-- System Actions -->
         <div class="navbar-actions">
-          <!-- Date Display -->
-          <span class="date-display hide-on-mobile">
-            <mat-icon>calendar_today</mat-icon>
-            <span>Thursday, June 4, 2026</span>
-          </span>
+          
+          <!-- Gym Switcher (Super Admin only) -->
+          <button mat-button [matMenuTriggerFor]="gymMenu" class="gym-switcher-btn action-btn hide-on-mobile" *ngIf="user.role === 'super-admin'">
+            <mat-icon>swap_horiz</mat-icon>
+            <span>Switch Gym</span>
+          </button>
+          <mat-menu #gymMenu="matMenu" class="premium-menu">
+            <div class="menu-header">Select Gym Tenant</div>
+            <button mat-menu-item *ngFor="let gym of gyms$ | async" (click)="onSwitchGym(gym.gymId)">
+              <mat-icon>location_city</mat-icon>
+              <span>{{ gym.gymName }}</span>
+            </button>
+          </mat-menu>
+
+          <!-- Database Backend Swapper -->
+          <button mat-icon-button [matMenuTriggerFor]="providerMenu" class="action-btn" matTooltip="Active Database Provider">
+            <mat-icon>storage</mat-icon>
+          </button>
+          <mat-menu #providerMenu="matMenu" class="premium-menu">
+            <div class="menu-header">Database Provider</div>
+            <button mat-menu-item (click)="onSwitchProvider('MOCK')">
+              <mat-icon [color]="currentProvider === 'MOCK' ? 'primary' : ''">dns</mat-icon>
+              <span>Mock Database (Local)</span>
+            </button>
+            <button mat-menu-item (click)="onSwitchProvider('FIREBASE')">
+              <mat-icon [color]="currentProvider === 'FIREBASE' ? 'primary' : ''">cloud</mat-icon>
+              <span>Firebase Firestore</span>
+            </button>
+            <button mat-menu-item (click)="onSwitchProvider('SUPABASE')">
+              <mat-icon [color]="currentProvider === 'SUPABASE' ? 'primary' : ''">bolt</mat-icon>
+              <span>Supabase PostgreSQL</span>
+            </button>
+            <button mat-menu-item (click)="onSwitchProvider('REST')">
+              <mat-icon [color]="currentProvider === 'REST' ? 'primary' : ''">api</mat-icon>
+              <span>Node.js / .NET REST API</span>
+            </button>
+          </mat-menu>
 
           <!-- Theme Toggle -->
           <button mat-icon-button (click)="toggleTheme()"

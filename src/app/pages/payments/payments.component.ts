@@ -13,8 +13,15 @@ import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
 import { MatTooltipModule } from '@angular/material/tooltip';
 import { MatTabsModule } from '@angular/material/tabs';
 import { MatProgressBarModule } from '@angular/material/progress-bar';
-import { GymService } from '../../services/gym.service';
-import { Payment, Member } from '../../interfaces/gym.model';
+
+import { PaymentState } from '../../presentation/state/payment.state';
+import { MemberState } from '../../presentation/state/member.state';
+import { MembershipPlanState } from '../../presentation/state/membership-plan.state';
+
+import { Payment } from '../../core/models/payment.entity';
+import { Member } from '../../core/models/member.entity';
+import { MembershipPlan } from '../../core/models/membership-plan.entity';
+
 import { PaymentDialogComponent } from './payment-dialog.component';
 import { RenewDialogComponent } from './renew-dialog.component';
 import { Observable } from 'rxjs';
@@ -49,47 +56,51 @@ interface PaymentStats {
   styleUrls: ['./payments.component.scss']
 })
 export class PaymentsComponent implements OnInit {
-  // Columns definition
   historyColumns = ['name', 'plan', 'amount', 'paidAmount', 'dueAmount', 'date', 'dueDate', 'status', 'actions'];
   pendingColumns = ['name', 'plan', 'amount', 'dueAmount', 'dueDate', 'status', 'actions'];
   renewalColumns = ['name', 'plan', 'endDate', 'daysRemaining', 'status', 'actions'];
 
-  // Data Sources
   dataSource = new MatTableDataSource<Payment>();
   pendingDataSource = new MatTableDataSource<Payment>();
   membersDataSource = new MatTableDataSource<Member>();
 
-  // Metrics
   stats$: Observable<PaymentStats> | undefined;
+  plans: MembershipPlan[] = [];
 
-  // Filter properties
   searchQuery = '';
   selectedStatus = 'all';
   selectedPendingStatus = 'all';
   selectedRenewalStatus = 'all';
 
   constructor(
-    private gymService: GymService,
+    private paymentState: PaymentState,
+    private memberState: MemberState,
+    private planState: MembershipPlanState,
     private dialog: MatDialog,
     private snackBar: MatSnackBar
   ) {}
 
   ngOnInit(): void {
     // 1. Subscribe to payments list
-    this.gymService.payments$.subscribe(payments => {
+    this.paymentState.payments$.subscribe(payments => {
       this.dataSource.data = payments;
       this.pendingDataSource.data = payments.filter(p => p.status === 'pending' || p.status === 'overdue');
       this.applyFilters();
     });
 
     // 2. Subscribe to members list for renewal tracking
-    this.gymService.members$.subscribe(members => {
+    this.memberState.members$.subscribe(members => {
       this.membersDataSource.data = members;
       this.applyFilters();
     });
 
-    // 3. Compute dynamic stats
-    this.stats$ = this.gymService.payments$.pipe(
+    // 3. Subscribe to plans to fetch pricing and helper counts
+    this.planState.plans$.subscribe(plans => {
+      this.plans = plans;
+    });
+
+    // 4. Compute dynamic stats
+    this.stats$ = this.paymentState.payments$.pipe(
       map(payments => {
         const totalCollected = payments
           .filter(p => p.status === 'paid')
@@ -113,7 +124,6 @@ export class PaymentsComponent implements OnInit {
   applyFilters() {
     const query = this.searchQuery.trim().toLowerCase();
     
-    // 1. History Filter Predicate
     this.dataSource.filterPredicate = (data: Payment, filter: string) => {
       const matchesSearch = data.memberName.toLowerCase().includes(query) ||
                             data.planName.toLowerCase().includes(query);
@@ -122,7 +132,6 @@ export class PaymentsComponent implements OnInit {
     };
     this.dataSource.filter = query + '_' + this.selectedStatus;
 
-    // 2. Pending/Overdue Filter Predicate
     this.pendingDataSource.filterPredicate = (data: Payment, filter: string) => {
       const matchesSearch = data.memberName.toLowerCase().includes(query) ||
                             data.planName.toLowerCase().includes(query);
@@ -133,7 +142,6 @@ export class PaymentsComponent implements OnInit {
     };
     this.pendingDataSource.filter = query + '_' + this.selectedPendingStatus;
 
-    // 3. Renewal Tracking Filter Predicate
     this.membersDataSource.filterPredicate = (data: Member, filter: string) => {
       const matchesSearch = data.name.toLowerCase().includes(query) ||
                             data.planName.toLowerCase().includes(query);
@@ -151,7 +159,6 @@ export class PaymentsComponent implements OnInit {
     this.applyFilters();
   }
 
-  // Action: Record Manual Payment
   openRecordPaymentDialog() {
     const dialogRef = this.dialog.open(PaymentDialogComponent, {
       width: '550px'
@@ -159,31 +166,30 @@ export class PaymentsComponent implements OnInit {
 
     dialogRef.afterClosed().subscribe(result => {
       if (result) {
-        this.gymService.addPayment(result);
-        this.snackBar.open('Invoice recorded successfully!', 'Dismiss', {
-          duration: 3000
+        this.paymentState.addPayment(result).subscribe(() => {
+          this.snackBar.open('Invoice recorded successfully!', 'Dismiss', {
+            duration: 3000
+          });
         });
       }
     });
   }
 
-  // Action: Mark Paid
   markAsPaid(payment: Payment) {
-    this.gymService.confirmPayment(payment.id);
-    this.snackBar.open(`Payment of ₹${payment.amount} from ${payment.memberName} marked as PAID.`, 'Dismiss', {
-      duration: 3000
+    this.paymentState.confirmPayment(payment.id).subscribe(() => {
+      this.snackBar.open(`Payment of ₹${payment.amount} from ${payment.memberName} marked as PAID.`, 'Dismiss', {
+        duration: 3000
+      });
     });
   }
 
-  // Action: Send Reminder
   sendReminder(payment: Payment) {
-    this.gymService.sendPaymentReminder(payment.id);
+    this.paymentState.sendPaymentReminder(payment.id);
     this.snackBar.open(`Reminder message sent to ${payment.memberName} successfully.`, 'Dismiss', {
       duration: 3000
     });
   }
 
-  // Action: Renew Membership
   openRenewDialog(member: Member) {
     const dialogRef = this.dialog.open(RenewDialogComponent, {
       width: '550px',
@@ -192,10 +198,21 @@ export class PaymentsComponent implements OnInit {
 
     dialogRef.afterClosed().subscribe(result => {
       if (result) {
-        this.gymService.renewMembership(
+        const plan = this.plans.find(p => p.id === result.planId);
+        const planName = plan ? plan.name : 'Membership Plan';
+        const durationMonths = plan ? plan.durationMonths : 1;
+        
+        // Calculate end date
+        const start = new Date(result.startDate);
+        start.setMonth(start.getMonth() + durationMonths);
+        const endDate = start.toISOString().split('T')[0];
+
+        this.memberState.renewMembership(
           result.memberId,
           result.planId,
+          planName,
           result.startDate,
+          endDate,
           result.price,
           result.paidAmount,
           result.dueAmount,
@@ -209,11 +226,9 @@ export class PaymentsComponent implements OnInit {
     });
   }
 
-  // Helper date calculations for renewal tracking
   getDaysRemaining(member: Member): number {
     const end = new Date(member.endDate).getTime();
     const now = new Date();
-    // Midnight of today
     now.setHours(0,0,0,0);
     const diff = end - now.getTime();
     return Math.ceil(diff / (1000 * 60 * 60 * 24));

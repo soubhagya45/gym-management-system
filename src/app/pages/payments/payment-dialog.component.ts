@@ -8,8 +8,8 @@ import { MatSelectModule } from '@angular/material/select';
 import { MatButtonModule } from '@angular/material/button';
 import { MatDatepickerModule } from '@angular/material/datepicker';
 import { MatNativeDateModule } from '@angular/material/core';
-import { GymService } from '../../services/gym.service';
-import { Member } from '../../interfaces/gym.model';
+import { MemberState } from '../../presentation/state/member.state';
+import { Member } from '../../core/models/member.entity';
 
 @Component({
   selector: 'app-payment-dialog',
@@ -146,13 +146,13 @@ export class PaymentDialogComponent implements OnInit {
 
   constructor(
     private fb: FormBuilder,
-    private gymService: GymService,
+    private memberState: MemberState,
     private dialogRef: MatDialogRef<PaymentDialogComponent>
   ) {}
 
   ngOnInit(): void {
     // Load members
-    this.gymService.members$.subscribe(members => {
+    this.memberState.members$.subscribe(members => {
       this.members = members.filter(m => m.status !== 'inactive');
     });
 
@@ -181,7 +181,6 @@ export class PaymentDialogComponent implements OnInit {
     const amount = Number(this.paymentForm.get('amount')?.value || 0);
     const paid = Number(this.paymentForm.get('paidAmount')?.value || 0);
 
-    // Add validators for paidAmount max bounds
     this.paymentForm.get('paidAmount')?.setValidators([
       Validators.required,
       Validators.min(0),
@@ -192,7 +191,6 @@ export class PaymentDialogComponent implements OnInit {
     const due = Math.max(0, amount - paid);
     this.paymentForm.get('dueAmount')?.setValue(due);
 
-    // Auto set status based on due value (convenience)
     if (due > 0) {
       this.showDueDateField = true;
       this.paymentForm.get('dueDate')?.setValidators([Validators.required]);

@@ -13,8 +13,10 @@ import { MatIconModule } from '@angular/material/icon';
 import { MatDialog, MatDialogModule } from '@angular/material/dialog';
 import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
 import { MatTooltipModule } from '@angular/material/tooltip';
-import { GymService } from '../../services/gym.service';
-import { Member, MembershipPlan } from '../../interfaces/gym.model';
+import { MemberState } from '../../presentation/state/member.state';
+import { MembershipPlanState } from '../../presentation/state/membership-plan.state';
+import { Member } from '../../core/models/member.entity';
+import { MembershipPlan } from '../../core/models/membership-plan.entity';
 import { MemberDialogComponent } from './member-dialog.component';
 import { ConfirmDialogComponent } from './confirm-dialog.component';
 
@@ -54,7 +56,8 @@ export class MembersComponent implements OnInit, AfterViewInit {
   @ViewChild(MatSort) sort!: MatSort;
 
   constructor(
-    private gymService: GymService,
+    private memberState: MemberState,
+    private planState: MembershipPlanState,
     private dialog: MatDialog,
     private snackBar: MatSnackBar,
     private router: Router
@@ -66,13 +69,13 @@ export class MembersComponent implements OnInit, AfterViewInit {
 
   ngOnInit(): void {
     // 1. Subscribe to members list
-    this.gymService.members$.subscribe(members => {
+    this.memberState.members$.subscribe(members => {
       this.dataSource.data = members;
       this.applyFilters();
     });
 
     // 2. Fetch plans for filter dropdown
-    this.gymService.plans$.subscribe(plans => {
+    this.planState.plans$.subscribe(plans => {
       this.plans = plans;
     });
 
@@ -147,10 +150,11 @@ export class MembersComponent implements OnInit, AfterViewInit {
 
     dialogRef.afterClosed().subscribe(result => {
       if (result) {
-        this.gymService.addMember(result);
-        this.snackBar.open('Member registered successfully!', 'Dismiss', {
-          duration: 3000,
-          panelClass: ['premium-snack']
+        this.memberState.addMember(result).subscribe(() => {
+          this.snackBar.open('Member registered successfully!', 'Dismiss', {
+            duration: 3000,
+            panelClass: ['premium-snack']
+          });
         });
       }
     });
@@ -165,10 +169,11 @@ export class MembersComponent implements OnInit, AfterViewInit {
 
     dialogRef.afterClosed().subscribe(result => {
       if (result) {
-        this.gymService.updateMember(result);
-        this.snackBar.open('Member profile updated!', 'Dismiss', {
-          duration: 3000,
-          panelClass: ['premium-snack']
+        this.memberState.updateMember(result).subscribe(() => {
+          this.snackBar.open('Member profile updated!', 'Dismiss', {
+            duration: 3000,
+            panelClass: ['premium-snack']
+          });
         });
       }
     });
@@ -188,10 +193,11 @@ export class MembersComponent implements OnInit, AfterViewInit {
 
     dialogRef.afterClosed().subscribe(confirm => {
       if (confirm) {
-        this.gymService.deleteMember(member.id);
-        this.snackBar.open('Member profile deleted.', 'Dismiss', {
-          duration: 3000,
-          panelClass: ['premium-snack']
+        this.memberState.deleteMember(member.id).subscribe(() => {
+          this.snackBar.open('Member profile deleted.', 'Dismiss', {
+            duration: 3000,
+            panelClass: ['premium-snack']
+          });
         });
       }
     });

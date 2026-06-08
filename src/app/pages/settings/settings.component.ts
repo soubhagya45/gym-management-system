@@ -9,6 +9,8 @@ import { MatInputModule } from '@angular/material/input';
 import { MatSelectModule } from '@angular/material/select';
 import { MatSlideToggleModule } from '@angular/material/slide-toggle';
 import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
+import { GymState } from '../../presentation/state/gym.state';
+import { Gym } from '../../core/models/gym.entity';
 
 @Component({
   selector: 'app-settings',
@@ -31,26 +33,42 @@ import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
 export class SettingsComponent implements OnInit {
   settingsForm!: FormGroup;
   isDarkMode = true;
+  activeGym: Gym | null = null;
 
   constructor(
     private fb: FormBuilder,
-    private snackBar: MatSnackBar
+    private snackBar: MatSnackBar,
+    private gymState: GymState
   ) {}
 
   ngOnInit(): void {
     // 1. Theme status check
     this.isDarkMode = document.body.classList.contains('dark-theme');
 
-    // 2. Mock system preferences form init
+    // 2. Preferences form init
     this.settingsForm = this.fb.group({
-      gymName: ['Apex Fitness Suite', [Validators.required]],
-      contactEmail: ['contact@apexfit.com', [Validators.required, Validators.email]],
-      contactPhone: ['+1 (555) 900-2000', [Validators.required]],
+      gymName: ['', [Validators.required]],
+      ownerName: ['', [Validators.required]],
+      contactEmail: ['', [Validators.required, Validators.email]],
+      contactPhone: ['', [Validators.required]],
       address: ['742 Luxury Boulevard, Suite 100, Beverly Hills, CA 90210', [Validators.required]],
       currency: ['₹', [Validators.required]],
       taxRate: [8.5, [Validators.required, Validators.min(0), Validators.max(100)]],
       allowGuestPass: [true],
       sendExpiryAlerts: [true]
+    });
+
+    // 3. Reactively load active gym settings
+    this.gymState.activeGym$.subscribe(gym => {
+      if (gym) {
+        this.activeGym = gym;
+        this.settingsForm.patchValue({
+          gymName: gym.gymName,
+          ownerName: gym.ownerName,
+          contactEmail: gym.email,
+          contactPhone: gym.phone
+        });
+      }
     });
   }
 
@@ -73,9 +91,19 @@ export class SettingsComponent implements OnInit {
   }
 
   onSaveSettings() {
-    if (this.settingsForm.valid) {
-      this.snackBar.open('System configurations updated successfully!', 'Dismiss', {
-        duration: 3000
+    if (this.settingsForm.valid && this.activeGym) {
+      const updated: Gym = {
+        ...this.activeGym,
+        gymName: this.settingsForm.value.gymName,
+        ownerName: this.settingsForm.value.ownerName,
+        email: this.settingsForm.value.contactEmail,
+        phone: this.settingsForm.value.contactPhone
+      };
+
+      this.gymState.updateGym(updated).subscribe(() => {
+        this.snackBar.open('Gym configurations updated successfully!', 'Dismiss', {
+          duration: 3000
+        });
       });
     }
   }

@@ -8,8 +8,11 @@ import { MatSelectModule } from '@angular/material/select';
 import { MatButtonModule } from '@angular/material/button';
 import { MatDatepickerModule } from '@angular/material/datepicker';
 import { MatNativeDateModule } from '@angular/material/core';
-import { Lead, MembershipPlan, Trainer } from '../../interfaces/gym.model';
-import { GymService } from '../../services/gym.service';
+import { Lead } from '../../core/models/lead.entity';
+import { MembershipPlan } from '../../core/models/membership-plan.entity';
+import { Trainer } from '../../core/models/trainer.entity';
+import { MembershipPlanState } from '../../presentation/state/membership-plan.state';
+import { TrainerState } from '../../presentation/state/trainer.state';
 
 @Component({
   selector: 'app-lead-dialog',
@@ -177,7 +180,8 @@ export class LeadDialogComponent implements OnInit {
 
   constructor(
     private fb: FormBuilder,
-    private gymService: GymService,
+    private planState: MembershipPlanState,
+    private trainerState: TrainerState,
     private dialogRef: MatDialogRef<LeadDialogComponent>,
     @Inject(MAT_DIALOG_DATA) public data: Lead | null
   ) { }
@@ -185,9 +189,8 @@ export class LeadDialogComponent implements OnInit {
   ngOnInit(): void {
     this.isEdit = !!this.data;
 
-    // Load available plans and trainers from service
-    this.gymService.plans$.subscribe(plans => this.plans = plans);
-    this.gymService.trainers$.subscribe(trainers => this.trainers = trainers);
+    this.planState.plans$.subscribe(plans => this.plans = plans);
+    this.trainerState.trainers$.subscribe(trainers => this.trainers = trainers);
 
     const trialVal = this.data ? new Date(this.data.trialDate) : new Date();
     const followVal = this.data ? new Date(this.data.followUpDate) : new Date(Date.now() + 2 * 24 * 60 * 60 * 1000);
@@ -199,11 +202,15 @@ export class LeadDialogComponent implements OnInit {
       trialDate: [trialVal, [Validators.required]],
       leadSource: [this.data?.leadSource || 'Website', [Validators.required]],
       followUpDate: [followVal, [Validators.required]],
-      interestedPlan: [this.data?.interestedPlan || (this.plans[0]?.name || ''), [Validators.required]],
+      interestedPlan: [this.data?.interestedPlan || '', [Validators.required]],
       notes: [this.data?.notes || ''],
       assignedStaff: [this.data?.assignedStaff || ''],
       status: [this.data?.status || 'New', [Validators.required]]
     });
+
+    if (!this.data && this.plans.length > 0) {
+      this.leadForm.patchValue({ interestedPlan: this.plans[0].name });
+    }
   }
 
   onCancel(): void {

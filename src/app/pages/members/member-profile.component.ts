@@ -11,8 +11,12 @@ import { MatTooltipModule } from '@angular/material/tooltip';
 import { MatDividerModule } from '@angular/material/divider';
 import { MatDialog, MatDialogModule } from '@angular/material/dialog';
 import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
-import { GymService } from '../../services/gym.service';
-import { Member, Attendance, Payment } from '../../interfaces/gym.model';
+import { MemberState } from '../../presentation/state/member.state';
+import { AttendanceState } from '../../presentation/state/attendance.state';
+import { PaymentState } from '../../presentation/state/payment.state';
+import { Member } from '../../core/models/member.entity';
+import { Attendance } from '../../core/models/attendance.entity';
+import { Payment } from '../../core/models/payment.entity';
 import { MemberDialogComponent } from './member-dialog.component';
 
 @Component({
@@ -48,7 +52,9 @@ export class MemberProfileComponent implements OnInit {
 
   constructor(
     private route: ActivatedRoute,
-    private gymService: GymService,
+    private memberState: MemberState,
+    private attendanceState: AttendanceState,
+    private paymentState: PaymentState,
     private dialog: MatDialog,
     private snackBar: MatSnackBar
   ) {}
@@ -66,7 +72,7 @@ export class MemberProfileComponent implements OnInit {
 
   loadProfileData(): void {
     // 2. Fetch Member Profile details
-    this.gymService.members$.subscribe(members => {
+    this.memberState.members$.subscribe(members => {
       this.member = members.find(m => m.id === this.memberId);
       if (this.member) {
         this.weightHistory = this.generateWeightHistory();
@@ -74,12 +80,12 @@ export class MemberProfileComponent implements OnInit {
     });
 
     // 3. Fetch Attendance History for Member
-    this.gymService.attendance$.subscribe(attList => {
+    this.attendanceState.attendance$.subscribe(attList => {
       this.attendance = attList.filter(a => a.memberId === this.memberId);
     });
 
     // 4. Fetch Payment History for Member
-    this.gymService.payments$.subscribe(payList => {
+    this.paymentState.payments$.subscribe(payList => {
       this.payments = payList.filter(p => p.memberId === this.memberId);
     });
   }
@@ -94,10 +100,11 @@ export class MemberProfileComponent implements OnInit {
 
     dialogRef.afterClosed().subscribe(result => {
       if (result) {
-        this.gymService.updateMember(result);
-        this.snackBar.open('Member profile updated successfully!', 'Dismiss', {
-          duration: 3000,
-          panelClass: ['premium-snack']
+        this.memberState.updateMember(result).subscribe(() => {
+          this.snackBar.open('Member profile updated successfully!', 'Dismiss', {
+            duration: 3000,
+            panelClass: ['premium-snack']
+          });
         });
       }
     });
@@ -154,7 +161,6 @@ export class MemberProfileComponent implements OnInit {
 
   getBMI(): number {
     if (!this.member || !this.member.height || !this.member.weight) return 0;
-    // weight (kg) / height (m)^2
     const heightInMeters = this.member.height / 100;
     return Number((this.member.weight / (heightInMeters * heightInMeters)).toFixed(1));
   }

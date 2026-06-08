@@ -14,8 +14,9 @@ import { MatDialog, MatDialogModule } from '@angular/material/dialog';
 import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
 import { MatTooltipModule } from '@angular/material/tooltip';
 import { MatCardModule } from '@angular/material/card';
-import { GymService } from '../../services/gym.service';
-import { Lead } from '../../interfaces/gym.model';
+
+import { LeadState } from '../../presentation/state/lead.state';
+import { Lead } from '../../core/models/lead.entity';
 import { LeadDialogComponent } from './lead-dialog.component';
 import { ConfirmDialogComponent } from '../members/confirm-dialog.component';
 import { ConvertDialogComponent } from './convert-dialog.component';
@@ -69,7 +70,7 @@ export class LeadsComponent implements OnInit, AfterViewInit {
   @ViewChild(MatSort) sort!: MatSort;
 
   constructor(
-    private gymService: GymService,
+    private leadState: LeadState,
     private dialog: MatDialog,
     private snackBar: MatSnackBar,
     private router: Router
@@ -77,7 +78,7 @@ export class LeadsComponent implements OnInit, AfterViewInit {
 
   ngOnInit(): void {
     // 1. Subscribe to Leads list
-    this.gymService.leads$.subscribe(leads => {
+    this.leadState.leads$.subscribe(leads => {
       this.dataSource.data = leads;
       this.calculateStats(leads);
       this.applyFilters();
@@ -160,13 +161,10 @@ export class LeadsComponent implements OnInit, AfterViewInit {
     this.applyFilters();
   }
 
-  // --- Add Lead ---
   openAddLeadDialog(): void {
-    // Navigate to dedicated Add Lead Page
     this.router.navigate(['/leads/add']);
   }
 
-  // --- Edit Lead ---
   openEditLeadDialog(lead: Lead): void {
     const dialogRef = this.dialog.open(LeadDialogComponent, {
       width: '600px',
@@ -175,16 +173,16 @@ export class LeadsComponent implements OnInit, AfterViewInit {
 
     dialogRef.afterClosed().subscribe(result => {
       if (result) {
-        this.gymService.updateLead(result);
-        this.snackBar.open('Lead details updated!', 'Dismiss', {
-          duration: 3000,
-          panelClass: ['premium-snack']
+        this.leadState.updateLead(result).subscribe(() => {
+          this.snackBar.open('Lead details updated!', 'Dismiss', {
+            duration: 3000,
+            panelClass: ['premium-snack']
+          });
         });
       }
     });
   }
 
-  // --- Delete Lead ---
   confirmDeleteLead(lead: Lead): void {
     const dialogRef = this.dialog.open(ConfirmDialogComponent, {
       width: '400px',
@@ -198,16 +196,16 @@ export class LeadsComponent implements OnInit, AfterViewInit {
 
     dialogRef.afterClosed().subscribe(confirm => {
       if (confirm) {
-        this.gymService.deleteLead(lead.id);
-        this.snackBar.open('Lead profile deleted.', 'Dismiss', {
-          duration: 3000,
-          panelClass: ['premium-snack']
+        this.leadState.deleteLead(lead.id).subscribe(() => {
+          this.snackBar.open('Lead profile deleted.', 'Dismiss', {
+            duration: 3000,
+            panelClass: ['premium-snack']
+          });
         });
       }
     });
   }
 
-  // --- Convert Lead to Member ---
   openConvertDialog(lead: Lead): void {
     const dialogRef = this.dialog.open(ConvertDialogComponent, {
       width: '650px',
@@ -216,16 +214,16 @@ export class LeadsComponent implements OnInit, AfterViewInit {
 
     dialogRef.afterClosed().subscribe(result => {
       if (result) {
-        this.gymService.convertLeadToMember(lead.id, result);
-        this.snackBar.open(`Successfully converted ${lead.name} to a member!`, 'Dismiss', {
-          duration: 3000,
-          panelClass: ['premium-snack']
+        this.leadState.convertLeadToMember(lead.id, result).subscribe(() => {
+          this.snackBar.open(`Successfully converted ${lead.name} to a member!`, 'Dismiss', {
+            duration: 3000,
+            panelClass: ['premium-snack']
+          });
         });
       }
     });
   }
 
-  // Helper method for status CSS classes
   getStatusClass(status: string): string {
     switch (status) {
       case 'New': return 'new-badge';

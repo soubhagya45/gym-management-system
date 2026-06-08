@@ -2,7 +2,11 @@ import { Component, OnInit, HostListener } from '@angular/core';
 import { Router, NavigationEnd } from '@angular/router';
 import { Observable } from 'rxjs';
 import { filter } from 'rxjs/operators';
-import { AuthService, UserProfile } from './services/auth.service';
+import { AuthState } from './presentation/state/auth.state';
+import { GymState } from './presentation/state/gym.state';
+import { AppConfigService, ProviderType } from './core/config/app-config';
+import { UserProfile } from './core/models/user.model';
+import { Gym } from './core/models/gym.entity';
 
 interface MenuItem {
   label: string;
@@ -21,7 +25,11 @@ export class AppComponent implements OnInit {
   isDarkMode = true;
   isMobile = false;
   sidenavOpened = true;
+  
   currentUser$: Observable<UserProfile | null>;
+  activeGym$: Observable<Gym | null>;
+  gyms$: Observable<Gym[]>;
+  currentProvider: ProviderType;
 
   menuItems: MenuItem[] = [
     { label: 'Dashboard', route: '/dashboard', icon: 'dashboard' },
@@ -36,9 +44,14 @@ export class AppComponent implements OnInit {
 
   constructor(
     private router: Router,
-    private authService: AuthService
+    private authState: AuthState,
+    private gymState: GymState,
+    private configService: AppConfigService
   ) {
-    this.currentUser$ = this.authService.currentUser$;
+    this.currentUser$ = this.authState.currentUser$;
+    this.activeGym$ = this.gymState.activeGym$;
+    this.gyms$ = this.gymState.gyms$;
+    this.currentProvider = this.configService.provider;
     this.checkScreenSize();
   }
 
@@ -110,15 +123,23 @@ export class AppComponent implements OnInit {
 
   getRoleLabel(role: string): string {
     switch (role) {
-      case 'owner': return 'Administrator';
+      case 'super-admin': return 'Super Administrator';
+      case 'owner': return 'Club Owner';
       case 'trainer': return 'Personal Trainer';
-      case 'member': return 'Gym Member';
+      case 'staff': return 'Front Roster Staff';
       default: return 'User';
     }
   }
 
+  onSwitchGym(gymId: string): void {
+    this.gymState.switchGym(gymId);
+  }
+
+  onSwitchProvider(provider: string): void {
+    this.configService.setProvider(provider as ProviderType);
+  }
+
   onLogout(): void {
-    this.authService.logout();
+    this.authState.logout();
   }
 }
-

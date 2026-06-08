@@ -5,7 +5,7 @@ import { MatDialogRef, MAT_DIALOG_DATA, MatDialogModule } from '@angular/materia
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatInputModule } from '@angular/material/input';
 import { MatButtonModule } from '@angular/material/button';
-import { MembershipPlan } from '../../interfaces/gym.model';
+import { MembershipPlan } from '../../core/models/membership-plan.entity';
 
 @Component({
   selector: 'app-plan-dialog',

@@ -8,8 +8,10 @@ import { MatTableModule } from '@angular/material/table';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatInputModule } from '@angular/material/input';
 import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
-import { GymService } from '../../services/gym.service';
-import { Member, Attendance } from '../../interfaces/gym.model';
+import { MemberState } from '../../presentation/state/member.state';
+import { AttendanceState } from '../../presentation/state/attendance.state';
+import { Member } from '../../core/models/member.entity';
+import { Attendance } from '../../core/models/attendance.entity';
 import { Observable, combineLatest } from 'rxjs';
 import { map } from 'rxjs/operators';
 
@@ -58,7 +60,8 @@ export class AttendanceComponent implements OnInit {
   displayedColumns = ['photo', 'name', 'plan', 'time', 'status', 'actions'];
 
   constructor(
-    private gymService: GymService,
+    private memberState: MemberState,
+    private attendanceState: AttendanceState,
     private snackBar: MatSnackBar
   ) {
     const options: Intl.DateTimeFormatOptions = { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' };
@@ -66,15 +69,13 @@ export class AttendanceComponent implements OnInit {
   }
 
   ngOnInit(): void {
-    // 1. Build the roster by combining members and their today checkin logs
     const todayStr = new Date().toISOString().split('T')[0];
     
     this.roster$ = combineLatest([
-      this.gymService.members$,
-      this.gymService.attendance$
+      this.memberState.members$,
+      this.attendanceState.attendance$
     ]).pipe(
       map(([members, attendanceList]) => {
-        // Only include active/expiring members for today's active attendance roster
         const eligibleMembers = members.filter(m => m.status !== 'inactive');
         
         return eligibleMembers.map(m => {
@@ -125,16 +126,18 @@ export class AttendanceComponent implements OnInit {
   }
 
   markPresent(item: RosterItem) {
-    this.gymService.markAttendance(item.memberId, 'present');
-    this.snackBar.open(`${item.name} checked in successfully.`, 'Dismiss', {
-      duration: 2000
+    this.attendanceState.markAttendance(item.memberId, 'present').subscribe(() => {
+      this.snackBar.open(`${item.name} checked in successfully.`, 'Dismiss', {
+        duration: 2000
+      });
     });
   }
 
   markAbsent(item: RosterItem) {
-    this.gymService.markAttendance(item.memberId, 'absent');
-    this.snackBar.open(`${item.name} marked absent.`, 'Dismiss', {
-      duration: 2000
+    this.attendanceState.markAttendance(item.memberId, 'absent').subscribe(() => {
+      this.snackBar.open(`${item.name} marked absent.`, 'Dismiss', {
+        duration: 2000
+      });
     });
   }
 }

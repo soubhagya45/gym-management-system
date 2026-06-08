@@ -2,7 +2,7 @@ import { Component, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormBuilder, FormGroup, Validators, ReactiveFormsModule } from '@angular/forms';
 import { Router, RouterModule } from '@angular/router';
-import { AuthService } from '../../services/auth.service';
+import { AuthState } from '../../presentation/state/auth.state';
 
 // Angular Material Imports
 import { MatCardModule } from '@angular/material/card';
@@ -65,7 +65,7 @@ export class LoginComponent implements OnInit {
 
   constructor(
     private fb: FormBuilder,
-    private authService: AuthService,
+    private authState: AuthState,
     private router: Router
   ) {}
 
@@ -105,7 +105,7 @@ export class LoginComponent implements OnInit {
 
     const { email, password } = this.loginForm.value;
 
-    this.authService.login(email, password).subscribe({
+    this.authState.login(email, password).subscribe({
       next: (user) => {
         this.isLoading = false;
         this.navigateToWorkspace(user.role);
@@ -122,7 +122,7 @@ export class LoginComponent implements OnInit {
     this.isLoading = true;
     this.errorMessage = null;
 
-    this.authService.loginWithRole(this.activeRole).subscribe({
+    this.authState.loginWithRole(this.activeRole).subscribe({
       next: (user) => {
         this.isLoading = false;
         this.navigateToWorkspace(user.role);
@@ -134,13 +134,12 @@ export class LoginComponent implements OnInit {
     });
   }
 
-  // Role-based post-login redirection
-  private navigateToWorkspace(role: 'owner' | 'trainer' | 'member'): void {
-    if (role === 'owner') {
+  private navigateToWorkspace(role: string): void {
+    if (role === 'owner' || role === 'super-admin') {
       this.router.navigate(['/dashboard']);
     } else if (role === 'trainer') {
       this.router.navigate(['/trainers']);
-    } else if (role === 'member') {
+    } else if (role === 'staff' || role === 'member') {
       this.router.navigate(['/members']);
     } else {
       this.router.navigate(['/dashboard']);

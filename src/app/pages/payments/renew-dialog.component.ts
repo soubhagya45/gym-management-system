@@ -8,8 +8,10 @@ import { MatSelectModule } from '@angular/material/select';
 import { MatButtonModule } from '@angular/material/button';
 import { MatDatepickerModule } from '@angular/material/datepicker';
 import { MatNativeDateModule } from '@angular/material/core';
-import { GymService } from '../../services/gym.service';
-import { Member, MembershipPlan } from '../../interfaces/gym.model';
+import { MemberState } from '../../presentation/state/member.state';
+import { MembershipPlanState } from '../../presentation/state/membership-plan.state';
+import { Member } from '../../core/models/member.entity';
+import { MembershipPlan } from '../../core/models/membership-plan.entity';
 
 @Component({
   selector: 'app-renew-dialog',
@@ -179,7 +181,8 @@ export class RenewDialogComponent implements OnInit {
 
   constructor(
     private fb: FormBuilder,
-    private gymService: GymService,
+    private memberState: MemberState,
+    private planState: MembershipPlanState,
     private dialogRef: MatDialogRef<RenewDialogComponent>,
     @Inject(MAT_DIALOG_DATA) public data: { member?: Member } | null
   ) {
@@ -189,13 +192,13 @@ export class RenewDialogComponent implements OnInit {
   }
 
   ngOnInit(): void {
-    // 1. Fetch data
-    this.gymService.plans$.subscribe(plans => {
+    // 1. Fetch plans
+    this.planState.plans$.subscribe(plans => {
       this.plans = plans;
     });
 
     if (!this.preselectedMember) {
-      this.gymService.members$.subscribe(members => {
+      this.memberState.members$.subscribe(members => {
         this.members = members;
       });
     }
@@ -211,7 +214,6 @@ export class RenewDialogComponent implements OnInit {
       dueDate: [new Date()]
     });
 
-    // Handle updates dynamically
     this.updateDueCalculations();
   }
 
@@ -219,7 +221,6 @@ export class RenewDialogComponent implements OnInit {
     if (this.preselectedMember) {
       const expiry = new Date(this.preselectedMember.endDate);
       const today = new Date();
-      // If expired, default start date is today. If expiring in future, default start date is the day after expiry.
       if (expiry.getTime() < today.getTime()) {
         return today;
       } else {
@@ -236,7 +237,7 @@ export class RenewDialogComponent implements OnInit {
     if (selected) {
       this.preselectedMember = selected;
       this.renewForm.get('startDate')?.setValue(this.calculateDefaultStartDate());
-      this.preselectedMember = null; // reset visual preselected only
+      this.preselectedMember = null;
     }
   }
 
@@ -253,7 +254,6 @@ export class RenewDialogComponent implements OnInit {
     const amount = Number(this.renewForm.get('amount')?.value || 0);
     const paid = Number(this.renewForm.get('paidAmount')?.value || 0);
     
-    // Add validators for paidAmount max bounds
     this.renewForm.get('paidAmount')?.setValidators([
       Validators.required,
       Validators.min(0),

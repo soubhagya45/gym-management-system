@@ -9,8 +9,10 @@ import { MatButtonModule } from '@angular/material/button';
 import { MatDatepickerModule } from '@angular/material/datepicker';
 import { MatNativeDateModule } from '@angular/material/core';
 import { MatIconModule } from '@angular/material/icon';
-import { Lead, MembershipPlan, Member } from '../../interfaces/gym.model';
-import { GymService } from '../../services/gym.service';
+import { Lead } from '../../core/models/lead.entity';
+import { MembershipPlan } from '../../core/models/membership-plan.entity';
+import { Member } from '../../core/models/member.entity';
+import { MembershipPlanState } from '../../presentation/state/membership-plan.state';
 
 @Component({
   selector: 'app-convert-dialog',
@@ -162,16 +164,19 @@ export class ConvertDialogComponent implements OnInit {
 
   constructor(
     private fb: FormBuilder,
-    private gymService: GymService,
+    private planState: MembershipPlanState,
     private dialogRef: MatDialogRef<ConvertDialogComponent>,
     @Inject(MAT_DIALOG_DATA) public data: Lead
   ) {}
 
   ngOnInit(): void {
-    // Load available plans from service
-    this.gymService.plans$.subscribe(plans => this.plans = plans);
+    this.planState.plans$.subscribe(plans => {
+      this.plans = plans;
+      this.initFormAndListeners();
+    });
+  }
 
-    // Attempt to match lead's interested plan to a plan ID
+  private initFormAndListeners(): void {
     let matchedPlanId = '';
     if (this.data.interestedPlan) {
       const match = this.plans.find(p => p.name.toLowerCase() === this.data.interestedPlan.toLowerCase());
@@ -197,15 +202,14 @@ export class ConvertDialogComponent implements OnInit {
       fitnessGoal: ['General Fitness', [Validators.required]]
     });
 
-    // Reactive listener to update endDate automatically
     this.convertForm.get('planId')?.valueChanges.subscribe(() => this.updateEndDate());
     this.convertForm.get('startDate')?.valueChanges.subscribe(() => this.updateEndDate());
 
-    // Run once at start to compute initial end date
     this.updateEndDate();
   }
 
   updateEndDate(): void {
+    if (!this.convertForm) return;
     const startDateVal = this.convertForm.get('startDate')?.value;
     const planIdVal = this.convertForm.get('planId')?.value;
     if (startDateVal && planIdVal) {
@@ -229,7 +233,7 @@ export class ConvertDialogComponent implements OnInit {
       const formValue = this.convertForm.value;
       const selectedPlan = this.plans.find(p => p.id === formValue.planId);
       
-      const memberDetails: Omit<Member, 'id' | 'attendanceCount' | 'balance'> = {
+      const memberDetails: Omit<Member, 'id' | 'attendanceCount' | 'balance' | 'gymId'> = {
         name: this.data.name,
         email: this.data.email,
         phone: this.data.phone,

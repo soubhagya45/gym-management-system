@@ -8,8 +8,12 @@ import { MatTooltipModule } from '@angular/material/tooltip';
 import { MatDividerModule } from '@angular/material/divider';
 import { MatDialog, MatDialogModule } from '@angular/material/dialog';
 import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
-import { GymService } from '../../services/gym.service';
-import { Lead, Member } from '../../interfaces/gym.model';
+
+import { LeadState } from '../../presentation/state/lead.state';
+import { MemberState } from '../../presentation/state/member.state';
+import { Lead } from '../../core/models/lead.entity';
+import { Member } from '../../core/models/member.entity';
+
 import { LeadDialogComponent } from './lead-dialog.component';
 import { ConfirmDialogComponent } from '../members/confirm-dialog.component';
 import { ConvertDialogComponent } from './convert-dialog.component';
@@ -38,7 +42,8 @@ export class LeadDetailsComponent implements OnInit {
 
   constructor(
     private route: ActivatedRoute,
-    private gymService: GymService,
+    private leadState: LeadState,
+    private memberState: MemberState,
     private dialog: MatDialog,
     private snackBar: MatSnackBar,
     private router: Router
@@ -55,7 +60,7 @@ export class LeadDetailsComponent implements OnInit {
   }
 
   loadLeadData(): void {
-    this.gymService.leads$.subscribe(leads => {
+    this.leadState.leads$.subscribe(leads => {
       this.lead = leads.find(l => l.id === this.leadId);
       if (this.lead && this.lead.status === 'Converted') {
         this.findConvertedMember();
@@ -64,8 +69,7 @@ export class LeadDetailsComponent implements OnInit {
   }
 
   findConvertedMember(): void {
-    this.gymService.members$.subscribe(members => {
-      // Find a member with matching name/email/phone
+    this.memberState.members$.subscribe(members => {
       this.convertedMember = members.find(m => 
         m.name.toLowerCase() === this.lead?.name.toLowerCase() ||
         m.email.toLowerCase() === this.lead?.email.toLowerCase() ||
@@ -84,10 +88,11 @@ export class LeadDetailsComponent implements OnInit {
 
     dialogRef.afterClosed().subscribe(result => {
       if (result) {
-        this.gymService.updateLead(result);
-        this.snackBar.open('Lead details updated successfully!', 'Dismiss', {
-          duration: 3000,
-          panelClass: ['premium-snack']
+        this.leadState.updateLead(result).subscribe(() => {
+          this.snackBar.open('Lead details updated successfully!', 'Dismiss', {
+            duration: 3000,
+            panelClass: ['premium-snack']
+          });
         });
       }
     });
@@ -108,12 +113,13 @@ export class LeadDetailsComponent implements OnInit {
 
     dialogRef.afterClosed().subscribe(confirm => {
       if (confirm) {
-        this.gymService.deleteLead(this.leadId);
-        this.snackBar.open('Lead profile deleted successfully.', 'Dismiss', {
-          duration: 3000,
-          panelClass: ['premium-snack']
+        this.leadState.deleteLead(this.leadId).subscribe(() => {
+          this.snackBar.open('Lead profile deleted successfully.', 'Dismiss', {
+            duration: 3000,
+            panelClass: ['premium-snack']
+          });
+          this.router.navigate(['/leads']);
         });
-        this.router.navigate(['/leads']);
       }
     });
   }
@@ -128,10 +134,11 @@ export class LeadDetailsComponent implements OnInit {
 
     dialogRef.afterClosed().subscribe(result => {
       if (result) {
-        this.gymService.convertLeadToMember(this.leadId, result);
-        this.snackBar.open(`Lead ${this.lead?.name} successfully converted to member!`, 'Dismiss', {
-          duration: 3000,
-          panelClass: ['premium-snack']
+        this.leadState.convertLeadToMember(this.leadId, result).subscribe(() => {
+          this.snackBar.open(`Lead ${this.lead?.name} successfully converted to member!`, 'Dismiss', {
+            duration: 3000,
+            panelClass: ['premium-snack']
+          });
         });
       }
     });

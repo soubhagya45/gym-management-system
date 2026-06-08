@@ -442,3 +442,35 @@ body.light-theme .top-navbar.glass-panel {
     display: none !important;
   }
 }
+
+.gym-badge {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  background-color: rgba(99, 102, 241, 0.1);
+  border: 1px solid rgba(99, 102, 241, 0.2);
+  color: var(--accent-color);
+  padding: 4px 10px;
+  border-radius: 20px;
+  margin-left: 12px;
+  font-size: 12px;
+  font-weight: 600;
+
+  mat-icon {
+    font-size: 14px;
+    width: 14px;
+    height: 14px;
+  }
+}
+
+.gym-switcher-btn {
+  margin-right: 8px;
+  border: 1px dashed var(--border-color) !important;
+  color: var(--text-primary) !important;
+  
+  &:hover {
+    border-color: var(--accent-color) !important;
+    color: var(--accent-color) !important;
+  }
+}
+
