@@ -221,19 +221,19 @@ export class GymService {
   ];
 
   private initialPayments: Payment[] = [
-    { id: 'pay-1', memberId: 'mem-2', memberName: 'Priya Patel', amount: 15000, date: '2026-01-15', status: 'paid', planName: 'Elite Annual Platinum' },
-    { id: 'pay-2', memberId: 'mem-1', memberName: 'Amit Sharma', amount: 4000, date: '2026-04-10', status: 'paid', planName: 'Premium Quarterly' },
-    { id: 'pay-3', memberId: 'mem-4', memberName: 'Anjali Rao', amount: 4000, date: '2026-05-01', status: 'paid', planName: 'Premium Quarterly' },
-    { id: 'pay-4', memberId: 'mem-6', memberName: 'Neha Gupta', amount: 15000, date: '2026-03-20', status: 'paid', planName: 'Elite Annual Platinum' },
-    { id: 'pay-5', memberId: 'mem-3', memberName: 'Rajesh Kumar', amount: 1500, date: '2026-05-08', status: 'pending', planName: 'Essential Monthly' },
-    { id: 'pay-6', memberId: 'mem-7', memberName: 'Rohan Mehta', amount: 4000, date: '2026-03-10', status: 'overdue', planName: 'Premium Quarterly' },
+    { id: 'pay-1', memberId: 'mem-2', memberName: 'Priya Patel', amount: 15000, paidAmount: 15000, dueAmount: 0, dueDate: '2026-01-15', date: '2026-01-15', status: 'paid', planName: 'Elite Annual Platinum' },
+    { id: 'pay-2', memberId: 'mem-1', memberName: 'Amit Sharma', amount: 4000, paidAmount: 4000, dueAmount: 0, dueDate: '2026-04-10', date: '2026-04-10', status: 'paid', planName: 'Premium Quarterly' },
+    { id: 'pay-3', memberId: 'mem-4', memberName: 'Anjali Rao', amount: 4000, paidAmount: 4000, dueAmount: 0, dueDate: '2026-05-01', date: '2026-05-01', status: 'paid', planName: 'Premium Quarterly' },
+    { id: 'pay-4', memberId: 'mem-6', memberName: 'Neha Gupta', amount: 15000, paidAmount: 15000, dueAmount: 0, dueDate: '2026-03-20', date: '2026-03-20', status: 'paid', planName: 'Elite Annual Platinum' },
+    { id: 'pay-5', memberId: 'mem-3', memberName: 'Rajesh Kumar', amount: 1500, paidAmount: 0, dueAmount: 1500, dueDate: '2026-06-08', date: '2026-05-08', status: 'pending', planName: 'Essential Monthly' },
+    { id: 'pay-6', memberId: 'mem-7', memberName: 'Rohan Mehta', amount: 4000, paidAmount: 0, dueAmount: 4000, dueDate: '2026-06-05', date: '2026-03-10', status: 'overdue', planName: 'Premium Quarterly' },
     // Historical payments
-    { id: 'pay-h1', memberId: 'mem-1', memberName: 'Amit Sharma', amount: 4000, date: '2026-01-10', status: 'paid', planName: 'Premium Quarterly' },
-    { id: 'pay-h2', memberId: 'mem-2', memberName: 'Priya Patel', amount: 15000, date: '2025-01-15', status: 'paid', planName: 'Elite Annual Platinum' },
-    { id: 'pay-h3', memberId: 'mem-3', memberName: 'Rajesh Kumar', amount: 1500, date: '2026-04-08', status: 'paid', planName: 'Essential Monthly' },
-    { id: 'pay-h4', memberId: 'mem-5', memberName: 'Vikram Singh', amount: 1500, date: '2026-02-10', status: 'paid', planName: 'Essential Monthly' },
-    { id: 'pay-h5', memberId: 'mem-6', memberName: 'Neha Gupta', amount: 15000, date: '2025-03-20', status: 'paid', planName: 'Elite Annual Platinum' },
-    { id: 'pay-h6', memberId: 'mem-7', memberName: 'Rohan Mehta', amount: 4000, date: '2025-12-10', status: 'paid', planName: 'Premium Quarterly' }
+    { id: 'pay-h1', memberId: 'mem-1', memberName: 'Amit Sharma', amount: 4000, paidAmount: 4000, dueAmount: 0, dueDate: '2026-01-10', date: '2026-01-10', status: 'paid', planName: 'Premium Quarterly' },
+    { id: 'pay-h2', memberId: 'mem-2', memberName: 'Priya Patel', amount: 15000, paidAmount: 15000, dueAmount: 0, dueDate: '2025-01-15', date: '2025-01-15', status: 'paid', planName: 'Elite Annual Platinum' },
+    { id: 'pay-h3', memberId: 'mem-3', memberName: 'Rajesh Kumar', amount: 1500, paidAmount: 1500, dueAmount: 0, dueDate: '2026-04-08', date: '2026-04-08', status: 'paid', planName: 'Essential Monthly' },
+    { id: 'pay-h4', memberId: 'mem-5', memberName: 'Vikram Singh', amount: 1500, paidAmount: 1500, dueAmount: 0, dueDate: '2026-02-10', date: '2026-02-10', status: 'paid', planName: 'Essential Monthly' },
+    { id: 'pay-h5', memberId: 'mem-6', memberName: 'Neha Gupta', amount: 15000, paidAmount: 15000, dueAmount: 0, dueDate: '2025-03-20', date: '2025-03-20', status: 'paid', planName: 'Elite Annual Platinum' },
+    { id: 'pay-h6', memberId: 'mem-7', memberName: 'Rohan Mehta', amount: 4000, paidAmount: 4000, dueAmount: 0, dueDate: '2025-12-10', date: '2025-12-10', status: 'paid', planName: 'Premium Quarterly' }
   ];
 
   private initialAttendance: Attendance[] = [
@@ -317,6 +317,9 @@ export class GymService {
         memberId: newMember.id,
         memberName: newMember.name,
         amount: newMember.balance,
+        paidAmount: 0,
+        dueAmount: newMember.balance,
+        dueDate: new Date().toISOString().split('T')[0],
         date: new Date().toISOString().split('T')[0],
         status: 'pending',
         planName: newMember.planName
@@ -462,24 +465,33 @@ export class GymService {
 
   // --- Payment Actions ---
   addPayment(payment: Omit<Payment, 'id'>): void {
+    const paidAmount = payment.paidAmount !== undefined ? payment.paidAmount : (payment.status === 'paid' ? payment.amount : 0);
+    const dueAmount = payment.dueAmount !== undefined ? payment.dueAmount : (payment.amount - paidAmount);
+    const dueDate = payment.dueDate || payment.date;
+
     const newPayment: Payment = {
       ...payment,
+      paidAmount,
+      dueAmount,
+      dueDate,
       id: 'pay-' + Math.random().toString(36).substring(2, 9)
     };
     
     const current = this.paymentsSubject.value;
     this.paymentsSubject.next([newPayment, ...current]);
 
+    // Update member balance to the new due amount
+    const members = [...this.membersSubject.value];
+    const mIdx = members.findIndex(m => m.id === payment.memberId);
+    if (mIdx !== -1) {
+      members[mIdx].balance = dueAmount;
+      this.membersSubject.next(members);
+    }
+
     if (payment.status === 'paid') {
       this.addLog(`Recorded payment of ₹${payment.amount} from ${payment.memberName}`, 'payment');
-      
-      // Update member balance to 0 if paid
-      const members = [...this.membersSubject.value];
-      const mIdx = members.findIndex(m => m.id === payment.memberId);
-      if (mIdx !== -1) {
-        members[mIdx].balance = 0;
-        this.membersSubject.next(members);
-      }
+    } else {
+      this.addLog(`Created billing invoice of ₹${payment.amount} (Due: ₹${dueAmount}) for ${payment.memberName}`, 'payment');
     }
   }
 
@@ -489,6 +501,8 @@ export class GymService {
     if (idx !== -1) {
       const updated = [...current];
       updated[idx].status = 'paid';
+      updated[idx].paidAmount = updated[idx].amount;
+      updated[idx].dueAmount = 0;
       updated[idx].date = new Date().toISOString().split('T')[0];
       this.paymentsSubject.next(updated);
 
@@ -502,6 +516,66 @@ export class GymService {
         this.membersSubject.next(members);
       }
     }
+  }
+
+  sendPaymentReminder(paymentId: string): void {
+    const payment = this.paymentsSubject.value.find(p => p.id === paymentId);
+    if (payment) {
+      this.addLog(`Sent payment reminder notification to ${payment.memberName} for ₹${payment.dueAmount}`, 'payment');
+    }
+  }
+
+  renewMembership(
+    memberId: string,
+    planId: string,
+    startDate: string,
+    price: number,
+    paidAmount: number,
+    dueAmount: number,
+    dueDate: string,
+    paymentStatus: 'paid' | 'pending'
+  ): void {
+    const members = [...this.membersSubject.value];
+    const mIdx = members.findIndex(m => m.id === memberId);
+    const plan = this.plansSubject.value.find(p => p.id === planId);
+    
+    if (mIdx !== -1 && plan) {
+      const member = members[mIdx];
+      const durationMonths = plan.durationMonths;
+      const computedEndDate = this.addMonths(startDate, durationMonths);
+
+      // Update member properties
+      member.planId = planId;
+      member.planName = plan.name;
+      member.startDate = startDate;
+      member.endDate = computedEndDate;
+      member.status = 'active';
+      member.balance = dueAmount;
+
+      this.membersSubject.next(members);
+      this.addLog(`Renewed membership for ${member.name} (Plan: ${plan.name})`, 'plan-change');
+
+      // Create new payment record
+      this.addPayment({
+        memberId,
+        memberName: member.name,
+        amount: price,
+        paidAmount,
+        dueAmount,
+        dueDate,
+        date: new Date().toISOString().split('T')[0],
+        status: paymentStatus,
+        planName: plan.name
+      });
+      
+      this.updatePlanCounts();
+    }
+  }
+
+  private addMonths(dateStr: string, months: number): string {
+    const date = new Date(dateStr);
+    date.setMonth(date.getMonth() + months);
+    return date.toISOString().split('T')[0];
   }
 
   // --- Utility Actions ---

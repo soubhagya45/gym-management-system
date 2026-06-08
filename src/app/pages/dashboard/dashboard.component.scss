@@ -487,6 +487,10 @@
       background: var(--danger-glow);
       .danger-color { color: var(--danger); }
     }
+    &.info-node {
+      background: var(--info-glow);
+      .info-color { color: var(--info); }
+    }
   }
   
   .item-info {
@@ -591,6 +595,24 @@
       &:hover {
         background: var(--success) !important;
         color: #ffffff !important;
+      }
+    }
+
+    .dashboard-renew-btn {
+      border-radius: 6px !important;
+      height: 32px !important;
+      font-size: 11px !important;
+      font-weight: 600 !important;
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      padding: 0 10px !important;
+      
+      mat-icon {
+        font-size: 14px;
+        width: 14px;
+        height: 14px;
+        margin: 0 !important;
       }
     }
   }

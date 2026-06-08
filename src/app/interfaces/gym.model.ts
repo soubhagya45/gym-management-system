@@ -31,8 +31,11 @@ export interface Payment {
   id: string;
   memberId: string;
   memberName: string;
-  amount: number;
-  date: string;
+  amount: number;       // Total amount
+  paidAmount: number;   // Amount paid
+  dueAmount: number;    // Amount due
+  dueDate: string;      // Date when payment is due
+  date: string;         // Payment/Invoice date
   status: 'paid' | 'pending' | 'overdue';
   planName: string;
 }
