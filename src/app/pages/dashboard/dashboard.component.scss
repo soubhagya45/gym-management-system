@@ -684,6 +684,68 @@
   &.expiring { color: var(--warning); }
 }
 
+/* WhatsApp Dashboard Widget Styles */
+.widgets-row-four {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 24px;
+}
+
+.full-width-card {
+  height: auto !important;
+  min-height: 280px;
+}
+
+.flex-row-align {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  gap: 12px;
+}
+
+.action-buttons-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  
+  .cancel-btn {
+    color: var(--danger) !important;
+    background: var(--danger-glow) !important;
+    
+    &:hover {
+      background: var(--danger) !important;
+      color: #ffffff !important;
+    }
+  }
+}
+
+.recipient-badge {
+  display: inline-block;
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: capitalize;
+  padding: 1px 6px;
+  border-radius: 4px;
+  letter-spacing: 0.02em;
+
+  &.member {
+    background: rgba(59, 130, 246, 0.1);
+    color: var(--info);
+  }
+  &.lead {
+    background: rgba(16, 185, 129, 0.1);
+    color: var(--success);
+  }
+  &.payment {
+    background: rgba(239, 68, 68, 0.1);
+    color: var(--danger);
+  }
+  &.renewal {
+    background: rgba(245, 158, 11, 0.1);
+    color: var(--warning);
+  }
+}
+
 /* Responsiveness adjustments */
 @media (max-width: 1199.98px) {
   .stats-grid {

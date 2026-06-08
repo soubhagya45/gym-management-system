@@ -402,4 +402,56 @@
       </div>
     </div>
   </div>
+
+  <!-- Row 4: WhatsApp Reminders -->
+  <div class="widgets-row-four margin-top-sm">
+    <div class="mat-card details-card full-width-card">
+      <div class="details-header flex-header">
+        <div>
+          <h3>Upcoming WhatsApp Reminders</h3>
+          <span class="chart-sub">Queue of automated reminders scheduled to be sent next</span>
+        </div>
+        <button mat-stroked-button color="accent" routerLink="/whatsapp">
+          <mat-icon>chat</mat-icon>
+          <span>Open WhatsApp Center</span>
+        </button>
+      </div>
+
+      <div class="scrollable-widget">
+        <div class="list-wrapper" *ngIf="upcomingReminders$ | async as reminders; else loadingReminders">
+          <div class="list-item-row" *ngFor="let reminder of reminders">
+            <div class="item-avatar primary-node">
+              <mat-icon class="icon-avatar primary-color">chat_bubble</mat-icon>
+            </div>
+            <div class="item-info">
+              <span class="main-title">{{ reminder.recipientName }}</span>
+              <span class="sub-title">
+                {{ reminder.templateName }} • Phone: {{ reminder.recipientPhone }}
+                <span class="recipient-badge ml-2" [ngClass]="reminder.recipientType">{{ reminder.recipientType }}</span>
+              </span>
+            </div>
+            <div class="item-meta action-meta flex-row-align">
+              <span class="expiring-badge-txt">Scheduled: {{ reminder.scheduledTime | date:'short' }}</span>
+              <div class="action-buttons-row">
+                <button mat-icon-button color="primary" class="inline-verify-btn" (click)="onSendReminderNow(reminder); $event.stopPropagation()" matTooltip="Send Now">
+                  <mat-icon>send</mat-icon>
+                </button>
+                <button mat-icon-button color="warn" class="inline-verify-btn cancel-btn" (click)="onCancelReminder(reminder); $event.stopPropagation()" matTooltip="Cancel Reminder">
+                  <mat-icon>close</mat-icon>
+                </button>
+              </div>
+            </div>
+          </div>
+          
+          <div class="empty-pane-state" *ngIf="!reminders.length">
+            <mat-icon>check_circle</mat-icon>
+            <p>No upcoming scheduled WhatsApp reminders.</p>
+          </div>
+        </div>
+        <ng-template #loadingReminders>
+          <div class="loading-state">Loading reminders queue...</div>
+        </ng-template>
+      </div>
+    </div>
+  </div>
 </div>

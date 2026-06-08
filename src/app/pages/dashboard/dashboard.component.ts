@@ -15,6 +15,7 @@ import { Attendance } from '../../core/models/attendance.entity';
 import { ActivityLog } from '../../core/models/activity-log.entity';
 import { Payment } from '../../core/models/payment.entity';
 import { Lead } from '../../core/models/lead.entity';
+import { WhatsAppReminder } from '../../core/models/whatsapp-reminder.entity';
 
 import { MemberState } from '../../presentation/state/member.state';
 import { PaymentState } from '../../presentation/state/payment.state';
@@ -22,10 +23,12 @@ import { LeadState } from '../../presentation/state/lead.state';
 import { AttendanceState } from '../../presentation/state/attendance.state';
 import { ActivityLogState } from '../../presentation/state/activity-log.state';
 import { MembershipPlanState } from '../../presentation/state/membership-plan.state';
+import { WhatsAppState } from '../../presentation/state/whatsapp.state';
 
 import { RenewDialogComponent } from '../payments/renew-dialog.component';
 import { Observable, combineLatest } from 'rxjs';
 import { map } from 'rxjs/operators';
+import { WhatsAppPreviewModalComponent } from '../whatsapp/whatsapp-preview-modal.component';
 
 @Component({
   selector: 'app-dashboard',
@@ -40,7 +43,8 @@ import { map } from 'rxjs/operators';
     MatTooltipModule,
     MatTabsModule,
     MatDialogModule,
-    MatSnackBarModule
+    MatSnackBarModule,
+    WhatsAppPreviewModalComponent
   ],
   templateUrl: './dashboard.component.html',
   styleUrls: ['./dashboard.component.scss']
@@ -62,6 +66,7 @@ export class DashboardComponent implements OnInit {
   paymentsDueToday$: Observable<Payment[]> | undefined;
   overduePaymentsList$: Observable<Payment[]> | undefined;
   renewalsThisWeek$: Observable<Member[]> | undefined;
+  upcomingReminders$: Observable<WhatsAppReminder[]> | undefined;
   
   displayedColumns = ['avatar', 'name', 'time', 'status'];
 
@@ -82,6 +87,7 @@ export class DashboardComponent implements OnInit {
     private attendanceState: AttendanceState,
     private logState: ActivityLogState,
     private planState: MembershipPlanState,
+    private whatsappState: WhatsAppState,
     private dialog: MatDialog,
     private snackBar: MatSnackBar
   ) {}
@@ -222,6 +228,11 @@ export class DashboardComponent implements OnInit {
         return expiry >= start && expiry <= end;
       }))
     );
+
+    this.upcomingReminders$ = this.whatsappState.reminders$.pipe(
+      map(list => list.filter(r => r.status === 'scheduled' || r.status === 'pending').slice(0, 5))
+    );
+    this.whatsappState.loadReminders();
   }
 
   // Quick Action to confirm a pending payment from dashboard
@@ -240,6 +251,18 @@ export class DashboardComponent implements OnInit {
   onSendReminder(payment: Payment): void {
     this.paymentState.sendPaymentReminder(payment.id);
     this.snackBar.open(`Reminder dispatch logged for ${payment.memberName}.`, 'Dismiss', { duration: 3000 });
+  }
+
+  onSendReminderNow(reminder: WhatsAppReminder): void {
+    this.whatsappState.sendScheduledNow(reminder).subscribe(() => {
+      this.snackBar.open(`WhatsApp reminder sent to ${reminder.recipientName}!`, 'Dismiss', { duration: 3000 });
+    });
+  }
+
+  onCancelReminder(reminder: WhatsAppReminder): void {
+    this.whatsappState.cancelReminder(reminder.id).subscribe(() => {
+      this.snackBar.open(`Scheduled reminder for ${reminder.recipientName} cancelled.`, 'Dismiss', { duration: 3000 });
+    });
   }
 
   onRenewMembership(member: Member): void {

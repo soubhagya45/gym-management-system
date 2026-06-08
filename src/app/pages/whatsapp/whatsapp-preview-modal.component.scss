@@ -1,0 +1,525 @@
+.whatsapp-dialog-container {
+  display: flex;
+  flex-direction: column;
+  max-height: 85vh;
+  width: 800px;
+  max-width: 100%;
+}
+
+.dialog-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 20px;
+  border-bottom: 1px solid var(--border-color);
+  padding-bottom: 12px;
+
+  .dialog-title-group {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+
+    .header-icon {
+      color: var(--accent-color);
+      font-size: 28px;
+      width: 28px;
+      height: 28px;
+    }
+
+    h2 {
+      margin: 0;
+      font-size: 20px;
+      font-weight: 700;
+    }
+
+    p {
+      margin: 2px 0 0 0;
+      font-size: 13px;
+      color: var(--text-secondary);
+    }
+  }
+
+  .close-btn {
+    color: var(--text-muted);
+  }
+}
+
+.dialog-body-grid {
+  display: grid;
+  grid-template-columns: 1.1fr 0.9fr;
+  gap: 24px;
+  overflow-y: auto;
+  padding-bottom: 16px;
+  flex: 1;
+}
+
+/* Configuration Left Panel */
+.config-panel {
+  display: flex;
+  flex-direction: column;
+}
+
+.recipient-card {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px;
+  background: var(--bg-primary);
+  border: var(--card-border);
+  border-radius: 12px;
+
+  .recipient-avatar {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    background: var(--accent-light);
+    color: var(--accent-color);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 700;
+    font-size: 16px;
+  }
+
+  .recipient-details {
+    flex: 1;
+
+    .name-label {
+      font-weight: 600;
+      font-size: 14px;
+      color: var(--text-primary);
+    }
+
+    .phone-label {
+      font-size: 12px;
+      color: var(--text-muted);
+      margin-top: 1px;
+    }
+  }
+
+  .type-badge {
+    font-size: 10px;
+    font-weight: 700;
+    text-transform: uppercase;
+    padding: 3px 8px;
+    border-radius: 6px;
+    letter-spacing: 0.03em;
+
+    &.member {
+      background: rgba(59, 130, 246, 0.12);
+      color: var(--info);
+    }
+    &.lead {
+      background: rgba(16, 185, 129, 0.12);
+      color: var(--success);
+    }
+    &.payment {
+      background: rgba(239, 68, 68, 0.12);
+      color: var(--danger);
+    }
+    &.renewal {
+      background: rgba(245, 158, 11, 0.12);
+      color: var(--warning);
+    }
+  }
+}
+
+.textarea-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 6px;
+
+  span {
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--text-secondary);
+  }
+
+  .edit-toggle-btn {
+    font-size: 11px !important;
+    height: 28px !important;
+    line-height: 28px !important;
+    padding: 0 8px !important;
+
+    mat-icon {
+      font-size: 14px;
+      width: 14px;
+      height: 14px;
+      margin-right: 4px;
+    }
+  }
+}
+
+.schedule-toggle-btn {
+  border-radius: 8px !important;
+  font-weight: 600 !important;
+  height: 40px !important;
+
+  &.active {
+    background: var(--accent-light) !important;
+    color: var(--accent-color) !important;
+    border-color: var(--accent-color) !important;
+  }
+}
+
+.scheduling-panel {
+  animation: slideDown 0.25s ease-out forwards;
+  overflow: hidden;
+}
+
+.scheduling-grid {
+  display: grid;
+  grid-template-columns: 1.2fr 0.8fr;
+  gap: 12px;
+  background: var(--bg-primary);
+  border: var(--card-border);
+  padding: 16px;
+  border-radius: 12px;
+}
+
+@keyframes slideDown {
+  from {
+    opacity: 0;
+    max-height: 0;
+  }
+  to {
+    opacity: 1;
+    max-height: 200px;
+  }
+}
+
+/* WhatsApp Phone Simulator Panel */
+.simulator-panel {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+.phone-frame {
+  width: 100%;
+  max-width: 320px;
+  height: 440px;
+  border-radius: 24px;
+  border: 8px solid #2e2f38;
+  background: #0d1117;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  position: relative;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+}
+
+.phone-header {
+  background: #075e54; /* WhatsApp classic green */
+  color: #ffffff;
+  height: 52px;
+  display: flex;
+  align-items: center;
+  padding: 0 8px;
+  gap: 4px;
+  z-index: 10;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.15);
+
+  .phone-back {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: rgba(255, 255, 255, 0.95);
+    cursor: pointer;
+    
+    mat-icon {
+      font-size: 20px;
+      width: 20px;
+      height: 20px;
+    }
+  }
+
+  .phone-avatar {
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    background: #eceff1;
+    color: #075e54;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 700;
+    font-size: 14px;
+  }
+
+  .phone-user-info {
+    flex: 1;
+    overflow: hidden;
+    margin-left: 2px;
+
+    .phone-username {
+      font-size: 13.5px;
+      font-weight: 600;
+      white-space: nowrap;
+      text-overflow: ellipsis;
+      overflow: hidden;
+    }
+
+    .phone-status {
+      font-size: 10px;
+      color: rgba(255, 255, 255, 0.8);
+      margin-top: -1px;
+    }
+  }
+
+  .phone-actions {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    color: rgba(255, 255, 255, 0.95);
+
+    .action-icon {
+      font-size: 18px;
+      width: 18px;
+      height: 18px;
+      cursor: pointer;
+    }
+  }
+}
+
+.phone-chat-body {
+  flex: 1;
+  position: relative;
+  overflow-y: auto;
+  background-color: #efeae2; /* Classic WhatsApp pale beige background */
+  
+  .chat-doodle-bg {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    opacity: 0.08;
+    background-image: radial-gradient(#075e54 1px, transparent 1px);
+    background-size: 16px 16px;
+    pointer-events: none;
+  }
+
+  /* Dark mode adaptation for phone background */
+  body.dark-theme & {
+    background-color: #0b141a; /* Dark WhatsApp background */
+    
+    .chat-doodle-bg {
+      opacity: 0.04;
+      background-image: radial-gradient(#ffffff 1px, transparent 1px);
+    }
+  }
+}
+
+.chat-messages-container {
+  position: relative;
+  padding: 12px;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
+  min-height: 100%;
+}
+
+.message-bubble {
+  position: relative;
+  max-width: 90%;
+  padding: 8px 10px 14px 10px;
+  border-radius: 8px;
+  font-size: 12.5px;
+  line-height: 1.4;
+  word-wrap: break-word;
+  margin-bottom: 4px;
+  box-shadow: 0 1px 1px rgba(0, 0, 0, 0.1);
+  color: #303030;
+
+  &.outgoing {
+    align-self: flex-end;
+    background-color: #dcf8c6; /* WhatsApp outgoing light green */
+    border-top-right-radius: 0;
+    
+    body.dark-theme & {
+      background-color: #005c4b; /* Dark WhatsApp green */
+      color: #e9edef;
+    }
+  }
+
+  .message-text {
+    white-space: pre-wrap;
+  }
+
+  .message-metadata {
+    position: absolute;
+    bottom: 2px;
+    right: 6px;
+    display: flex;
+    align-items: center;
+    gap: 3px;
+
+    .message-time {
+      font-size: 9px;
+      color: rgba(0, 0, 0, 0.45);
+      font-weight: 500;
+
+      body.dark-theme & {
+        color: rgba(255, 255, 255, 0.5);
+      }
+    }
+
+    .message-checkmark {
+      font-size: 13px;
+      width: 13px;
+      height: 13px;
+      color: #53bdeb; /* Blue read checkmarks */
+    }
+  }
+}
+
+.empty-bubble-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  color: var(--text-muted);
+  height: 200px;
+  text-align: center;
+  padding: 16px;
+
+  mat-icon {
+    font-size: 28px;
+    width: 28px;
+    height: 28px;
+    margin-bottom: 6px;
+  }
+
+  p {
+    font-size: 11px;
+    margin: 0;
+  }
+}
+
+.phone-chat-footer {
+  height: 46px;
+  background: #f0f2f5;
+  display: flex;
+  align-items: center;
+  padding: 0 10px;
+  gap: 8px;
+  color: #667781;
+  border-top: 1px solid rgba(0, 0, 0, 0.05);
+
+  body.dark-theme & {
+    background: #1f2c34;
+    color: #8696a0;
+    border-top: 1px solid rgba(255, 255, 255, 0.05);
+  }
+
+  .footer-emoji, .footer-attach {
+    font-size: 20px;
+    width: 20px;
+    height: 20px;
+    cursor: pointer;
+  }
+
+  .footer-input {
+    flex: 1;
+    background: #ffffff;
+    border-radius: 8px;
+    padding: 6px 10px;
+    font-size: 12px;
+    color: #8696a0;
+
+    body.dark-theme & {
+      background: #2a3942;
+      color: #8696a0;
+    }
+  }
+
+  .footer-mic-circle {
+    width: 28px;
+    height: 28px;
+    border-radius: 50%;
+    background: #00a884; /* WhatsApp footer voice button */
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #ffffff;
+
+    .mic-icon {
+      font-size: 16px;
+      width: 16px;
+      height: 16px;
+    }
+  }
+}
+
+/* Dialog Footer Actions */
+.dialog-actions-footer {
+  display: flex;
+  align-items: center;
+  padding-top: 16px;
+  border-top: 1px solid var(--border-color);
+  margin-top: 12px;
+
+  .spacer {
+    flex: 1;
+  }
+
+  button {
+    border-radius: 8px !important;
+    font-weight: 600 !important;
+    padding: 6px 20px !important;
+    
+    mat-icon {
+      margin-right: 4px;
+      font-size: 18px;
+      width: 18px;
+      height: 18px;
+    }
+  }
+  
+  .cancel-btn {
+    color: var(--text-secondary);
+  }
+  
+  .send-btn {
+    background: var(--accent-gradient) !important;
+    color: #ffffff !important;
+  }
+
+  .schedule-btn {
+    background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%) !important;
+    color: #ffffff !important;
+  }
+}
+
+.w-100 {
+  width: 100%;
+}
+
+.mt-2 {
+  margin-top: 8px;
+}
+
+.mt-3 {
+  margin-top: 16px;
+}
+
+.mt-4 {
+  margin-top: 24px;
+}
+
+/* Responsive adjustments */
+@media (max-width: 767.98px) {
+  .dialog-body-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .whatsapp-dialog-container {
+    width: 100%;
+  }
+
+  .simulator-panel {
+    display: none; /* Hide simulator on small screens */
+  }
+}

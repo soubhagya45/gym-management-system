@@ -11,6 +11,7 @@ import {
   IAttendanceRepository,
   IMembershipPlanRepository,
   IActivityLogRepository,
+  IWhatsAppRepository,
   AUTH_REPOSITORY_TOKEN,
   GYM_REPOSITORY_TOKEN,
   MEMBER_REPOSITORY_TOKEN,
@@ -19,7 +20,8 @@ import {
   TRAINER_REPOSITORY_TOKEN,
   ATTENDANCE_REPOSITORY_TOKEN,
   MEMBERSHIP_PLAN_REPOSITORY_TOKEN,
-  ACTIVITY_LOG_REPOSITORY_TOKEN
+  ACTIVITY_LOG_REPOSITORY_TOKEN,
+  WHATSAPP_REPOSITORY_TOKEN
 } from '../../core/interfaces/repository.interfaces';
 
 import {
@@ -31,7 +33,8 @@ import {
   MockTrainerRepository,
   MockAttendanceRepository,
   MockMembershipPlanRepository,
-  MockActivityLogRepository
+  MockActivityLogRepository,
+  MockWhatsAppRepository
 } from '../repositories/mock/mock-repositories';
 
 import {
@@ -43,7 +46,8 @@ import {
   FirebaseTrainerRepository,
   FirebaseAttendanceRepository,
   FirebaseMembershipPlanRepository,
-  FirebaseActivityLogRepository
+  FirebaseActivityLogRepository,
+  FirebaseWhatsAppRepository
 } from '../repositories/firebase/firebase-repositories';
 
 import {
@@ -55,7 +59,8 @@ import {
   SupabaseTrainerRepository,
   SupabaseAttendanceRepository,
   SupabaseMembershipPlanRepository,
-  SupabaseActivityLogRepository
+  SupabaseActivityLogRepository,
+  SupabaseWhatsAppRepository
 } from '../repositories/supabase/supabase-repositories';
 
 import {
@@ -67,7 +72,8 @@ import {
   ApiTrainerRepository,
   ApiAttendanceRepository,
   ApiMembershipPlanRepository,
-  ApiActivityLogRepository
+  ApiActivityLogRepository,
+  ApiWhatsAppRepository
 } from '../repositories/api/api-repositories';
 
 // Helper factory functions
@@ -162,6 +168,16 @@ export function activityLogRepositoryFactory(configService: AppConfigService, in
   }
 }
 
+export function whatsAppRepositoryFactory(configService: AppConfigService, injector: Injector): IWhatsAppRepository {
+  switch (configService.provider) {
+    case ProviderType.Firebase: return injector.get(FirebaseWhatsAppRepository);
+    case ProviderType.Supabase: return injector.get(SupabaseWhatsAppRepository);
+    case ProviderType.REST: return injector.get(ApiWhatsAppRepository);
+    case ProviderType.Mock:
+    default: return injector.get(MockWhatsAppRepository);
+  }
+}
+
 export const REPOSITORY_PROVIDERS = [
   {
     provide: AUTH_REPOSITORY_TOKEN,
@@ -206,6 +222,11 @@ export const REPOSITORY_PROVIDERS = [
   {
     provide: ACTIVITY_LOG_REPOSITORY_TOKEN,
     useFactory: activityLogRepositoryFactory,
+    deps: [AppConfigService, Injector]
+  },
+  {
+    provide: WHATSAPP_REPOSITORY_TOKEN,
+    useFactory: whatsAppRepositoryFactory,
     deps: [AppConfigService, Injector]
   }
 ];

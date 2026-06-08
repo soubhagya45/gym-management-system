@@ -271,6 +271,10 @@
                     <button mat-icon-button color="primary" (click)="markAsPaid(element)" matTooltip="Mark as Paid">
                       <mat-icon>check_circle</mat-icon>
                     </button>
+                    <!-- WhatsApp Preview/Send Action -->
+                    <button mat-icon-button color="accent" (click)="openWhatsAppPaymentDialog(element)" matTooltip="WhatsApp Reminder Center">
+                      <mat-icon>chat</mat-icon>
+                    </button>
                     <!-- Send Reminder Action -->
                     <button mat-icon-button color="accent" (click)="sendReminder(element)" matTooltip="Send Payment Reminder">
                       <mat-icon>notification_important</mat-icon>
@@ -355,6 +359,10 @@
                 <th mat-header-cell *matHeaderCellDef style="width: 160px; text-align: center"> Actions </th>
                 <td mat-cell *matCellDef="let element" style="text-align: center">
                   <div class="actions-wrapper">
+                    <!-- WhatsApp Renewal Action -->
+                    <button mat-icon-button color="accent" (click)="openWhatsAppRenewalDialog(element)" matTooltip="Send WhatsApp Expiry Reminder">
+                      <mat-icon>chat</mat-icon>
+                    </button>
                     <!-- Renew Membership Button -->
                     <button mat-flat-button color="primary" class="renew-action-btn" (click)="openRenewDialog(element)">
                       <mat-icon>autorenew</mat-icon>

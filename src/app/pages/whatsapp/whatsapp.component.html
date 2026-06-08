@@ -1,0 +1,277 @@
+<div class="whatsapp-page-wrapper">
+  <!-- Page Header -->
+  <div class="page-header">
+    <div class="title-area">
+      <h1>WhatsApp Reminder Center</h1>
+      <p>Manage message templates, inspect the scheduled queue, and audit dispatched logs.</p>
+    </div>
+  </div>
+
+  <!-- Stats Grid -->
+  <div class="stats-panel-grid" *ngIf="stats$ | async as stats">
+    <!-- Active Templates -->
+    <mat-card class="stat-card-box">
+      <div class="stat-icon-wrapper primary">
+        <mat-icon>dashboard_customize</mat-icon>
+      </div>
+      <div class="stat-info">
+        <span class="value">{{ stats.activeTemplates }} / {{ stats.totalTemplates }}</span>
+        <span class="label">Active Templates</span>
+      </div>
+    </mat-card>
+
+    <!-- Scheduled Queue -->
+    <mat-card class="stat-card-box">
+      <div class="stat-icon-wrapper warning">
+        <mat-icon>schedule</mat-icon>
+      </div>
+      <div class="stat-info">
+        <span class="value">{{ stats.scheduledCount }}</span>
+        <span class="label">Scheduled Reminders</span>
+      </div>
+    </mat-card>
+
+    <!-- Dispatched Logs -->
+    <mat-card class="stat-card-box">
+      <div class="stat-icon-wrapper success">
+        <mat-icon>done_all</mat-icon>
+      </div>
+      <div class="stat-info">
+        <span class="value">{{ stats.sentCount }}</span>
+        <span class="label font-semibold">Sent Messages</span>
+      </div>
+    </mat-card>
+  </div>
+
+  <!-- Main Tabs Card -->
+  <div class="mat-card table-container-card">
+    <mat-tab-group [selectedIndex]="activeTab" (selectedIndexChange)="activeTab = $event" animationDuration="250ms">
+      
+      <!-- Tab 1: Template Management -->
+      <mat-tab>
+        <ng-template mat-tab-label>
+          <mat-icon class="tab-icon">dashboard_customize</mat-icon>
+          <span>Message Templates</span>
+        </ng-template>
+
+        <div class="tab-content">
+          <div class="templates-grid mt-3" *ngIf="templates$ | async as templates">
+            
+            <div class="template-card mat-card" *ngFor="let tpl of templates" [class.editing]="editingTemplateId === tpl.id">
+              <!-- Card Header -->
+              <div class="tpl-card-header">
+                <div class="tpl-title-info">
+                  <h3>{{ tpl.name }}</h3>
+                  <span class="tpl-type-badge">{{ getTemplateTypeLabel(tpl.type) }}</span>
+                </div>
+                
+                <div class="tpl-status-actions" *ngIf="editingTemplateId !== tpl.id">
+                  <button mat-icon-button [color]="tpl.isActive ? 'primary' : 'default'" 
+                          (click)="toggleTemplateStatus(tpl)" matTooltip="Toggle Active Status">
+                    <mat-icon>{{ tpl.isActive ? 'toggle_on' : 'toggle_off' }}</mat-icon>
+                  </button>
+                  <span class="status-badge" [ngClass]="tpl.isActive ? 'active' : 'inactive'">
+                    {{ tpl.isActive ? 'Active' : 'Inactive' }}
+                  </span>
+                </div>
+              </div>
+
+              <!-- Card Body -->
+              <div class="tpl-card-body">
+                <!-- VIEW MODE -->
+                <ng-container *ngIf="editingTemplateId !== tpl.id">
+                  <div class="template-preview-text">
+                    {{ tpl.body }}
+                  </div>
+                  <div class="template-card-footer mt-3">
+                    <div class="variables-indicator">
+                      <span class="label">Placeholders:</span>
+                      <div class="chips-container">
+                        <span class="var-chip" *ngFor="let v of tpl.variables">{{ v }}</span>
+                      </div>
+                    </div>
+                    <button mat-stroked-button color="accent" (click)="startEditTemplate(tpl)">
+                      <mat-icon>edit</mat-icon>
+                      <span>Edit Template</span>
+                    </button>
+                  </div>
+                </ng-container>
+
+                <!-- EDIT MODE -->
+                <ng-container *ngIf="editingTemplateId === tpl.id">
+                  <mat-form-field appearance="outline" class="w-100">
+                    <mat-label>Edit Template Text</mat-label>
+                    <textarea matInput rows="5" [(ngModel)]="editingBody" placeholder="Type template body..."></textarea>
+                  </mat-form-field>
+
+                  <!-- Available variables helpers inside edit mode -->
+                  <div class="variables-editor-panel">
+                    <span class="panel-lbl">Insert Variable placeholder:</span>
+                    <div class="chips-editor-container">
+                      <button mat-button class="var-insert-btn" *ngFor="let v of availableVariables"
+                              (click)="insertVariable(v.name)" [matTooltip]="v.desc">
+                        {{ v.name }}
+                      </button>
+                    </div>
+                  </div>
+
+                  <!-- Action Buttons -->
+                  <div class="edit-actions-row mt-3">
+                    <button mat-button color="default" (click)="cancelEditTemplate()">Cancel</button>
+                    <span class="spacer"></span>
+                    <button mat-raised-button color="primary" (click)="saveTemplate(tpl)">
+                      <mat-icon>save</mat-icon>
+                      <span>Save Changes</span>
+                    </button>
+                  </div>
+                </ng-container>
+              </div>
+            </div>
+
+          </div>
+        </div>
+      </mat-tab>
+
+      <!-- Tab 2: Scheduled Queue -->
+      <mat-tab>
+        <ng-template mat-tab-label>
+          <mat-icon class="tab-icon">schedule</mat-icon>
+          <span>Scheduled Queue</span>
+        </ng-template>
+
+        <div class="tab-content">
+          <div class="table-scroll-wrapper mt-3">
+            <table mat-table [dataSource]="scheduledDataSource" class="w-100">
+              
+              <!-- Recipient Name Column -->
+              <ng-container matColumnDef="recipient">
+                <th mat-header-cell *matHeaderCellDef> Recipient </th>
+                <td mat-cell *matCellDef="let element" class="font-semibold text-primary">
+                  {{ element.recipientName }}
+                  <span class="recipient-badge ml-2" [ngClass]="element.recipientType">{{ element.recipientType }}</span>
+                </td>
+              </ng-container>
+
+              <!-- Phone Column -->
+              <ng-container matColumnDef="phone">
+                <th mat-header-cell *matHeaderCellDef> Phone Number </th>
+                <td mat-cell *matCellDef="let element"> {{ element.recipientPhone }} </td>
+              </ng-container>
+
+              <!-- Template Name Column -->
+              <ng-container matColumnDef="template">
+                <th mat-header-cell *matHeaderCellDef> Template </th>
+                <td mat-cell *matCellDef="let element"> {{ element.templateName }} </td>
+              </ng-container>
+
+              <!-- Scheduled Dispatch Column -->
+              <ng-container matColumnDef="scheduledTime">
+                <th mat-header-cell *matHeaderCellDef> Scheduled Dispatch </th>
+                <td mat-cell *matCellDef="let element" class="font-semibold">
+                  {{ element.scheduledTime | date:'medium' }}
+                </td>
+              </ng-container>
+
+              <!-- Actions Column -->
+              <ng-container matColumnDef="actions">
+                <th mat-header-cell *matHeaderCellDef style="width: 160px; text-align: center"> Actions </th>
+                <td mat-cell *matCellDef="let element" style="text-align: center">
+                  <div class="actions-wrapper">
+                    <!-- Send Now -->
+                    <button mat-icon-button color="primary" (click)="triggerReminderNow(element)" matTooltip="Send Now">
+                      <mat-icon>send</mat-icon>
+                    </button>
+                    <!-- Cancel / Delete -->
+                    <button mat-icon-button color="warn" (click)="cancelReminder(element)" matTooltip="Cancel Scheduled Dispatch">
+                      <mat-icon>delete</mat-icon>
+                    </button>
+                  </div>
+                </td>
+              </ng-container>
+
+              <tr mat-header-row *matHeaderRowDef="scheduledColumns"></tr>
+              <tr mat-row *matRowDef="let row; columns: scheduledColumns;"></tr>
+            </table>
+
+            <!-- Empty State -->
+            <div class="empty-table-state" *ngIf="scheduledDataSource.data.length === 0">
+              <mat-icon>check_circle</mat-icon>
+              <h3>No scheduled reminders in queue</h3>
+              <p>Go to Members, Leads, or Payments to queue up scheduled WhatsApp reminders.</p>
+            </div>
+          </div>
+        </div>
+      </mat-tab>
+
+      <!-- Tab 3: Dispatch Logs -->
+      <mat-tab>
+        <ng-template mat-tab-label>
+          <mat-icon class="tab-icon">history</mat-icon>
+          <span>Dispatched Logs</span>
+        </ng-template>
+
+        <div class="tab-content">
+          <div class="table-scroll-wrapper mt-3">
+            <table mat-table [dataSource]="logDataSource" class="w-100">
+              
+              <!-- Recipient Name Column -->
+              <ng-container matColumnDef="recipient">
+                <th mat-header-cell *matHeaderCellDef> Recipient </th>
+                <td mat-cell *matCellDef="let element" class="font-semibold text-primary">
+                  {{ element.recipientName }}
+                  <span class="recipient-badge ml-2" [ngClass]="element.recipientType">{{ element.recipientType }}</span>
+                </td>
+              </ng-container>
+
+              <!-- Phone Column -->
+              <ng-container matColumnDef="phone">
+                <th mat-header-cell *matHeaderCellDef> Phone Number </th>
+                <td mat-cell *matCellDef="let element"> {{ element.recipientPhone }} </td>
+              </ng-container>
+
+              <!-- Template Column -->
+              <ng-container matColumnDef="template">
+                <th mat-header-cell *matHeaderCellDef> Template </th>
+                <td mat-cell *matCellDef="let element"> {{ element.templateName }} </td>
+              </ng-container>
+
+              <!-- Message Body Preview Column -->
+              <ng-container matColumnDef="message">
+                <th mat-header-cell *matHeaderCellDef> Message Body </th>
+                <td mat-cell *matCellDef="let element" class="text-secondary msg-body-col truncate"
+                    [matTooltip]="element.messageContent" (click)="previewLogMessage(element)">
+                  {{ element.messageContent }}
+                </td>
+              </ng-container>
+
+              <!-- Sent Time Column -->
+              <ng-container matColumnDef="sentTime">
+                <th mat-header-cell *matHeaderCellDef> Dispatched At </th>
+                <td mat-cell *matCellDef="let element"> {{ element.sentTime | date:'medium' }} </td>
+              </ng-container>
+
+              <!-- Status Column -->
+              <ng-container matColumnDef="status">
+                <th mat-header-cell *matHeaderCellDef style="width: 110px"> Status </th>
+                <td mat-cell *matCellDef="let element">
+                  <span class="status-badge" [ngClass]="element.status">{{ element.status }}</span>
+                </td>
+              </ng-container>
+
+              <tr mat-header-row *matHeaderRowDef="logColumns"></tr>
+              <tr mat-row *matRowDef="let row; columns: logColumns;" class="clickable-row" (click)="previewLogMessage(row)"></tr>
+            </table>
+
+            <!-- Empty State -->
+            <div class="empty-table-state" *ngIf="logDataSource.data.length === 0">
+              <mat-icon>history</mat-icon>
+              <h3>No message dispatches logged</h3>
+              <p>Sent reminders will appear here for audit and analytics.</p>
+            </div>
+          </div>
+        </div>
+      </mat-tab>
+
+    </mat-tab-group>
+  </div>
+</div>

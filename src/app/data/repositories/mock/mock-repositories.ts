@@ -11,7 +11,8 @@ import {
   ITrainerRepository,
   IAttendanceRepository,
   IMembershipPlanRepository,
-  IActivityLogRepository
+  IActivityLogRepository,
+  IWhatsAppRepository
 } from '../../../core/interfaces/repository.interfaces';
 
 import { UserProfile } from '../../../core/models/user.model';
@@ -24,6 +25,8 @@ import { Attendance } from '../../../core/models/attendance.entity';
 import { MembershipPlan } from '../../../core/models/membership-plan.entity';
 import { ActivityLog } from '../../../core/models/activity-log.entity';
 import { SubscriptionPlan } from '../../../core/enums/subscription-plans.enum';
+import { WhatsAppTemplate } from '../../../core/models/whatsapp-template.entity';
+import { WhatsAppReminder } from '../../../core/models/whatsapp-reminder.entity';
 
 // --- Static In-Memory Database State ---
 const dbGyms: Gym[] = [
@@ -158,6 +161,105 @@ const dbLogs: ActivityLog[] = [
   { id: 'log-1', gymId: 'gym-a', text: 'Priya Patel checked in today at 07:30 AM', time: '1 hour ago', type: 'attendance' },
   { id: 'log-2', gymId: 'gym-a', text: 'Recorded payment of ₹15,000 from Neha Gupta', time: '3 hours ago', type: 'payment' },
   { id: 'log-b1', gymId: 'gym-b', text: 'John Connor joined Apex Fit Uptown!', time: '1 day ago', type: 'join' }
+];
+
+const dbWhatsAppTemplates: WhatsAppTemplate[] = [
+  {
+    id: 'tpl-1',
+    gymId: 'gym-a',
+    name: 'Renewal Reminder',
+    type: 'renewal_reminder',
+    body: 'Hey {name}, your {planName} membership at {gymName} is expiring on {dueDate}. Renew today to continue your workout streak without interruptions!',
+    variables: ['name', 'planName', 'gymName', 'dueDate'],
+    isActive: true
+  },
+  {
+    id: 'tpl-2',
+    gymId: 'gym-a',
+    name: 'Payment Reminder',
+    type: 'payment_reminder',
+    body: 'Dear {name}, this is a gentle reminder that your payment of ₹{amount} for {planName} is due on {dueDate}. Please settle at your earliest convenience. Thank you!',
+    variables: ['name', 'amount', 'planName', 'dueDate'],
+    isActive: true
+  },
+  {
+    id: 'tpl-3',
+    gymId: 'gym-a',
+    name: 'Trial Follow Up',
+    type: 'trial_follow_up',
+    body: 'Hi {name}, we hope you enjoyed your trial session on {trialDate} at {gymName}! Are you ready to join our fitness family? Reply here or give us a call!',
+    variables: ['name', 'trialDate', 'gymName'],
+    isActive: true
+  },
+  {
+    id: 'tpl-4',
+    gymId: 'gym-a',
+    name: 'Welcome Message',
+    type: 'welcome_message',
+    body: 'Hi {name}! Welcome to {gymName}. We are thrilled to have you join our fitness community. Let\'s crush your goals together!',
+    variables: ['name', 'gymName'],
+    isActive: true
+  },
+  {
+    id: 'tpl-5',
+    gymId: 'gym-a',
+    name: 'Attendance Reminder',
+    type: 'attendance_reminder',
+    body: 'Hey {name}, we missed you at {gymName} today! Keep up the consistency — see you tomorrow for your next session!',
+    variables: ['name', 'gymName'],
+    isActive: true
+  }
+];
+
+const dbWhatsAppReminders: WhatsAppReminder[] = [
+  {
+    id: 'rem-w1',
+    gymId: 'gym-a',
+    recipientName: 'Amit Sharma',
+    recipientPhone: '+91 99887 76655',
+    recipientType: 'member',
+    templateId: 'tpl-4',
+    templateName: 'Welcome Message',
+    messageContent: 'Hi Amit Sharma! Welcome to Apex Fit Downtown. We are thrilled to have you join our fitness community. Let\'s crush your goals together!',
+    status: 'sent',
+    sentTime: '2026-06-08T10:00:00.000Z'
+  },
+  {
+    id: 'rem-w2',
+    gymId: 'gym-a',
+    recipientName: 'Priya Patel',
+    recipientPhone: '+91 99887 76656',
+    recipientType: 'member',
+    templateId: 'tpl-4',
+    templateName: 'Welcome Message',
+    messageContent: 'Hi Priya Patel! Welcome to Apex Fit Downtown. We are thrilled to have you join our fitness community. Let\'s crush your goals together!',
+    status: 'sent',
+    sentTime: '2026-06-08T11:15:00.000Z'
+  },
+  {
+    id: 'rem-w3',
+    gymId: 'gym-a',
+    recipientName: 'Rajesh Kumar',
+    recipientPhone: '+91 99887 76657',
+    recipientType: 'renewal',
+    templateId: 'tpl-1',
+    templateName: 'Renewal Reminder',
+    messageContent: 'Hey Rajesh Kumar, your Essential Monthly membership at Apex Fit Downtown is expiring on 2026-06-08. Renew today to continue your workout streak without interruptions!',
+    status: 'scheduled',
+    scheduledTime: new Date(Date.now() + 2 * 3600 * 1000).toISOString()
+  },
+  {
+    id: 'rem-w4',
+    gymId: 'gym-a',
+    recipientName: 'Rohan Mehta',
+    recipientPhone: '+91 99887 76661',
+    recipientType: 'payment',
+    templateId: 'tpl-2',
+    templateName: 'Payment Reminder',
+    messageContent: 'Dear Rohan Mehta, this is a gentle reminder that your payment of ₹4000 for Premium Quarterly is due on 2026-06-05. Please settle at your earliest convenience. Thank you!',
+    status: 'scheduled',
+    scheduledTime: new Date(Date.now() + 24 * 3600 * 1000).toISOString()
+  }
 ];
 
 // --- Mock Implementations ---
@@ -501,5 +603,50 @@ export class MockActivityLogRepository implements IActivityLogRepository {
       if (excessIndex !== -1) dbLogs.splice(excessIndex, 1);
     }
     return of(newLog).pipe(delay(100));
+  }
+}
+
+@Injectable({ providedIn: 'root' })
+export class MockWhatsAppRepository implements IWhatsAppRepository {
+  getTemplates(gymId: string): Observable<WhatsAppTemplate[]> {
+    return of(dbWhatsAppTemplates.filter(t => t.gymId === gymId)).pipe(delay(200));
+  }
+
+  updateTemplate(gymId: string, template: WhatsAppTemplate): Observable<void> {
+    const idx = dbWhatsAppTemplates.findIndex(t => t.gymId === gymId && t.id === template.id);
+    if (idx !== -1) {
+      dbWhatsAppTemplates[idx] = template;
+    }
+    return of(undefined).pipe(delay(200));
+  }
+
+  getReminders(gymId: string): Observable<WhatsAppReminder[]> {
+    return of(dbWhatsAppReminders.filter(r => r.gymId === gymId)).pipe(delay(200));
+  }
+
+  addReminder(gymId: string, reminder: Omit<WhatsAppReminder, 'id'>): Observable<WhatsAppReminder> {
+    const newReminder: WhatsAppReminder = {
+      ...reminder,
+      id: 'rem-' + Math.random().toString(36).substring(2, 9),
+      gymId
+    };
+    dbWhatsAppReminders.unshift(newReminder);
+    return of(newReminder).pipe(delay(200));
+  }
+
+  updateReminder(gymId: string, reminder: WhatsAppReminder): Observable<void> {
+    const idx = dbWhatsAppReminders.findIndex(r => r.gymId === gymId && r.id === reminder.id);
+    if (idx !== -1) {
+      dbWhatsAppReminders[idx] = reminder;
+    }
+    return of(undefined).pipe(delay(200));
+  }
+
+  deleteReminder(gymId: string, id: string): Observable<void> {
+    const idx = dbWhatsAppReminders.findIndex(r => r.gymId === gymId && r.id === id);
+    if (idx !== -1) {
+      dbWhatsAppReminders.splice(idx, 1);
+    }
+    return of(undefined).pipe(delay(200));
   }
 }
