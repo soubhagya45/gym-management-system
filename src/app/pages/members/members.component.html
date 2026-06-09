@@ -5,7 +5,11 @@
       <h1>Members Directory</h1>
       <p>Manage gym subscriptions, billing balances, and profile states.</p>
     </div>
-    <div class="actions-area">
+    <div class="actions-area" style="display: flex; gap: 12px;">
+      <button mat-stroked-button (click)="exportMembersReport()">
+        <mat-icon>download</mat-icon>
+        <span>Export Directory</span>
+      </button>
       <button mat-raised-button color="primary" (click)="openAddMemberDialog()">
         <mat-icon>person_add</mat-icon>
         <span>Register New Member</span>

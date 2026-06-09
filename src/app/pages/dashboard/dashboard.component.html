@@ -135,70 +135,86 @@
   </div>
 
   <!-- Row 1: Charts Section -->
-  <div class="charts-row">
-    <!-- Widget 6: Revenue Trend -->
-    <div class="mat-card chart-card">
-      <div class="chart-header">
-        <h3>Revenue Trend (H1 2026)</h3>
-        <span class="chart-sub">Total earnings from plans and renewals in ₹</span>
-      </div>
-      <div class="chart-wrapper">
-        <div class="y-axis-labels">
-          <span>₹1.2L</span>
-          <span>₹80k</span>
-          <span>₹40k</span>
-          <span>₹0</span>
-        </div>
-        <div class="svg-container">
-          <svg class="line-chart-svg" viewBox="0 0 500 150" preserveAspectRatio="none">
-            <defs>
-              <linearGradient id="chartGradient" x1="0" y1="0" x2="0" y2="1">
-                <stop offset="0%" stop-color="var(--accent-color)" stop-opacity="0.4" />
-                <stop offset="100%" stop-color="var(--accent-color)" stop-opacity="0.0" />
-              </linearGradient>
-            </defs>
-            <path [attr.d]="getSVGFillPath()" fill="url(#chartGradient)"></path>
-            <polyline fill="none" stroke="var(--accent-color)" stroke-width="3" [attr.points]="getSVGPath()"></polyline>
-            <line x1="20" y1="20" x2="480" y2="20" stroke="var(--border-color)" stroke-dasharray="4" />
-            <line x1="20" y1="75" x2="480" y2="75" stroke="var(--border-color)" stroke-dasharray="4" />
-            <line x1="20" y1="130" x2="480" y2="130" stroke="var(--border-color)" />
-          </svg>
-          <div class="x-axis-labels">
-            <span *ngFor="let item of revenueChartData">{{ item.label }}</span>
-          </div>
-        </div>
-      </div>
-      <div class="chart-footer-stats">
-        <div class="stat-indicator">
-          <span class="dot primary"></span>
-          <span>Highest Month: <strong>June (₹1,25,000)</strong></span>
-        </div>
+  <div class="charts-row-container" style="position: relative;">
+    <!-- Locked Analytics Overlay -->
+    <div class="premium-lock-overlay" *ngIf="!(canAccessAnalytics$ | async)">
+      <div class="lock-card mat-card glass-panel">
+        <mat-icon class="lock-icon">lock</mat-icon>
+        <h2>Revenue Analytics Locked</h2>
+        <p>Your current active plan does not support business intelligence dashboards. Upgrade to Pro or Enterprise to track monthly revenue patterns and detailed plan distribution metrics.</p>
+        <button mat-raised-button color="accent" routerLink="/settings">
+          <mat-icon>workspace_premium</mat-icon>
+          <span>Upgrade to Pro / Enterprise</span>
+        </button>
       </div>
     </div>
 
-    <!-- Widget 7: Membership Plan Distribution -->
-    <div class="mat-card chart-card">
-      <div class="chart-header">
-        <h3>Membership Plan Distribution</h3>
-        <span class="chart-sub">Active members split by plans</span>
-      </div>
-      <div class="plan-distribution-container">
-        <div class="plan-dist-item" *ngFor="let item of planDistribution$ | async">
-          <div class="plan-dist-meta">
-            <span class="plan-dist-name">{{ item.name }}</span>
-            <span class="plan-dist-stats"><strong>{{ item.count }}</strong> Active ({{ item.percentage }}%)</span>
+    <div class="charts-row" [class.blurred-content]="!(canAccessAnalytics$ | async)">
+      <!-- Widget 6: Revenue Trend -->
+      <div class="mat-card chart-card">
+        <div class="chart-header">
+          <h3>Revenue Trend (H1 2026)</h3>
+          <span class="chart-sub">Total earnings from plans and renewals in ₹</span>
+        </div>
+        <div class="chart-wrapper">
+          <div class="y-axis-labels">
+            <span>₹1.2L</span>
+            <span>₹80k</span>
+            <span>₹40k</span>
+            <span>₹0</span>
           </div>
-          <div class="progress-bar-container">
-            <div class="progress-fill" [ngClass]="item.colorClass" [style.width.%]="item.percentage"></div>
+          <div class="svg-container">
+            <svg class="line-chart-svg" viewBox="0 0 500 150" preserveAspectRatio="none">
+              <defs>
+                <linearGradient id="chartGradient" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="0%" stop-color="var(--accent-color)" stop-opacity="0.4" />
+                  <stop offset="100%" stop-color="var(--accent-color)" stop-opacity="0.0" />
+                </linearGradient>
+              </defs>
+              <path [attr.d]="getSVGFillPath()" fill="url(#chartGradient)"></path>
+              <polyline fill="none" stroke="var(--accent-color)" stroke-width="3" [attr.points]="getSVGPath()"></polyline>
+              <line x1="20" y1="20" x2="480" y2="20" stroke="var(--border-color)" stroke-dasharray="4" />
+              <line x1="20" y1="75" x2="480" y2="75" stroke="var(--border-color)" stroke-dasharray="4" />
+              <line x1="20" y1="130" x2="480" y2="130" stroke="var(--border-color)" />
+            </svg>
+            <div class="x-axis-labels">
+              <span *ngFor="let item of revenueChartData">{{ item.label }}</span>
+            </div>
           </div>
         </div>
-        <div class="empty-state" *ngIf="!(planDistribution$ | async)?.length">
-          <mat-icon>pie_chart_outline</mat-icon>
-          <p>No active plans data.</p>
+        <div class="chart-footer-stats">
+          <div class="stat-indicator">
+            <span class="dot primary"></span>
+            <span>Highest Month: <strong>June (₹1,25,000)</strong></span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Widget 7: Membership Plan Distribution -->
+      <div class="mat-card chart-card">
+        <div class="chart-header">
+          <h3>Membership Plan Distribution</h3>
+          <span class="chart-sub">Active members split by plans</span>
+        </div>
+        <div class="plan-distribution-container">
+          <div class="plan-dist-item" *ngFor="let item of planDistribution$ | async">
+            <div class="plan-dist-meta">
+              <span class="plan-dist-name">{{ item.name }}</span>
+              <span class="plan-dist-stats"><strong>{{ item.count }}</strong> Active ({{ item.percentage }}%)</span>
+            </div>
+            <div class="progress-bar-container">
+              <div class="progress-fill" [ngClass]="item.colorClass" [style.width.%]="item.percentage"></div>
+            </div>
+          </div>
+          <div class="empty-state" *ngIf="!(planDistribution$ | async)?.length">
+            <mat-icon>pie_chart_outline</mat-icon>
+            <p>No active plans data.</p>
+          </div>
         </div>
       </div>
     </div>
   </div>
+
 
   <!-- Row 2: Attendance & Leads Section -->
   <div class="widgets-row-two">

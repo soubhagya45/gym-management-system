@@ -2,127 +2,346 @@
   <!-- Page Header -->
   <div class="page-header">
     <div class="title-area">
-      <h1>System Settings</h1>
-      <p>Configure gym branding details, billing parameters, alerts, and user interface preferences.</p>
+      <h1>System &amp; Subscription Settings</h1>
+      <p>Configure gym branding details, billing parameters, alerts, and manage your SaaS tier subscription.</p>
     </div>
   </div>
 
-  <form [formGroup]="settingsForm" (ngSubmit)="onSaveSettings()">
-    <div class="settings-grid">
-      <!-- Card 1: Gym Profile -->
-      <div class="mat-card settings-card">
-        <div class="card-title-row">
-          <mat-icon class="title-icon">business</mat-icon>
-          <h2>Gym Branding Profile</h2>
-        </div>
-        <p class="section-desc">Manage logo representations, branch location, and contact information for invoice displays.</p>
+  <mat-tab-group class="settings-tab-group" animationDuration="250ms">
+    
+    <!-- TAB 1: GENERAL SYSTEM SETTINGS -->
+    <mat-tab>
+      <ng-template mat-tab-label>
+        <mat-icon class="tab-icon">settings</mat-icon>
+        <span>General Settings</span>
+      </ng-template>
+
+      <div class="tab-content">
+        <form [formGroup]="settingsForm" (ngSubmit)="onSaveSettings()">
+          <div class="settings-grid">
+            <!-- Card 1: Gym Profile -->
+            <div class="mat-card settings-card">
+              <div class="card-title-row">
+                <mat-icon class="title-icon">business</mat-icon>
+                <h2>Gym Branding Profile</h2>
+              </div>
+              <p class="section-desc">Manage logo representations, branch location, and contact information for invoice displays.</p>
+              
+              <div class="fields-stack">
+                <!-- Gym Name -->
+                <mat-form-field appearance="outline">
+                  <mat-label>Gym Business Name</mat-label>
+                  <input matInput formControlName="gymName">
+                  <mat-error *ngIf="settingsForm.get('gymName')?.hasError('required')">Gym name is required</mat-error>
+                </mat-form-field>
+
+                <!-- Owner Name -->
+                <mat-form-field appearance="outline">
+                  <mat-label>Owner Name</mat-label>
+                  <input matInput formControlName="ownerName">
+                  <mat-error *ngIf="settingsForm.get('ownerName')?.hasError('required')">Owner name is required</mat-error>
+                </mat-form-field>
+
+                <!-- Email -->
+                <mat-form-field appearance="outline">
+                  <mat-label>Support Email Address</mat-label>
+                  <input matInput type="email" formControlName="contactEmail">
+                  <mat-error *ngIf="settingsForm.get('contactEmail')?.hasError('required')">Email is required</mat-error>
+                  <mat-error *ngIf="settingsForm.get('contactEmail')?.hasError('email')">Enter a valid email</mat-error>
+                </mat-form-field>
+
+                <!-- Phone -->
+                <mat-form-field appearance="outline">
+                  <mat-label>Contact Hotline</mat-label>
+                  <input matInput formControlName="contactPhone">
+                  <mat-error *ngIf="settingsForm.get('contactPhone')?.hasError('required')">Phone is required</mat-error>
+                </mat-form-field>
+
+                <!-- Address -->
+                <mat-form-field appearance="outline">
+                  <mat-label>Gym Branch Address</mat-label>
+                  <textarea matInput formControlName="address" rows="3"></textarea>
+                  <mat-error *ngIf="settingsForm.get('address')?.hasError('required')">Address is required</mat-error>
+                </mat-form-field>
+              </div>
+            </div>
+
+            <!-- Card 2: System Preferences -->
+            <div class="mat-card settings-card">
+              <div class="card-title-row">
+                <mat-icon class="title-icon">settings_suggest</mat-icon>
+                <h2>Preferences &amp; Billing</h2>
+              </div>
+              <p class="section-desc">Control pricing currency tokens, local tax indices, notifications, and dark mode overrides.</p>
+
+              <div class="fields-stack">
+                <div class="form-row">
+                  <!-- Currency -->
+                  <mat-form-field appearance="outline">
+                    <mat-label>Base Currency Symbol</mat-label>
+                    <mat-select formControlName="currency">
+                      <mat-option value="₹">INR (₹)</mat-option>
+                      <mat-option value="$">USD ($)</mat-option>
+                      <mat-option value="€">EUR (€)</mat-option>
+                      <mat-option value="£">GBP (£)</mat-option>
+                    </mat-select>
+                  </mat-form-field>
+
+                  <!-- Tax Rate -->
+                  <mat-form-field appearance="outline">
+                    <mat-label>Local Sales Tax Rate (%)</mat-label>
+                    <input matInput type="number" step="0.1" formControlName="taxRate">
+                    <mat-error *ngIf="settingsForm.get('taxRate')?.hasError('required')">Tax rate is required</mat-error>
+                  </mat-form-field>
+                </div>
+
+                <div class="toggles-list">
+                  <!-- Theme Toggle Slider -->
+                  <div class="toggle-item">
+                    <div class="toggle-info">
+                      <span class="toggle-title">System Dark Mode Theme</span>
+                      <span class="toggle-desc">Enable premium glowing dark dashboard skins.</span>
+                    </div>
+                    <mat-slide-toggle [checked]="isDarkMode" (change)="onThemeToggle($event.checked)"></mat-slide-toggle>
+                  </div>
+
+                  <!-- Guest Pass slider -->
+                  <div class="toggle-item">
+                    <div class="toggle-info">
+                      <span class="toggle-title">Allow Guest Trial Passes</span>
+                      <span class="toggle-desc">Permit single-day temporary check-ins.</span>
+                    </div>
+                    <mat-slide-toggle formControlName="allowGuestPass"></mat-slide-toggle>
+                  </div>
+
+                  <!-- Expiry alerts slider -->
+                  <div class="toggle-item">
+                    <div class="toggle-info">
+                      <span class="toggle-title">Send Automated Renewal Alerts</span>
+                      <span class="toggle-desc">Email members when plans expire within 7 days.</span>
+                    </div>
+                    <mat-slide-toggle formControlName="sendExpiryAlerts"></mat-slide-toggle>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Save Action Bar -->
+          <div class="action-bar-footer">
+            <button mat-raised-button color="primary" type="submit" [disabled]="settingsForm.invalid" class="save-settings-btn">
+              <mat-icon>save</mat-icon>
+              <span>Save Configurations</span>
+            </button>
+          </div>
+        </form>
+      </div>
+    </mat-tab>
+
+    <!-- TAB 2: SAAS SUBSCRIPTION & BILLING -->
+    <mat-tab>
+      <ng-template mat-tab-label>
+        <mat-icon class="tab-icon">workspace_premium</mat-icon>
+        <span>SaaS Subscription</span>
+      </ng-template>
+
+      <div class="tab-content subscription-tab-content">
         
-        <div class="fields-stack">
-          <!-- Gym Name -->
-          <mat-form-field appearance="outline">
-            <mat-label>Gym Business Name</mat-label>
-            <input matInput formControlName="gymName">
-            <mat-error *ngIf="settingsForm.get('gymName')?.hasError('required')">Gym name is required</mat-error>
-          </mat-form-field>
-
-          <!-- Owner Name -->
-          <mat-form-field appearance="outline">
-            <mat-label>Owner Name</mat-label>
-            <input matInput formControlName="ownerName">
-            <mat-error *ngIf="settingsForm.get('ownerName')?.hasError('required')">Owner name is required</mat-error>
-          </mat-form-field>
-
-          <!-- Email -->
-          <mat-form-field appearance="outline">
-            <mat-label>Support Email Address</mat-label>
-            <input matInput type="email" formControlName="contactEmail">
-            <mat-error *ngIf="settingsForm.get('contactEmail')?.hasError('required')">Email is required</mat-error>
-            <mat-error *ngIf="settingsForm.get('contactEmail')?.hasError('email')">Enter a valid email</mat-error>
-          </mat-form-field>
-
-          <!-- Phone -->
-          <mat-form-field appearance="outline">
-            <mat-label>Contact Hotline</mat-label>
-            <input matInput formControlName="contactPhone">
-            <mat-error *ngIf="settingsForm.get('contactPhone')?.hasError('required')">Phone is required</mat-error>
-          </mat-form-field>
-
-          <!-- Address -->
-          <mat-form-field appearance="outline">
-            <mat-label>Gym Branch Address</mat-label>
-            <textarea matInput formControlName="address" rows="3"></textarea>
-            <mat-error *ngIf="settingsForm.get('address')?.hasError('required')">Address is required</mat-error>
-          </mat-form-field>
-        </div>
-      </div>
-
-      <!-- Card 2: System Preferences -->
-      <div class="mat-card settings-card">
-        <div class="card-title-row">
-          <mat-icon class="title-icon">settings_suggest</mat-icon>
-          <h2>Preferences & Billing</h2>
-        </div>
-        <p class="section-desc">Control pricing currency tokens, local tax indices, notifications, and dark mode overrides.</p>
-
-        <div class="fields-stack">
-          <div class="form-row">
-            <!-- Currency -->
-            <mat-form-field appearance="outline">
-              <mat-label>Base Currency Symbol</mat-label>
-              <mat-select formControlName="currency">
-                <mat-option value="₹">INR (₹)</mat-option>
-                <mat-option value="$">USD ($)</mat-option>
-                <mat-option value="€">EUR (€)</mat-option>
-                <mat-option value="£">GBP (£)</mat-option>
-              </mat-select>
-            </mat-form-field>
-
-            <!-- Tax Rate -->
-            <mat-form-field appearance="outline">
-              <mat-label>Local Sales Tax Rate (%)</mat-label>
-              <input matInput type="number" step="0.1" formControlName="taxRate">
-              <mat-error *ngIf="settingsForm.get('taxRate')?.hasError('required')">Tax rate is required</mat-error>
-            </mat-form-field>
+        <!-- Active Status Card -->
+        <div class="mat-card active-subscription-card" *ngIf="activePlanStatus">
+          <div class="status-summary-section">
+            <div class="plan-header">
+              <div class="badge-pill" [ngClass]="getPlanBadgeClass(activePlanStatus.activePlan)">
+                <mat-icon>stars</mat-icon>
+                <span>{{ planLabels[activePlanStatus.activePlan] }} Plan</span>
+              </div>
+              <span class="status-indicator active">Active</span>
+            </div>
+            
+            <div class="dates-row">
+              <div class="date-item">
+                <span class="lbl">Activated On</span>
+                <span class="val">{{ activePlanStatus.startDate | date:'mediumDate' }}</span>
+              </div>
+              <div class="date-item">
+                <span class="lbl">Next Invoice Date</span>
+                <span class="val">{{ activePlanStatus.endDate | date:'mediumDate' }}</span>
+              </div>
+            </div>
           </div>
 
-          <div class="toggles-list">
-            <!-- Theme Toggle Slider -->
-            <div class="toggle-item">
-              <div class="toggle-info">
-                <span class="toggle-title">System Dark Mode Theme</span>
-                <span class="toggle-desc">Enable premium glowing dark dashboard skins.</span>
+          <div class="limits-usage-section">
+            <h3 class="limits-title">Workspace Resource Limits</h3>
+            
+            <!-- Members limit -->
+            <div class="limit-metric">
+              <div class="metric-info">
+                <span class="lbl">Members Registry</span>
+                <span class="val">
+                  <strong>{{ activePlanStatus.memberCount }}</strong>
+                  / {{ isUnlimited(activePlanStatus.memberLimit) ? 'Unlimited' : activePlanStatus.memberLimit }}
+                </span>
               </div>
-              <mat-slide-toggle [checked]="isDarkMode" (change)="onThemeToggle($event.checked)"></mat-slide-toggle>
+              <mat-progress-bar
+                mode="determinate"
+                [value]="getMemberProgressValue()"
+                [color]="getMemberProgressColor()">
+              </mat-progress-bar>
             </div>
 
-            <!-- Guest Pass slider -->
-            <div class="toggle-item">
-              <div class="toggle-info">
-                <span class="toggle-title">Allow Guest Trial Passes</span>
-                <span class="toggle-desc">Permit single-day temporary check-ins.</span>
+            <!-- Trainers limit -->
+            <div class="limit-metric mt-3">
+              <div class="metric-info">
+                <span class="lbl">Staff &amp; Trainers Directory</span>
+                <span class="val">
+                  <strong>{{ activePlanStatus.trainerCount }}</strong>
+                  / {{ isUnlimited(activePlanStatus.trainerLimit) ? 'Unlimited' : activePlanStatus.trainerLimit }}
+                </span>
               </div>
-              <mat-slide-toggle formControlName="allowGuestPass"></mat-slide-toggle>
-            </div>
-
-            <!-- Expiry alerts slider -->
-            <div class="toggle-item">
-              <div class="toggle-info">
-                <span class="toggle-title">Send Automated Renewal Alerts</span>
-                <span class="toggle-desc">Email members when plans expire within 7 days.</span>
-              </div>
-              <mat-slide-toggle formControlName="sendExpiryAlerts"></mat-slide-toggle>
+              <mat-progress-bar
+                mode="determinate"
+                [value]="getTrainerProgressValue()"
+                [color]="getTrainerProgressColor()">
+              </mat-progress-bar>
             </div>
           </div>
         </div>
-      </div>
-    </div>
 
-    <!-- Save Action Bar -->
-    <div class="action-bar-footer">
-      <button mat-raised-button color="primary" type="submit" [disabled]="settingsForm.invalid" class="save-settings-btn">
-        <mat-icon>save</mat-icon>
-        <span>Save Configurations</span>
-      </button>
-    </div>
-  </form>
+        <!-- Billing Cycle Selector Toggle -->
+        <div class="cycle-selector-row">
+          <h2>Select Plan Tier</h2>
+          <div class="cycle-toggles">
+            <button mat-button class="cycle-btn" [class.active]="billingCycle === 'monthly'" (click)="onBillingCycleChange('monthly')">
+              Monthly
+            </button>
+            <button mat-button class="cycle-btn" [class.active]="billingCycle === 'yearly'" (click)="onBillingCycleChange('yearly')">
+              Yearly <span class="discount-badge">Save 20%</span>
+            </button>
+          </div>
+        </div>
+
+        <!-- Plan Comparison Grid -->
+        <div class="plans-comparison-grid">
+          <div class="mat-card plan-tier-card"
+               *ngFor="let plan of subscriptionPlans"
+               [class.active-tier]="activeGym?.subscriptionPlan === plan">
+            
+            <div class="current-badge" *ngIf="activeGym?.subscriptionPlan === plan">Active plan</div>
+            
+            <h3 class="tier-name">{{ planLabels[plan] }}</h3>
+            <div class="price-container">
+              <span class="price-txt">{{ planPriceTexts[plan] }}</span>
+            </div>
+
+            <!-- List features -->
+            <ul class="features-list">
+              <li>
+                <mat-icon class="feature-icon check">check_circle</mat-icon>
+                <span>Members (Max {{ isUnlimited(planFeatures[plan].maxMembers) ? 'Unlimited' : planFeatures[plan].maxMembers }})</span>
+              </li>
+              <li>
+                <mat-icon class="feature-icon" [class.check]="planFeatures[plan].canManageTrainers" [class.cross]="!planFeatures[plan].canManageTrainers">
+                  {{ planFeatures[plan].canManageTrainers ? 'check_circle' : 'cancel' }}
+                </mat-icon>
+                <span>Trainers (Max {{ isUnlimited(planFeatures[plan].maxTrainers) ? 'Unlimited' : planFeatures[plan].maxTrainers }})</span>
+              </li>
+              <li>
+                <mat-icon class="feature-icon" [class.check]="planFeatures[plan].canAccessAnalytics" [class.cross]="!planFeatures[plan].canAccessAnalytics">
+                  {{ planFeatures[plan].canAccessAnalytics ? 'check_circle' : 'cancel' }}
+                </mat-icon>
+                <span>Revenue charts &amp; analytics</span>
+              </li>
+              <li>
+                <mat-icon class="feature-icon" [class.check]="planFeatures[plan].canExportReports" [class.cross]="!planFeatures[plan].canExportReports">
+                  {{ planFeatures[plan].canExportReports ? 'check_circle' : 'cancel' }}
+                </mat-icon>
+                <span>Export ledger to CSV</span>
+              </li>
+            </ul>
+
+            <button mat-raised-button
+                    [color]="activeGym?.subscriptionPlan === plan ? 'accent' : 'primary'"
+                    [disabled]="activeGym?.subscriptionPlan === plan"
+                    (click)="onUpgradePlan(plan)"
+                    class="action-btn-tier">
+              <span>{{ activeGym?.subscriptionPlan === plan ? 'Current Tier' : 'Select ' + planLabels[plan] }}</span>
+            </button>
+          </div>
+        </div>
+
+        <!-- SaaS Billing History Card -->
+        <div class="mat-card saas-invoices-card">
+          <div class="card-header-row">
+            <mat-icon>receipt_long</mat-icon>
+            <h2>SaaS Billing History</h2>
+          </div>
+          <p class="section-desc">Download past invoice receipts for your business subscription ledger accounts.</p>
+          
+          <div class="table-scroll-wrapper mt-3">
+            <table mat-table [dataSource]="activeGymBillingHistory" class="w-100">
+              <!-- Invoice ID -->
+              <ng-container matColumnDef="invoiceNumber">
+                <th mat-header-cell *matHeaderCellDef>Invoice #</th>
+                <td mat-cell *matCellDef="let element" class="invoice-num">{{ element.invoiceNumber }}</td>
+              </ng-container>
+
+              <!-- Date -->
+              <ng-container matColumnDef="date">
+                <th mat-header-cell *matHeaderCellDef>Billing Date</th>
+                <td mat-cell *matCellDef="let element">{{ element.date | date:'mediumDate' }}</td>
+              </ng-container>
+
+              <!-- Plan -->
+              <ng-container matColumnDef="plan">
+                <th mat-header-cell *matHeaderCellDef>SaaS Plan</th>
+                <td mat-cell *matCellDef="let element">
+                  <span class="status-badge" [ngClass]="getPlanBadgeClass(element.plan)">{{ getPlanLabel(element.plan) }}</span>
+                </td>
+              </ng-container>
+
+              <!-- Payment Method -->
+              <ng-container matColumnDef="paymentMethod">
+                <th mat-header-cell *matHeaderCellDef>Payment Method</th>
+                <td mat-cell *matCellDef="let element">{{ element.paymentMethod }}</td>
+              </ng-container>
+
+              <!-- Amount -->
+              <ng-container matColumnDef="amount">
+                <th mat-header-cell *matHeaderCellDef>Amount Paid</th>
+                <td mat-cell *matCellDef="let element" class="text-success font-semibold">₹{{ element.amount.toLocaleString('en-IN') }}</td>
+              </ng-container>
+
+              <!-- Status -->
+              <ng-container matColumnDef="status">
+                <th mat-header-cell *matHeaderCellDef>Status</th>
+                <td mat-cell *matCellDef="let element">
+                  <span class="status-badge paid">{{ element.status }}</span>
+                </td>
+              </ng-container>
+
+              <!-- Actions -->
+              <ng-container matColumnDef="actions">
+                <th mat-header-cell *matHeaderCellDef style="text-align:center;width:90px">Actions</th>
+                <td mat-cell *matCellDef="let element" style="text-align:center">
+                  <button mat-icon-button color="accent" (click)="printInvoice(element)" matTooltip="Download PDF Receipt">
+                    <mat-icon>download</mat-icon>
+                  </button>
+                </td>
+              </ng-container>
+
+              <tr mat-header-row *matHeaderRowDef="invoiceColumns"></tr>
+              <tr mat-row *matRowDef="let row; columns: invoiceColumns;"></tr>
+            </table>
+
+            <div class="empty-table-state" *ngIf="activeGymBillingHistory.length === 0">
+              <mat-icon>receipt</mat-icon>
+              <h3>No SaaS invoice records found</h3>
+              <p>Your subscription statement ledger is currently empty.</p>
+            </div>
+          </div>
+        </div>
+
+      </div>
+    </mat-tab>
+  </mat-tab-group>
 </div>

@@ -5,7 +5,11 @@
       <h1>Payment & Renewal Management</h1>
       <p>Audit financial ledger accounts, track member renewals, and dispatch reminders.</p>
     </div>
-    <div class="actions-area">
+    <div class="actions-area" style="display: flex; gap: 12px;">
+      <button mat-stroked-button (click)="exportPaymentsReport()">
+        <mat-icon>download</mat-icon>
+        <span>Export Ledger</span>
+      </button>
       <button mat-raised-button color="primary" (click)="openRecordPaymentDialog()">
         <mat-icon>add_card</mat-icon>
         <span>Record Manual Payment</span>

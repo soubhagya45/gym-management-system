@@ -24,10 +24,11 @@ import { MembershipPlan } from '../../core/models/membership-plan.entity';
 
 import { PaymentDialogComponent } from './payment-dialog.component';
 import { RenewDialogComponent } from './renew-dialog.component';
-import { ActivatedRoute } from '@angular/router';
+import { ActivatedRoute, Router } from '@angular/router';
 import { Observable } from 'rxjs';
 import { map, take } from 'rxjs/operators';
 import { WhatsAppPreviewModalComponent } from '../whatsapp/whatsapp-preview-modal.component';
+import { GymState } from '../../presentation/state/gym.state';
 
 interface PaymentStats {
   totalCollected: number;
@@ -80,9 +81,11 @@ export class PaymentsComponent implements OnInit {
     private paymentState: PaymentState,
     private memberState: MemberState,
     private planState: MembershipPlanState,
+    private gymState: GymState,
     private dialog: MatDialog,
     private snackBar: MatSnackBar,
-    private route: ActivatedRoute
+    private route: ActivatedRoute,
+    private router: Router
   ) {}
 
   ngOnInit(): void {
@@ -195,6 +198,32 @@ export class PaymentsComponent implements OnInit {
           });
         });
       }
+    });
+  }
+
+  exportPaymentsReport() {
+    this.gymState.activeGymFeatures$.pipe(take(1)).subscribe(features => {
+      if (!features || !features.canExportReports) {
+        this.snackBar.open('Export Reports feature is locked on your current plan. Please upgrade to Pro or Enterprise.', 'Upgrade Plan', {
+          duration: 5000
+        }).onAction().subscribe(() => {
+          this.router.navigate(['/settings']);
+        });
+        return;
+      }
+
+      this.snackBar.open('Ledger report generated! Downloading CSV...', 'Dismiss', {
+        duration: 3000
+      });
+      const csvContent = "data:text/csv;charset=utf-8,ID,Member,Plan,TotalAmount,PaidAmount,DueAmount,InvoiceDate,Status\n" + 
+        this.dataSource.data.map(p => `"${p.id}","${p.memberName}","${p.planName}","${p.amount}","${p.paidAmount}","${p.dueAmount}","${p.date}","${p.status}"`).join("\n");
+      const encodedUri = encodeURI(csvContent);
+      const link = document.createElement("a");
+      link.setAttribute("href", encodedUri);
+      link.setAttribute("download", `payments_ledger_${new Date().toISOString().split('T')[0]}.csv`);
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
     });
   }
 

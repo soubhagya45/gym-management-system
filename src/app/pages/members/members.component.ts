@@ -15,11 +15,15 @@ import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
 import { MatTooltipModule } from '@angular/material/tooltip';
 import { MemberState } from '../../presentation/state/member.state';
 import { MembershipPlanState } from '../../presentation/state/membership-plan.state';
+import { GymState } from '../../presentation/state/gym.state';
+import { SubscriptionService } from '../../domain/subscription/subscription.service';
 import { Member } from '../../core/models/member.entity';
 import { MembershipPlan } from '../../core/models/membership-plan.entity';
 import { MemberDialogComponent } from './member-dialog.component';
 import { ConfirmDialogComponent } from './confirm-dialog.component';
 import { WhatsAppPreviewModalComponent } from '../whatsapp/whatsapp-preview-modal.component';
+import { take } from 'rxjs/operators';
+
 
 @Component({
   selector: 'app-members',
@@ -60,6 +64,8 @@ export class MembersComponent implements OnInit, AfterViewInit {
   constructor(
     private memberState: MemberState,
     private planState: MembershipPlanState,
+    private gymState: GymState,
+    private subscriptionService: SubscriptionService,
     private dialog: MatDialog,
     private snackBar: MatSnackBar,
     private router: Router,
@@ -157,20 +163,38 @@ export class MembersComponent implements OnInit, AfterViewInit {
 
   // --- Add Member ---
   openAddMemberDialog() {
-    const dialogRef = this.dialog.open(MemberDialogComponent, {
-      width: '600px',
-      data: null
-    });
-
-    dialogRef.afterClosed().subscribe(result => {
-      if (result) {
-        this.memberState.addMember(result).subscribe(() => {
-          this.snackBar.open('Member registered successfully!', 'Dismiss', {
-            duration: 3000,
-            panelClass: ['premium-snack']
+    this.gymState.activeGym$.pipe(take(1)).subscribe(gym => {
+      if (gym) {
+        const isLimitReached = this.subscriptionService.hasReachedLimit(
+          gym.subscriptionPlan,
+          'maxMembers',
+          this.dataSource.data.length
+        );
+        if (isLimitReached) {
+          this.snackBar.open(`Member limit reached for plan: ${gym.subscriptionPlan}. Please upgrade to register more members.`, 'Upgrade Plan', {
+            duration: 5000
+          }).onAction().subscribe(() => {
+            this.router.navigate(['/settings']);
           });
-        });
+          return;
+        }
       }
+
+      const dialogRef = this.dialog.open(MemberDialogComponent, {
+        width: '600px',
+        data: null
+      });
+
+      dialogRef.afterClosed().subscribe(result => {
+        if (result) {
+          this.memberState.addMember(result).subscribe(() => {
+            this.snackBar.open('Member registered successfully!', 'Dismiss', {
+              duration: 3000,
+              panelClass: ['premium-snack']
+            });
+          });
+        }
+      });
     });
   }
 
@@ -233,4 +257,31 @@ export class MembersComponent implements OnInit, AfterViewInit {
       }
     });
   }
+
+  exportMembersReport() {
+    this.gymState.activeGymFeatures$.pipe(take(1)).subscribe(features => {
+      if (!features || !features.canExportReports) {
+        this.snackBar.open('Export Reports feature is locked on your current plan. Please upgrade to Pro or Enterprise.', 'Upgrade Plan', {
+          duration: 5000
+        }).onAction().subscribe(() => {
+          this.router.navigate(['/settings']);
+        });
+        return;
+      }
+
+      this.snackBar.open('Directory report generated! Downloading CSV...', 'Dismiss', {
+        duration: 3000
+      });
+      const csvContent = "data:text/csv;charset=utf-8,ID,Name,Phone,Email,Plan,JoinDate,Status\n" + 
+        this.dataSource.data.map(m => `"${m.id}","${m.name}","${m.phone}","${m.email}","${m.planName}","${m.startDate}","${m.status}"`).join("\n");
+      const encodedUri = encodeURI(csvContent);
+      const link = document.createElement("a");
+      link.setAttribute("href", encodedUri);
+      link.setAttribute("download", `members_report_${new Date().toISOString().split('T')[0]}.csv`);
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+    });
+  }
 }
+

@@ -5,7 +5,8 @@ import { IGymRepository, GYM_REPOSITORY_TOKEN } from '../../core/interfaces/repo
 import { Gym } from '../../core/models/gym.entity';
 import { TenantContextService } from '../../domain/tenancy/tenant-context.service';
 import { SubscriptionService } from '../../domain/subscription/subscription.service';
-import { FeatureFlags } from '../../core/models/subscription.model';
+import { FeatureFlags, SaaSPayment } from '../../core/models/subscription.model';
+import { SubscriptionPlan } from '../../core/enums/subscription-plans.enum';
 
 @Injectable({
   providedIn: 'root'
@@ -20,6 +21,14 @@ export class GymState {
   activeGymFeatures$: Observable<FeatureFlags | null> = this.activeGym$.pipe(
     map(gym => gym ? this.subscriptionService.getFeatureFlags(gym.subscriptionPlan) : null)
   );
+
+  activeGymBillingHistory$: Observable<SaaSPayment[]> = this.activeGym$.pipe(
+    switchMap(gym => {
+      if (!gym) return of([]);
+      return this.subscriptionService.getBillingHistory(gym.gymId);
+    })
+  );
+
 
   constructor(
     @Inject(GYM_REPOSITORY_TOKEN) private gymRepository: IGymRepository,
@@ -66,4 +75,19 @@ export class GymState {
       tap(() => this.loadGyms())
     );
   }
+
+  upgradeActiveGymSubscription(plan: SubscriptionPlan, paymentMethod: string, amount: number): Observable<void> {
+    const gym = this.activeGymSubject.value;
+    if (!gym) throw new Error('No active gym selected');
+
+    const updatedGym: Gym = {
+      ...gym,
+      subscriptionPlan: plan
+    };
+
+    return this.subscriptionService.upgradeSubscription(gym.gymId, plan, paymentMethod, amount).pipe(
+      switchMap(() => this.updateGym(updatedGym))
+    );
+  }
 }
+

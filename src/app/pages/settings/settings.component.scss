@@ -4,6 +4,22 @@
   gap: 24px;
 }
 
+/* Tab controls */
+.settings-tab-group {
+  width: 100%;
+}
+
+.tab-icon {
+  margin-right: 8px;
+  font-size: 20px;
+  width: 20px;
+  height: 20px;
+}
+
+.tab-content {
+  padding: 24px 0;
+}
+
 /* Settings Card Grid */
 .settings-grid {
   display: grid;
@@ -16,6 +32,10 @@
   display: flex;
   flex-direction: column;
   height: 100%;
+  padding: 24px !important;
+  background: var(--bg-card);
+  border: var(--card-border);
+  border-radius: 12px;
 }
 
 .card-title-row {
@@ -116,7 +136,459 @@
   }
 }
 
-/* Responsiveness */
+/* --- SaaS Subscription Styles --- */
+.subscription-tab-content {
+  display: flex;
+  flex-direction: column;
+  gap: 32px;
+}
+
+/* Active Status Card */
+.active-subscription-card {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 32px;
+  padding: 28px !important;
+  background: rgba(30, 41, 59, 0.4) !important;
+  backdrop-filter: blur(10px);
+  border: 1px solid rgba(255, 255, 255, 0.08) !important;
+  border-radius: 16px !important;
+  box-shadow: var(--shadow-md);
+}
+
+.status-summary-section {
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  gap: 24px;
+  border-right: 1px solid var(--border-color);
+  padding-right: 32px;
+}
+
+.plan-header {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+
+  .badge-pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 16px;
+    font-weight: 800;
+    padding: 8px 16px;
+    border-radius: 30px;
+    
+    mat-icon {
+      font-size: 20px;
+      width: 20px;
+      height: 20px;
+    }
+
+    &.badge-free {
+      background: rgba(148, 163, 184, 0.1);
+      color: #94a3b8;
+    }
+    &.badge-basic {
+      background: rgba(59, 130, 246, 0.1);
+      color: #3b82f6;
+    }
+    &.badge-pro {
+      background: rgba(168, 85, 247, 0.1);
+      color: #a855f7;
+      box-shadow: 0 0 15px rgba(168, 85, 247, 0.1);
+    }
+    &.badge-enterprise {
+      background: rgba(236, 72, 153, 0.1);
+      color: #ec4899;
+      box-shadow: 0 0 15px rgba(236, 72, 153, 0.1);
+    }
+  }
+
+  .status-indicator {
+    font-size: 11px;
+    font-weight: 800;
+    text-transform: uppercase;
+    padding: 3px 8px;
+    border-radius: 4px;
+    letter-spacing: 0.05em;
+
+    &.active {
+      background: var(--success-glow);
+      color: var(--success);
+    }
+  }
+}
+
+.dates-row {
+  display: flex;
+  gap: 32px;
+
+  .date-item {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    
+    .lbl {
+      font-size: 11px;
+      text-transform: uppercase;
+      font-weight: 700;
+      color: var(--text-muted);
+      letter-spacing: 0.05em;
+    }
+    .val {
+      font-size: 15px;
+      font-weight: 600;
+      color: var(--text-primary);
+    }
+  }
+}
+
+.limits-usage-section {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+
+  .limits-title {
+    font-size: 14px;
+    font-weight: 700;
+    margin-bottom: 16px;
+    color: var(--text-primary);
+  }
+
+  .limit-metric {
+    .metric-info {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      font-size: 13px;
+      margin-bottom: 8px;
+      
+      .lbl {
+        font-weight: 600;
+        color: var(--text-secondary);
+      }
+      .val {
+        color: var(--text-muted);
+        strong {
+          color: var(--text-primary);
+        }
+      }
+    }
+
+    mat-progress-bar {
+      height: 8px;
+      border-radius: 4px;
+    }
+  }
+}
+
+/* Billing cycle selector row */
+.cycle-selector-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  border-bottom: 1px solid var(--border-color);
+  padding-bottom: 16px;
+  margin-top: 12px;
+
+  h2 {
+    font-size: 20px;
+    font-weight: 800;
+    margin: 0;
+  }
+
+  .cycle-toggles {
+    display: flex;
+    background: rgba(30, 41, 59, 0.6);
+    border: 1px solid var(--border-color);
+    border-radius: 30px;
+    padding: 4px;
+    gap: 4px;
+
+    .cycle-btn {
+      border-radius: 20px !important;
+      padding: 0 16px !important;
+      font-weight: 600 !important;
+      font-size: 12px !important;
+      color: var(--text-secondary);
+      height: 32px !important;
+      line-height: 32px !important;
+
+      &.active {
+        background: var(--accent-gradient);
+        color: #ffffff;
+      }
+
+      .discount-badge {
+        font-size: 9px;
+        background: var(--success);
+        color: #ffffff;
+        padding: 1px 6px;
+        border-radius: 10px;
+        margin-left: 6px;
+        font-weight: 700;
+      }
+    }
+  }
+}
+
+/* Plans comparison grid */
+.plans-comparison-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 20px;
+}
+
+.plan-tier-card {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  padding: 28px 24px !important;
+  background: var(--bg-card);
+  border: 1px solid var(--border-color) !important;
+  border-radius: 16px !important;
+  transition: transform 0.3s ease, border-color 0.3s ease, box-shadow 0.3s ease;
+  height: 100%;
+
+  &:hover {
+    transform: translateY(-4px);
+    box-shadow: var(--shadow-lg);
+  }
+
+  &.active-tier {
+    border: 2px solid var(--accent-color) !important;
+    box-shadow: 0 8px 30px rgba(99, 102, 241, 0.15);
+    background: rgba(99, 102, 241, 0.02);
+  }
+
+  .current-badge {
+    position: absolute;
+    top: -12px;
+    left: 50%;
+    transform: translateX(-50%);
+    background: var(--accent-gradient);
+    color: #ffffff;
+    font-size: 10px;
+    font-weight: 800;
+    text-transform: uppercase;
+    padding: 3px 12px;
+    border-radius: 20px;
+    box-shadow: 0 4px 10px rgba(99, 102, 241, 0.3);
+    letter-spacing: 0.05em;
+  }
+
+  .tier-name {
+    font-size: 20px;
+    font-weight: 800;
+    margin: 0 0 12px 0;
+    text-align: center;
+  }
+
+  .price-container {
+    text-align: center;
+    margin-bottom: 24px;
+    min-height: 48px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+
+    .price-txt {
+      font-size: 14px;
+      font-weight: 700;
+      color: var(--text-primary);
+      line-height: 1.4;
+    }
+  }
+
+  .features-list {
+    list-style: none;
+    padding: 0;
+    margin: 0 0 28px 0;
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+    flex: 1;
+
+    li {
+      display: flex;
+      align-items: flex-start;
+      gap: 10px;
+      font-size: 13px;
+      line-height: 1.4;
+      color: var(--text-secondary);
+
+      .feature-icon {
+        font-size: 18px;
+        width: 18px;
+        height: 18px;
+        flex-shrink: 0;
+        margin-top: 1px;
+
+        &.check {
+          color: var(--success);
+        }
+        &.cross {
+          color: var(--text-muted);
+          opacity: 0.5;
+        }
+      }
+    }
+  }
+
+  .action-btn-tier {
+    width: 100%;
+    border-radius: 8px !important;
+    font-weight: 700 !important;
+    height: 44px !important;
+    line-height: 44px !important;
+  }
+}
+
+/* Invoices list card */
+.saas-invoices-card {
+  padding: 24px !important;
+  background: var(--bg-card);
+  border: var(--card-border);
+  border-radius: 12px;
+
+  .card-header-row {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 6px;
+    color: var(--accent-color);
+
+    mat-icon {
+      font-size: 24px;
+      width: 24px;
+      height: 24px;
+    }
+    
+    h2 {
+      font-size: 18px;
+      font-weight: 700;
+      margin: 0;
+      color: var(--text-primary);
+    }
+  }
+}
+
+.table-scroll-wrapper {
+  width: 100%;
+  overflow-x: auto;
+  border-radius: 8px;
+  border: 1px solid var(--border-color);
+  
+  table {
+    width: 100%;
+    background: transparent !important;
+  }
+  
+  th {
+    font-weight: 700 !important;
+    color: var(--text-secondary);
+  }
+  
+  td {
+    color: var(--text-primary);
+  }
+
+  .invoice-num {
+    font-family: monospace;
+    font-size: 13px;
+  }
+}
+
+/* Status / Plan badges used in invoices table */
+.status-badge {
+  display: inline-block;
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  padding: 3px 8px;
+  border-radius: 6px;
+  letter-spacing: 0.04em;
+
+  &.paid {
+    background: rgba(34, 197, 94, 0.12);
+    color: #22c55e;
+  }
+  &.failed {
+    background: rgba(239, 68, 68, 0.12);
+    color: #ef4444;
+  }
+  &.pending {
+    background: rgba(245, 158, 11, 0.12);
+    color: #f59e0b;
+  }
+  &.badge-free {
+    background: rgba(148, 163, 184, 0.12);
+    color: #94a3b8;
+  }
+  &.badge-basic {
+    background: rgba(59, 130, 246, 0.12);
+    color: #3b82f6;
+  }
+  &.badge-pro {
+    background: rgba(168, 85, 247, 0.12);
+    color: #a855f7;
+  }
+  &.badge-enterprise {
+    background: rgba(236, 72, 153, 0.12);
+    color: #ec4899;
+  }
+}
+
+/* Empty billing history state */
+.empty-table-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 48px 24px;
+  gap: 12px;
+  color: var(--text-muted);
+  
+  mat-icon {
+    font-size: 48px;
+    width: 48px;
+    height: 48px;
+    opacity: 0.3;
+  }
+  
+  h3 {
+    font-size: 16px;
+    font-weight: 700;
+    margin: 0;
+    color: var(--text-secondary);
+  }
+  
+  p {
+    font-size: 13px;
+    margin: 0;
+  }
+}
+
+/* Responsiveness adjustments */
+@media (max-width: 1199.98px) {
+  .active-subscription-card {
+    grid-template-columns: 1fr;
+    gap: 24px;
+    
+    .status-summary-section {
+      border-right: none;
+      border-bottom: 1px solid var(--border-color);
+      padding-right: 0;
+      padding-bottom: 24px;
+    }
+  }
+
+  .plans-comparison-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
 @media (max-width: 959.98px) {
   .settings-grid {
     grid-template-columns: 1fr;
@@ -124,6 +596,10 @@
 }
 
 @media (max-width: 599.98px) {
+  .plans-comparison-grid {
+    grid-template-columns: 1fr;
+  }
+  
   .form-row {
     grid-template-columns: 1fr;
   }
