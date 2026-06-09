@@ -25,6 +25,7 @@ import { ActivityLogState } from '../../presentation/state/activity-log.state';
 import { MembershipPlanState } from '../../presentation/state/membership-plan.state';
 import { WhatsAppState } from '../../presentation/state/whatsapp.state';
 
+import { GymState } from '../../presentation/state/gym.state';
 import { RenewDialogComponent } from '../payments/renew-dialog.component';
 import { Observable, combineLatest } from 'rxjs';
 import { map } from 'rxjs/operators';
@@ -67,6 +68,7 @@ export class DashboardComponent implements OnInit {
   overduePaymentsList$: Observable<Payment[]> | undefined;
   renewalsThisWeek$: Observable<Member[]> | undefined;
   upcomingReminders$: Observable<WhatsAppReminder[]> | undefined;
+  canAccessAnalytics$: Observable<boolean>;
   
   displayedColumns = ['avatar', 'name', 'time', 'status'];
 
@@ -88,9 +90,14 @@ export class DashboardComponent implements OnInit {
     private logState: ActivityLogState,
     private planState: MembershipPlanState,
     private whatsappState: WhatsAppState,
+    private gymState: GymState,
     private dialog: MatDialog,
     private snackBar: MatSnackBar
-  ) {}
+  ) {
+    this.canAccessAnalytics$ = this.gymState.activeGymFeatures$.pipe(
+      map(features => features ? features.canAccessAnalytics : false)
+    );
+  }
 
   ngOnInit(): void {
     const todayStr = new Date().toISOString().split('T')[0];

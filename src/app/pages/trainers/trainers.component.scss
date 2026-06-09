@@ -191,3 +191,77 @@
     grid-template-columns: 1fr;
   }
 }
+
+/* Premium Lock Overlay */
+.trainers-content-area {
+  position: relative;
+  width: 100%;
+}
+
+.premium-lock-overlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 10;
+  display: flex;
+  justify-content: center;
+  align-items: flex-start;
+  padding-top: 40px;
+  background: rgba(15, 23, 42, 0.4);
+  backdrop-filter: blur(4px);
+  border-radius: 12px;
+}
+
+.lock-card {
+  max-width: 500px;
+  text-align: center;
+  padding: 32px !important;
+  background: rgba(30, 41, 59, 0.75) !important;
+  backdrop-filter: blur(16px);
+  border: 1px solid rgba(255, 255, 255, 0.08) !important;
+  border-radius: 16px !important;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5) !important;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 16px;
+
+  .lock-icon {
+    font-size: 48px;
+    width: 48px;
+    height: 48px;
+    color: var(--accent-color);
+    margin-bottom: 8px;
+  }
+
+  h2 {
+    font-size: 22px;
+    font-weight: 800;
+    margin: 0;
+    color: #ffffff;
+  }
+
+  p {
+    font-size: 14px;
+    line-height: 1.6;
+    color: var(--text-secondary);
+    margin: 0 0 8px 0;
+  }
+
+  button {
+    font-weight: 600 !important;
+    border-radius: 8px !important;
+    padding: 0 24px !important;
+    height: 40px !important;
+    line-height: 40px !important;
+  }
+}
+
+.blurred-content {
+  filter: blur(8px);
+  pointer-events: none;
+  user-select: none;
+}
+

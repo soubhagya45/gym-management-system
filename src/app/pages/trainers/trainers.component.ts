@@ -8,10 +8,14 @@ import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
 import { MatTooltipModule } from '@angular/material/tooltip';
 import { MatDividerModule } from '@angular/material/divider';
 import { TrainerState } from '../../presentation/state/trainer.state';
+import { GymState } from '../../presentation/state/gym.state';
+import { SubscriptionService } from '../../domain/subscription/subscription.service';
 import { Trainer } from '../../core/models/trainer.entity';
 import { TrainerDialogComponent } from './trainer-dialog.component';
 import { ConfirmDialogComponent } from '../members/confirm-dialog.component';
-import { Observable } from 'rxjs';
+import { Observable, combineLatest } from 'rxjs';
+import { map, take } from 'rxjs/operators';
+import { Router } from '@angular/router';
 
 @Component({
   selector: 'app-trainers',
@@ -31,34 +35,69 @@ import { Observable } from 'rxjs';
 })
 export class TrainersComponent implements OnInit {
   trainers$: Observable<Trainer[]> | undefined;
+  canManageTrainers$: Observable<boolean>;
+  isLimitReached$: Observable<boolean>;
+  currentTrainersCount = 0;
 
   constructor(
     private trainerState: TrainerState,
+    private gymState: GymState,
+    private subscriptionService: SubscriptionService,
     private dialog: MatDialog,
-    private snackBar: MatSnackBar
-  ) {}
+    private snackBar: MatSnackBar,
+    private router: Router
+  ) {
+    this.canManageTrainers$ = this.gymState.activeGymFeatures$.pipe(
+      map(features => features ? features.canManageTrainers : false)
+    );
+
+    this.isLimitReached$ = combineLatest([
+      this.gymState.activeGym$,
+      this.trainerState.trainers$
+    ]).pipe(
+      map(([gym, trainers]) => {
+        if (!gym || !trainers) return false;
+        this.currentTrainersCount = trainers.length;
+        const features = this.subscriptionService.getFeatureFlags(gym.subscriptionPlan);
+        return trainers.length >= features.maxTrainers;
+      })
+    );
+  }
 
   ngOnInit(): void {
     this.trainers$ = this.trainerState.trainers$;
   }
 
+
   // Add Trainer
   openAddTrainerDialog() {
-    const dialogRef = this.dialog.open(TrainerDialogComponent, {
-      width: '550px',
-      data: null
-    });
-
-    dialogRef.afterClosed().subscribe(result => {
-      if (result) {
-        this.trainerState.addTrainer(result).subscribe(() => {
-          this.snackBar.open('Trainer profile registered successfully!', 'Dismiss', {
-            duration: 3000
-          });
+    this.isLimitReached$.pipe(take(1)).subscribe(limitReached => {
+      if (limitReached) {
+        this.snackBar.open('Trainer limit reached for your plan. Please upgrade to register more trainers.', 'Upgrade Plan', {
+          duration: 5000
+        }).onAction().subscribe(() => {
+          this.router.navigate(['/settings']);
         });
+        return;
       }
+
+      const dialogRef = this.dialog.open(TrainerDialogComponent, {
+        width: '550px',
+        data: null
+      });
+
+      dialogRef.afterClosed().subscribe(result => {
+        if (result) {
+          this.trainerState.addTrainer(result).subscribe(() => {
+            this.snackBar.open('Trainer profile registered successfully!', 'Dismiss', {
+              duration: 3000
+            });
+          });
+        }
+      });
     });
   }
+
 
   // Edit Trainer
   openEditTrainerDialog(trainer: Trainer) {
