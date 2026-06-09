@@ -9,4 +9,6 @@ export interface Gym {
   subscriptionPlan: SubscriptionPlan;
   status: 'active' | 'suspended';
   createdAt: string;
+  address: string;
+  gstNumber?: string;
 }

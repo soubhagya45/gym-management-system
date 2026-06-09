@@ -100,10 +100,24 @@ import { MembershipPlan } from '../../core/models/membership-plan.entity';
 
           <!-- Weight -->
           <mat-form-field appearance="outline">
-            <mat-label>Weight (kg)</mat-label>
+            <mat-label>Current Weight (kg)</mat-label>
             <input matInput type="number" formControlName="weight" placeholder="70">
             <mat-error *ngIf="memberForm.get('weight')?.hasError('required')">Weight is required</mat-error>
             <mat-error *ngIf="memberForm.get('weight')?.hasError('min')">Weight must be at least 10 kg</mat-error>
+          </mat-form-field>
+
+          <!-- Starting Weight -->
+          <mat-form-field appearance="outline">
+            <mat-label>Starting Weight (kg)</mat-label>
+            <input matInput type="number" formControlName="startingWeight" placeholder="80">
+            <mat-error *ngIf="memberForm.get('startingWeight')?.hasError('min')">Starting weight must be at least 10 kg</mat-error>
+          </mat-form-field>
+
+          <!-- Goal Weight -->
+          <mat-form-field appearance="outline">
+            <mat-label>Goal Weight (kg)</mat-label>
+            <input matInput type="number" formControlName="goalWeight" placeholder="75">
+            <mat-error *ngIf="memberForm.get('goalWeight')?.hasError('min')">Goal weight must be at least 10 kg</mat-error>
           </mat-form-field>
 
           <!-- Fitness Goal -->
@@ -265,6 +279,8 @@ export class MemberDialogComponent implements OnInit {
       age: [this.data?.age || '', [Validators.required, Validators.min(1), Validators.max(120)]],
       height: [this.data?.height || '', [Validators.required, Validators.min(50), Validators.max(250)]],
       weight: [this.data?.weight || '', [Validators.required, Validators.min(10), Validators.max(300)]],
+      startingWeight: [this.data?.startingWeight || '', [Validators.min(10), Validators.max(300)]],
+      goalWeight: [this.data?.goalWeight || '', [Validators.min(10), Validators.max(300)]],
       fitnessGoal: [this.data?.fitnessGoal || 'General Fitness', [Validators.required]]
     });
   }

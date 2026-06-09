@@ -1,0 +1,229 @@
+<div class="dashboard-wrapper">
+  <!-- Page Header -->
+  <div class="page-header">
+    <div class="title-area">
+      <h1>Fitness Progress Tracker</h1>
+      <p>Analyze and manage member transformations and body composition goals.</p>
+    </div>
+  </div>
+
+  <!-- Stats Grid -->
+  <div class="stats-grid" *ngIf="stats$ | async as stats">
+    <!-- Card 1: Total Weight Lost -->
+    <div class="mat-card stat-card weight-lost-card">
+      <div class="stat-header">
+        <div class="stat-icon-wrapper danger-glow">
+          <mat-icon>trending_down</mat-icon>
+        </div>
+      </div>
+      <div class="stat-body">
+        <h3 class="stat-value">{{ stats.totalWeightLost }} <span class="unit">kg</span></h3>
+        <p class="stat-label">Total Gym Weight Lost</p>
+      </div>
+      <div class="stat-footer">
+        <span class="footer-text">Aggregated fat loss of active members</span>
+      </div>
+    </div>
+
+    <!-- Card 2: Goal Completion Rate -->
+    <div class="mat-card stat-card goal-completion-card">
+      <div class="stat-header">
+        <div class="stat-icon-wrapper success-glow">
+          <mat-icon>emoji_events</mat-icon>
+        </div>
+        <span class="stat-badge success">{{ stats.averageGoalCompletion }}%</span>
+      </div>
+      <div class="stat-body">
+        <h3 class="stat-value">{{ stats.averageGoalCompletion }}<span class="unit">%</span></h3>
+        <p class="stat-label">Goal Completion Rate</p>
+      </div>
+      <div class="stat-footer">
+        <div class="progress-bar-container">
+          <div class="progress-fill success" [style.width.%]="stats.averageGoalCompletion"></div>
+        </div>
+        <span class="footer-text">Average progress towards member goals</span>
+      </div>
+    </div>
+
+    <!-- Card 3: Active Trackers -->
+    <div class="mat-card stat-card trackers-card">
+      <div class="stat-header">
+        <div class="stat-icon-wrapper primary-glow">
+          <mat-icon>monitor_weight</mat-icon>
+        </div>
+      </div>
+      <div class="stat-body">
+        <h3 class="stat-value">{{ stats.totalProgressingCount }}</h3>
+        <p class="stat-label">Active Trackers</p>
+      </div>
+      <div class="stat-footer">
+        <span class="footer-text">Members with logged progress logs</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- Quick Actions & Selector Row -->
+  <div class="quick-actions-card mat-card glass-card">
+    <div class="card-title-row">
+      <mat-icon class="card-icon">add_task</mat-icon>
+      <h3>Record Progress Entry</h3>
+    </div>
+    <div class="log-controls" *ngIf="members$ | async as members">
+      <div class="select-wrapper">
+        <mat-form-field appearance="outline">
+          <mat-label>Select a Gym Member</mat-label>
+          <mat-select [(value)]="selectedMemberId">
+            <mat-option *ngFor="let member of members" [value]="member.id">
+              {{ member.name }} (Height: {{ member.height }}cm, Goal: {{ member.fitnessGoal }})
+            </mat-option>
+          </mat-select>
+        </mat-form-field>
+      </div>
+      <button mat-raised-button color="primary" [disabled]="!selectedMemberId" (click)="openLogDialog()">
+        <mat-icon>add</mat-icon>
+        <span>Log Measurements & Photos</span>
+      </button>
+    </div>
+  </div>
+
+  <!-- Dashboard Split Grid -->
+  <div class="dashboard-split-grid">
+    <!-- Left Column: Transformation Leaders -->
+    <div class="mat-card glass-card leaders-card-wrapper" *ngIf="stats$ | async as stats">
+      <div class="card-header-with-icon">
+        <div class="header-title">
+          <mat-icon class="icon-gold">workspace_premium</mat-icon>
+          <h3>Transformation Leaders</h3>
+        </div>
+        <span class="subtitle">Top members sorted by goal completion percentage</span>
+      </div>
+
+      <div class="leaders-list" *ngIf="stats.leaders && stats.leaders.length > 0; else noLeaders">
+        <div class="leader-item" *ngFor="let leader of stats.leaders; let i = index">
+          <div class="leader-rank" [ngClass]="'rank-' + (i + 1)">
+            {{ i + 1 }}
+          </div>
+          <img [src]="leader.avatarUrl || 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=80'"
+            alt="Avatar" class="leader-avatar">
+          <div class="leader-details">
+            <div class="leader-name-row">
+              <span class="leader-name">{{ leader.name }}</span>
+              <span class="leader-goal">{{ leader.fitnessGoal }}</span>
+            </div>
+            <div class="progress-info-row">
+              <span class="weight-change">
+                {{ leader.weightChange > 0 ? 'Lost ' + leader.weightChange + ' kg' : (leader.weightChange < 0
+                  ? 'Gained ' + (-leader.weightChange) + ' kg' : 'Stable weight' ) }} </span>
+                  <span class="percent-complete">{{ leader.completionPercentage }}% Goal Completed</span>
+            </div>
+            <div class="progress-bar-container">
+              <div class="progress-fill gold-progress" [style.width.%]="leader.completionPercentage"></div>
+            </div>
+            <div class="weight-labels">
+              <span>Start: {{ leader.startingWeight }} kg</span>
+              <span>Current: {{ leader.currentWeight }} kg</span>
+              <span>Goal: {{ leader.goalWeight }} kg</span>
+            </div>
+          </div>
+        </div>
+      </div>
+      <ng-template #noLeaders>
+        <div class="empty-state">
+          <mat-icon>emoji_events</mat-icon>
+          <p>No transformation logs registered yet.</p>
+        </div>
+      </ng-template>
+    </div>
+
+    <!-- Right Column: Recent Logs -->
+    <div class="mat-card glass-card recent-logs-card-wrapper">
+      <div class="card-header-with-icon">
+        <div class="header-title">
+          <mat-icon>history</mat-icon>
+          <h3>Recent Gym Transformation Logs</h3>
+        </div>
+        <span class="subtitle">Latest weight and fat composition entries</span>
+      </div>
+
+      <div class="table-container" *ngIf="allEntries$ | async as entries">
+        <table mat-table [dataSource]="entries" class="modern-table" *ngIf="entries.length > 0; else noEntries">
+          <!-- Member Column -->
+          <ng-container matColumnDef="member">
+            <th mat-header-cell *matHeaderCellDef>Member</th>
+            <td mat-cell *matCellDef="let entry">
+              <div class="member-cell" [routerLink]="['/members', entry.memberId]">
+                <img [src]="entry.memberAvatar || 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=80'"
+                  alt="Avatar" class="table-avatar">
+                <div class="member-info">
+                  <span class="name">{{ entry.memberName }}</span>
+                  <span class="goal">{{ entry.memberGoal }}</span>
+                </div>
+              </div>
+            </td>
+          </ng-container>
+
+          <!-- Date Column -->
+          <ng-container matColumnDef="date">
+            <th mat-header-cell *matHeaderCellDef>Date</th>
+            <td mat-cell *matCellDef="let entry">{{ entry.date | date:'mediumDate' }}</td>
+          </ng-container>
+
+          <!-- Weight Column -->
+          <ng-container matColumnDef="weight">
+            <th mat-header-cell *matHeaderCellDef>Weight</th>
+            <td mat-cell *matCellDef="let entry" class="weight-cell">{{ entry.weight }} kg</td>
+          </ng-container>
+
+          <!-- Body Fat Column -->
+          <ng-container matColumnDef="bodyFat">
+            <th mat-header-cell *matHeaderCellDef>Body Fat</th>
+            <td mat-cell *matCellDef="let entry">
+              <span class="fat-badge" *ngIf="entry.bodyFat; else emptyBodyFat">
+                {{ entry.bodyFat }}%
+              </span>
+              <ng-template #emptyBodyFat>-</ng-template>
+            </td>
+          </ng-container>
+
+          <!-- BMI Column -->
+          <ng-container matColumnDef="bmi">
+            <th mat-header-cell *matHeaderCellDef>BMI</th>
+            <td mat-cell *matCellDef="let entry">
+              <span class="bmi-badge"
+                [ngClass]="entry.bmi < 18.5 ? 'underweight' : (entry.bmi < 25 ? 'normal' : 'overweight')">
+                {{ entry.bmi }}
+              </span>
+            </td>
+          </ng-container>
+
+          <!-- Notes Column -->
+          <ng-container matColumnDef="notes">
+            <th mat-header-cell *matHeaderCellDef>Notes</th>
+            <td mat-cell *matCellDef="let entry" class="notes-cell" [matTooltip]="entry.notes || ''">
+              {{ entry.notes || 'No comments' }}
+            </td>
+          </ng-container>
+
+          <!-- Actions Column -->
+          <ng-container matColumnDef="actions">
+            <th mat-header-cell *matHeaderCellDef></th>
+            <td mat-cell *matCellDef="let entry" class="actions-cell">
+              <button mat-icon-button color="warn" (click)="onDeleteEntry(entry)" matTooltip="Delete Entry">
+                <mat-icon>delete</mat-icon>
+              </button>
+            </td>
+          </ng-container>
+
+          <tr mat-header-row *matHeaderRowDef="displayedColumns"></tr>
+          <tr mat-row *matRowDef="let row; columns: displayedColumns;"></tr>
+        </table>
+        <ng-template #noEntries>
+          <div class="empty-state">
+            <mat-icon>assignment</mat-icon>
+            <p>No recent logs available.</p>
+          </div>
+        </ng-template>
+      </div>
+    </div>
+  </div>
+</div>

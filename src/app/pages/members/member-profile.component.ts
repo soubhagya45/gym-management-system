@@ -14,10 +14,13 @@ import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
 import { MemberState } from '../../presentation/state/member.state';
 import { AttendanceState } from '../../presentation/state/attendance.state';
 import { PaymentState } from '../../presentation/state/payment.state';
+import { BodyProgressState } from '../../presentation/state/body-progress.state';
 import { Member } from '../../core/models/member.entity';
 import { Attendance } from '../../core/models/attendance.entity';
 import { Payment } from '../../core/models/payment.entity';
+import { BodyProgressEntry } from '../../core/models/body-progress.entity';
 import { MemberDialogComponent } from './member-dialog.component';
+import { LogBodyProgressDialogComponent } from './log-body-progress-dialog.component';
 
 @Component({
   selector: 'app-member-profile',
@@ -44,17 +47,22 @@ export class MemberProfileComponent implements OnInit {
   member: Member | undefined;
   attendance: Attendance[] = [];
   payments: Payment[] = [];
+  progressEntries: BodyProgressEntry[] = [];
   
   attendanceColumns = ['date', 'timeIn', 'status'];
   paymentColumns = ['id', 'planName', 'date', 'amount', 'status'];
+  progressColumns = ['date', 'weight', 'bodyFat', 'bmi', 'notes', 'actions'];
   
   weightHistory: { label: string; value: number }[] = [];
+  fatHistory: { label: string; value: number }[] = [];
+  selectedPhotoTab: 'front' | 'side' | 'back' = 'front';
 
   constructor(
     private route: ActivatedRoute,
     private memberState: MemberState,
     private attendanceState: AttendanceState,
     private paymentState: PaymentState,
+    private progressState: BodyProgressState,
     private dialog: MatDialog,
     private snackBar: MatSnackBar
   ) {}
@@ -74,9 +82,6 @@ export class MemberProfileComponent implements OnInit {
     // 2. Fetch Member Profile details
     this.memberState.members$.subscribe(members => {
       this.member = members.find(m => m.id === this.memberId);
-      if (this.member) {
-        this.weightHistory = this.generateWeightHistory();
-      }
     });
 
     // 3. Fetch Attendance History for Member
@@ -88,6 +93,23 @@ export class MemberProfileComponent implements OnInit {
     this.paymentState.payments$.subscribe(payList => {
       this.payments = payList.filter(p => p.memberId === this.memberId);
     });
+
+    // 5. Fetch Fitness Progress Entries for Member
+    this.progressState.entries$.subscribe(entries => {
+      this.progressEntries = entries;
+      const chronological = [...entries].reverse();
+      this.weightHistory = chronological.map(e => ({
+        label: this.formatDateLabel(e.date),
+        value: e.weight
+      }));
+      this.fatHistory = chronological
+        .filter(e => e.bodyFat !== undefined && e.bodyFat > 0)
+        .map(e => ({
+          label: this.formatDateLabel(e.date),
+          value: e.bodyFat!
+        }));
+    });
+    this.progressState.loadEntries(this.memberId);
   }
 
   openEditDialog(): void {
@@ -215,5 +237,108 @@ export class MemberProfileComponent implements OnInit {
     const endPoint = `${padding + (data.length - 1) * stepX},${height - padding}`;
 
     return `M ${startPoint} L ${linePoints.join(' L ')} L ${endPoint} Z`;
+  }
+
+  formatDateLabel(dateStr: string): string {
+    try {
+      const parts = dateStr.split('-');
+      if (parts.length === 3) {
+        const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+        const month = monthNames[parseInt(parts[1], 10) - 1];
+        const day = parseInt(parts[2], 10);
+        return `${month} ${day}`;
+      }
+      return dateStr;
+    } catch {
+      return dateStr;
+    }
+  }
+
+  getWeightChange(): number {
+    if (!this.member || this.member.startingWeight === undefined) return 0;
+    const change = this.member.startingWeight - this.member.weight;
+    return Math.round(change * 10) / 10;
+  }
+
+  getGoalCompletionPercentage(): number {
+    if (!this.member || this.member.startingWeight === undefined) return 0;
+    const start = this.member.startingWeight;
+    const current = this.member.weight;
+    const goal = this.member.goalWeight || start;
+
+    const lost = start - current;
+    const targetLoss = start - goal;
+
+    let completion = 0;
+    if (targetLoss > 0) {
+      completion = (lost / targetLoss) * 100;
+    } else if (targetLoss < 0) {
+      const gained = current - start;
+      const targetGain = goal - start;
+      completion = (gained / targetGain) * 100;
+    } else {
+      completion = current === goal ? 100 : 0;
+    }
+    return Math.round(Math.max(0, Math.min(100, completion)));
+  }
+
+  getMeasurementStats(): any[] {
+    if (this.progressEntries.length === 0) return [];
+
+    // Sort oldest first to find start values
+    const sorted = [...this.progressEntries].sort((a, b) => a.date.localeCompare(b.date));
+    const start = sorted[0];
+    const latest = sorted[sorted.length - 1];
+
+    const keys: ('chest' | 'waist' | 'arms' | 'thighs' | 'shoulder')[] = ['chest', 'waist', 'arms', 'thighs', 'shoulder'];
+    const names = { chest: 'Chest', waist: 'Waist', arms: 'Arms', thighs: 'Thighs', shoulder: 'Shoulder' };
+
+    return keys.map(k => {
+      const sVal = start[k];
+      const cVal = latest[k];
+      const diff = (sVal !== undefined && cVal !== undefined) ? (cVal - sVal) : 0;
+      return {
+        name: names[k],
+        start: sVal,
+        current: cVal,
+        diff: Math.round(diff * 10) / 10
+      };
+    }).filter(s => s.start !== undefined || s.current !== undefined);
+  }
+
+  openLogProgressDialog(): void {
+    if (!this.member) return;
+
+    const dialogRef = this.dialog.open(LogBodyProgressDialogComponent, {
+      width: '600px',
+      data: { member: this.member },
+      panelClass: 'glass-dialog'
+    });
+
+    dialogRef.afterClosed().subscribe(result => {
+      if (result) {
+        this.progressState.addEntry(result).subscribe({
+          next: () => {
+            this.snackBar.open('Fitness progress entry logged successfully!', 'Close', { duration: 3000 });
+          },
+          error: (err) => {
+            this.snackBar.open(err.message || 'Error logging progress', 'Close', { duration: 3000 });
+          }
+        });
+      }
+    });
+  }
+
+  deleteProgressEntry(id: string): void {
+    if (confirm('Are you sure you want to delete this progress entry?')) {
+      this.progressState.deleteEntry(id, this.memberId).subscribe({
+        next: () => {
+          this.snackBar.open('Progress entry deleted', 'Close', { duration: 3000 });
+        },
+        error: (err) => {
+          this.snackBar.open(err.message || 'Error deleting entry', 'Close', { duration: 3000 });
+        }
+      });
+    }
   }
 }

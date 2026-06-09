@@ -263,9 +263,7 @@
                 </div>
               </ng-template>
             </div>
-          </mat-tab>
-
-          <!-- Tab 4: Fitness Progress -->
+          </mat-tab>          <!-- Tab 4: Fitness Progress -->
           <mat-tab>
             <ng-template mat-tab-label>
               <mat-icon class="tab-icon">fitness_center</mat-icon>
@@ -274,60 +272,232 @@
             
             <div class="tab-content fitness-tab">
               <div class="section-summary-header">
-                <h3>Physical Health Metrics</h3>
-                <span class="metric-tag goal-tag">Goal: {{ member.fitnessGoal }}</span>
+                <div class="header-titles">
+                  <h3>Transformation & Health Tracker</h3>
+                  <span class="metric-tag goal-tag">Goal: {{ member.fitnessGoal }}</span>
+                </div>
+                <button mat-raised-button color="primary" class="log-progress-btn" (click)="openLogProgressDialog()">
+                  <mat-icon>add</mat-icon> Log New Progress
+                </button>
               </div>
 
               <!-- Stat Boxes Grid -->
               <div class="fitness-stats-row">
+                <!-- Weight Card -->
                 <div class="stat-card">
-                  <span class="val">{{ member.weight }} <small>kg</small></span>
-                  <span class="lbl">Current Weight</span>
+                  <div class="card-detail">
+                    <span class="lbl">Current Weight</span>
+                    <span class="val">{{ member.weight }} <small>kg</small></span>
+                  </div>
+                  <div class="card-extra">
+                    <span>Start: {{ member.startingWeight || member.weight }} kg</span>
+                    <span>Goal: {{ member.goalWeight || '-' }} kg</span>
+                  </div>
                 </div>
-                <div class="stat-card">
-                  <span class="val">{{ getBMI() }}</span>
-                  <span class="lbl">BMI Rating</span>
+
+                <!-- Weight Change -->
+                <div class="stat-card" [class.positive-progress]="getWeightChange() > 0">
+                  <div class="card-detail">
+                    <span class="lbl">Weight Change</span>
+                    <span class="val">
+                      {{ getWeightChange() > 0 ? '-' + getWeightChange() : (getWeightChange() < 0 ? '+' + (-getWeightChange()) : '0') }} <small>kg</small>
+                    </span>
+                  </div>
+                  <div class="card-extra progress-bar-detail" *ngIf="member.startingWeight && member.goalWeight">
+                    <div class="mini-progress-bg">
+                      <div class="mini-progress-fill" [style.width.%]="getGoalCompletionPercentage()"></div>
+                    </div>
+                    <span>{{ getGoalCompletionPercentage() }}% Completed</span>
+                  </div>
                 </div>
+
+                <!-- BMI -->
                 <div class="stat-card">
-                  <span class="val font-sm">{{ getBMICategory() }}</span>
-                  <span class="lbl">BMI Class</span>
+                  <div class="card-detail">
+                    <span class="lbl">BMI (Class)</span>
+                    <span class="val">{{ getBMI() }} <small class="text-sm">({{ getBMICategory() }})</small></span>
+                  </div>
+                  <div class="card-extra">
+                    <span>Height: {{ member.height }} cm</span>
+                  </div>
                 </div>
               </div>
 
-              <div class="weight-chart-wrapper">
-                <h4>Weight Progress Chart (5-Month Trend)</h4>
-                
-                <!-- SVG Line Chart rendering -->
-                <div class="svg-chart-container">
-                  <svg viewBox="0 0 450 150" class="progress-svg">
-                    <!-- Grid Lines -->
-                    <line x1="20" y1="20" x2="430" y2="20" stroke="var(--border-color)" stroke-dasharray="4"/>
-                    <line x1="20" y1="75" x2="430" y2="75" stroke="var(--border-color)" stroke-dasharray="4"/>
-                    <line x1="20" y1="130" x2="430" y2="130" stroke="var(--border-color)" stroke-dasharray="4"/>
-                    
-                    <!-- Fill Area under the line -->
-                    <path [attr.d]="getSVGFillPath(weightHistory)" fill="url(#chartGradient)" opacity="0.15"></path>
-                    
-                    <!-- Main Line -->
-                    <path [attr.d]="getSVGPath(weightHistory)" fill="none" stroke="var(--accent-color)" stroke-width="3"></path>
-                    
-                    <!-- Gradient definitions -->
-                    <defs>
-                      <linearGradient id="chartGradient" x1="0" y1="0" x2="0" y2="1">
-                        <stop offset="0%" stop-color="var(--accent-color)"/>
-                        <stop offset="100%" stop-color="transparent"/>
-                      </linearGradient>
-                    </defs>
-                  </svg>
-                  
-                  <!-- Labels under chart -->
-                  <div class="chart-labels">
-                    <div class="label-item" *ngFor="let item of weightHistory">
-                      <span class="lbl-month">{{ item.label }}</span>
-                      <span class="lbl-val">{{ item.value }} kg</span>
+              <!-- Charts and Measurements Row -->
+              <div class="metrics-analytics-row">
+                <!-- SVG Charts Column -->
+                <div class="analytics-col charts-col">
+                  <!-- Weight Trend -->
+                  <div class="trend-section card-glass">
+                    <h4>Weight Progression (Trend)</h4>
+                    <div class="svg-chart-container" *ngIf="weightHistory.length > 0; else noChartData">
+                      <svg viewBox="0 0 450 150" class="progress-svg">
+                        <line x1="20" y1="20" x2="430" y2="20" stroke="rgba(255,255,255,0.06)" stroke-dasharray="4"/>
+                        <line x1="20" y1="75" x2="430" y2="75" stroke="rgba(255,255,255,0.06)" stroke-dasharray="4"/>
+                        <line x1="20" y1="130" x2="430" y2="130" stroke="rgba(255,255,255,0.06)" stroke-dasharray="4"/>
+                        <path [attr.d]="getSVGFillPath(weightHistory)" fill="url(#weightChartGradient)" opacity="0.15"></path>
+                        <path [attr.d]="getSVGPath(weightHistory)" fill="none" stroke="#ff007f" stroke-width="3"></path>
+                        <defs>
+                          <linearGradient id="weightChartGradient" x1="0" y1="0" x2="0" y2="1">
+                            <stop offset="0%" stop-color="#ff007f"/>
+                            <stop offset="100%" stop-color="transparent"/>
+                          </linearGradient>
+                        </defs>
+                      </svg>
+                      <div class="chart-labels">
+                        <div class="label-item" *ngFor="let item of weightHistory">
+                          <span class="lbl-month">{{ item.label }}</span>
+                          <span class="lbl-val">{{ item.value }} kg</span>
+                        </div>
+                      </div>
+                    </div>
+                    <ng-template #noChartData>
+                      <div class="empty-chart-state">
+                        <mat-icon>show_chart</mat-icon>
+                        <p>No progress records logged yet.</p>
+                      </div>
+                    </ng-template>
+                  </div>
+
+                  <!-- Body Fat Trend -->
+                  <div class="trend-section card-glass">
+                    <h4>Body Fat % Progression</h4>
+                    <div class="svg-chart-container" *ngIf="fatHistory.length > 0; else noFatChartData">
+                      <svg viewBox="0 0 450 150" class="progress-svg">
+                        <line x1="20" y1="20" x2="430" y2="20" stroke="rgba(255,255,255,0.06)" stroke-dasharray="4"/>
+                        <line x1="20" y1="75" x2="430" y2="75" stroke="rgba(255,255,255,0.06)" stroke-dasharray="4"/>
+                        <line x1="20" y1="130" x2="430" y2="130" stroke="rgba(255,255,255,0.06)" stroke-dasharray="4"/>
+                        <path [attr.d]="getSVGFillPath(fatHistory)" fill="url(#fatChartGradient)" opacity="0.15"></path>
+                        <path [attr.d]="getSVGPath(fatHistory)" fill="none" stroke="#00b0ff" stroke-width="3"></path>
+                        <defs>
+                          <linearGradient id="fatChartGradient" x1="0" y1="0" x2="0" y2="1">
+                            <stop offset="0%" stop-color="#00b0ff"/>
+                            <stop offset="100%" stop-color="transparent"/>
+                          </linearGradient>
+                        </defs>
+                      </svg>
+                      <div class="chart-labels">
+                        <div class="label-item" *ngFor="let item of fatHistory">
+                          <span class="lbl-month">{{ item.label }}</span>
+                          <span class="lbl-val">{{ item.value }}%</span>
+                        </div>
+                      </div>
+                    </div>
+                    <ng-template #noFatChartData>
+                      <div class="empty-chart-state">
+                        <mat-icon>opacity</mat-icon>
+                        <p>No Body Fat logs recorded yet.</p>
+                      </div>
+                    </ng-template>
+                  </div>
+                </div>
+
+                <!-- Circumference Measurements Column -->
+                <div class="analytics-col measurements-col card-glass">
+                  <h4>Circumference Progress</h4>
+                  <div class="measurements-list" *ngIf="getMeasurementStats().length > 0; else noMeasurements">
+                    <div class="measurement-row header">
+                      <span>Area</span>
+                      <span>Start</span>
+                      <span>Current</span>
+                      <span>Change</span>
+                    </div>
+                    <div class="measurement-row" *ngFor="let stat of getMeasurementStats()">
+                      <span class="name">{{ stat.name }}</span>
+                      <span class="val">{{ stat.start || '-' }} <small>cm</small></span>
+                      <span class="val font-bold">{{ stat.current || '-' }} <small>cm</small></span>
+                      <span class="change" [ngClass]="stat.diff < 0 ? 'lost' : (stat.diff > 0 ? 'gained' : 'stable')">
+                        {{ stat.diff > 0 ? '+' + stat.diff : (stat.diff < 0 ? stat.diff : '0') }} cm
+                      </span>
+                    </div>
+                  </div>
+                  <ng-template #noMeasurements>
+                    <div class="empty-measurements-state">
+                      <mat-icon>straighten</mat-icon>
+                      <p>No body measurements recorded yet.</p>
+                    </div>
+                  </ng-template>
+                </div>
+              </div>
+
+              <!-- Progress Photos Compare Gallery -->
+              <div class="photos-gallery-section card-glass" *ngIf="progressEntries.length > 0">
+                <div class="gallery-header">
+                  <h4>Progress Photos Comparison</h4>
+                  <div class="photo-tabs">
+                    <button mat-button [class.active]="selectedPhotoTab === 'front'" (click)="selectedPhotoTab = 'front'">Front View</button>
+                    <button mat-button [class.active]="selectedPhotoTab === 'side'" (click)="selectedPhotoTab = 'side'">Side View</button>
+                    <button mat-button [class.active]="selectedPhotoTab === 'back'" (click)="selectedPhotoTab = 'back'">Back View</button>
+                  </div>
+                </div>
+
+                <div class="gallery-slider">
+                  <div class="gallery-grid">
+                    <div class="photo-compare-card" *ngFor="let entry of progressEntries | slice:0:3; let last = last; let first = first">
+                      <div class="badge">{{ first ? 'Latest' : (last ? 'Baseline' : 'Intermediate') }} ({{ entry.date | date:'mediumDate' }})</div>
+                      <div class="img-wrapper">
+                        <img *ngIf="selectedPhotoTab === 'front'" [src]="entry.frontPhoto || 'https://images.unsplash.com/photo-1571019614242-c5c5dee9f50b?w=300'" alt="Front Photo">
+                        <img *ngIf="selectedPhotoTab === 'side'" [src]="entry.sidePhoto || 'https://images.unsplash.com/photo-1517838277536-f5f99be501cd?w=300'" alt="Side Photo">
+                        <img *ngIf="selectedPhotoTab === 'back'" [src]="entry.backPhoto || 'https://images.unsplash.com/photo-1574680096145-d05b474e2155?w=300'" alt="Back Photo">
+                      </div>
+                      <div class="photo-meta">
+                        <span>Weight: {{ entry.weight }} kg</span>
+                        <span>Fat: {{ entry.bodyFat ? entry.bodyFat + '%' : '-' }}</span>
+                      </div>
                     </div>
                   </div>
                 </div>
+              </div>
+
+              <!-- History Log Table -->
+              <div class="history-log-section card-glass">
+                <h4>All Logs & History</h4>
+                <div class="table-scroll-wrapper" *ngIf="progressEntries.length > 0; else noHistory">
+                  <table mat-table [dataSource]="progressEntries" class="w-100">
+                    <ng-container matColumnDef="date">
+                      <th mat-header-cell *matHeaderCellDef> Date </th>
+                      <td mat-cell *matCellDef="let element"> {{ element.date | date:'mediumDate' }} </td>
+                    </ng-container>
+
+                    <ng-container matColumnDef="weight">
+                      <th mat-header-cell *matHeaderCellDef> Weight </th>
+                      <td mat-cell *matCellDef="let element"> {{ element.weight }} kg </td>
+                    </ng-container>
+
+                    <ng-container matColumnDef="bodyFat">
+                      <th mat-header-cell *matHeaderCellDef> Body Fat % </th>
+                      <td mat-cell *matCellDef="let element"> {{ element.bodyFat ? element.bodyFat + '%' : '-' }} </td>
+                    </ng-container>
+
+                    <ng-container matColumnDef="bmi">
+                      <th mat-header-cell *matHeaderCellDef> BMI </th>
+                      <td mat-cell *matCellDef="let element"> {{ element.bmi || '-' }} </td>
+                    </ng-container>
+
+                    <ng-container matColumnDef="notes">
+                      <th mat-header-cell *matHeaderCellDef> Notes </th>
+                      <td mat-cell *matCellDef="let element" class="notes-cell"> {{ element.notes || '-' }} </td>
+                    </ng-container>
+
+                    <ng-container matColumnDef="actions">
+                      <th mat-header-cell *matHeaderCellDef> </th>
+                      <td mat-cell *matCellDef="let element" class="actions-cell">
+                        <button mat-icon-button color="warn" (click)="deleteProgressEntry(element.id)">
+                          <mat-icon>delete</mat-icon>
+                        </button>
+                      </td>
+                    </ng-container>
+
+                    <tr mat-header-row *matHeaderRowDef="progressColumns"></tr>
+                    <tr mat-row *matRowDef="let row; columns: progressColumns;"></tr>
+                  </table>
+                </div>
+                <ng-template #noHistory>
+                  <div class="empty-state-placeholder">
+                    <mat-icon>query_builder</mat-icon>
+                    <p>No historical progress records found.</p>
+                  </div>
+                </ng-template>
               </div>
             </div>
           </mat-tab>

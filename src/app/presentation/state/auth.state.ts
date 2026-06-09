@@ -58,11 +58,22 @@ export class AuthState {
     ownerName: string,
     email: string,
     phone: string,
-    password?: string
+    password?: string,
+    address?: string,
+    gstNumber?: string,
+    deferSession = false
   ): Observable<UserProfile> {
-    return this.authRepository.register(gymName, ownerName, email, phone, password).pipe(
-      tap(user => this.setSession(user))
+    return this.authRepository.register(gymName, ownerName, email, phone, password, address, gstNumber).pipe(
+      tap(user => {
+        if (!deferSession) {
+          this.setSession(user);
+        }
+      })
     );
+  }
+
+  setCurrentUser(user: UserProfile): void {
+    this.setSession(user);
   }
 
   loginWithRole(role: 'owner' | 'trainer' | 'member'): Observable<UserProfile> {

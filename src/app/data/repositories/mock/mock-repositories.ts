@@ -12,7 +12,8 @@ import {
   IAttendanceRepository,
   IMembershipPlanRepository,
   IActivityLogRepository,
-  IWhatsAppRepository
+  IWhatsAppRepository,
+  IBodyProgressRepository
 } from '../../../core/interfaces/repository.interfaces';
 
 import { UserProfile } from '../../../core/models/user.model';
@@ -27,6 +28,7 @@ import { ActivityLog } from '../../../core/models/activity-log.entity';
 import { SubscriptionPlan } from '../../../core/enums/subscription-plans.enum';
 import { WhatsAppTemplate } from '../../../core/models/whatsapp-template.entity';
 import { WhatsAppReminder } from '../../../core/models/whatsapp-reminder.entity';
+import { BodyProgressEntry } from '../../../core/models/body-progress.entity';
 
 // --- Static In-Memory Database State ---
 const dbGyms: Gym[] = [
@@ -38,7 +40,9 @@ const dbGyms: Gym[] = [
     phone: '+91 99887 76655',
     subscriptionPlan: SubscriptionPlan.Pro,
     status: 'active',
-    createdAt: '2026-01-01'
+    createdAt: '2026-01-01',
+    address: '123 Elite Athlete Boulevard, Suite 500, Downtown',
+    gstNumber: '29ABCDE1234F1Z5'
   },
   {
     gymId: 'gym-b',
@@ -48,7 +52,9 @@ const dbGyms: Gym[] = [
     phone: '+91 99887 76699',
     subscriptionPlan: SubscriptionPlan.Basic,
     status: 'active',
-    createdAt: '2026-03-01'
+    createdAt: '2026-03-01',
+    address: '456 Resistance Road, Level 2, Uptown',
+    gstNumber: '29FGHIJ5678K2Z6'
   }
 ];
 
@@ -114,16 +120,16 @@ const dbTrainers: Trainer[] = [
 ];
 
 const dbMembers: Member[] = [
-  { id: 'mem-1', gymId: 'gym-a', name: 'Amit Sharma', email: 'amit.sharma@gmail.com', phone: '+91 99887 76655', status: 'active', planId: 'plan-2', planName: 'Premium Quarterly', startDate: '2026-04-10', endDate: '2026-07-10', avatarUrl: 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=150', attendanceCount: 18, balance: 0, gender: 'Male', age: 28, height: 182, weight: 79, fitnessGoal: 'Muscle Gain' },
-  { id: 'mem-2', gymId: 'gym-a', name: 'Priya Patel', email: 'priya.patel@yahoo.com', phone: '+91 99887 76656', status: 'active', planId: 'plan-3', planName: 'Elite Annual Platinum', startDate: '2026-01-15', endDate: '2027-01-15', avatarUrl: 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=150', attendanceCount: 42, balance: 0, gender: 'Female', age: 25, height: 165, weight: 58, fitnessGoal: 'Cardio Fitness' },
-  { id: 'mem-3', gymId: 'gym-a', name: 'Rajesh Kumar', email: 'rajesh.k@outlook.com', phone: '+91 99887 76657', status: 'expiring', planId: 'plan-1', planName: 'Essential Monthly', startDate: '2026-05-08', endDate: '2026-06-08', avatarUrl: 'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=150', attendanceCount: 11, balance: 1500, gender: 'Male', age: 45, height: 193, weight: 88, fitnessGoal: 'Strength Training' },
-  { id: 'mem-4', gymId: 'gym-a', name: 'Anjali Rao', email: 'anjali.rao@gmail.com', phone: '+91 99887 76658', status: 'active', planId: 'plan-2', planName: 'Premium Quarterly', startDate: '2026-05-01', endDate: '2026-08-01', avatarUrl: 'https://images.unsplash.com/photo-1544005313-94ddf0286df2?w=150', attendanceCount: 8, balance: 0, gender: 'Female', age: 31, height: 168, weight: 62, fitnessGoal: 'Weight Loss' },
-  { id: 'mem-5', gymId: 'gym-a', name: 'Vikram Singh', email: 'vikram.singh@gmail.com', phone: '+91 99887 76659', status: 'inactive', planId: 'plan-1', planName: 'Essential Monthly', startDate: '2026-02-10', endDate: '2026-03-10', avatarUrl: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=150', attendanceCount: 4, balance: 0, gender: 'Male', age: 38, height: 178, weight: 75, fitnessGoal: 'General Fitness' },
-  { id: 'mem-6', gymId: 'gym-a', name: 'Neha Gupta', email: 'neha.gupta@outlook.com', phone: '+91 99887 76660', status: 'active', planId: 'plan-3', planName: 'Elite Annual Platinum', startDate: '2026-03-20', endDate: '2027-03-20', avatarUrl: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150', attendanceCount: 29, balance: 0, gender: 'Female', age: 29, height: 165, weight: 54, fitnessGoal: 'Flexibility & Mobility' },
-  { id: 'mem-7', gymId: 'gym-a', name: 'Rohan Mehta', email: 'rohan.mehta@gmail.com', phone: '+91 99887 76661', status: 'expiring', planId: 'plan-2', planName: 'Premium Quarterly', startDate: '2026-03-10', endDate: '2026-06-10', avatarUrl: 'https://images.unsplash.com/photo-1506794778202-cad84cf45f1d?w=150', attendanceCount: 22, balance: 4000, gender: 'Male', age: 34, height: 184, weight: 82, fitnessGoal: 'Muscle Gain' },
+  { id: 'mem-1', gymId: 'gym-a', name: 'Amit Sharma', email: 'amit.sharma@gmail.com', phone: '+91 99887 76655', status: 'active', planId: 'plan-2', planName: 'Premium Quarterly', startDate: '2026-04-10', endDate: '2026-07-10', avatarUrl: 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=150', attendanceCount: 18, balance: 0, gender: 'Male', age: 28, height: 182, weight: 79, fitnessGoal: 'Muscle Gain', startingWeight: 85, goalWeight: 75 },
+  { id: 'mem-2', gymId: 'gym-a', name: 'Priya Patel', email: 'priya.patel@yahoo.com', phone: '+91 99887 76656', status: 'active', planId: 'plan-3', planName: 'Elite Annual Platinum', startDate: '2026-01-15', endDate: '2027-01-15', avatarUrl: 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=150', attendanceCount: 42, balance: 0, gender: 'Female', age: 25, height: 165, weight: 58, fitnessGoal: 'Cardio Fitness', startingWeight: 65, goalWeight: 55 },
+  { id: 'mem-3', gymId: 'gym-a', name: 'Rajesh Kumar', email: 'rajesh.k@outlook.com', phone: '+91 99887 76657', status: 'expiring', planId: 'plan-1', planName: 'Essential Monthly', startDate: '2026-05-08', endDate: '2026-06-08', avatarUrl: 'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=150', attendanceCount: 11, balance: 1500, gender: 'Male', age: 45, height: 193, weight: 88, fitnessGoal: 'Strength Training', startingWeight: 95, goalWeight: 80 },
+  { id: 'mem-4', gymId: 'gym-a', name: 'Anjali Rao', email: 'anjali.rao@gmail.com', phone: '+91 99887 76658', status: 'active', planId: 'plan-2', planName: 'Premium Quarterly', startDate: '2026-05-01', endDate: '2026-08-01', avatarUrl: 'https://images.unsplash.com/photo-1544005313-94ddf0286df2?w=150', attendanceCount: 8, balance: 0, gender: 'Female', age: 31, height: 168, weight: 62, fitnessGoal: 'Weight Loss', startingWeight: 68, goalWeight: 60 },
+  { id: 'mem-5', gymId: 'gym-a', name: 'Vikram Singh', email: 'vikram.singh@gmail.com', phone: '+91 99887 76659', status: 'inactive', planId: 'plan-1', planName: 'Essential Monthly', startDate: '2026-02-10', endDate: '2026-03-10', avatarUrl: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=150', attendanceCount: 4, balance: 0, gender: 'Male', age: 38, height: 178, weight: 75, fitnessGoal: 'General Fitness', startingWeight: 80, goalWeight: 75 },
+  { id: 'mem-6', gymId: 'gym-a', name: 'Neha Gupta', email: 'neha.gupta@outlook.com', phone: '+91 99887 76660', status: 'active', planId: 'plan-3', planName: 'Elite Annual Platinum', startDate: '2026-03-20', endDate: '2027-03-20', avatarUrl: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150', attendanceCount: 29, balance: 0, gender: 'Female', age: 29, height: 165, weight: 54, fitnessGoal: 'Flexibility & Mobility', startingWeight: 58, goalWeight: 52 },
+  { id: 'mem-7', gymId: 'gym-a', name: 'Rohan Mehta', email: 'rohan.mehta@gmail.com', phone: '+91 99887 76661', status: 'expiring', planId: 'plan-2', planName: 'Premium Quarterly', startDate: '2026-03-10', endDate: '2026-06-10', avatarUrl: 'https://images.unsplash.com/photo-1506794778202-cad84cf45f1d?w=150', attendanceCount: 22, balance: 4000, gender: 'Male', age: 34, height: 184, weight: 82, fitnessGoal: 'Muscle Gain', startingWeight: 88, goalWeight: 80 },
   // Gym B Members
-  { id: 'mem-b1', gymId: 'gym-b', name: 'John Connor', email: 'john.connor@sky.net', phone: '+91 99887 76601', status: 'active', planId: 'plan-b2', planName: 'VIP Year Pass', startDate: '2026-03-01', endDate: '2027-03-01', avatarUrl: 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=150', attendanceCount: 12, balance: 0, gender: 'Male', age: 21, height: 178, weight: 70, fitnessGoal: 'Tactical Survival' },
-  { id: 'mem-b2', gymId: 'gym-b', name: 'Marcus Wright', email: 'marcus.w@sky.net', phone: '+91 99887 76602', status: 'active', planId: 'plan-b1', planName: 'Standard Month Pass', startDate: '2026-05-15', endDate: '2026-06-15', avatarUrl: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=150', attendanceCount: 5, balance: 2000, gender: 'Male', age: 35, height: 185, weight: 90, fitnessGoal: 'Strength Building' }
+  { id: 'mem-b1', gymId: 'gym-b', name: 'John Connor', email: 'john.connor@sky.net', phone: '+91 99887 76601', status: 'active', planId: 'plan-b2', planName: 'VIP Year Pass', startDate: '2026-03-01', endDate: '2027-03-01', avatarUrl: 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=150', attendanceCount: 12, balance: 0, gender: 'Male', age: 21, height: 178, weight: 70, fitnessGoal: 'Tactical Survival', startingWeight: 75, goalWeight: 72 },
+  { id: 'mem-b2', gymId: 'gym-b', name: 'Marcus Wright', email: 'marcus.w@sky.net', phone: '+91 99887 76602', status: 'active', planId: 'plan-b1', planName: 'Standard Month Pass', startDate: '2026-05-15', endDate: '2026-06-15', avatarUrl: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=150', attendanceCount: 5, balance: 2000, gender: 'Male', age: 35, height: 185, weight: 90, fitnessGoal: 'Strength Building', startingWeight: 98, goalWeight: 88 }
 ];
 
 const dbPayments: Payment[] = [
@@ -291,7 +297,9 @@ export class MockAuthRepository implements IAuthRepository {
     ownerName: string,
     email: string,
     phone: string,
-    password?: string
+    password?: string,
+    address?: string,
+    gstNumber?: string
   ): Observable<UserProfile> {
     const emailKey = email.toLowerCase().trim();
     if (dbMockAccounts[emailKey]) {
@@ -307,7 +315,9 @@ export class MockAuthRepository implements IAuthRepository {
       phone,
       subscriptionPlan: SubscriptionPlan.FreeTrial,
       status: 'active',
-      createdAt: new Date().toISOString().split('T')[0]
+      createdAt: new Date().toISOString().split('T')[0],
+      address: address || 'Not Specified',
+      gstNumber: gstNumber || undefined
     };
     dbGyms.push(newGym);
 
@@ -646,6 +656,68 @@ export class MockWhatsAppRepository implements IWhatsAppRepository {
     const idx = dbWhatsAppReminders.findIndex(r => r.gymId === gymId && r.id === id);
     if (idx !== -1) {
       dbWhatsAppReminders.splice(idx, 1);
+    }
+    return of(undefined).pipe(delay(200));
+  }
+}
+
+const dbBodyProgressEntries: BodyProgressEntry[] = [
+  // Amit Sharma (mem-1) - Gym A
+  { id: 'bp-1', memberId: 'mem-1', gymId: 'gym-a', date: '2026-01-10', weight: 85.0, bodyFat: 22.0, chest: 104, waist: 94, arms: 36.0, thighs: 60, shoulder: 118, bmi: 25.7, notes: 'Starting weight assessment. Focus on strength training and high protein diet.', frontPhoto: 'https://images.unsplash.com/photo-1571019614242-c5c5dee9f50b?w=400', sidePhoto: 'https://images.unsplash.com/photo-1517838277536-f5f99be501cd?w=400', backPhoto: 'https://images.unsplash.com/photo-1574680096145-d05b474e2155?w=400' },
+  { id: 'bp-2', memberId: 'mem-1', gymId: 'gym-a', date: '2026-02-10', weight: 83.5, bodyFat: 21.0, chest: 103, waist: 92, arms: 36.5, thighs: 59, shoulder: 119, bmi: 25.2, notes: 'Feeling stronger. Waist size dropping.', frontPhoto: 'https://images.unsplash.com/photo-1571019614242-c5c5dee9f50b?w=400', sidePhoto: 'https://images.unsplash.com/photo-1517838277536-f5f99be501cd?w=400', backPhoto: 'https://images.unsplash.com/photo-1574680096145-d05b474e2155?w=400' },
+  { id: 'bp-3', memberId: 'mem-1', gymId: 'gym-a', date: '2026-03-10', weight: 82.0, bodyFat: 19.5, chest: 102, waist: 90, arms: 37.0, thighs: 58, shoulder: 120, bmi: 24.8, notes: 'Progressing well. Muscle definition improving.', frontPhoto: 'https://images.unsplash.com/photo-1571019614242-c5c5dee9f50b?w=400', sidePhoto: 'https://images.unsplash.com/photo-1517838277536-f5f99be501cd?w=400', backPhoto: 'https://images.unsplash.com/photo-1574680096145-d05b474e2155?w=400' },
+  { id: 'bp-4', memberId: 'mem-1', gymId: 'gym-a', date: '2026-04-10', weight: 80.5, bodyFat: 18.0, chest: 102, waist: 87, arms: 37.5, thighs: 57, shoulder: 121, bmi: 24.3, notes: 'Steady weight loss, strength parameters are still going up.', frontPhoto: 'https://images.unsplash.com/photo-1571019614242-c5c5dee9f50b?w=400', sidePhoto: 'https://images.unsplash.com/photo-1517838277536-f5f99be501cd?w=400', backPhoto: 'https://images.unsplash.com/photo-1574680096145-d05b474e2155?w=400' },
+  { id: 'bp-5', memberId: 'mem-1', gymId: 'gym-a', date: '2026-05-10', weight: 79.0, bodyFat: 16.5, chest: 101, waist: 85, arms: 38.0, thighs: 56, shoulder: 122, bmi: 23.8, notes: 'Almost reached goal weight. Feeling amazing.', frontPhoto: 'https://images.unsplash.com/photo-1571019614242-c5c5dee9f50b?w=400', sidePhoto: 'https://images.unsplash.com/photo-1517838277536-f5f99be501cd?w=400', backPhoto: 'https://images.unsplash.com/photo-1574680096145-d05b474e2155?w=400' },
+
+  // Priya Patel (mem-2) - Gym A
+  { id: 'bp-6', memberId: 'mem-2', gymId: 'gym-a', date: '2026-02-15', weight: 65.0, bodyFat: 28.0, chest: 92, waist: 76, arms: 28.0, thighs: 55, shoulder: 102, bmi: 23.9, notes: 'First evaluation. Goal is fat loss and cardiovascular health.', frontPhoto: 'https://images.unsplash.com/photo-1518310383802-640c2de311b2?w=400', sidePhoto: 'https://images.unsplash.com/photo-1518611012118-696072aa579a?w=400', backPhoto: 'https://images.unsplash.com/photo-1552674605-db6ffd4facb5?w=400' },
+  { id: 'bp-7', memberId: 'mem-2', gymId: 'gym-a', date: '2026-03-15', weight: 63.0, bodyFat: 26.5, chest: 91, waist: 73, arms: 27.5, thighs: 54, shoulder: 101, bmi: 23.1, notes: 'Increased cardio frequency. Waist reduced by 3cm.', frontPhoto: 'https://images.unsplash.com/photo-1518310383802-640c2de311b2?w=400', sidePhoto: 'https://images.unsplash.com/photo-1518611012118-696072aa579a?w=400', backPhoto: 'https://images.unsplash.com/photo-1552674605-db6ffd4facb5?w=400' },
+  { id: 'bp-8', memberId: 'mem-2', gymId: 'gym-a', date: '2026-04-15', weight: 61.0, bodyFat: 25.0, chest: 90, waist: 71, arms: 27.0, thighs: 53, shoulder: 100, bmi: 22.4, notes: 'Significant improvements in breathing and core strength.', frontPhoto: 'https://images.unsplash.com/photo-1518310383802-640c2de311b2?w=400', sidePhoto: 'https://images.unsplash.com/photo-1518611012118-696072aa579a?w=400', backPhoto: 'https://images.unsplash.com/photo-1552674605-db6ffd4facb5?w=400' },
+  { id: 'bp-9', memberId: 'mem-2', gymId: 'gym-a', date: '2026-05-15', weight: 59.0, bodyFat: 23.5, chest: 89, waist: 69, arms: 26.8, thighs: 52, shoulder: 99, bmi: 21.7, notes: 'Very close to goal weight. Increased muscle tone.', frontPhoto: 'https://images.unsplash.com/photo-1518310383802-640c2de311b2?w=400', sidePhoto: 'https://images.unsplash.com/photo-1518611012118-696072aa579a?w=400', backPhoto: 'https://images.unsplash.com/photo-1552674605-db6ffd4facb5?w=400' },
+  { id: 'bp-10', memberId: 'mem-2', gymId: 'gym-a', date: '2026-06-05', weight: 58.0, bodyFat: 22.8, chest: 88, waist: 68, arms: 26.5, thighs: 52, shoulder: 98, bmi: 21.3, notes: 'Maintenance phase initiated. Excellent energy levels.', frontPhoto: 'https://images.unsplash.com/photo-1518310383802-640c2de311b2?w=400', sidePhoto: 'https://images.unsplash.com/photo-1518611012118-696072aa579a?w=400', backPhoto: 'https://images.unsplash.com/photo-1552674605-db6ffd4facb5?w=400' },
+
+  // Rajesh Kumar (mem-3) - Gym A
+  { id: 'bp-11', memberId: 'mem-3', gymId: 'gym-a', date: '2026-03-08', weight: 95.0, bodyFat: 26.0, chest: 110, waist: 98, arms: 38.0, thighs: 62, shoulder: 122, bmi: 25.5, notes: 'Starting assessment. Main focus is strength and general fitness.', frontPhoto: 'https://images.unsplash.com/photo-1534438327276-14e5300c3a48?w=400', sidePhoto: 'https://images.unsplash.com/photo-1541534741688-6078c6bfb5c5?w=400', backPhoto: 'https://images.unsplash.com/photo-1581009146145-b5ef050c2e1e?w=400' },
+  { id: 'bp-12', memberId: 'mem-3', gymId: 'gym-a', date: '2026-04-08', weight: 92.0, bodyFat: 24.5, chest: 109, waist: 95, arms: 38.5, thighs: 61, shoulder: 123, bmi: 24.7, notes: 'Weight drops, lifting capacity increased.', frontPhoto: 'https://images.unsplash.com/photo-1534438327276-14e5300c3a48?w=400', sidePhoto: 'https://images.unsplash.com/photo-1541534741688-6078c6bfb5c5?w=400', backPhoto: 'https://images.unsplash.com/photo-1581009146145-b5ef050c2e1e?w=400' },
+  { id: 'bp-13', memberId: 'mem-3', gymId: 'gym-a', date: '2026-05-08', weight: 90.0, bodyFat: 23.0, chest: 108, waist: 92, arms: 39.0, thighs: 60, shoulder: 124, bmi: 24.2, notes: 'Steady progress. Visible improvements in shoulders and arms.', frontPhoto: 'https://images.unsplash.com/photo-1534438327276-14e5300c3a48?w=400', sidePhoto: 'https://images.unsplash.com/photo-1541534741688-6078c6bfb5c5?w=400', backPhoto: 'https://images.unsplash.com/photo-1581009146145-b5ef050c2e1e?w=400' },
+  { id: 'bp-14', memberId: 'mem-3', gymId: 'gym-a', date: '2026-06-04', weight: 88.0, bodyFat: 21.8, chest: 108, waist: 89, arms: 39.5, thighs: 59, shoulder: 125, bmi: 23.6, notes: 'Highly consistent. Approaching ideal parameters.', frontPhoto: 'https://images.unsplash.com/photo-1534438327276-14e5300c3a48?w=400', sidePhoto: 'https://images.unsplash.com/photo-1541534741688-6078c6bfb5c5?w=400', backPhoto: 'https://images.unsplash.com/photo-1581009146145-b5ef050c2e1e?w=400' }
+];
+
+@Injectable({ providedIn: 'root' })
+export class MockBodyProgressRepository implements IBodyProgressRepository {
+  getEntries(gymId: string, memberId: string): Observable<BodyProgressEntry[]> {
+    const entries = dbBodyProgressEntries.filter(e => e.gymId === gymId && e.memberId === memberId);
+    entries.sort((a, b) => b.date.localeCompare(a.date));
+    return of(entries).pipe(delay(300));
+  }
+
+  getAllEntries(gymId: string): Observable<BodyProgressEntry[]> {
+    const entries = dbBodyProgressEntries.filter(e => e.gymId === gymId);
+    entries.sort((a, b) => b.date.localeCompare(a.date));
+    return of(entries).pipe(delay(300));
+  }
+
+  addEntry(gymId: string, entry: Omit<BodyProgressEntry, 'id'>): Observable<BodyProgressEntry> {
+    const newEntry: BodyProgressEntry = {
+      ...entry,
+      id: 'bp-' + Math.random().toString(36).substring(2, 9),
+      gymId
+    };
+    dbBodyProgressEntries.unshift(newEntry);
+
+    // Update weight inside the member in the database
+    const member = dbMembers.find(m => m.gymId === gymId && m.id === entry.memberId);
+    if (member) {
+      member.weight = entry.weight;
+    }
+
+    return of(newEntry).pipe(delay(300));
+  }
+
+  deleteEntry(gymId: string, id: string): Observable<void> {
+    const idx = dbBodyProgressEntries.findIndex(e => e.gymId === gymId && e.id === id);
+    if (idx !== -1) {
+      dbBodyProgressEntries.splice(idx, 1);
     }
     return of(undefined).pipe(delay(200));
   }

@@ -41,13 +41,13 @@ body.light-theme {
   --card-border: 1px solid rgba(0, 0, 0, 0.05);
 
   /* MDC Variables Override for Outlined Inputs & Selects */
-  --mdc-outlined-field-label-text-color: var(--text-secondary);
-  --mdc-outlined-field-focus-label-text-color: var(--accent-color);
-  --mdc-outlined-field-outline-color: rgba(0, 0, 0, 0.12);
-  --mdc-outlined-field-focus-outline-color: var(--accent-color);
-  --mdc-outlined-field-hover-outline-color: rgba(0, 0, 0, 0.24);
-  --mdc-outlined-field-input-text-color: var(--text-primary);
-  --mdc-outlined-field-input-text-placeholder-color: var(--text-muted);
+  --mdc-outlined-text-field-label-text-color: var(--text-secondary);
+  --mdc-outlined-text-field-focus-label-text-color: var(--accent-color);
+  --mdc-outlined-text-field-outline-color: rgba(0, 0, 0, 0.12);
+  --mdc-outlined-text-field-focus-outline-color: var(--accent-color);
+  --mdc-outlined-text-field-hover-outline-color: rgba(0, 0, 0, 0.24);
+  --mdc-outlined-text-field-input-text-color: var(--text-primary);
+  --mdc-outlined-text-field-input-text-placeholder-color: var(--text-muted);
   --mat-select-trigger-text-color: var(--text-primary);
   --mat-select-arrow-color: var(--text-secondary);
   --mdc-dialog-container-color: var(--bg-secondary);
@@ -76,13 +76,13 @@ body.dark-theme {
   --card-border: 1px solid rgba(255, 255, 255, 0.06);
 
   /* MDC Variables Override for Outlined Inputs & Selects */
-  --mdc-outlined-field-label-text-color: var(--text-secondary);
-  --mdc-outlined-field-focus-label-text-color: var(--accent-color);
-  --mdc-outlined-field-outline-color: rgba(255, 255, 255, 0.12);
-  --mdc-outlined-field-focus-outline-color: var(--accent-color);
-  --mdc-outlined-field-hover-outline-color: rgba(255, 255, 255, 0.24);
-  --mdc-outlined-field-input-text-color: var(--text-primary);
-  --mdc-outlined-field-input-text-placeholder-color: var(--text-muted);
+  --mdc-outlined-text-field-label-text-color: var(--text-secondary);
+  --mdc-outlined-text-field-focus-label-text-color: var(--accent-color);
+  --mdc-outlined-text-field-outline-color: rgba(255, 255, 255, 0.12);
+  --mdc-outlined-text-field-focus-outline-color: var(--accent-color);
+  --mdc-outlined-text-field-hover-outline-color: rgba(255, 255, 255, 0.24);
+  --mdc-outlined-text-field-input-text-color: var(--text-primary);
+  --mdc-outlined-text-field-input-text-placeholder-color: var(--text-muted);
   --mat-select-trigger-text-color: var(--text-primary);
   --mat-select-arrow-color: var(--text-secondary);
   --mdc-dialog-container-color: var(--bg-secondary);
@@ -193,13 +193,96 @@ h1, h2, h3, h4, h5, h6 {
   }
 }
 
-/* Form Fields Styling (MDC Compliant) */
+/* Form Fields Styling (MDC Compliant & Theme Responsive) */
 .mat-mdc-form-field {
   width: 100%;
   font-family: var(--font-sans) !important;
   
   .mdc-text-field {
     font-family: var(--font-sans) !important;
+    background-color: transparent !important; /* Force transparent background for outline fields */
+  }
+
+  /* Input text color and caret */
+  .mdc-text-field__input {
+    color: var(--text-primary) !important;
+    caret-color: var(--text-primary) !important;
+    
+    &::placeholder {
+      color: var(--text-muted) !important;
+    }
+  }
+
+  /* Label Styling */
+  .mdc-floating-label {
+    color: var(--text-secondary) !important;
+  }
+
+  &.mat-focused {
+    .mdc-floating-label {
+      color: var(--accent-color) !important;
+    }
+  }
+
+  &.mat-form-field-invalid {
+    .mdc-floating-label {
+      color: var(--danger) !important;
+    }
+  }
+
+  /* Borders Styling */
+  .mdc-notched-outline__leading,
+  .mdc-notched-outline__notch,
+  .mdc-notched-outline__trailing {
+    border-color: var(--border-color) !important;
+    transition: border-color var(--transition-speed) var(--transition-curve);
+  }
+
+  &:hover {
+    .mdc-notched-outline__leading,
+    .mdc-notched-outline__notch,
+    .mdc-notched-outline__trailing {
+      border-color: var(--text-muted) !important;
+    }
+  }
+
+  &.mat-focused {
+    .mdc-notched-outline__leading,
+    .mdc-notched-outline__notch,
+    .mdc-notched-outline__trailing {
+      border-color: var(--accent-color) !important;
+    }
+  }
+
+  &.mat-form-field-invalid {
+    .mdc-notched-outline__leading,
+    .mdc-notched-outline__notch,
+    .mdc-notched-outline__trailing {
+      border-color: var(--danger) !important;
+    }
+  }
+
+  /* Icons */
+  mat-icon {
+    color: var(--text-secondary) !important;
+    transition: color var(--transition-speed) var(--transition-curve);
+  }
+
+  &.mat-focused mat-icon {
+    color: var(--accent-color) !important;
+  }
+
+  &.mat-form-field-invalid mat-icon {
+    color: var(--danger) !important;
+  }
+
+  /* Hints and Errors */
+  .mat-mdc-form-field-hint {
+    color: var(--text-muted) !important;
+  }
+
+  .mat-mdc-form-field-error {
+    color: var(--danger) !important;
   }
 }
 
