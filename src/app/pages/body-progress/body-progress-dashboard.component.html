@@ -8,7 +8,7 @@
   </div>
 
   <!-- Stats Grid -->
-  <div class="stats-grid" *ngIf="stats$ | async as stats">
+  <div class="stats-grid" *ngIf="stats">
     <!-- Card 1: Total Weight Lost -->
     <div class="mat-card stat-card weight-lost-card">
       <div class="stat-header">
@@ -68,7 +68,7 @@
       <mat-icon class="card-icon">add_task</mat-icon>
       <h3>Record Progress Entry</h3>
     </div>
-    <div class="log-controls" *ngIf="members$ | async as members">
+    <div class="log-controls" *ngIf="members">
       <div class="select-wrapper">
         <mat-form-field appearance="outline">
           <mat-label>Select a Gym Member</mat-label>
@@ -89,7 +89,7 @@
   <!-- Dashboard Split Grid -->
   <div class="dashboard-split-grid">
     <!-- Left Column: Transformation Leaders -->
-    <div class="mat-card glass-card leaders-card-wrapper" *ngIf="stats$ | async as stats">
+    <div class="mat-card glass-card leaders-card-wrapper" *ngIf="stats">
       <div class="card-header-with-icon">
         <div class="header-title">
           <mat-icon class="icon-gold">workspace_premium</mat-icon>
@@ -145,7 +145,7 @@
         <span class="subtitle">Latest weight and fat composition entries</span>
       </div>
 
-      <div class="table-container" *ngIf="allEntries$ | async as entries">
+      <div class="table-container" *ngIf="entries">
         <table mat-table [dataSource]="entries" class="modern-table" *ngIf="entries.length > 0; else noEntries">
           <!-- Member Column -->
           <ng-container matColumnDef="member">

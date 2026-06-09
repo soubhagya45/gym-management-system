@@ -15,7 +15,7 @@
       <a href="#analytics" class="nav-link">Analytics</a>
       <a href="#onboarding" class="nav-link">Onboarding</a>
     </nav>
-    <div class="auth-actions" *ngIf="currentUser$ | async as user; else guestNav">
+    <div class="auth-actions" *ngIf="currentUser as user; else guestNav">
       <span class="welcome-tag">Welcome, {{ user.name }}</span>
       <button mat-raised-button color="primary" class="nav-cta-btn" routerLink="/dashboard">
         <span>Go to Dashboard</span>

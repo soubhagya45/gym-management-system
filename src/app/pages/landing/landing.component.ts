@@ -1,11 +1,11 @@
-import { Component, OnInit } from '@angular/core';
+import { Component, OnInit, OnDestroy } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { RouterModule, Router } from '@angular/router';
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
 import { AuthState } from '../../presentation/state/auth.state';
-import { Observable } from 'rxjs';
-import { take } from 'rxjs/operators';
+import { Observable, Subject } from 'rxjs';
+import { take, takeUntil } from 'rxjs/operators';
 import { UserProfile } from '../../core/models/user.model';
 
 @Component({
@@ -20,8 +20,9 @@ import { UserProfile } from '../../core/models/user.model';
   templateUrl: './landing.component.html',
   styleUrls: ['./landing.component.scss']
 })
-export class LandingPageComponent implements OnInit {
-  currentUser$: Observable<UserProfile | null>;
+export class LandingPageComponent implements OnInit, OnDestroy {
+  currentUser: UserProfile | null = null;
+  private destroy$ = new Subject<void>();
 
   features = [
     {
@@ -59,15 +60,21 @@ export class LandingPageComponent implements OnInit {
   constructor(
     private authState: AuthState,
     private router: Router
-  ) {
-    this.currentUser$ = this.authState.currentUser$;
-  }
+  ) {}
 
   ngOnInit(): void {
-    this.currentUser$.pipe(take(1)).subscribe(user => {
+    this.authState.currentUser$.pipe(
+      takeUntil(this.destroy$)
+    ).subscribe(user => {
+      this.currentUser = user;
       if (user) {
         this.router.navigate(['/dashboard']);
       }
     });
+  }
+
+  ngOnDestroy(): void {
+    this.destroy$.next();
+    this.destroy$.complete();
   }
 }
