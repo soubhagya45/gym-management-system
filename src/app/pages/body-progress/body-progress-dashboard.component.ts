@@ -1,4 +1,4 @@
-import { Component, OnInit } from '@angular/core';
+import { Component, OnInit, OnDestroy } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { RouterModule } from '@angular/router';
 import { MatCardModule } from '@angular/material/card';
@@ -10,8 +10,8 @@ import { MatSelectModule } from '@angular/material/select';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatDialog, MatDialogModule } from '@angular/material/dialog';
 import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
-import { Observable } from 'rxjs';
-import { map, take } from 'rxjs/operators';
+import { Observable, Subject } from 'rxjs';
+import { map, take, takeUntil } from 'rxjs/operators';
 import { Member } from '../../core/models/member.entity';
 import { BodyProgressEntry } from '../../core/models/body-progress.entity';
 import { MemberState } from '../../presentation/state/member.state';
@@ -37,10 +37,15 @@ import { LogBodyProgressDialogComponent } from '../members/log-body-progress-dia
   templateUrl: './body-progress-dashboard.component.html',
   styleUrls: ['./body-progress-dashboard.component.scss']
 })
-export class BodyProgressDashboardComponent implements OnInit {
+export class BodyProgressDashboardComponent implements OnInit, OnDestroy {
   stats$: Observable<any>;
   members$: Observable<Member[]>;
   allEntries$: Observable<any[]>; // Join with member info for display
+
+  stats: any = null;
+  members: Member[] = [];
+  entries: any[] = [];
+  private destroy$ = new Subject<void>();
 
   selectedMemberId: string = '';
   displayedColumns: string[] = ['member', 'date', 'weight', 'bodyFat', 'bmi', 'notes', 'actions'];
@@ -69,6 +74,9 @@ export class BodyProgressDashboardComponent implements OnInit {
     this.memberState.loadMembers();
     this.progressState.loadAllEntries();
 
+    this.stats$.pipe(takeUntil(this.destroy$)).subscribe(stats => this.stats = stats);
+    this.members$.pipe(takeUntil(this.destroy$)).subscribe(members => this.members = members);
+
     // Set up joined entries stream
     this.allEntries$ = this.progressState.allEntries$.pipe(
       map(entries => {
@@ -84,6 +92,8 @@ export class BodyProgressDashboardComponent implements OnInit {
         });
       })
     );
+
+    this.allEntries$.pipe(takeUntil(this.destroy$)).subscribe(entries => this.entries = entries);
   }
 
   openLogDialog(): void {
@@ -126,5 +136,10 @@ export class BodyProgressDashboardComponent implements OnInit {
         }
       });
     }
+  }
+
+  ngOnDestroy(): void {
+    this.destroy$.next();
+    this.destroy$.complete();
   }
 }
