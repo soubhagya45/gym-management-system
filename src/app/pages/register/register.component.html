@@ -1,232 +1,170 @@
-<div class="login-page-wrapper">
-  <!-- Cybernetic Grid & Particle background -->
-  <div class="cyber-grid"></div>
-  <div class="glow-sphere sphere-one"></div>
-  <div class="glow-sphere sphere-two"></div>
-  <div class="glow-sphere sphere-three"></div>
+<div class="register-wrapper">
+  <!-- Glow Backdrops -->
+  <div class="orb orb-pink"></div>
+  <div class="orb orb-purple"></div>
 
-  <div class="portal-container">
-    
-    <!-- Branding Header -->
-    <div class="portal-header">
-      <div class="logo-wrapper animate-pulse">
-        <mat-icon class="logo-icon">fitness_center</mat-icon>
-        <h1 class="logo-text">APEX<span class="logo-highlight">FIT</span></h1>
+  <div class="brand-header" routerLink="/">
+    <mat-icon class="brand-icon">fitness_center</mat-icon>
+    <span class="brand-text">APEX<span>FIT</span></span>
+  </div>
+
+  <div class="register-container">
+    <!-- Stepper Navigation Header -->
+    <div class="stepper-header" *ngIf="currentStep < 3">
+      <div class="step-indicator" [class.active]="currentStep === 1" [class.completed]="currentStep > 1">
+        <div class="circle">
+          <mat-icon *ngIf="currentStep > 1">check</mat-icon>
+          <span *ngIf="currentStep === 1">1</span>
+        </div>
+        <span>Gym Profile</span>
       </div>
-      <div class="system-status">
-        <span class="status-dot"></span>
-        <span class="status-label">REG_SERVER // ONLINE</span>
+      <div class="step-line" [class.filled]="currentStep > 1"></div>
+      <div class="step-indicator" [class.active]="currentStep === 2" [class.completed]="currentStep > 2">
+        <div class="circle">
+          <span>2</span>
+        </div>
+        <span>Owner Account</span>
       </div>
     </div>
 
-    <!-- Main Dynamic Glass Layout -->
-    <div class="glass-panel portal-main-card">
-      <div class="progress-bar-container" *ngIf="isLoading">
-        <mat-progress-bar mode="indeterminate" class="cyber-progress"></mat-progress-bar>
+    <!-- MAIN FORM CARD -->
+    <div class="mat-card glass-form-card">
+      <div class="error-banner" *ngIf="errorMessage">
+        <mat-icon>error_outline</mat-icon>
+        <span>{{ errorMessage }}</span>
       </div>
 
-      <div class="card-grid">
-        
-        <!-- Left Side: Registration Form -->
-        <div class="form-section">
-          <h2 class="section-title">Register Gym Node</h2>
-          <p class="section-subtitle">Initialize a new gym ecosystem and link owner access key.</p>
-
-          <form [formGroup]="registerForm" (ngSubmit)="onSubmit()">
-            
-            <!-- Gym Name Input -->
-            <div class="cyber-form-group">
-              <label class="cyber-label">GYM NAME</label>
-              <div class="cyber-input-wrapper">
-                <mat-icon class="input-icon">storefront</mat-icon>
-                <input 
-                  type="text" 
-                  formControlName="gymName" 
-                  placeholder="e.g. Apex Fit Downtown" 
-                  class="cyber-input"
-                  [readonly]="isLoading">
-              </div>
-              <span class="error-msg" *ngIf="registerForm.get('gymName')?.touched && registerForm.get('gymName')?.hasError('required')">
-                Gym name is required.
-              </span>
-              <span class="error-msg" *ngIf="registerForm.get('gymName')?.touched && registerForm.get('gymName')?.hasError('minlength')">
-                Gym name must be at least 3 characters.
-              </span>
-            </div>
-
-            <!-- Owner Name Input -->
-            <div class="cyber-form-group">
-              <label class="cyber-label">OWNER FULL NAME</label>
-              <div class="cyber-input-wrapper">
-                <mat-icon class="input-icon">person</mat-icon>
-                <input 
-                  type="text" 
-                  formControlName="ownerName" 
-                  placeholder="e.g. Alex Johnson" 
-                  class="cyber-input"
-                  [readonly]="isLoading">
-              </div>
-              <span class="error-msg" *ngIf="registerForm.get('ownerName')?.touched && registerForm.get('ownerName')?.hasError('required')">
-                Owner name is required.
-              </span>
-              <span class="error-msg" *ngIf="registerForm.get('ownerName')?.touched && registerForm.get('ownerName')?.hasError('minlength')">
-                Owner name must be at least 2 characters.
-              </span>
-            </div>
-
-            <!-- Email Input -->
-            <div class="cyber-form-group">
-              <label class="cyber-label">IDENTITY NODE (EMAIL)</label>
-              <div class="cyber-input-wrapper">
-                <mat-icon class="input-icon">alternate_email</mat-icon>
-                <input 
-                  type="email" 
-                  formControlName="email" 
-                  placeholder="owner@yourgym.com" 
-                  class="cyber-input"
-                  [readonly]="isLoading">
-              </div>
-              <span class="error-msg" *ngIf="registerForm.get('email')?.touched && registerForm.get('email')?.hasError('required')">
-                Email node is required.
-              </span>
-              <span class="error-msg" *ngIf="registerForm.get('email')?.touched && registerForm.get('email')?.hasError('email')">
-                Invalid email format layout.
-              </span>
-            </div>
-
-            <!-- Phone Input -->
-            <div class="cyber-form-group">
-              <label class="cyber-label">CONTACT TERMINAL (PHONE)</label>
-              <div class="cyber-input-wrapper">
-                <mat-icon class="input-icon">phone</mat-icon>
-                <input 
-                  type="text" 
-                  formControlName="phone" 
-                  placeholder="e.g. +91 99887 76655" 
-                  class="cyber-input"
-                  [readonly]="isLoading">
-              </div>
-              <span class="error-msg" *ngIf="registerForm.get('phone')?.touched && registerForm.get('phone')?.hasError('required')">
-                Phone contact number is required.
-              </span>
-              <span class="error-msg" *ngIf="registerForm.get('phone')?.touched && registerForm.get('phone')?.hasError('pattern')">
-                Please enter a valid phone number format.
-              </span>
-            </div>
-
-            <!-- Password Input -->
-            <div class="cyber-form-group">
-              <label class="cyber-label">ACCESS KEY (PASSWORD)</label>
-              <div class="cyber-input-wrapper">
-                <mat-icon class="input-icon">vpn_key</mat-icon>
-                <input 
-                  [type]="hidePassword ? 'password' : 'text'" 
-                  formControlName="password" 
-                  placeholder="••••••••" 
-                  class="cyber-input"
-                  [readonly]="isLoading">
-                <button 
-                  type="button" 
-                  class="password-toggle-btn" 
-                  (click)="hidePassword = !hidePassword"
-                  [disabled]="isLoading">
-                  <mat-icon>{{ hidePassword ? 'visibility_off' : 'visibility' }}</mat-icon>
-                </button>
-              </div>
-              <span class="error-msg" *ngIf="registerForm.get('password')?.touched && registerForm.get('password')?.hasError('required')">
-                Password access key is required.
-              </span>
-              <span class="error-msg" *ngIf="registerForm.get('password')?.touched && registerForm.get('password')?.hasError('minlength')">
-                Password must be at least 4 characters.
-              </span>
-            </div>
-
-            <!-- General Error Message Display -->
-            <div class="auth-error-alert" *ngIf="errorMessage">
-              <mat-icon class="alert-icon">report_problem</mat-icon>
-              <span class="alert-text">{{ errorMessage }}</span>
-            </div>
-
-            <!-- Submit Button -->
-            <button 
-              type="submit" 
-              class="cyber-btn primary-submit" 
-              [disabled]="registerForm.invalid || isLoading">
-              <span class="btn-glow"></span>
-              <span class="btn-content" *ngIf="!isLoading">
-                PROCEED REGISTER GYM
-                <mat-icon class="btn-arrow">arrow_forward</mat-icon>
-              </span>
-              <span class="btn-content loading-content" *ngIf="isLoading">
-                CREATING GYM & OWNER NODES...
-              </span>
-            </button>
-          </form>
+      <!-- STEP 1: GYM INFORMATION -->
+      <div class="step-content" *ngIf="currentStep === 1">
+        <div class="step-title-area">
+          <h2>Register Your Gym Profile</h2>
+          <p>Tell us about your fitness center or club workspace details.</p>
         </div>
 
-        <!-- Right Side: Tech specs and node guide -->
-        <div class="tech-spec-section">
-          <h2 class="section-title">Apex Core Specs</h2>
-          <p class="section-subtitle font-mono text-xs">MODULE://GYM_PROVISIONING_SERVICES</p>
+        <form [formGroup]="gymForm" (ngSubmit)="nextStep()">
+          <div class="form-inputs-grid">
+            <!-- Gym Name -->
+            <mat-form-field appearance="outline" class="full-width">
+              <mat-label>Gym Name</mat-label>
+              <input matInput formControlName="gymName" placeholder="Apex Fit Downtown">
+              <mat-icon matSuffix>business</mat-icon>
+              <mat-error *ngIf="gymForm.get('gymName')?.hasError('required')">Gym Name is required</mat-error>
+              <mat-error *ngIf="gymForm.get('gymName')?.hasError('minlength')">Must be at least 3 characters</mat-error>
+            </mat-form-field>
 
-          <div class="spec-list">
-            
-            <div class="spec-card">
-              <div class="spec-card-header">
-                <mat-icon class="spec-icon">dns</mat-icon>
-                <span class="spec-badge">NODE_ISO</span>
-              </div>
-              <div class="spec-card-body">
-                <h3 class="spec-name">Isolated Tenancy</h3>
-                <p class="spec-description">Your registered gym receives a dedicated workspace node with complete member database isolation and secure system boundaries.</p>
-              </div>
-            </div>
+            <!-- Phone -->
+            <mat-form-field appearance="outline" class="full-width">
+              <mat-label>Phone Number</mat-label>
+              <input matInput formControlName="phone" placeholder="+91 99887 76655">
+              <mat-icon matSuffix>phone</mat-icon>
+              <mat-error *ngIf="gymForm.get('phone')?.hasError('required')">Phone is required</mat-error>
+              <mat-error *ngIf="gymForm.get('phone')?.hasError('pattern')">Please enter a valid phone number</mat-error>
+            </mat-form-field>
 
-            <div class="spec-card">
-              <div class="spec-card-header">
-                <mat-icon class="spec-icon">admin_panel_settings</mat-icon>
-                <span class="spec-badge">AUTH_L3</span>
-              </div>
-              <div class="spec-card-body">
-                <h3 class="spec-name">Level 3 Owner Access</h3>
-                <p class="spec-description">Provision supreme administrator credentials to access financial ledgers, staff assignments, security logs, and subscription features.</p>
-              </div>
-            </div>
+            <!-- Address -->
+            <mat-form-field appearance="outline" class="full-width">
+              <mat-label>Address</mat-label>
+              <input matInput formControlName="address" placeholder="123 Elite Athlete Boulevard, Suite 500">
+              <mat-icon matSuffix>place</mat-icon>
+              <mat-error *ngIf="gymForm.get('address')?.hasError('required')">Address is required</mat-error>
+            </mat-form-field>
 
-            <div class="spec-card">
-              <div class="spec-card-header">
-                <mat-icon class="spec-icon">auto_awesome</mat-icon>
-                <span class="spec-badge">FREE_TRIAL</span>
-              </div>
-              <div class="spec-card-body">
-                <h3 class="spec-name">Automatic Free Trial</h3>
-                <p class="spec-description">New registration endpoints automatically assign a Pro Tier trial plan, unlocking trainers management, leads tracking, and attendance portals.</p>
-              </div>
-            </div>
-
+            <!-- GST Number (Optional) -->
+            <mat-form-field appearance="outline" class="full-width">
+              <mat-label>GST Number (Optional)</mat-label>
+              <input matInput formControlName="gstNumber" placeholder="29ABCDE1234F1Z5">
+              <mat-icon matSuffix>receipt</mat-icon>
+              <mat-hint>Enter valid 15-digit GSTIN</mat-hint>
+              <mat-error *ngIf="gymForm.get('gstNumber')?.hasError('pattern')">Enter valid GSTIN format (e.g. 29ABCDE1234F1Z5)</mat-error>
+            </mat-form-field>
           </div>
 
-          <div class="back-action-area">
-            <button 
-              type="button" 
-              class="cyber-btn outline-btn" 
-              routerLink="/login"
-              [disabled]="isLoading">
-              <span class="btn-content">
-                <mat-icon class="btn-arrow-back">arrow_back</mat-icon>
-                RETURN TO AUTHENTICATE
-              </span>
+          <div class="actions-row align-right">
+            <button mat-raised-button color="primary" type="submit" [disabled]="gymForm.invalid" class="action-btn">
+              <span>Next Step</span>
+              <mat-icon>chevron_right</mat-icon>
             </button>
           </div>
+        </form>
+      </div>
+
+      <!-- STEP 2: OWNER INFORMATION -->
+      <div class="step-content" *ngIf="currentStep === 2">
+        <div class="step-title-area">
+          <h2>Create Owner Account</h2>
+          <p>Set up the primary administrative credentials to manage this gym.</p>
         </div>
 
+        <form [formGroup]="ownerForm" (ngSubmit)="startOnboarding()">
+          <div class="form-inputs-grid">
+            <!-- Owner Name -->
+            <mat-form-field appearance="outline" class="full-width">
+              <mat-label>Owner's Full Name</mat-label>
+              <input matInput formControlName="ownerName" placeholder="Alex Johnson">
+              <mat-icon matSuffix>person</mat-icon>
+              <mat-error *ngIf="ownerForm.get('ownerName')?.hasError('required')">Owner Name is required</mat-error>
+            </mat-form-field>
+
+            <!-- Email Address -->
+            <mat-form-field appearance="outline" class="full-width">
+              <mat-label>Owner Email Address</mat-label>
+              <input matInput type="email" formControlName="email" placeholder="owner@apexfit.com">
+              <mat-icon matSuffix>email</mat-icon>
+              <mat-error *ngIf="ownerForm.get('email')?.hasError('required')">Email is required</mat-error>
+              <mat-error *ngIf="ownerForm.get('email')?.hasError('email')">Please enter a valid email address</mat-error>
+            </mat-form-field>
+
+            <!-- Password -->
+            <mat-form-field appearance="outline" class="full-width">
+              <mat-label>Account Password</mat-label>
+              <input matInput [type]="hidePassword ? 'password' : 'text'" formControlName="password">
+              <button mat-icon-button matSuffix (click)="hidePassword = !hidePassword" type="button" [attr.aria-label]="'Hide password'" [attr.aria-pressed]="hidePassword">
+                <mat-icon>{{hidePassword ? 'visibility_off' : 'visibility'}}</mat-icon>
+              </button>
+              <mat-error *ngIf="ownerForm.get('password')?.hasError('required')">Password is required</mat-error>
+              <mat-error *ngIf="ownerForm.get('password')?.hasError('minlength')">Must be at least 4 characters</mat-error>
+            </mat-form-field>
+          </div>
+
+          <div class="actions-row">
+            <button mat-button type="button" (click)="prevStep()" class="back-btn">
+              <mat-icon>chevron_left</mat-icon>
+              <span>Back</span>
+            </button>
+            <button mat-raised-button color="primary" type="submit" [disabled]="ownerForm.invalid" class="action-btn">
+              <mat-icon>rocket_launch</mat-icon>
+              <span>Register & Build Workspace</span>
+            </button>
+          </div>
+        </form>
+      </div>
+
+      <!-- STEP 3: ONBOARDING CONSOLE & DEPLOYMENT LOADER -->
+      <div class="step-content onboarding-console" *ngIf="currentStep === 3">
+        <div class="step-title-area text-center">
+          <h2 class="gradient-text">Building Gym Workspace</h2>
+          <p>Please wait while we initialize your secure cloud tenant environments...</p>
+        </div>
+
+        <div class="onboarding-progress-section">
+          <mat-progress-bar mode="determinate" [value]="onboardingProgress" class="premium-progress-bar"></mat-progress-bar>
+          <span class="progress-number">{{ onboardingProgress }}%</span>
+        </div>
+
+        <div class="console-box">
+          <div class="console-line" *ngFor="let task of onboardingTasks" [ngClass]="task.status">
+            <mat-icon class="status-icon" *ngIf="task.status === 'pending'">hourglass_empty</mat-icon>
+            <mat-icon class="status-icon spinner" *ngIf="task.status === 'running'">sync</mat-icon>
+            <mat-icon class="status-icon checked" *ngIf="task.status === 'done'">check_circle</mat-icon>
+            <span class="line-text">{{ task.label }}</span>
+          </div>
+        </div>
       </div>
     </div>
 
-    <!-- Portal Footer -->
-    <div class="portal-footer">
-      <span>SECURE TRANSCEIVER NODE // APEX GYM SERVICES</span>
-      <span>RESTRICTED ACCESS ONLY</span>
+    <!-- Help Prompt -->
+    <div class="login-prompt" *ngIf="currentStep < 3">
+      Already have a gym account? <a routerLink="/login">Log In Instead</a>
     </div>
   </div>
 </div>

@@ -40,6 +40,7 @@ export class AppComponent implements OnInit {
     { label: 'Membership Plans', route: '/plans', icon: 'fitness_center' },
     { label: 'Trainers', route: '/trainers', icon: 'sports' },
     { label: 'WhatsApp Center', route: '/whatsapp', icon: 'chat' },
+    { label: 'Body Progress', route: '/body-progress', icon: 'trending_up' },
     { label: 'Settings', route: '/settings', icon: 'settings' }
   ];
 

@@ -12,6 +12,7 @@ import {
   IMembershipPlanRepository,
   IActivityLogRepository,
   IWhatsAppRepository,
+  IBodyProgressRepository,
   AUTH_REPOSITORY_TOKEN,
   GYM_REPOSITORY_TOKEN,
   MEMBER_REPOSITORY_TOKEN,
@@ -21,7 +22,8 @@ import {
   ATTENDANCE_REPOSITORY_TOKEN,
   MEMBERSHIP_PLAN_REPOSITORY_TOKEN,
   ACTIVITY_LOG_REPOSITORY_TOKEN,
-  WHATSAPP_REPOSITORY_TOKEN
+  WHATSAPP_REPOSITORY_TOKEN,
+  BODY_PROGRESS_REPOSITORY_TOKEN
 } from '../../core/interfaces/repository.interfaces';
 
 import {
@@ -34,7 +36,8 @@ import {
   MockAttendanceRepository,
   MockMembershipPlanRepository,
   MockActivityLogRepository,
-  MockWhatsAppRepository
+  MockWhatsAppRepository,
+  MockBodyProgressRepository
 } from '../repositories/mock/mock-repositories';
 
 import {
@@ -47,7 +50,8 @@ import {
   FirebaseAttendanceRepository,
   FirebaseMembershipPlanRepository,
   FirebaseActivityLogRepository,
-  FirebaseWhatsAppRepository
+  FirebaseWhatsAppRepository,
+  FirebaseBodyProgressRepository
 } from '../repositories/firebase/firebase-repositories';
 
 import {
@@ -60,7 +64,8 @@ import {
   SupabaseAttendanceRepository,
   SupabaseMembershipPlanRepository,
   SupabaseActivityLogRepository,
-  SupabaseWhatsAppRepository
+  SupabaseWhatsAppRepository,
+  SupabaseBodyProgressRepository
 } from '../repositories/supabase/supabase-repositories';
 
 import {
@@ -73,7 +78,8 @@ import {
   ApiAttendanceRepository,
   ApiMembershipPlanRepository,
   ApiActivityLogRepository,
-  ApiWhatsAppRepository
+  ApiWhatsAppRepository,
+  ApiBodyProgressRepository
 } from '../repositories/api/api-repositories';
 
 // Helper factory functions
@@ -178,6 +184,16 @@ export function whatsAppRepositoryFactory(configService: AppConfigService, injec
   }
 }
 
+export function bodyProgressRepositoryFactory(configService: AppConfigService, injector: Injector): IBodyProgressRepository {
+  switch (configService.provider) {
+    case ProviderType.Firebase: return injector.get(FirebaseBodyProgressRepository);
+    case ProviderType.Supabase: return injector.get(SupabaseBodyProgressRepository);
+    case ProviderType.REST: return injector.get(ApiBodyProgressRepository);
+    case ProviderType.Mock:
+    default: return injector.get(MockBodyProgressRepository);
+  }
+}
+
 export const REPOSITORY_PROVIDERS = [
   {
     provide: AUTH_REPOSITORY_TOKEN,
@@ -227,6 +243,11 @@ export const REPOSITORY_PROVIDERS = [
   {
     provide: WHATSAPP_REPOSITORY_TOKEN,
     useFactory: whatsAppRepositoryFactory,
+    deps: [AppConfigService, Injector]
+  },
+  {
+    provide: BODY_PROGRESS_REPOSITORY_TOKEN,
+    useFactory: bodyProgressRepositoryFactory,
     deps: [AppConfigService, Injector]
   }
 ];

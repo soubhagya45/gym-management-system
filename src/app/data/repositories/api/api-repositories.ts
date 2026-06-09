@@ -12,6 +12,7 @@ import { MembershipPlan } from '../../../core/models/membership-plan.entity';
 import { ActivityLog } from '../../../core/models/activity-log.entity';
 import { WhatsAppTemplate } from '../../../core/models/whatsapp-template.entity';
 import { WhatsAppReminder } from '../../../core/models/whatsapp-reminder.entity';
+import { BodyProgressEntry } from '../../../core/models/body-progress.entity';
 
 import {
   IAuthRepository,
@@ -23,7 +24,8 @@ import {
   IAttendanceRepository,
   IMembershipPlanRepository,
   IActivityLogRepository,
-  IWhatsAppRepository
+  IWhatsAppRepository,
+  IBodyProgressRepository
 } from '../../../core/interfaces/repository.interfaces';
 
 /**
@@ -48,7 +50,9 @@ export class ApiAuthRepository implements IAuthRepository {
     ownerName: string,
     email: string,
     phone: string,
-    password?: string
+    password?: string,
+    address?: string,
+    gstNumber?: string
   ): Observable<UserProfile> {
     return throwError(() => new Error('API integration is not enabled.'));
   }
@@ -131,4 +135,13 @@ export class ApiWhatsAppRepository implements IWhatsAppRepository {
   addReminder(gymId: string, reminder: Omit<WhatsAppReminder, 'id'>): Observable<WhatsAppReminder> { return throwError(() => new Error('API integration is not enabled.')); }
   updateReminder(gymId: string, reminder: WhatsAppReminder): Observable<void> { return throwError(() => new Error('API integration is not enabled.')); }
   deleteReminder(gymId: string, id: string): Observable<void> { return throwError(() => new Error('API integration is not enabled.')); }
+}
+
+@Injectable({ providedIn: 'root' })
+export class ApiBodyProgressRepository implements IBodyProgressRepository {
+  constructor(private http: HttpClient) {}
+  getEntries(gymId: string, memberId: string): Observable<BodyProgressEntry[]> { return throwError(() => new Error('API integration is not enabled.')); }
+  getAllEntries(gymId: string): Observable<BodyProgressEntry[]> { return throwError(() => new Error('API integration is not enabled.')); }
+  addEntry(gymId: string, entry: Omit<BodyProgressEntry, 'id'>): Observable<BodyProgressEntry> { return throwError(() => new Error('API integration is not enabled.')); }
+  deleteEntry(gymId: string, id: string): Observable<void> { return throwError(() => new Error('API integration is not enabled.')); }
 }

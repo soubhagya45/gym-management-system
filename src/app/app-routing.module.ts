@@ -6,8 +6,7 @@ import { authGuard, loginGuard } from './guards/auth.guard';
 const routes: Routes = [
   {
     path: '',
-    redirectTo: 'dashboard',
-    pathMatch: 'full'
+    loadComponent: () => import('./pages/landing/landing.component').then(m => m.LandingPageComponent)
   },
   {
     path: 'login',
@@ -77,6 +76,11 @@ const routes: Routes = [
   {
     path: 'whatsapp',
     loadComponent: () => import('./pages/whatsapp/whatsapp.component').then(m => m.WhatsAppComponent),
+    canActivate: [authGuard]
+  },
+  {
+    path: 'body-progress',
+    loadComponent: () => import('./pages/body-progress/body-progress-dashboard.component').then(m => m.BodyProgressDashboardComponent),
     canActivate: [authGuard]
   },
   {

@@ -17,4 +17,6 @@ export interface Member {
   height: number;
   weight: number;
   fitnessGoal: string;
+  startingWeight?: number;
+  goalWeight?: number;
 }

@@ -474,98 +474,371 @@
 
 /* Fitness Progress Tab */
 .fitness-tab {
-  .fitness-stats-row {
-    display: grid;
-    grid-template-columns: repeat(3, 1fr);
-    gap: 16px;
-    
-    .stat-card {
-      background: var(--bg-primary);
-      border: var(--card-border);
-      border-radius: 12px;
-      padding: 20px 16px;
-      text-align: center;
+  .section-summary-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    border-bottom: 1px solid var(--border-color, rgba(255,255,255,0.08));
+    padding-bottom: 16px;
+    margin-bottom: 16px;
+
+    .header-titles {
       display: flex;
       flex-direction: column;
       gap: 4px;
-      
-      .val {
-        font-size: 24px;
+
+      h3 {
+        margin: 0;
+        font-size: 18px;
         font-weight: 700;
-        color: var(--text-primary);
-        
-        small {
-          font-size: 12px;
-          color: var(--text-muted);
-          font-weight: 400;
-        }
-        
-        &.font-sm {
-          font-size: 16px;
-        }
-      }
-      
-      .lbl {
-        font-size: 11px;
-        color: var(--text-muted);
-        text-transform: uppercase;
-        font-weight: 500;
-        letter-spacing: 0.05em;
+        color: #fff;
       }
     }
   }
 
-  .weight-chart-wrapper {
-    background: var(--bg-primary);
-    border: var(--card-border);
-    border-radius: 12px;
-    padding: 20px;
-    display: flex;
-    flex-direction: column;
+  .fitness-stats-row {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
     gap: 16px;
+    margin-bottom: 24px;
     
-    h4 {
-      font-size: 14px;
-      font-weight: 600;
-      margin: 0;
-      color: var(--text-secondary);
-    }
-    
-    .svg-chart-container {
+    .stat-card {
+      background: var(--bg-primary, rgba(255,255,255,0.02));
+      border: var(--card-border, 1px solid rgba(255,255,255,0.08));
+      border-radius: 12px;
+      padding: 18px;
       display: flex;
       flex-direction: column;
+      justify-content: space-between;
       gap: 12px;
-      
-      .progress-svg {
-        width: 100%;
-        height: 150px;
-      }
-      
-      .chart-labels {
-        display: grid;
-        grid-template-columns: repeat(5, 1fr);
-        text-align: center;
-        border-top: 1px solid var(--border-color);
-        padding-top: 8px;
-        
-        .label-item {
-          display: flex;
-          flex-direction: column;
-          gap: 2px;
+      min-height: 110px;
+
+      .card-detail {
+        display: flex;
+        flex-direction: column;
+        gap: 4px;
+
+        .lbl {
+          font-size: 11px;
+          color: var(--text-muted, rgba(255,255,255,0.5));
+          text-transform: uppercase;
+          font-weight: 600;
+          letter-spacing: 0.05em;
+        }
+
+        .val {
+          font-size: 24px;
+          font-weight: 700;
+          color: #fff;
           
-          .lbl-month {
-            font-size: 11px;
-            color: var(--text-muted);
-            font-weight: 500;
-          }
-          
-          .lbl-val {
-            font-size: 12px;
-            font-weight: 600;
-            color: var(--text-primary);
+          small {
+            font-size: 13px;
+            color: rgba(255,255,255,0.5);
+            font-weight: 400;
           }
         }
       }
+
+      .card-extra {
+        display: flex;
+        justify-content: space-between;
+        font-size: 11px;
+        color: rgba(255,255,255,0.45);
+        border-top: 1px solid rgba(255,255,255,0.04);
+        padding-top: 8px;
+
+        &.progress-bar-detail {
+          flex-direction: column;
+          gap: 6px;
+          border-top: none;
+          padding-top: 0;
+
+          .mini-progress-bg {
+            width: 100%;
+            height: 4px;
+            background: rgba(255,255,255,0.08);
+            border-radius: 2px;
+            overflow: hidden;
+
+            .mini-progress-fill {
+              height: 100%;
+              background: linear-gradient(90deg, var(--accent-color, #ff007f), #00b0ff);
+              border-radius: 2px;
+            }
+          }
+        }
+      }
+    }
+  }
+
+  /* Split grid for charts & measurements */
+  .metrics-analytics-row {
+    display: grid;
+    grid-template-columns: 1.3fr 1fr;
+    gap: 24px;
+    margin-bottom: 24px;
+
+    @media (max-width: 959px) {
+      grid-template-columns: 1fr;
+    }
+  }
+
+  .card-glass {
+    background: rgba(255, 255, 255, 0.02);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    border-radius: 14px;
+    padding: 20px;
+    backdrop-filter: blur(8px);
+
+    h4 {
+      margin: 0 0 16px 0;
+      font-size: 14px;
+      font-weight: 600;
+      color: rgba(255, 255, 255, 0.7);
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+  }
+
+  .charts-col {
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+  }
+
+  .svg-chart-container {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+
+    .progress-svg {
+      width: 100%;
+      height: 130px;
+    }
+
+    .chart-labels {
+      display: flex;
+      justify-content: space-between;
+      border-top: 1px solid rgba(255,255,255,0.06);
+      padding-top: 8px;
+
+      .label-item {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        flex: 1;
+
+        .lbl-month {
+          font-size: 10px;
+          color: rgba(255,255,255,0.4);
+          font-weight: 500;
+        }
+
+        .lbl-val {
+          font-size: 11px;
+          font-weight: 600;
+          color: #fff;
+          margin-top: 1px;
+        }
+      }
+    }
+  }
+
+  .empty-chart-state, .empty-measurements-state, .empty-state-placeholder {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 30px 10px;
+    color: rgba(255, 255, 255, 0.3);
+
+    mat-icon {
+      font-size: 32px;
+      width: 32px;
+      height: 32px;
+      margin-bottom: 8px;
+    }
+    p {
+      margin: 0;
+      font-size: 12px;
+    }
+  }
+
+  /* Circumferences List */
+  .measurements-list {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+
+    .measurement-row {
+      display: grid;
+      grid-template-columns: 1.5fr 1fr 1fr 1fr;
+      align-items: center;
+      padding: 10px 12px;
+      background: rgba(255,255,255,0.01);
+      border-bottom: 1px solid rgba(255,255,255,0.04);
+      border-radius: 6px;
+
+      &.header {
+        background: transparent;
+        border-bottom: 1px solid rgba(255,255,255,0.08);
+        font-size: 11px;
+        font-weight: 600;
+        color: rgba(255,255,255,0.4);
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+      }
+
+      .name {
+        font-weight: 500;
+        color: #fff;
+        font-size: 13px;
+      }
+
+      .val {
+        font-size: 13px;
+        color: rgba(255,255,255,0.8);
+
+        &.font-bold {
+          font-weight: 600;
+          color: #fff;
+        }
+
+        small {
+          font-size: 10px;
+          color: rgba(255,255,255,0.4);
+        }
+      }
+
+      .change {
+        font-size: 12px;
+        font-weight: 600;
+        text-align: right;
+
+        &.lost {
+          color: #ff1744;
+        }
+        &.gained {
+          color: #00e676;
+        }
+        &.stable {
+          color: rgba(255,255,255,0.4);
+        }
+      }
+    }
+  }
+
+  /* Photo Compare Section */
+  .photos-gallery-section {
+    margin-bottom: 24px;
+
+    .gallery-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 20px;
+      flex-wrap: wrap;
+      gap: 12px;
+
+      h4 {
+        margin: 0;
+      }
+
+      .photo-tabs {
+        display: flex;
+        background: rgba(255,255,255,0.04);
+        border: 1px solid rgba(255,255,255,0.06);
+        border-radius: 8px;
+        padding: 2px;
+
+        button {
+          height: 32px;
+          line-height: 32px;
+          padding: 0 14px;
+          font-size: 12px;
+          font-weight: 600;
+          color: rgba(255,255,255,0.6);
+          border-radius: 6px;
+
+          &.active {
+            background: var(--accent-color, #ff007f);
+            color: #fff;
+            box-shadow: 0 4px 12px rgba(255,0,127,0.3);
+          }
+        }
+      }
+    }
+
+    .gallery-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 16px;
+
+      @media (max-width: 768px) {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    .photo-compare-card {
+      background: rgba(255,255,255,0.01);
+      border: 1px solid rgba(255,255,255,0.05);
+      border-radius: 10px;
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+
+      .badge {
+        font-size: 11px;
+        font-weight: 700;
+        background: rgba(255, 255, 255, 0.08);
+        padding: 6px 12px;
+        color: rgba(255,255,255,0.7);
+        border-bottom: 1px solid rgba(255,255,255,0.05);
+        text-align: center;
+      }
+
+      .img-wrapper {
+        aspect-ratio: 4/3;
+        width: 100%;
+        overflow: hidden;
+
+        img {
+          width: 100%;
+          height: 100%;
+          object-fit: cover;
+          transition: transform 0.3s ease;
+
+          &:hover {
+            transform: scale(1.05);
+          }
+        }
+      }
+
+      .photo-meta {
+        display: flex;
+        justify-content: space-between;
+        padding: 8px 12px;
+        font-size: 11px;
+        font-weight: 600;
+        color: rgba(255,255,255,0.6);
+        background: rgba(0,0,0,0.2);
+      }
+    }
+  }
+
+  /* History log table custom cells */
+  .history-log-section {
+    .notes-cell {
+      max-width: 250px;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      color: rgba(255,255,255,0.5);
+      font-size: 13px;
+    }
+
+    .actions-cell {
+      text-align: right;
     }
   }
 }
