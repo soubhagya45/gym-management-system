@@ -4,7 +4,11 @@ import { BehaviorSubject, Observable } from 'rxjs';
 import { tap } from 'rxjs/operators';
 import { IAuthRepository, AUTH_REPOSITORY_TOKEN } from '../../core/interfaces/repository.interfaces';
 import { UserProfile } from '../../core/models/user.model';
+import { UserRole } from '../../core/enums/roles.enum';
+import { Permission } from '../../core/models/permission.model';
 import { TenantContextService } from '../../domain/tenancy/tenant-context.service';
+import { SessionService } from '../../domain/auth/session.service';
+import { PermissionService } from '../../domain/auth/permission.service';
 
 @Injectable({
   providedIn: 'root'
@@ -12,15 +16,22 @@ import { TenantContextService } from '../../domain/tenancy/tenant-context.servic
 export class AuthState {
   private readonly STORAGE_KEY = 'apexfit_auth_user';
   private currentUserSubject = new BehaviorSubject<UserProfile | null>(null);
-  
+
   currentUser$: Observable<UserProfile | null> = this.currentUserSubject.asObservable();
 
   constructor(
     @Inject(AUTH_REPOSITORY_TOKEN) private authRepository: IAuthRepository,
     private tenantContext: TenantContextService,
+    private sessionService: SessionService,
+    private permissionService: PermissionService,
     private router: Router
   ) {
     this.loadSession();
+
+    // Auto-logout when session expires
+    this.sessionService.sessionExpired$.subscribe(() => {
+      this.logout();
+    });
   }
 
   get currentUserValue(): UserProfile | null {
@@ -28,7 +39,17 @@ export class AuthState {
   }
 
   get isAuthenticated(): boolean {
-    return this.currentUserValue !== null;
+    return this.currentUserValue !== null && this.sessionService.isSessionValid();
+  }
+
+  /** Convenience: check a permission against the current user. */
+  hasPermission(permission: Permission): boolean {
+    return this.permissionService.hasPermission(this.currentUserValue, permission);
+  }
+
+  /** Convenience: check whether the current user can access a route path. */
+  canAccessRoute(routePath: string): boolean {
+    return this.permissionService.canAccessRoute(this.currentUserValue, routePath);
   }
 
   private loadSession(): void {
@@ -36,9 +57,19 @@ export class AuthState {
       const saved = localStorage.getItem(this.STORAGE_KEY);
       if (saved) {
         const user: UserProfile = JSON.parse(saved);
-        this.currentUserSubject.next(user);
-        if (user.gymId) {
-          this.tenantContext.setTenantId(user.gymId);
+        // Validate session is still fresh
+        if (!user.sessionExpiresAt || new Date(user.sessionExpiresAt).getTime() > Date.now()) {
+          this.currentUserSubject.next(user);
+          if (user.gymId) {
+            this.tenantContext.setTenantId(user.gymId);
+          } else {
+            this.tenantContext.setTenantId('gym-a');
+          }
+          // Resume session timer
+          this.sessionService.start(user.sessionExpiresAt);
+        } else {
+          // Session expired while offline — clear it
+          localStorage.removeItem(this.STORAGE_KEY);
         }
       }
     } catch (e) {
@@ -76,7 +107,7 @@ export class AuthState {
     this.setSession(user);
   }
 
-  loginWithRole(role: 'owner' | 'trainer' | 'member'): Observable<UserProfile> {
+  loginWithRole(role: UserRole): Observable<UserProfile> {
     return this.authRepository.loginWithRole(role).pipe(
       tap(user => this.setSession(user))
     );
@@ -86,17 +117,30 @@ export class AuthState {
     localStorage.removeItem(this.STORAGE_KEY);
     this.currentUserSubject.next(null);
     this.tenantContext.setTenantId(null);
+    this.sessionService.stop();
     this.router.navigate(['/login']);
   }
 
   private setSession(user: UserProfile): void {
-    localStorage.setItem(this.STORAGE_KEY, JSON.stringify(user));
-    this.currentUserSubject.next(user);
-    if (user.gymId) {
-      this.tenantContext.setTenantId(user.gymId);
+    // Enrich user with permissions snapshot from PermissionService
+    const enriched: UserProfile = {
+      ...user,
+      permissions: this.permissionService.buildPermissionsSnapshot(user.role),
+      sessionExpiresAt: this.sessionService.getExpiresAt() ?? new Date(Date.now() + 8 * 60 * 60 * 1000).toISOString()
+    };
+
+    localStorage.setItem(this.STORAGE_KEY, JSON.stringify(enriched));
+    this.currentUserSubject.next(enriched);
+
+    // Set tenant context
+    if (enriched.gymId) {
+      this.tenantContext.setTenantId(enriched.gymId);
     } else {
-      // Super Admin: default to gym-a, but they can switch later
+      // Super Admin: default to gym-a, switchable via toolbar
       this.tenantContext.setTenantId('gym-a');
     }
+
+    // Start/reset session timer
+    this.sessionService.start(enriched.sessionExpiresAt);
   }
 }

@@ -1,5 +1,6 @@
 import { Injectable } from '@angular/core';
 import { Observable, throwError } from 'rxjs';
+import { UserRole } from '../../../core/enums/roles.enum';
 import { UserProfile } from '../../../core/models/user.model';
 import { Gym } from '../../../core/models/gym.entity';
 import { Member } from '../../../core/models/member.entity';
@@ -37,7 +38,7 @@ export class SupabaseAuthRepository implements IAuthRepository {
   login(email: string, password: string): Observable<UserProfile> {
     return throwError(() => new Error('Supabase integration is not enabled. Switch app-config.ts provider to MOCK.'));
   }
-  loginWithRole(role: 'owner' | 'trainer' | 'member'): Observable<UserProfile> {
+  loginWithRole(role: UserRole): Observable<UserProfile> {
     return throwError(() => new Error('Supabase integration is not enabled.'));
   }
   logout(): Observable<void> {
@@ -52,6 +53,12 @@ export class SupabaseAuthRepository implements IAuthRepository {
     address?: string,
     gstNumber?: string
   ): Observable<UserProfile> {
+    return throwError(() => new Error('Supabase integration is not enabled.'));
+  }
+  getUserProfile(_userId: string): Observable<UserProfile | null> {
+    return throwError(() => new Error('Supabase integration is not enabled.'));
+  }
+  inviteStaff(_email: string, _name: string, _role: UserRole, _gymId: string): Observable<UserProfile> {
     return throwError(() => new Error('Supabase integration is not enabled.'));
   }
 }

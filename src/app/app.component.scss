@@ -174,12 +174,39 @@
   padding: 20px;
   border-top: 1px solid rgba(255, 255, 255, 0.05);
   background-color: rgba(0, 0, 0, 0.2);
+
+  .session-warning-banner {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    background-color: rgba(244, 63, 94, 0.1);
+    border: 1px solid rgba(244, 63, 94, 0.25);
+    color: #fb7185;
+    padding: 8px 12px;
+    border-radius: 8px;
+    margin-bottom: 16px;
+    font-family: monospace;
+    font-size: 11px;
+    font-weight: 600;
+    
+    .warning-icon {
+      font-size: 16px;
+      width: 16px;
+      height: 16px;
+      color: #f43f5e;
+    }
+  }
   
   .user-profile-summary {
     display: flex;
     align-items: center;
     gap: 12px;
     margin-bottom: 12px;
+    transition: opacity 0.2s ease;
+
+    &:hover {
+      opacity: 0.85;
+    }
     
     .footer-avatar {
       width: 38px;

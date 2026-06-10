@@ -1,0 +1,135 @@
+<div class="profile-page-wrapper" *ngIf="currentUser$ | async as user">
+  <div class="cyber-grid"></div>
+  <div class="glow-sphere"></div>
+
+  <div class="profile-container animate-fade-in">
+    <!-- Main Glass Profile Card -->
+    <mat-card class="glass-panel profile-card">
+      <div class="profile-header">
+        <div class="avatar-wrapper">
+          <img [src]="user.avatarUrl" [alt]="user.name" class="profile-avatar">
+          <div class="status-indicator-active"></div>
+        </div>
+        
+        <div class="header-details">
+          <h1 class="profile-name">{{ user.name }}</h1>
+          <p class="profile-email">{{ user.email }}</p>
+          <div class="role-chip-container">
+            <span class="role-badge" [ngClass]="'badge-' + user.role">
+              <mat-icon class="badge-icon">
+                {{ user.role === UserRole.SuperAdmin ? 'admin_panel_settings' : 
+                   user.role === UserRole.Owner ? 'storefront' : 
+                   user.role === UserRole.Trainer ? 'sports' : 'people' }}
+              </mat-icon>
+              {{ getRoleLabel(user.role) }}
+            </span>
+          </div>
+        </div>
+      </div>
+
+      <mat-divider class="divider-cyber"></mat-divider>
+
+      <div class="profile-body-grid">
+        <!-- Sector 1: Identity Metadata & Session Logs -->
+        <div class="sector-card">
+          <h3 class="sector-title"><mat-icon>terminal</mat-icon> SESSION META</h3>
+          
+          <div class="meta-row">
+            <span class="meta-label">IDENTITY NODE ID:</span>
+            <span class="meta-value monospace">{{ user.id }}</span>
+          </div>
+          
+          <div class="meta-row" *ngIf="user.gymId">
+            <span class="meta-label">TENANT IDENTIFIER:</span>
+            <span class="meta-value monospace">{{ user.gymId }}</span>
+          </div>
+
+          <div class="meta-row" *ngIf="user.lastLogin">
+            <span class="meta-label">LAST INITIALIZED:</span>
+            <span class="meta-value">{{ user.lastLogin | date:'medium' }}</span>
+          </div>
+
+          <div class="meta-row" *ngIf="user.sessionExpiresAt">
+            <span class="meta-label">SESSION EXPIRY:</span>
+            <span class="meta-value warning-value">{{ user.sessionExpiresAt | date:'medium' }}</span>
+          </div>
+        </div>
+
+        <!-- Sector 2: Active Gym / Tenant Context -->
+        <div class="sector-card">
+          <h3 class="sector-title"><mat-icon>domain</mat-icon> TENANT CONTEXT</h3>
+          
+          <ng-container *ngIf="activeGym$ | async as gym; else noGym">
+            <div class="meta-row">
+              <span class="meta-label">ACTIVE CLUB:</span>
+              <span class="meta-value highlight-value">{{ gym.gymName }}</span>
+            </div>
+            
+            <div class="meta-row">
+              <span class="meta-label">SUBSCRIPTION PLAN:</span>
+              <span class="meta-value highlight-badge">{{ gym.subscriptionPlan | titlecase }}</span>
+            </div>
+
+            <div class="meta-row">
+              <span class="meta-label">GST REGISTRATION:</span>
+              <span class="meta-value monospace">{{ gym.gstNumber || 'N/A' }}</span>
+            </div>
+          </ng-container>
+          <ng-template #noGym>
+            <p class="meta-value muted-value">No active gym session established.</p>
+          </ng-template>
+
+          <!-- Gym Switcher (Super Admin Only) -->
+          <div class="gym-switcher-wrapper" *ngIf="user.role === UserRole.SuperAdmin">
+            <mat-divider class="divider-cyber-nested"></mat-divider>
+            <label class="switcher-label">ROOT TENANT OVERRIDE</label>
+            <mat-form-field appearance="outline" class="switcher-select-field">
+              <mat-select [value]="(activeGym$ | async)?.gymId" (selectionChange)="onSwitchGym($event.value)">
+                <mat-option *ngFor="let g of gyms$ | async" [value]="g.gymId">
+                  <mat-icon>location_city</mat-icon>
+                  {{ g.gymName }}
+                </mat-option>
+              </mat-select>
+            </mat-form-field>
+          </div>
+        </div>
+      </div>
+
+      <mat-divider class="divider-cyber"></mat-divider>
+
+      <!-- Sector 3: Permissions Matrix -->
+      <div class="permissions-sector">
+        <h3 class="sector-title"><mat-icon>vpn_lock</mat-icon> SYSTEM SIGNATURE PERMISSIONS</h3>
+        <p class="permissions-desc">The following actions have been cryptographically mapped to your security role snapshot:</p>
+        
+        <div class="chips-grid">
+          <span class="permission-chip" *ngFor="let perm of user.permissions">
+            <mat-icon class="chip-dot">fiber_manual_record</mat-icon>
+            {{ perm }}
+          </span>
+          <span class="permission-chip empty-chip" *ngIf="!user.permissions || user.permissions.length === 0">
+            No permissions active.
+          </span>
+        </div>
+      </div>
+
+      <mat-divider class="divider-cyber"></mat-divider>
+
+      <div class="profile-actions">
+        <a routerLink="/dashboard" class="cyber-btn outline-btn">
+          <span class="btn-content">
+            <mat-icon>arrow_back</mat-icon>
+            DASHBOARD TERMINAL
+          </span>
+        </a>
+        
+        <button (click)="onLogout()" class="cyber-btn logout-btn">
+          <span class="btn-content">
+            <mat-icon>power_settings_new</mat-icon>
+            DE-AUTHORIZE SESSION
+          </span>
+        </button>
+      </div>
+    </mat-card>
+  </div>
+</div>

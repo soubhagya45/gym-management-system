@@ -3,6 +3,8 @@ import { CommonModule } from '@angular/common';
 import { FormBuilder, FormGroup, Validators, ReactiveFormsModule } from '@angular/forms';
 import { Router, RouterModule } from '@angular/router';
 import { AuthState } from '../../presentation/state/auth.state';
+import { UserRole } from '../../core/enums/roles.enum';
+import { PermissionService } from '../../domain/auth/permission.service';
 
 // Angular Material Imports
 import { MatCardModule } from '@angular/material/card';
@@ -36,36 +38,57 @@ export class LoginComponent implements OnInit {
   hidePassword = true;
 
   // Selected quick role for UI presentation
-  activeRole: 'owner' | 'trainer' | 'member' = 'owner';
+  activeRole: UserRole = UserRole.Owner;
+  UserRole = UserRole;
+
+  // Ordered list of roles for dynamic layout
+  availableRoles = [
+    UserRole.SuperAdmin,
+    UserRole.Owner,
+    UserRole.Trainer,
+    UserRole.Staff
+  ];
 
   // Role details for dynamic styling & descriptions in the futuristic interface
   roleDetails = {
-    owner: {
-      title: 'HQ System Owner',
-      desc: 'Access core club management, financials, analytics & security logs.',
+    [UserRole.SuperAdmin]: {
+      title: 'Super Administrator',
+      desc: 'Global system overview, multi-tenant gym directories & database provider swapping.',
+      badge: 'Root Access',
+      color: '#f43f5e', // Rose glow
+      email: 'superadmin@apexfit.com',
+      icon: 'admin_panel_settings'
+    },
+    [UserRole.Owner]: {
+      title: 'HQ Club Owner',
+      desc: 'Access core club management, financial reports, membership plans & settings.',
       badge: 'Level 3 Auth',
       color: '#6366f1', // Indigo glow
-      email: 'owner@apexfit.com'
+      email: 'owner@apexfit.com',
+      icon: 'storefront'
     },
-    trainer: {
+    [UserRole.Trainer]: {
       title: 'Pro Coach Terminal',
-      desc: 'Manage workout sessions, trainer rosters, rating reviews & schedules.',
+      desc: 'Track fitness goals, log workout sessions, and mark class attendances.',
       badge: 'Coach Auth',
       color: '#10b981', // Emerald glow
-      email: 'trainer@apexfit.com'
+      email: 'trainer@apexfit.com',
+      icon: 'sports'
     },
-    member: {
-      title: 'Member Nexus Portal',
-      desc: 'Check personal profile, attendance track, invoice records & active plan.',
-      badge: 'User Access',
-      color: '#06b6d4', // Cyan glow
-      email: 'member@apexfit.com'
+    [UserRole.Staff]: {
+      title: 'Front Roster Staff',
+      desc: 'Manage active members, register new leads, update payments & check-ins.',
+      badge: 'Staff Auth',
+      color: '#eab308', // Amber glow
+      email: 'staff@apexfit.com',
+      icon: 'people'
     }
   };
 
   constructor(
     private fb: FormBuilder,
     private authState: AuthState,
+    private permissionService: PermissionService,
     private router: Router
   ) {}
 
@@ -80,7 +103,7 @@ export class LoginComponent implements OnInit {
   }
 
   // Set selected quick role and auto-fill email field
-  selectRole(role: 'owner' | 'trainer' | 'member'): void {
+  selectRole(role: UserRole): void {
     this.activeRole = role;
     this.syncFormWithRole();
     this.errorMessage = null;
@@ -134,15 +157,8 @@ export class LoginComponent implements OnInit {
     });
   }
 
-  private navigateToWorkspace(role: string): void {
-    if (role === 'owner' || role === 'super-admin') {
-      this.router.navigate(['/dashboard']);
-    } else if (role === 'trainer') {
-      this.router.navigate(['/trainers']);
-    } else if (role === 'staff' || role === 'member') {
-      this.router.navigate(['/members']);
-    } else {
-      this.router.navigate(['/dashboard']);
-    }
+  private navigateToWorkspace(role: UserRole): void {
+    const defaultRoute = this.permissionService.getDefaultRoute(role);
+    this.router.navigate([defaultRoute]);
   }
 }

@@ -1,0 +1,32 @@
+<div class="unauthorized-page-wrapper">
+  <!-- Grid background -->
+  <div class="cyber-grid"></div>
+  <div class="glow-sphere-alert"></div>
+
+  <div class="warning-container">
+    <div class="glass-panel alert-card animate-fade-in">
+      <div class="alert-icon-ring">
+        <mat-icon class="shield-icon">security</mat-icon>
+        <div class="pulse-ring"></div>
+      </div>
+
+      <h1 class="alert-title">ACCESS_DENIED</h1>
+      <p class="alert-code">HTTP STATUS 403 // FORBIDDEN_SECTOR</p>
+      
+      <div class="alert-details">
+        <p>Your current user identity signature does not possess the credentials or cryptographic flags required to decrypt/enter this system sector.</p>
+        <p class="info-highlight">Access attempts have been logged under security audit protocols.</p>
+      </div>
+
+      <div class="action-bar">
+        <a routerLink="/dashboard" class="cyber-btn primary-alert-btn">
+          <span class="btn-glow"></span>
+          <span class="btn-content">
+            <mat-icon>dashboard</mat-icon>
+            RETURN TO SAFE SECTOR
+          </span>
+        </a>
+      </div>
+    </div>
+  </div>
+</div>

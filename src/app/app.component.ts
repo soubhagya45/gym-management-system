@@ -1,18 +1,15 @@
 import { Component, OnInit, HostListener } from '@angular/core';
 import { Router, NavigationEnd } from '@angular/router';
 import { Observable } from 'rxjs';
-import { filter } from 'rxjs/operators';
+import { filter, map } from 'rxjs/operators';
 import { AuthState } from './presentation/state/auth.state';
 import { GymState } from './presentation/state/gym.state';
 import { AppConfigService, ProviderType } from './core/config/app-config';
 import { UserProfile } from './core/models/user.model';
 import { Gym } from './core/models/gym.entity';
-
-interface MenuItem {
-  label: string;
-  route: string;
-  icon: string;
-}
+import { PermissionService } from './domain/auth/permission.service';
+import { NavItem } from './core/models/permission.model';
+import { SessionService } from './domain/auth/session.service';
 
 @Component({
   selector: 'app-root',
@@ -27,34 +24,36 @@ export class AppComponent implements OnInit {
   sidenavOpened = true;
   
   currentUser$: Observable<UserProfile | null>;
+  menuItems$: Observable<NavItem[]>;
+  sessionWarning$: Observable<number | null>;
   activeGym$: Observable<Gym | null>;
   gyms$: Observable<Gym[]>;
   currentProvider: ProviderType;
-
-  menuItems: MenuItem[] = [
-    { label: 'Dashboard', route: '/dashboard', icon: 'dashboard' },
-    { label: 'Members', route: '/members', icon: 'people' },
-    { label: 'Leads', route: '/leads', icon: 'leaderboard' },
-    { label: 'Attendance', route: '/attendance', icon: 'event_available' },
-    { label: 'Payments', route: '/payments', icon: 'payments' },
-    { label: 'Membership Plans', route: '/plans', icon: 'fitness_center' },
-    { label: 'Trainers', route: '/trainers', icon: 'sports' },
-    { label: 'WhatsApp Center', route: '/whatsapp', icon: 'chat' },
-    { label: 'Body Progress', route: '/body-progress', icon: 'trending_up' },
-    { label: 'Settings', route: '/settings', icon: 'settings' }
-  ];
 
   constructor(
     private router: Router,
     private authState: AuthState,
     private gymState: GymState,
-    private configService: AppConfigService
+    private configService: AppConfigService,
+    private permissionService: PermissionService,
+    private sessionService: SessionService
   ) {
     this.currentUser$ = this.authState.currentUser$;
+    this.menuItems$ = this.currentUser$.pipe(
+      map(user => this.permissionService.getNavigationItems(user))
+    );
+    this.sessionWarning$ = this.sessionService.sessionWarning$.asObservable();
     this.activeGym$ = this.gymState.activeGym$;
     this.gyms$ = this.gymState.gyms$;
     this.currentProvider = this.configService.provider;
     this.checkScreenSize();
+  }
+
+  formatRemainingTime(ms: number | null): string {
+    if (ms === null || ms <= 0) return '';
+    const minutes = Math.floor(ms / 60000);
+    const seconds = Math.floor((ms % 60000) / 1000);
+    return `${minutes}:${seconds.toString().padStart(2, '0')}`;
   }
 
   ngOnInit() {
@@ -80,8 +79,13 @@ export class AppComponent implements OnInit {
         this.pageTitle = 'Add New Lead';
       } else if (event.urlAfterRedirects.includes('/leads/') && event.urlAfterRedirects.match(/\/leads\/[a-zA-Z0-9-]+/)) {
         this.pageTitle = 'Lead Details';
+      } else if (event.urlAfterRedirects.includes('/profile')) {
+        this.pageTitle = 'User Profile';
+      } else if (event.urlAfterRedirects.includes('/unauthorized')) {
+        this.pageTitle = 'Access Denied';
       } else {
-        const currentRoute = this.menuItems.find(item => event.urlAfterRedirects.includes(item.route));
+        const items = this.permissionService.getNavigationItems(this.authState.currentUserValue);
+        const currentRoute = items.find(item => event.urlAfterRedirects.includes(item.route));
         this.pageTitle = currentRoute ? currentRoute.label : 'Dashboard';
       }
       
