@@ -114,55 +114,21 @@
 
           <!-- Module Picker Grid -->
           <div class="role-grid">
-            
-            <!-- Owner Card -->
             <div 
+              *ngFor="let role of availableRoles"
               class="role-card" 
-              [class.active]="activeRole === 'owner'" 
-              (click)="selectRole('owner')"
-              [style.--active-color]="roleDetails.owner.color">
+              [class.active]="activeRole === role" 
+              (click)="selectRole(role)"
+              [style.--active-color]="roleDetails[role].color">
               <div class="role-card-header">
-                <mat-icon class="role-icon">admin_panel_settings</mat-icon>
-                <span class="role-badge badge-owner">{{ roleDetails.owner.badge }}</span>
+                <mat-icon class="role-icon">{{ roleDetails[role].icon }}</mat-icon>
+                <span class="role-badge" [ngClass]="'badge-' + role">{{ roleDetails[role].badge }}</span>
               </div>
               <div class="role-card-body">
-                <h3 class="role-name">Owner</h3>
-                <p class="role-description">{{ roleDetails.owner.desc }}</p>
+                <h3 class="role-name">{{ role === UserRole.SuperAdmin ? 'Super Admin' : (role | titlecase) }}</h3>
+                <p class="role-description">{{ roleDetails[role].desc }}</p>
               </div>
             </div>
-
-            <!-- Trainer Card -->
-            <div 
-              class="role-card" 
-              [class.active]="activeRole === 'trainer'" 
-              (click)="selectRole('trainer')"
-              [style.--active-color]="roleDetails.trainer.color">
-              <div class="role-card-header">
-                <mat-icon class="role-icon">sports</mat-icon>
-                <span class="role-badge badge-trainer">{{ roleDetails.trainer.badge }}</span>
-              </div>
-              <div class="role-card-body">
-                <h3 class="role-name">Trainer</h3>
-                <p class="role-description">{{ roleDetails.trainer.desc }}</p>
-              </div>
-            </div>
-
-            <!-- Member Card -->
-            <div 
-              class="role-card" 
-              [class.active]="activeRole === 'member'" 
-              (click)="selectRole('member')"
-              [style.--active-color]="roleDetails.member.color">
-              <div class="role-card-header">
-                <mat-icon class="role-icon">person</mat-icon>
-                <span class="role-badge badge-member">{{ roleDetails.member.badge }}</span>
-              </div>
-              <div class="role-card-body">
-                <h3 class="role-name">Member</h3>
-                <p class="role-description">{{ roleDetails.member.desc }}</p>
-              </div>
-            </div>
-
           </div>
 
           <!-- Quick Bypass Link Button -->

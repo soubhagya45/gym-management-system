@@ -1,6 +1,7 @@
 import { InjectionToken } from '@angular/core';
 import { Observable } from 'rxjs';
 import { UserProfile } from '../models/user.model';
+import { UserRole } from '../enums/roles.enum';
 import { Gym } from '../models/gym.entity';
 import { Member } from '../models/member.entity';
 import { Payment } from '../models/payment.entity';
@@ -17,7 +18,7 @@ import { BodyProgressEntry } from '../models/body-progress.entity';
 
 export interface IAuthRepository {
   login(email: string, password: string): Observable<UserProfile>;
-  loginWithRole(role: 'owner' | 'trainer' | 'member'): Observable<UserProfile>;
+  loginWithRole(role: UserRole): Observable<UserProfile>;
   logout(): Observable<void>;
   register(
     gymName: string,
@@ -28,6 +29,8 @@ export interface IAuthRepository {
     address?: string,
     gstNumber?: string
   ): Observable<UserProfile>;
+  getUserProfile(userId: string): Observable<UserProfile | null>;
+  inviteStaff(email: string, name: string, role: UserRole, gymId: string): Observable<UserProfile>;
 }
 
 export interface IGymRepository {

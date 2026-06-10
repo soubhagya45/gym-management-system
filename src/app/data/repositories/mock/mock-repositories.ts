@@ -1,6 +1,7 @@
 import { Injectable } from '@angular/core';
 import { Observable, of, throwError } from 'rxjs';
 import { delay, map } from 'rxjs/operators';
+import { UserRole } from '../../../core/enums/roles.enum';
 
 import {
   IAuthRepository,
@@ -58,41 +59,58 @@ const dbGyms: Gym[] = [
   }
 ];
 
+const SESSION_DURATION_MS = 8 * 60 * 60 * 1000;
+
+function buildUser(base: Omit<UserProfile, 'permissions' | 'lastLogin' | 'sessionExpiresAt'>): UserProfile {
+  const now = new Date().toISOString();
+  return {
+    ...base,
+    permissions: [],   // populated by PermissionService after login
+    lastLogin: now,
+    sessionExpiresAt: new Date(Date.now() + SESSION_DURATION_MS).toISOString()
+  };
+}
+
 const dbMockAccounts: Record<string, UserProfile> = {
-  'superadmin@apexfit.com': {
+  'superadmin@apexfit.com': buildUser({
+    id: 'usr-superadmin',
     name: 'HQ Master Admin',
     email: 'superadmin@apexfit.com',
     avatarUrl: 'https://images.unsplash.com/photo-1570295999919-56ceb5ecca61?w=150',
-    role: 'super-admin'
-  },
-  'owner@apexfit.com': {
+    role: UserRole.SuperAdmin
+  }),
+  'owner@apexfit.com': buildUser({
+    id: 'usr-owner-a',
     name: 'Alex Johnson',
     email: 'owner@apexfit.com',
     avatarUrl: 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=150',
-    role: 'owner',
+    role: UserRole.Owner,
     gymId: 'gym-a'
-  },
-  'owner-b@apexfit.com': {
+  }),
+  'owner-b@apexfit.com': buildUser({
+    id: 'usr-owner-b',
     name: 'Sarah Connor',
     email: 'owner-b@apexfit.com',
     avatarUrl: 'https://images.unsplash.com/photo-1544005313-94ddf0286df2?w=150',
-    role: 'owner',
+    role: UserRole.Owner,
     gymId: 'gym-b'
-  },
-  'trainer@apexfit.com': {
+  }),
+  'trainer@apexfit.com': buildUser({
+    id: 'usr-trainer-1',
     name: 'Marcus Vance',
     email: 'trainer@apexfit.com',
     avatarUrl: 'https://images.unsplash.com/photo-1567013127542-490d757e51fc?w=150',
-    role: 'trainer',
+    role: UserRole.Trainer,
     gymId: 'gym-a'
-  },
-  'member@apexfit.com': {
+  }),
+  'staff@apexfit.com': buildUser({
+    id: 'usr-staff-1',
     name: 'Sophia Chen',
-    email: 'member@apexfit.com',
+    email: 'staff@apexfit.com',
     avatarUrl: 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=150',
-    role: 'staff',
+    role: UserRole.Staff,
     gymId: 'gym-a'
-  }
+  })
 };
 
 const dbPasswords: Record<string, string> = {
@@ -100,7 +118,7 @@ const dbPasswords: Record<string, string> = {
   'owner@apexfit.com': 'password',
   'owner-b@apexfit.com': 'password',
   'trainer@apexfit.com': 'password',
-  'member@apexfit.com': 'password'
+  'staff@apexfit.com': 'password'
 };
 
 const dbPlans: MembershipPlan[] = [
@@ -271,25 +289,59 @@ const dbWhatsAppReminders: WhatsAppReminder[] = [
 // --- Mock Implementations ---
 
 @Injectable({ providedIn: 'root' })
+@Injectable({ providedIn: 'root' })
 export class MockAuthRepository implements IAuthRepository {
   login(email: string, password: string): Observable<UserProfile> {
     const emailKey = email.toLowerCase().trim();
     const user = dbMockAccounts[emailKey];
     const storedPassword = dbPasswords[emailKey] || 'password';
     if (user && password === storedPassword) {
-      return of(user).pipe(delay(800));
+      // Refresh session timestamps on each login
+      const fresh = buildUser(user);
+      dbMockAccounts[emailKey] = fresh;
+      return of(fresh).pipe(delay(800));
     }
     return throwError(() => new Error('Invalid email or password. Hint: password'));
   }
 
-  loginWithRole(role: 'owner' | 'trainer' | 'member'): Observable<UserProfile> {
-    const email = role === 'owner' ? 'owner@apexfit.com' : role === 'trainer' ? 'trainer@apexfit.com' : 'member@apexfit.com';
-    const user = dbMockAccounts[email];
+  loginWithRole(role: UserRole): Observable<UserProfile> {
+    const emailMap: Partial<Record<UserRole, string>> = {
+      [UserRole.Owner]:      'owner@apexfit.com',
+      [UserRole.Trainer]:    'trainer@apexfit.com',
+      [UserRole.Staff]:      'staff@apexfit.com',
+      [UserRole.SuperAdmin]: 'superadmin@apexfit.com'
+    };
+    const email = emailMap[role] ?? 'owner@apexfit.com';
+    const user = buildUser(dbMockAccounts[email]);
+    dbMockAccounts[email] = user;
     return of(user).pipe(delay(500));
   }
 
   logout(): Observable<void> {
     return of(undefined).pipe(delay(200));
+  }
+
+  getUserProfile(userId: string): Observable<UserProfile | null> {
+    const user = Object.values(dbMockAccounts).find(u => u.id === userId) ?? null;
+    return of(user).pipe(delay(200));
+  }
+
+  inviteStaff(email: string, name: string, role: UserRole, gymId: string): Observable<UserProfile> {
+    const emailKey = email.toLowerCase().trim();
+    if (dbMockAccounts[emailKey]) {
+      return throwError(() => new Error('This email is already registered.'));
+    }
+    const newUser = buildUser({
+      id: 'usr-' + Math.random().toString(36).substring(2, 9),
+      name,
+      email,
+      avatarUrl: `https://api.dicebear.com/7.x/initials/svg?seed=${encodeURIComponent(name)}`,
+      role,
+      gymId
+    });
+    dbMockAccounts[emailKey] = newUser;
+    dbPasswords[emailKey] = 'welcome123';
+    return of(newUser).pipe(delay(600));
   }
 
   register(
@@ -321,17 +373,16 @@ export class MockAuthRepository implements IAuthRepository {
     };
     dbGyms.push(newGym);
 
-    const newUser: UserProfile = {
+    const newUser = buildUser({
+      id: 'usr-' + Math.random().toString(36).substring(2, 9),
       name: ownerName,
       email,
       avatarUrl: `https://api.dicebear.com/7.x/initials/svg?seed=${encodeURIComponent(ownerName)}`,
-      role: 'owner',
+      role: UserRole.Owner,
       gymId
-    };
+    });
     dbMockAccounts[emailKey] = newUser;
-    if (password) {
-      dbPasswords[emailKey] = password;
-    }
+    if (password) dbPasswords[emailKey] = password;
 
     return of(newUser).pipe(delay(800));
   }
