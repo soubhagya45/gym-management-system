@@ -73,6 +73,14 @@ export class LandingPageComponent implements OnInit, OnDestroy {
     });
   }
 
+  scrollToSection(sectionId: string, event: Event): void {
+    event.preventDefault();
+    const element = document.getElementById(sectionId);
+    if (element) {
+      element.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }
+  }
+
   ngOnDestroy(): void {
     this.destroy$.next();
     this.destroy$.complete();

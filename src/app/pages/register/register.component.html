@@ -35,7 +35,7 @@
       </div>
 
       <!-- STEP 1: GYM INFORMATION -->
-      <div class="step-content" *ngIf="currentStep === 1">
+      <div class="step-content" *ngIf="currentStep === 1" @stepAnimation>
         <div class="step-title-area">
           <h2>Register Your Gym Profile</h2>
           <p>Tell us about your fitness center or club workspace details.</p>
@@ -51,6 +51,38 @@
               <mat-error *ngIf="gymForm.get('gymName')?.hasError('required')">Gym Name is required</mat-error>
               <mat-error *ngIf="gymForm.get('gymName')?.hasError('minlength')">Must be at least 3 characters</mat-error>
             </mat-form-field>
+
+            <!-- Gym Type -->
+            <mat-form-field appearance="outline" class="full-width">
+              <mat-label>Gym Type</mat-label>
+              <mat-select formControlName="gymType" placeholder="Select Gym Type">
+                <mat-option value="Unisex">Unisex Gym</mat-option>
+                <mat-option value="Men Only">Men Only Gym</mat-option>
+                <mat-option value="Women Only">Women Only Gym</mat-option>
+                <mat-option value="CrossFit Box">CrossFit Box</mat-option>
+                <mat-option value="Yoga/Pilates Studio">Yoga/Pilates Studio</mat-option>
+                <mat-option value="Powerlifting">Powerlifting Gym</mat-option>
+              </mat-select>
+              <mat-icon matSuffix>fitness_center</mat-icon>
+              <mat-error *ngIf="gymForm.get('gymType')?.hasError('required')">Gym Type is required</mat-error>
+            </mat-form-field>
+
+            <!-- Operating Hours (Opening & Closing) -->
+            <div class="form-time-row">
+              <mat-form-field appearance="outline" class="time-field">
+                <mat-label>Opening Time</mat-label>
+                <input matInput type="time" formControlName="openingTime">
+                <mat-icon matSuffix>schedule</mat-icon>
+                <mat-error *ngIf="gymForm.get('openingTime')?.hasError('required')">Opening Time is required</mat-error>
+              </mat-form-field>
+              
+              <mat-form-field appearance="outline" class="time-field">
+                <mat-label>Closing Time</mat-label>
+                <input matInput type="time" formControlName="closingTime">
+                <mat-icon matSuffix>update</mat-icon>
+                <mat-error *ngIf="gymForm.get('closingTime')?.hasError('required')">Closing Time is required</mat-error>
+              </mat-form-field>
+            </div>
 
             <!-- Phone -->
             <mat-form-field appearance="outline" class="full-width">
@@ -89,7 +121,7 @@
       </div>
 
       <!-- STEP 2: OWNER INFORMATION -->
-      <div class="step-content" *ngIf="currentStep === 2">
+      <div class="step-content" *ngIf="currentStep === 2" @stepAnimation>
         <div class="step-title-area">
           <h2>Create Owner Account</h2>
           <p>Set up the primary administrative credentials to manage this gym.</p>
@@ -140,7 +172,7 @@
       </div>
 
       <!-- STEP 3: ONBOARDING CONSOLE & DEPLOYMENT LOADER -->
-      <div class="step-content onboarding-console" *ngIf="currentStep === 3">
+      <div class="step-content onboarding-console" *ngIf="currentStep === 3" @stepAnimation>
         <div class="step-title-area text-center">
           <h2 class="gradient-text">Building Gym Workspace</h2>
           <p>Please wait while we initialize your secure cloud tenant environments...</p>

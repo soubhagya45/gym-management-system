@@ -53,7 +53,10 @@ export class ApiAuthRepository implements IAuthRepository {
     phone: string,
     password?: string,
     address?: string,
-    gstNumber?: string
+    gstNumber?: string,
+    gymType?: string,
+    openingTime?: string,
+    closingTime?: string
   ): Observable<UserProfile> {
     return throwError(() => new Error('API integration is not enabled.'));
   }

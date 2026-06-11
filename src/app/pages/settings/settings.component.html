@@ -57,6 +57,36 @@
                   <mat-error *ngIf="settingsForm.get('contactPhone')?.hasError('required')">Phone is required</mat-error>
                 </mat-form-field>
 
+                <!-- Gym Type -->
+                <mat-form-field appearance="outline">
+                  <mat-label>Gym Type</mat-label>
+                  <mat-select formControlName="gymType">
+                    <mat-option value="Unisex">Unisex Gym</mat-option>
+                    <mat-option value="Men Only">Men Only Gym</mat-option>
+                    <mat-option value="Women Only">Women Only Gym</mat-option>
+                    <mat-option value="CrossFit Box">CrossFit Box</mat-option>
+                    <mat-option value="Yoga/Pilates Studio">Yoga/Pilates Studio</mat-option>
+                    <mat-option value="Powerlifting">Powerlifting Gym</mat-option>
+                  </mat-select>
+                  <mat-icon matSuffix>fitness_center</mat-icon>
+                  <mat-error *ngIf="settingsForm.get('gymType')?.hasError('required')">Gym Type is required</mat-error>
+                </mat-form-field>
+
+                <!-- Operating Hours -->
+                <div class="form-row">
+                  <mat-form-field appearance="outline">
+                    <mat-label>Opening Time</mat-label>
+                    <input matInput type="time" formControlName="openingTime">
+                    <mat-error *ngIf="settingsForm.get('openingTime')?.hasError('required')">Opening Time is required</mat-error>
+                  </mat-form-field>
+                  
+                  <mat-form-field appearance="outline">
+                    <mat-label>Closing Time</mat-label>
+                    <input matInput type="time" formControlName="closingTime">
+                    <mat-error *ngIf="settingsForm.get('closingTime')?.hasError('required')">Closing Time is required</mat-error>
+                  </mat-form-field>
+                </div>
+
                 <!-- Address -->
                 <mat-form-field appearance="outline">
                   <mat-label>Gym Branch Address</mat-label>

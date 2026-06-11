@@ -27,7 +27,10 @@ export interface IAuthRepository {
     phone: string,
     password?: string,
     address?: string,
-    gstNumber?: string
+    gstNumber?: string,
+    gymType?: string,
+    openingTime?: string,
+    closingTime?: string
   ): Observable<UserProfile>;
   getUserProfile(userId: string): Observable<UserProfile | null>;
   inviteStaff(email: string, name: string, role: UserRole, gymId: string): Observable<UserProfile>;
