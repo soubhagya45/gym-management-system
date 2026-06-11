@@ -22,6 +22,7 @@
 body.light-theme {
   --bg-primary: #f8fafc;
   --bg-secondary: #ffffff;
+  --bg-card: #ffffff;
   --bg-sidebar: #1e293b; /* Premium dark navy sidebar for light theme too! */
   --bg-sidebar-active: #334155;
   --text-sidebar: #f8fafc;
@@ -57,6 +58,7 @@ body.light-theme {
 body.dark-theme {
   --bg-primary: #0b0c10;
   --bg-secondary: #12131a;
+  --bg-card: #161722;
   --bg-sidebar: #07080b;
   --bg-sidebar-active: #1c1d26;
   --text-sidebar: #ffffff;
@@ -204,7 +206,8 @@ h1, h2, h3, h4, h5, h6 {
   }
 
   /* Input text color and caret */
-  .mdc-text-field__input {
+  .mdc-text-field__input,
+  .mat-mdc-input-element {
     color: var(--text-primary) !important;
     caret-color: var(--text-primary) !important;
     
@@ -290,6 +293,14 @@ h1, h2, h3, h4, h5, h6 {
   color: var(--text-primary) !important;
 }
 
+.mat-mdc-select-placeholder {
+  color: var(--text-muted) !important;
+}
+
+.mat-mdc-select-arrow svg {
+  fill: var(--text-secondary) !important;
+}
+
 /* Select Popover Overlay Option Styles */
 .mat-mdc-select-panel {
   background-color: var(--bg-secondary) !important;
@@ -301,10 +312,21 @@ h1, h2, h3, h4, h5, h6 {
   color: var(--text-primary) !important;
   font-family: var(--font-sans) !important;
   font-size: 14px !important;
+
+  /* Force inner Material labels to inherit parent color */
+  .mdc-list-item__primary-text,
+  .mat-option-text,
+  .mat-mdc-option__label,
+  .mdc-list-item__text {
+    color: inherit !important;
+  }
   
   &.mdc-list-item--selected:not(.mdc-list-item--disabled) {
     background-color: var(--accent-light) !important;
-    .mdc-list-item__primary-text {
+    .mdc-list-item__primary-text,
+    .mat-option-text,
+    .mat-mdc-option__label,
+    .mdc-list-item__text {
       color: var(--accent-color) !important;
       font-weight: 600;
     }
@@ -529,3 +551,219 @@ button.mat-mdc-raised-button[color="accent"], button.mat-mdc-unelevated-button[c
     background: var(--accent-hover) !important;
   }
 }
+
+/* Global Dialog Typography Color Overrides */
+.mat-mdc-dialog-title,
+.mat-mdc-dialog-content {
+  color: var(--text-primary) !important;
+}
+
+/* Global Tab Overrides for Dynamic Legibility */
+.mdc-tab__text-label {
+  color: var(--text-secondary) !important;
+  font-family: var(--font-sans) !important;
+  font-weight: 500 !important;
+}
+
+.mdc-tab--active .mdc-tab__text-label {
+  color: var(--accent-color) !important;
+  font-weight: 600 !important;
+}
+
+.mat-mdc-tab .mdc-tab-indicator__content--underline {
+  border-color: var(--accent-color) !important;
+}
+
+.mat-mdc-tab-header {
+  border-bottom: 1px solid var(--border-color) !important;
+}
+
+/* Global Button Visibility overrides */
+.mat-mdc-button:not(:disabled),
+.mat-mdc-raised-button:not(:disabled):not(.mat-primary):not(.mat-accent):not(.mat-warn),
+.mat-mdc-unelevated-button:not(:disabled):not(.mat-primary):not(.mat-accent):not(.mat-warn),
+.mat-mdc-flat-button:not(:disabled):not(.mat-primary):not(.mat-accent):not(.mat-warn),
+.mat-mdc-outlined-button:not(:disabled),
+.mat-mdc-stroked-button:not(:disabled) {
+  color: var(--text-primary) !important;
+}
+
+.mat-mdc-icon-button:not(:disabled) {
+  color: var(--text-primary) !important;
+  
+  mat-icon {
+    color: inherit !important;
+  }
+}
+
+/* Primary, Accent and Warn Text/Outlined/Icon button overrides */
+button.mat-mdc-button[color="primary"],
+button.mat-mdc-outlined-button[color="primary"],
+button.mat-mdc-icon-button[color="primary"] {
+  color: var(--accent-color) !important;
+  
+  &:hover:not(:disabled) {
+    color: var(--accent-hover) !important;
+    background-color: var(--accent-light) !important;
+  }
+}
+
+button.mat-mdc-button[color="accent"],
+button.mat-mdc-outlined-button[color="accent"],
+button.mat-mdc-icon-button[color="accent"] {
+  color: var(--accent-color) !important;
+  
+  &:hover:not(:disabled) {
+    color: var(--accent-hover) !important;
+    background-color: var(--accent-light) !important;
+  }
+}
+
+button.mat-mdc-button[color="warn"],
+button.mat-mdc-outlined-button[color="warn"],
+button.mat-mdc-icon-button[color="warn"] {
+  color: var(--danger) !important;
+  
+  &:hover:not(:disabled) {
+    color: #fca5a5 !important;
+    background-color: var(--danger-glow) !important;
+  }
+}
+
+/* Global Menu Panel & Item Overrides for High Theme Contrast */
+.mat-mdc-menu-panel {
+  background-color: var(--bg-secondary) !important;
+  border: var(--card-border) !important;
+  box-shadow: var(--shadow-lg) !important;
+}
+
+.mat-mdc-menu-item {
+  color: var(--text-primary) !important;
+  font-family: var(--font-sans) !important;
+  font-size: 13.5px !important;
+  
+  mat-icon {
+    color: var(--text-secondary) !important;
+  }
+  
+  &:hover:not([disabled]) {
+    background-color: rgba(99, 102, 241, 0.05) !important;
+    
+    mat-icon {
+      color: var(--accent-color) !important;
+    }
+  }
+}
+
+/* Global Checkbox and Radio Button overrides */
+.mat-mdc-checkbox-label,
+.mat-mdc-radio-label {
+  color: var(--text-primary) !important;
+}
+
+.mat-mdc-checkbox {
+  --mdc-checkbox-selected-icon-color: var(--accent-color) !important;
+  --mdc-checkbox-selected-focus-icon-color: var(--accent-hover) !important;
+  --mdc-checkbox-selected-hover-icon-color: var(--accent-hover) !important;
+  --mdc-checkbox-unselected-icon-color: var(--text-secondary) !important;
+}
+
+/* Theme specific button states */
+body.dark-theme {
+  .mat-mdc-raised-button:not(:disabled):not(.mat-primary):not(.mat-accent):not(.mat-warn),
+  .mat-mdc-unelevated-button:not(:disabled):not(.mat-primary):not(.mat-accent):not(.mat-warn),
+  .mat-mdc-flat-button:not(:disabled):not(.mat-primary):not(.mat-accent):not(.mat-warn) {
+    background-color: rgba(255, 255, 255, 0.08) !important;
+    
+    &:hover {
+      background-color: rgba(255, 255, 255, 0.12) !important;
+    }
+  }
+  
+  .mat-mdc-outlined-button:not(:disabled),
+  .mat-mdc-stroked-button:not(:disabled) {
+    border-color: rgba(255, 255, 255, 0.15) !important;
+    background-color: transparent !important;
+    
+    &:hover {
+      background-color: rgba(255, 255, 255, 0.04) !important;
+    }
+  }
+
+  /* Disabled button states for dark-theme */
+  .mat-mdc-raised-button:disabled,
+  .mat-mdc-unelevated-button:disabled,
+  .mat-mdc-flat-button:disabled,
+  .mat-raised-button:disabled,
+  .mat-flat-button:disabled {
+    background: rgba(255, 255, 255, 0.12) !important;
+    color: rgba(255, 255, 255, 0.35) !important;
+    
+    mat-icon {
+      color: rgba(255, 255, 255, 0.35) !important;
+    }
+  }
+
+  .mat-mdc-button:disabled,
+  .mat-mdc-outlined-button:disabled,
+  .mat-mdc-stroked-button:disabled,
+  .mat-button:disabled,
+  .mat-outlined-button:disabled {
+    color: rgba(255, 255, 255, 0.35) !important;
+    border-color: rgba(255, 255, 255, 0.12) !important;
+    
+    mat-icon {
+      color: rgba(255, 255, 255, 0.35) !important;
+    }
+  }
+
+  /* Improved Form Field Hint and Muted Text legibility */
+  .mat-mdc-form-field-hint {
+    color: rgba(255, 255, 255, 0.45) !important;
+  }
+
+  /* Dark mode select styles */
+  .mat-mdc-select-value {
+    color: var(--text-primary) !important;
+  }
+  
+  .mat-mdc-select-placeholder {
+    color: rgba(255, 255, 255, 0.45) !important;
+  }
+  
+  .mat-mdc-select-arrow svg {
+    fill: rgba(255, 255, 255, 0.6) !important;
+  }
+}
+
+/* Global Disabled Button states for light-theme (fallbacks) */
+.mat-mdc-raised-button:disabled,
+.mat-mdc-unelevated-button:disabled,
+.mat-mdc-flat-button:disabled,
+.mat-raised-button:disabled,
+.mat-flat-button:disabled {
+  background: rgba(0, 0, 0, 0.12) !important;
+  color: rgba(0, 0, 0, 0.38) !important;
+  cursor: not-allowed !important;
+  pointer-events: none !important;
+  
+  mat-icon {
+    color: rgba(0, 0, 0, 0.38) !important;
+  }
+}
+
+.mat-mdc-button:disabled,
+.mat-mdc-outlined-button:disabled,
+.mat-mdc-stroked-button:disabled,
+.mat-button:disabled,
+.mat-outlined-button:disabled {
+  color: rgba(0, 0, 0, 0.38) !important;
+  border-color: rgba(0, 0, 0, 0.12) !important;
+  cursor: not-allowed !important;
+  pointer-events: none !important;
+  
+  mat-icon {
+    color: rgba(0, 0, 0, 0.38) !important;
+  }
+}
+

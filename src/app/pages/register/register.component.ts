@@ -5,6 +5,8 @@ import { Router, RouterModule } from '@angular/router';
 import { AuthState } from '../../presentation/state/auth.state';
 import { UserProfile } from '../../core/models/user.model';
 
+import { trigger, transition, style, animate } from '@angular/animations';
+
 // Angular Material Imports
 import { MatCardModule } from '@angular/material/card';
 import { MatFormFieldModule } from '@angular/material/form-field';
@@ -12,6 +14,7 @@ import { MatInputModule } from '@angular/material/input';
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
 import { MatProgressBarModule } from '@angular/material/progress-bar';
+import { MatSelectModule } from '@angular/material/select';
 
 @Component({
   selector: 'app-register',
@@ -25,10 +28,19 @@ import { MatProgressBarModule } from '@angular/material/progress-bar';
     MatInputModule,
     MatButtonModule,
     MatIconModule,
-    MatProgressBarModule
+    MatProgressBarModule,
+    MatSelectModule
   ],
   templateUrl: './register.component.html',
-  styleUrls: ['./register.component.scss']
+  styleUrls: ['./register.component.scss'],
+  animations: [
+    trigger('stepAnimation', [
+      transition(':enter', [
+        style({ opacity: 0, transform: 'translateY(15px)' }),
+        animate('350ms cubic-bezier(0.16, 1, 0.3, 1)', style({ opacity: 1, transform: 'translateY(0)' }))
+      ])
+    ])
+  ]
 })
 export class RegisterComponent implements OnInit {
   currentStep: number = 1; // 1: Gym Info, 2: Owner Info, 3: Onboarding Loader
@@ -61,7 +73,10 @@ export class RegisterComponent implements OnInit {
       gymName: ['', [Validators.required, Validators.minLength(3)]],
       phone: ['', [Validators.required, Validators.pattern(/^[+]?[0-9\s-]{7,15}$/)]],
       address: ['', [Validators.required, Validators.minLength(5)]],
-      gstNumber: ['', [Validators.pattern(/^[0-9]{2}[A-Z]{5}[0-9]{4}[A-Z]{1}[1-9A-Z]{1}Z[0-9A-Z]{1}$/)]] // GST Number pattern validation
+      gstNumber: ['', [Validators.pattern(/^[0-9]{2}[A-Z]{5}[0-9]{4}[A-Z]{1}[1-9A-Z]{1}Z[0-9A-Z]{1}$/)]], // GST Number pattern validation
+      gymType: ['', [Validators.required]],
+      openingTime: ['', [Validators.required]],
+      closingTime: ['', [Validators.required]]
     });
 
     this.ownerForm = this.fb.group({
@@ -91,11 +106,11 @@ export class RegisterComponent implements OnInit {
     this.isLoading = true;
     this.errorMessage = null;
 
-    const { gymName, phone, address, gstNumber } = this.gymForm.value;
+    const { gymName, phone, address, gstNumber, gymType, openingTime, closingTime } = this.gymForm.value;
     const { ownerName, email, password } = this.ownerForm.value;
 
     // Call registration immediately, deferring the logged-in session state update
-    this.authState.register(gymName, ownerName, email, phone, password, address, gstNumber, true).subscribe({
+    this.authState.register(gymName, ownerName, email, phone, password, address, gstNumber, true, gymType, openingTime, closingTime).subscribe({
       next: (user) => {
         // Successful registration! Save the registered user profile locally
         this.registeredUser = user;

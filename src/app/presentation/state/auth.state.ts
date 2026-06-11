@@ -92,9 +92,23 @@ export class AuthState {
     password?: string,
     address?: string,
     gstNumber?: string,
-    deferSession = false
+    deferSession = false,
+    gymType?: string,
+    openingTime?: string,
+    closingTime?: string
   ): Observable<UserProfile> {
-    return this.authRepository.register(gymName, ownerName, email, phone, password, address, gstNumber).pipe(
+    return this.authRepository.register(
+      gymName,
+      ownerName,
+      email,
+      phone,
+      password,
+      address,
+      gstNumber,
+      gymType,
+      openingTime,
+      closingTime
+    ).pipe(
       tap(user => {
         if (!deferSession) {
           this.setSession(user);

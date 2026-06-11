@@ -11,4 +11,7 @@ export interface Gym {
   createdAt: string;
   address: string;
   gstNumber?: string;
+  gymType?: string;
+  openingTime?: string;
+  closingTime?: string;
 }

@@ -11,9 +11,9 @@
       <span class="logo-text">APEX<span>FIT</span></span>
     </div>
     <nav class="nav-links">
-      <a href="#features" class="nav-link">Features</a>
-      <a href="#analytics" class="nav-link">Analytics</a>
-      <a href="#onboarding" class="nav-link">Onboarding</a>
+      <a href="#features" (click)="scrollToSection('features', $event)" class="nav-link">Features</a>
+      <a href="#analytics" (click)="scrollToSection('analytics', $event)" class="nav-link">Analytics</a>
+      <a href="#onboarding" (click)="scrollToSection('onboarding', $event)" class="nav-link">Onboarding</a>
     </nav>
     <div class="auth-actions" *ngIf="currentUser as user; else guestNav">
       <span class="welcome-tag">Welcome, {{ user.name }}</span>
@@ -51,7 +51,7 @@
           <mat-icon>add_business</mat-icon>
           <span>Onboard Your Gym Workspace</span>
         </button>
-        <a href="#features" class="secondary-hero-btn">
+        <a href="#features" (click)="scrollToSection('features', $event)" class="secondary-hero-btn">
           <span>Explore SaaS Features</span>
           <mat-icon>keyboard_arrow_down</mat-icon>
         </a>
@@ -170,6 +170,64 @@
 
   <!-- Footer -->
   <footer class="landing-footer">
-    <p>&copy; 2026 APEXFIT SaaS Technologies. All rights reserved.</p>
+    <div class="footer-grid">
+      <!-- Column 1: Brand Info -->
+      <div class="footer-col brand-col">
+        <div class="footer-logo">
+          <mat-icon class="logo-icon">fitness_center</mat-icon>
+          <span class="logo-text">APEX<span>FIT</span></span>
+        </div>
+        <p class="brand-desc">
+          Next-generation management dashboard operating system for gym workspaces, clubs, and fitness franchises. Built for modern operators.
+        </p>
+        <div class="social-links">
+          <a class="social-icon" href="#"><mat-icon>public</mat-icon></a>
+          <a class="social-icon" href="#"><mat-icon>alternate_email</mat-icon></a>
+          <a class="social-icon" href="#"><mat-icon>phone</mat-icon></a>
+        </div>
+      </div>
+
+      <!-- Column 2: Platform Links -->
+      <div class="footer-col">
+        <h4>PLATFORM</h4>
+        <ul class="footer-links">
+          <li><a href="#features" (click)="scrollToSection('features', $event)">SaaS Features</a></li>
+          <li><a href="#analytics" (click)="scrollToSection('analytics', $event)">Transformation Hub</a></li>
+          <li><a href="#onboarding" (click)="scrollToSection('onboarding', $event)">Workspace Onboarding</a></li>
+          <li><a routerLink="/login">Developer Terminal</a></li>
+        </ul>
+      </div>
+
+      <!-- Column 3: Corporate Info -->
+      <div class="footer-col">
+        <h4>COMPANY</h4>
+        <ul class="footer-links">
+          <li><a href="#">About Us</a></li>
+          <li><a href="#">Enterprise Solutions</a></li>
+          <li><a href="#">Security Protocols</a></li>
+          <li><a href="#">Privacy Policy</a></li>
+        </ul>
+      </div>
+
+      <!-- Column 4: Contact & Node Status -->
+      <div class="footer-col contact-col">
+        <h4>SYS_STATUS</h4>
+        <p class="status-info">
+          <span class="status-dot"></span>
+          <span>SaaS Transceiver: ONLINE</span>
+        </p>
+        <p class="contact-info">
+          Support: <a href="mailto:support@apexfit.com">support@apexfit.com</a>
+        </p>
+        <p class="contact-info">
+          Hotline: +91 99887 76655
+        </p>
+      </div>
+    </div>
+
+    <div class="footer-bottom">
+      <p>&copy; 2026 APEXFIT SaaS Technologies. All rights reserved. Encrypted Workspace Platform.</p>
+      <span class="node-id">NODE_ID // 403-SYSTEM-OK</span>
+    </div>
   </footer>
 </div>

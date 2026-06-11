@@ -16,6 +16,14 @@
     align-items: center;
     gap: 16px;
     padding: 16px 20px !important;
+
+    .stat-icon-wrapper {
+      margin-bottom: 0 !important;
+      
+      mat-icon {
+        color: inherit !important;
+      }
+    }
     
     .stat-info {
       display: flex;
@@ -24,13 +32,13 @@
       .value {
         font-size: 24px;
         font-weight: 700;
-        color: var(--text-primary);
+        color: var(--text-primary) !important;
         line-height: 1.1;
       }
       
       .label {
         font-size: 12px;
-        color: var(--text-secondary);
+        color: var(--text-secondary) !important;
         font-weight: 500;
         margin-top: 2px;
       }

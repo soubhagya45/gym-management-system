@@ -149,11 +149,16 @@
   grid-template-columns: 1fr 1fr;
   gap: 32px;
   padding: 28px !important;
-  background: rgba(30, 41, 59, 0.4) !important;
+  background: rgba(255, 255, 255, 0.02) !important;
   backdrop-filter: blur(10px);
   border: 1px solid rgba(255, 255, 255, 0.08) !important;
   border-radius: 16px !important;
   box-shadow: var(--shadow-md);
+
+  body.light-theme & {
+    background: rgba(99, 102, 241, 0.03) !important;
+    border-color: rgba(99, 102, 241, 0.1) !important;
+  }
 }
 
 .status-summary-section {
@@ -300,11 +305,15 @@
 
   .cycle-toggles {
     display: flex;
-    background: rgba(30, 41, 59, 0.6);
+    background: rgba(255, 255, 255, 0.05);
     border: 1px solid var(--border-color);
     border-radius: 30px;
     padding: 4px;
     gap: 4px;
+
+    body.light-theme & {
+      background: rgba(0, 0, 0, 0.04);
+    }
 
     .cycle-btn {
       border-radius: 20px !important;

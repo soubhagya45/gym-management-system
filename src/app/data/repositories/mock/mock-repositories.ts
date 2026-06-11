@@ -351,7 +351,10 @@ export class MockAuthRepository implements IAuthRepository {
     phone: string,
     password?: string,
     address?: string,
-    gstNumber?: string
+    gstNumber?: string,
+    gymType?: string,
+    openingTime?: string,
+    closingTime?: string
   ): Observable<UserProfile> {
     const emailKey = email.toLowerCase().trim();
     if (dbMockAccounts[emailKey]) {
@@ -369,7 +372,10 @@ export class MockAuthRepository implements IAuthRepository {
       status: 'active',
       createdAt: new Date().toISOString().split('T')[0],
       address: address || 'Not Specified',
-      gstNumber: gstNumber || undefined
+      gstNumber: gstNumber || undefined,
+      gymType: gymType || 'Unisex',
+      openingTime: openingTime || '06:00',
+      closingTime: closingTime || '22:00'
     };
     dbGyms.push(newGym);
 
