@@ -51,7 +51,10 @@ export class FirebaseAuthRepository implements IAuthRepository {
     phone: string,
     password?: string,
     address?: string,
-    gstNumber?: string
+    gstNumber?: string,
+    gymType?: string,
+    openingTime?: string,
+    closingTime?: string
   ): Observable<UserProfile> {
     return throwError(() => new Error('Firebase integration is not enabled.'));
   }

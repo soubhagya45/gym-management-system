@@ -1,15 +1,15 @@
 .register-wrapper {
   position: relative;
   width: 100%;
-  min-height: 100vh;
+  height: 100vh;
   background-color: var(--bg-primary);
   color: var(--text-primary);
   display: flex;
   flex-direction: column;
   align-items: center;
-  justify-content: center;
-  padding: 40px 20px;
-  overflow: hidden;
+  justify-content: flex-start;
+  padding: 0 20px;
+  overflow-y: auto;
   font-family: 'Inter', sans-serif;
   transition: background-color 0.3s ease, color 0.3s ease;
 }
@@ -29,12 +29,14 @@
     background: #ff007f;
     top: 10%;
     left: 20%;
+    animation: float-slow-pink 20s ease-in-out infinite;
   }
 
   &.orb-purple {
     background: #8a2be2;
     bottom: 10%;
     right: 20%;
+    animation: float-slow-purple 25s ease-in-out infinite;
   }
 }
 
@@ -72,6 +74,7 @@
   flex-direction: column;
   gap: 24px;
   z-index: 1;
+  padding: 100px 0 40px 0;
 }
 
 /* Stepper navigation header styling */
@@ -223,6 +226,16 @@
   margin-bottom: 28px;
 }
 
+.form-time-row {
+  display: flex;
+  gap: 16px;
+  width: 100%;
+  
+  .time-field {
+    flex: 1;
+  }
+}
+
 .full-width {
   width: 100%;
 }
@@ -364,6 +377,98 @@
 
     &:hover {
       text-decoration: underline;
+    }
+  }
+}
+
+/* Animations Keyframes */
+@keyframes float-slow-pink {
+  0% {
+    transform: translate(0, 0) scale(1);
+    opacity: 0.12;
+  }
+  33% {
+    transform: translate(30px, 20px) scale(1.08);
+    opacity: 0.15;
+  }
+  66% {
+    transform: translate(-20px, 40px) scale(0.92);
+    opacity: 0.1;
+  }
+  100% {
+    transform: translate(0, 0) scale(1);
+    opacity: 0.12;
+  }
+}
+
+@keyframes float-slow-purple {
+  0% {
+    transform: translate(0, 0) scale(1);
+    opacity: 0.12;
+  }
+  50% {
+    transform: translate(-40px, -30px) scale(1.1);
+    opacity: 0.16;
+  }
+  100% {
+    transform: translate(0, 0) scale(1);
+    opacity: 0.12;
+  }
+}
+
+/* Mobile Responsiveness Improvements */
+@media (max-width: 576px) {
+  .register-wrapper {
+    padding: 20px 12px;
+  }
+
+  .glass-form-card {
+    padding: 24px 16px !important;
+    border-radius: 16px;
+  }
+
+  .brand-header {
+    top: 20px;
+  }
+
+  .stepper-header {
+    padding: 0 4px;
+
+    .step-indicator {
+      gap: 6px;
+
+      span {
+        font-size: 11px;
+      }
+
+      .circle {
+        width: 24px;
+        height: 24px;
+        font-size: 10px;
+      }
+    }
+
+    .step-line {
+      margin: 0 8px;
+    }
+  }
+
+  .form-time-row {
+    flex-direction: column;
+    gap: 10px;
+  }
+
+  .actions-row {
+    flex-direction: column-reverse;
+    gap: 12px;
+    align-items: stretch;
+
+    .action-btn,
+    .back-btn {
+      width: 100%;
+      height: 46px;
+      justify-content: center;
+      margin: 0 !important;
     }
   }
 }

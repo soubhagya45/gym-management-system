@@ -106,11 +106,14 @@ export class SettingsComponent implements OnInit, OnDestroy {
       ownerName: ['', [Validators.required]],
       contactEmail: ['', [Validators.required, Validators.email]],
       contactPhone: ['', [Validators.required]],
-      address: ['742 Luxury Boulevard, Suite 100, Beverly Hills, CA 90210', [Validators.required]],
+      address: ['', [Validators.required]],
       currency: ['₹', [Validators.required]],
       taxRate: [8.5, [Validators.required, Validators.min(0), Validators.max(100)]],
       allowGuestPass: [true],
-      sendExpiryAlerts: [true]
+      sendExpiryAlerts: [true],
+      gymType: ['', [Validators.required]],
+      openingTime: ['', [Validators.required]],
+      closingTime: ['', [Validators.required]]
     });
 
     // Subscribe to active gym
@@ -124,7 +127,11 @@ export class SettingsComponent implements OnInit, OnDestroy {
           gymName: gym.gymName,
           ownerName: gym.ownerName,
           contactEmail: gym.email,
-          contactPhone: gym.phone
+          contactPhone: gym.phone,
+          address: gym.address || '',
+          gymType: gym.gymType || 'Unisex',
+          openingTime: gym.openingTime || '06:00',
+          closingTime: gym.closingTime || '22:00'
         }, { emitEvent: false });
       }
       this.cdr.markForCheck();
@@ -227,7 +234,11 @@ export class SettingsComponent implements OnInit, OnDestroy {
         gymName: this.settingsForm.value.gymName,
         ownerName: this.settingsForm.value.ownerName,
         email: this.settingsForm.value.contactEmail,
-        phone: this.settingsForm.value.contactPhone
+        phone: this.settingsForm.value.contactPhone,
+        address: this.settingsForm.value.address,
+        gymType: this.settingsForm.value.gymType,
+        openingTime: this.settingsForm.value.openingTime,
+        closingTime: this.settingsForm.value.closingTime
       };
 
       this.gymState.updateGym(updated).pipe(takeUntil(this.destroy$)).subscribe(() => {
