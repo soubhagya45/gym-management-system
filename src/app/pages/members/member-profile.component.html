@@ -1,8 +1,12 @@
 <div class="profile-page-wrapper" *ngIf="member; else notFound">
+  <!-- Decorative background blobs for glassmorphic depth -->
+  <div class="glass-blob blob-1"></div>
+  <div class="glass-blob blob-2"></div>
+
   <!-- Page Header -->
   <div class="page-header">
     <div class="title-area">
-      <h1>Member Profile</h1>
+      <h1 class="gradient-text">Member Profile</h1>
       <p>View fitness parameters, membership logs, and payment sheets.</p>
     </div>
     <div class="actions-area">
@@ -20,7 +24,7 @@
   <div class="profile-grid">
     <!-- Left Column: Personal info card -->
     <div class="left-col">
-      <mat-card class="member-info-card">
+      <mat-card class="member-info-card glass-card">
         <div class="profile-avatar-wrapper">
           <div class="profile-avatar-circle">
             <img *ngIf="member.avatarUrl; else defaultAvatar" [src]="member.avatarUrl" [alt]="member.name">
@@ -97,7 +101,7 @@
 
     <!-- Right Column: Detail tabs -->
     <div class="right-col">
-      <mat-card class="details-tab-card">
+      <mat-card class="details-tab-card glass-card">
         <mat-tab-group animationDuration="300ms">
           
           <!-- Tab 1: Membership Details -->

@@ -1,8 +1,12 @@
 <div class="members-page-wrapper">
+  <!-- Decorative background blobs for glassmorphic depth -->
+  <div class="glass-blob blob-1"></div>
+  <div class="glass-blob blob-2"></div>
+
   <!-- Page Header -->
   <div class="page-header">
     <div class="title-area">
-      <h1>Members Directory</h1>
+      <h1 class="gradient-text">Members Directory</h1>
       <p>Manage gym subscriptions, billing balances, and profile states.</p>
     </div>
     <div class="actions-area" style="display: flex; gap: 12px;">
@@ -18,7 +22,11 @@
   </div>
 
   <!-- Filters Panel -->
-  <div class="mat-card filters-panel">
+  <div class="mat-card filters-panel glass-card">
+    <div class="filters-header">
+      <mat-icon>filter_alt</mat-icon>
+      <span>Filter & Search Directory</span>
+    </div>
     <div class="filters-grid">
       <!-- Search Input -->
       <mat-form-field appearance="outline" class="search-field">
@@ -59,7 +67,7 @@
   </div>
 
   <!-- Data Table Panel -->
-  <div class="table-container-card mat-card">
+  <div class="table-container-card mat-card glass-card">
     <div class="table-scroll-wrapper">
       <table mat-table [dataSource]="dataSource" matSort class="w-100">
         
