@@ -45,7 +45,7 @@
 
 <div class="kpi-grid" *ngIf="kpis$ | async as kpis">
   <!-- Today's Collection -->
-  <div class="mat-card kpi-card">
+  <div class="mat-card kpi-card interactive success-glow">
     <div class="kpi-header">
       <div class="stat-icon-wrapper success">
         <mat-icon>today</mat-icon>
@@ -59,7 +59,7 @@
   </div>
 
   <!-- Monthly Collection -->
-  <div class="mat-card kpi-card">
+  <div class="mat-card kpi-card interactive primary-glow">
     <div class="kpi-header">
       <div class="stat-icon-wrapper primary">
         <mat-icon>account_balance_wallet</mat-icon>
@@ -73,7 +73,7 @@
   </div>
 
   <!-- Outstanding Dues -->
-  <div class="mat-card kpi-card">
+  <div class="mat-card kpi-card interactive warning-glow">
     <div class="kpi-header">
       <div class="stat-icon-wrapper warning">
         <mat-icon>hourglass_empty</mat-icon>
@@ -87,7 +87,7 @@
   </div>
 
   <!-- Total Expenses -->
-  <div class="mat-card kpi-card">
+  <div class="mat-card kpi-card interactive danger-glow">
     <div class="kpi-header">
       <div class="stat-icon-wrapper danger">
         <mat-icon>shopping_bag</mat-icon>
@@ -101,7 +101,7 @@
   </div>
 
   <!-- Net Profit -->
-  <div class="mat-card kpi-card">
+  <div class="mat-card kpi-card interactive success-glow">
     <div class="kpi-header">
       <div class="stat-icon-wrapper success">
         <mat-icon>trending_up</mat-icon>
@@ -117,7 +117,7 @@
   </div>
 
   <!-- Active Membership Revenue -->
-  <div class="mat-card kpi-card">
+  <div class="mat-card kpi-card interactive primary-glow">
     <div class="kpi-header">
       <div class="stat-icon-wrapper primary">
         <mat-icon>people</mat-icon>
@@ -133,7 +133,7 @@
 
 <div class="dashboard-widgets-grid">
   <!-- Widget 1: Profit Trend (Chart) -->
-  <div class="mat-card widget-card span-two-cols" *ngIf="profitTrendData$ | async as trend">
+  <div class="mat-card widget-card interactive span-two-cols" *ngIf="profitTrendData$ | async as trend">
     <div class="widget-header">
       <div>
         <h3>Financial Summary & Profit Trend</h3>
@@ -171,7 +171,7 @@
   </div>
 
   <!-- Widget 2: Top Revenue Membership Plans -->
-  <div class="mat-card widget-card" *ngIf="planRevenue$ | async as plans">
+  <div class="mat-card widget-card interactive" *ngIf="planRevenue$ | async as plans">
     <div class="widget-header">
       <h3>Collections by Plan</h3>
       <p class="subtitle">Revenue generated per subscription product</p>
@@ -194,7 +194,7 @@
   </div>
 
   <!-- Widget 3: Revenue Breakdown by Plan Category -->
-  <div class="mat-card widget-card" *ngIf="durationRevenue$ | async as durations">
+  <div class="mat-card widget-card interactive" *ngIf="durationRevenue$ | async as durations">
     <div class="widget-header">
       <h3>Revenue Breakdown</h3>
       <p class="subtitle">Categorized by billing frequency durations</p>
@@ -216,7 +216,7 @@
   </div>
 
   <!-- Widget 4: Expense Breakdown -->
-  <div class="mat-card widget-card" *ngIf="expenseCategories$ | async as catExpenses">
+  <div class="mat-card widget-card interactive" *ngIf="expenseCategories$ | async as catExpenses">
     <div class="widget-header">
       <h3>Expense Breakdown</h3>
       <p class="subtitle">Cost allocation grouped by category</p>

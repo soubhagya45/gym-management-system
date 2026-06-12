@@ -29,7 +29,7 @@
 
     <!-- Trainer Grid -->
     <div class="trainers-grid" [class.blurred-content]="!(canManageTrainers$ | async)">
-      <div class="mat-card trainer-card" *ngFor="let trainer of trainers$ | async">
+      <div class="mat-card trainer-card interactive primary-glow" *ngFor="let trainer of trainers$ | async">
         
         <!-- Top Badges Row -->
         <div class="card-top-row">

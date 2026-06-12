@@ -10,7 +10,7 @@
   <!-- Stats Grid -->
   <div class="stats-panel-grid" *ngIf="stats$ | async as stats">
     <!-- Active Templates -->
-    <mat-card class="stat-card-box">
+    <mat-card class="stat-card-box interactive primary-glow">
       <div class="stat-icon-wrapper primary">
         <mat-icon>dashboard_customize</mat-icon>
       </div>
@@ -21,7 +21,7 @@
     </mat-card>
 
     <!-- Scheduled Queue -->
-    <mat-card class="stat-card-box">
+    <mat-card class="stat-card-box interactive warning-glow">
       <div class="stat-icon-wrapper warning">
         <mat-icon>schedule</mat-icon>
       </div>
@@ -32,7 +32,7 @@
     </mat-card>
 
     <!-- Dispatched Logs -->
-    <mat-card class="stat-card-box">
+    <mat-card class="stat-card-box interactive success-glow">
       <div class="stat-icon-wrapper success">
         <mat-icon>done_all</mat-icon>
       </div>
@@ -57,7 +57,7 @@
         <div class="tab-content">
           <div class="templates-grid mt-3" *ngIf="templates$ | async as templates">
             
-            <div class="template-card mat-card" *ngFor="let tpl of templates" [class.editing]="editingTemplateId === tpl.id">
+            <div class="template-card mat-card" [class.interactive]="editingTemplateId !== tpl.id" *ngFor="let tpl of templates" [class.editing]="editingTemplateId === tpl.id">
               <!-- Card Header -->
               <div class="tpl-card-header">
                 <div class="tpl-title-info">

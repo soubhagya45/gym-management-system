@@ -20,7 +20,7 @@
   <!-- Financial Metrics Grid -->
   <div class="stats-grid" *ngIf="stats$ | async as stats">
     <!-- Collected Revenue -->
-    <div class="mat-card stat-card interactive">
+    <div class="mat-card stat-card interactive success-glow">
       <div class="stat-header">
         <div class="stat-icon-wrapper success">
           <mat-icon>payments</mat-icon>
@@ -33,7 +33,7 @@
     </div>
 
     <!-- Outstanding Receivables -->
-    <div class="mat-card stat-card interactive">
+    <div class="mat-card stat-card interactive danger-glow">
       <div class="stat-header">
         <div class="stat-icon-wrapper danger">
           <mat-icon>money_off</mat-icon>
@@ -46,7 +46,7 @@
     </div>
 
     <!-- Pending Invoices -->
-    <div class="mat-card stat-card interactive">
+    <div class="mat-card stat-card interactive warning-glow">
       <div class="stat-header">
         <div class="stat-icon-wrapper warning">
           <mat-icon>hourglass_empty</mat-icon>

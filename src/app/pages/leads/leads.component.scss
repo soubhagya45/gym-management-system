@@ -15,10 +15,30 @@
     flex-direction: row;
     align-items: center;
     gap: 16px;
-    padding: 16px 20px !important;
+    padding: 20px 24px !important;
+    border-radius: 16px !important;
+    background-color: var(--bg-secondary) !important;
+    border: 1px solid var(--border-color) !important;
+    transition: transform var(--transition-speed) var(--transition-curve), 
+                box-shadow var(--transition-speed) var(--transition-curve), 
+                border-color var(--transition-speed) var(--transition-curve) !important;
+    position: relative;
+    overflow: hidden;
+
+    &::after {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 4px;
+      height: 100%;
+      background: transparent;
+      transition: background-color var(--transition-speed) var(--transition-curve);
+    }
 
     .stat-icon-wrapper {
       margin-bottom: 0 !important;
+      transition: transform var(--transition-speed) var(--transition-curve);
       
       mat-icon {
         color: inherit !important;
@@ -30,17 +50,65 @@
       flex-direction: column;
       
       .value {
-        font-size: 24px;
+        font-size: 26px;
         font-weight: 700;
         color: var(--text-primary) !important;
         line-height: 1.1;
+        letter-spacing: -0.02em;
       }
       
       .label {
-        font-size: 12px;
+        font-size: 13px;
         color: var(--text-secondary) !important;
         font-weight: 500;
-        margin-top: 2px;
+        margin-top: 4px;
+      }
+    }
+
+    /* Interactive state overrides */
+    &:hover {
+      transform: translateY(-4px);
+
+      .stat-icon-wrapper {
+        transform: scale(1.1);
+      }
+    }
+
+    /* Colors and individual shadows */
+    &.total-card {
+      &::after {
+        background-color: var(--accent-color);
+      }
+      &:hover {
+        border-color: rgba(99, 102, 241, 0.4) !important;
+        box-shadow: 0 12px 24px rgba(99, 102, 241, 0.15) !important;
+      }
+    }
+    &.new-card {
+      &::after {
+        background-color: var(--success);
+      }
+      &:hover {
+        border-color: rgba(16, 185, 129, 0.4) !important;
+        box-shadow: 0 12px 24px rgba(16, 185, 129, 0.15) !important;
+      }
+    }
+    &.converted-card {
+      &::after {
+        background-color: var(--warning);
+      }
+      &:hover {
+        border-color: rgba(245, 158, 11, 0.4) !important;
+        box-shadow: 0 12px 24px rgba(245, 158, 11, 0.15) !important;
+      }
+    }
+    &.rate-card {
+      &::after {
+        background-color: var(--danger);
+      }
+      &:hover {
+        border-color: rgba(239, 68, 68, 0.4) !important;
+        box-shadow: 0 12px 24px rgba(239, 68, 68, 0.15) !important;
       }
     }
   }
@@ -48,7 +116,10 @@
 
 /* Filters styling */
 .filters-panel {
-  padding: 16px 24px !important;
+  padding: 20px 24px !important;
+  border-radius: 16px !important;
+  background-color: var(--bg-secondary) !important;
+  border: 1px solid var(--border-color) !important;
 }
 
 .filters-grid {
@@ -72,8 +143,9 @@
   height: 48px !important;
   color: var(--text-secondary) !important;
   border: 1px solid var(--border-color) !important;
-  border-radius: 8px !important;
+  border-radius: 10px !important;
   font-weight: 600 !important;
+  transition: all var(--transition-speed) var(--transition-curve) !important;
   
   mat-icon {
     font-size: 18px;
@@ -82,8 +154,14 @@
   }
   
   &:hover:not([disabled]) {
-    background-color: var(--border-color) !important;
-    color: var(--text-primary) !important;
+    background-color: rgba(99, 102, 241, 0.08) !important;
+    color: var(--accent-color) !important;
+    border-color: var(--accent-color) !important;
+  }
+
+  &:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
   }
 }
 
@@ -93,6 +171,9 @@
   overflow: hidden;
   display: flex;
   flex-direction: column;
+  border-radius: 16px !important;
+  background-color: var(--bg-secondary) !important;
+  border: 1px solid var(--border-color) !important;
 }
 
 .table-scroll-wrapper {
@@ -140,35 +221,53 @@
 }
 
 /* Status badges */
-.new-badge {
-  background-color: var(--info-glow);
-  color: var(--info);
-}
+.status-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 11px !important;
+  font-weight: 600 !important;
+  padding: 4px 12px !important;
+  border-radius: 20px !important;
+  text-transform: uppercase !important;
+  letter-spacing: 0.05em !important;
+  white-space: nowrap;
+  
+  &.new-badge {
+    background-color: var(--info-glow) !important;
+    color: var(--info) !important;
+    border: 1px solid rgba(59, 130, 246, 0.2) !important;
+  }
 
-.contacted-badge {
-  background-color: var(--accent-light);
-  color: var(--accent-color);
-}
+  &.contacted-badge {
+    background-color: var(--accent-light) !important;
+    color: var(--accent-color) !important;
+    border: 1px solid rgba(99, 102, 241, 0.2) !important;
+  }
 
-.trial-scheduled-badge {
-  background-color: var(--success-glow);
-  color: var(--success);
-}
+  &.trial-scheduled-badge {
+    background-color: var(--success-glow) !important;
+    color: var(--success) !important;
+    border: 1px solid rgba(16, 185, 129, 0.2) !important;
+  }
 
-.follow-up-badge {
-  background-color: var(--warning-glow);
-  color: var(--warning);
-}
+  &.follow-up-badge {
+    background-color: var(--warning-glow) !important;
+    color: var(--warning) !important;
+    border: 1px solid rgba(245, 158, 11, 0.2) !important;
+  }
 
-.converted-badge {
-  background-color: var(--success-glow);
-  color: var(--success);
-  border: 1px dashed var(--success) !important;
-}
+  &.converted-badge {
+    background-color: var(--success-glow) !important;
+    color: var(--success) !important;
+    border: 1px dashed var(--success) !important;
+  }
 
-.lost-badge {
-  background-color: var(--danger-glow);
-  color: var(--danger);
+  &.lost-badge {
+    background-color: var(--danger-glow) !important;
+    color: var(--danger) !important;
+    border: 1px solid rgba(239, 68, 68, 0.2) !important;
+  }
 }
 
 .empty-table-state {
@@ -205,6 +304,7 @@
 @media (max-width: 959.98px) {
   .stats-panel-grid {
     grid-template-columns: repeat(2, 1fr);
+    gap: 16px;
   }
   
   .filters-grid {
@@ -217,8 +317,22 @@
 }
 
 @media (max-width: 599.98px) {
+  .page-header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 16px;
+    
+    .actions-area {
+      width: 100%;
+      button {
+        width: 100%;
+      }
+    }
+  }
+
   .stats-panel-grid {
     grid-template-columns: 1fr;
+    gap: 12px;
   }
   
   .filters-grid {

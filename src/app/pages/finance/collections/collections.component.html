@@ -33,7 +33,7 @@
 </div>
 
 <div class="stats-row" *ngIf="stats$ | async as periods">
-  <div class="mat-card stat-card" *ngFor="let stat of periods">
+  <div class="mat-card stat-card interactive" [class.primary-glow]="stat.colorClass === 'primary'" [class.success-glow]="stat.colorClass === 'success'" [class.warning-glow]="stat.colorClass === 'warning'" *ngFor="let stat of periods">
     <div class="stat-header">
       <span class="period-title">{{ stat.period }}</span>
       <div class="stat-icon-wrapper mini" [class]="stat.colorClass">
