@@ -1,0 +1,243 @@
+<div class="page-header">
+  <div class="title-area">
+    <h1>Finance Dashboard</h1>
+    <p>Real-time financial performance, billing insights, and cash flow analysis.</p>
+  </div>
+  <div class="actions-area">
+    <button mat-flat-button color="primary" [routerLink]="['/finance/invoices']">
+      <mat-icon>receipt</mat-icon>
+      Manage Invoices
+    </button>
+    <button mat-stroked-button color="accent" [routerLink]="['/finance/expenses']">
+      <mat-icon>add</mat-icon>
+      Record Expense
+    </button>
+  </div>
+</div>
+
+<div class="finance-navigation">
+  <a class="nav-tab" routerLink="/finance/dashboard" routerLinkActive="active-tab">
+    <mat-icon>dashboard</mat-icon>
+    <span>Dashboard</span>
+  </a>
+  <a class="nav-tab" routerLink="/finance/invoices" routerLinkActive="active-tab">
+    <mat-icon>receipt</mat-icon>
+    <span>Invoices</span>
+  </a>
+  <a class="nav-tab" routerLink="/finance/collections" routerLinkActive="active-tab">
+    <mat-icon>trending_up</mat-icon>
+    <span>Collections</span>
+  </a>
+  <a class="nav-tab" routerLink="/finance/expenses" routerLinkActive="active-tab">
+    <mat-icon>shopping_bag</mat-icon>
+    <span>Expenses</span>
+  </a>
+  <a class="nav-tab" routerLink="/finance/reports" routerLinkActive="active-tab">
+    <mat-icon>assessment</mat-icon>
+    <span>Reports</span>
+  </a>
+  <a class="nav-tab" routerLink="/finance/cash-flow" routerLinkActive="active-tab">
+    <mat-icon>show_chart</mat-icon>
+    <span>Cash Flow</span>
+  </a>
+</div>
+
+
+<div class="kpi-grid" *ngIf="kpis$ | async as kpis">
+  <!-- Today's Collection -->
+  <div class="mat-card kpi-card">
+    <div class="kpi-header">
+      <div class="stat-icon-wrapper success">
+        <mat-icon>today</mat-icon>
+      </div>
+      <span class="growth-badge positive">+12.4%</span>
+    </div>
+    <div class="kpi-body">
+      <h3 class="kpi-value">₹{{ kpis.todayCollection | number:'1.0-2' }}</h3>
+      <p class="kpi-label">Today's Collection</p>
+    </div>
+  </div>
+
+  <!-- Monthly Collection -->
+  <div class="mat-card kpi-card">
+    <div class="kpi-header">
+      <div class="stat-icon-wrapper primary">
+        <mat-icon>account_balance_wallet</mat-icon>
+      </div>
+      <span class="growth-badge positive">+8.2%</span>
+    </div>
+    <div class="kpi-body">
+      <h3 class="kpi-value">₹{{ kpis.monthlyCollection | number:'1.0-2' }}</h3>
+      <p class="kpi-label">Monthly Collection</p>
+    </div>
+  </div>
+
+  <!-- Outstanding Dues -->
+  <div class="mat-card kpi-card">
+    <div class="kpi-header">
+      <div class="stat-icon-wrapper warning">
+        <mat-icon>hourglass_empty</mat-icon>
+      </div>
+      <span class="growth-badge negative" *ngIf="kpis.outstandingDues > 5000">Alert</span>
+    </div>
+    <div class="kpi-body">
+      <h3 class="kpi-value">₹{{ kpis.outstandingDues | number:'1.0-2' }}</h3>
+      <p class="kpi-label">Outstanding Dues</p>
+    </div>
+  </div>
+
+  <!-- Total Expenses -->
+  <div class="mat-card kpi-card">
+    <div class="kpi-header">
+      <div class="stat-icon-wrapper danger">
+        <mat-icon>shopping_bag</mat-icon>
+      </div>
+      <span class="growth-badge neutral">Fixed Costs</span>
+    </div>
+    <div class="kpi-body">
+      <h3 class="kpi-value">₹{{ kpis.totalExpenses | number:'1.0-2' }}</h3>
+      <p class="kpi-label">Total Expenses</p>
+    </div>
+  </div>
+
+  <!-- Net Profit -->
+  <div class="mat-card kpi-card">
+    <div class="kpi-header">
+      <div class="stat-icon-wrapper success">
+        <mat-icon>trending_up</mat-icon>
+      </div>
+      <span class="growth-badge positive">Healthy</span>
+    </div>
+    <div class="kpi-body">
+      <h3 class="kpi-value" [class.negative-profit]="kpis.netProfit < 0">
+        ₹{{ kpis.netProfit | number:'1.0-2' }}
+      </h3>
+      <p class="kpi-label">Net Profit</p>
+    </div>
+  </div>
+
+  <!-- Active Membership Revenue -->
+  <div class="mat-card kpi-card">
+    <div class="kpi-header">
+      <div class="stat-icon-wrapper primary">
+        <mat-icon>people</mat-icon>
+      </div>
+      <span class="growth-badge positive">MRR</span>
+    </div>
+    <div class="kpi-body">
+      <h3 class="kpi-value">₹{{ kpis.activeMembershipRevenue | number:'1.0-2' }}/mo</h3>
+      <p class="kpi-label">Active Membership MRR</p>
+    </div>
+  </div>
+</div>
+
+<div class="dashboard-widgets-grid">
+  <!-- Widget 1: Profit Trend (Chart) -->
+  <div class="mat-card widget-card span-two-cols" *ngIf="profitTrendData$ | async as trend">
+    <div class="widget-header">
+      <div>
+        <h3>Financial Summary & Profit Trend</h3>
+        <p class="subtitle">Timeline analysis of revenue vs. expenses (Last 6 Months)</p>
+      </div>
+      <div class="chart-legend">
+        <span class="legend-item"><span class="legend-dot revenue"></span> Revenue</span>
+        <span class="legend-item"><span class="legend-dot expenses"></span> Expenses</span>
+        <span class="legend-item"><span class="legend-dot profit"></span> Net Profit</span>
+      </div>
+    </div>
+    <div class="chart-container">
+      <svg class="trend-svg" viewBox="0 0 600 200" preserveAspectRatio="none">
+        <!-- Grid Lines -->
+        <line x1="20" y1="20" x2="580" y2="20" class="grid-line" />
+        <line x1="20" y1="65" x2="580" y2="65" class="grid-line" />
+        <line x1="20" y1="110" x2="580" y2="110" class="grid-line" />
+        <line x1="20" y1="155" x2="580" y2="155" class="grid-line" />
+        <line x1="20" y1="180" x2="580" y2="180" class="grid-line line-axis" />
+
+        <!-- Area Fills -->
+        <path [attr.d]="trend.revenueArea" class="area-fill revenue-area" />
+        <path [attr.d]="trend.expenseArea" class="area-fill expense-area" />
+        <path [attr.d]="trend.profitArea" class="area-fill profit-area" />
+
+        <!-- Line Plots -->
+        <polyline [attr.points]="trend.revenuePoints" class="trend-line revenue-line" />
+        <polyline [attr.points]="trend.expensePoints" class="trend-line expense-line" />
+        <polyline [attr.points]="trend.profitPoints" class="trend-line profit-line" />
+      </svg>
+      <div class="chart-labels-x">
+        <span *ngFor="let label of trend.months">{{ label }}</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- Widget 2: Top Revenue Membership Plans -->
+  <div class="mat-card widget-card" *ngIf="planRevenue$ | async as plans">
+    <div class="widget-header">
+      <h3>Collections by Plan</h3>
+      <p class="subtitle">Revenue generated per subscription product</p>
+    </div>
+    <div class="plans-list">
+      <div class="plan-item" *ngFor="let plan of plans">
+        <div class="plan-info">
+          <span class="plan-name">{{ plan.name }}</span>
+          <span class="plan-amount">₹{{ plan.value | number:'1.0-0' }}</span>
+        </div>
+        <div class="progress-bar-wrapper">
+          <div class="progress-bar" [style.width.%]="plan.percentage"></div>
+        </div>
+      </div>
+      <div class="no-data" *ngIf="plans.length === 0">
+        <mat-icon>money_off</mat-icon>
+        <p>No revenue collections recorded.</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- Widget 3: Revenue Breakdown by Plan Category -->
+  <div class="mat-card widget-card" *ngIf="durationRevenue$ | async as durations">
+    <div class="widget-header">
+      <h3>Revenue Breakdown</h3>
+      <p class="subtitle">Categorized by billing frequency durations</p>
+    </div>
+    <div class="breakdown-list">
+      <div class="breakdown-item" *ngFor="let d of durations">
+        <div class="breakdown-header">
+          <div class="name-wrapper">
+            <span class="dot" [class]="d.color"></span>
+            <span class="breakdown-name">{{ d.name }}</span>
+          </div>
+          <span class="breakdown-pct">{{ d.pct }}%</span>
+        </div>
+        <div class="breakdown-body">
+          <span class="breakdown-val">₹{{ d.value | number:'1.0-0' }}</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Widget 4: Expense Breakdown -->
+  <div class="mat-card widget-card" *ngIf="expenseCategories$ | async as catExpenses">
+    <div class="widget-header">
+      <h3>Expense Breakdown</h3>
+      <p class="subtitle">Cost allocation grouped by category</p>
+    </div>
+    <div class="expenses-breakdown-list">
+      <div class="expense-breakdown-item" *ngFor="let exp of catExpenses">
+        <div class="expense-info">
+          <div class="category-wrapper">
+            <span class="category-indicator" [class]="exp.colorClass"></span>
+            <span class="category-name">{{ exp.name }}</span>
+          </div>
+          <span class="category-amount">₹{{ exp.value | number:'1.0-0' }}</span>
+        </div>
+        <div class="bar-progress-container">
+          <div class="bar-progress" [class]="exp.colorClass" [style.width.%]="exp.pct"></div>
+        </div>
+      </div>
+      <div class="no-data" *ngIf="catExpenses.length === 0">
+        <mat-icon>info</mat-icon>
+        <p>No expenses recorded.</p>
+      </div>
+    </div>
+  </div>
+</div>

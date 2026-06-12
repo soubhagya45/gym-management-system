@@ -11,14 +11,40 @@
       </div>
 
       <mat-nav-list class="nav-list">
-        <a mat-list-item *ngFor="let item of menuItems$ | async" [routerLink]="[item.route]" routerLinkActive="active-link"
-          class="nav-item">
-          <div class="nav-item-content">
-            <mat-icon class="nav-icon">{{ item.icon }}</mat-icon>
-            <span class="nav-label">{{ item.label }}</span>
-          </div>
-        </a>
+        <ng-container *ngFor="let item of menuItems$ | async">
+          <!-- Flat Menu Item (no sub-items) -->
+          <a mat-list-item *ngIf="!item.subItems" [routerLink]="[item.route]" routerLinkActive="active-link"
+            class="nav-item">
+            <div class="nav-item-content">
+              <mat-icon class="nav-icon">{{ item.icon }}</mat-icon>
+              <span class="nav-label">{{ item.label }}</span>
+            </div>
+          </a>
+
+          <!-- Collapsible Menu Item (with sub-items) -->
+          <ng-container *ngIf="item.subItems">
+            <div class="nav-item-parent" (click)="toggleSubmenu(item.label)" [class.active-parent]="isRouteActiveInSubmenu(item)">
+              <div class="nav-item-content">
+                <mat-icon class="nav-icon">{{ item.icon }}</mat-icon>
+                <span class="nav-label">{{ item.label }}</span>
+                <span class="spacer"></span>
+                <mat-icon class="expand-icon">{{ isSubmenuExpanded(item.label) || isRouteActiveInSubmenu(item) ? 'expand_less' : 'expand_more' }}</mat-icon>
+              </div>
+            </div>
+            <!-- Expanded Sub-items -->
+            <div class="submenu-container" *ngIf="isSubmenuExpanded(item.label) || isRouteActiveInSubmenu(item)">
+              <a mat-list-item *ngFor="let sub of item.subItems" [routerLink]="[sub.route]" routerLinkActive="active-link"
+                class="nav-item submenu-item">
+                <div class="nav-item-content">
+                  <mat-icon class="nav-icon submenu-icon">{{ sub.icon }}</mat-icon>
+                  <span class="nav-label submenu-label">{{ sub.label }}</span>
+                </div>
+              </a>
+            </div>
+          </ng-container>
+        </ng-container>
       </mat-nav-list>
+
 
       <div class="sidebar-footer">
         <div class="session-warning-banner" *ngIf="sessionWarning$ | async as ms">

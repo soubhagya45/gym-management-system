@@ -24,7 +24,10 @@ export type Permission =
   | 'manage:settings'
   | 'switch:gym'
   | 'export:reports'
-  | 'invite:staff';
+  | 'invite:staff'
+  | 'view:finance'
+  | 'manage:finance';
+
 
 /**
  * Static role → permissions mapping.
@@ -44,8 +47,11 @@ export const ROLE_PERMISSIONS: Record<UserRole, Permission[]> = {
     'manage:settings',
     'switch:gym',
     'export:reports',
-    'invite:staff'
+    'invite:staff',
+    'view:finance',
+    'manage:finance'
   ],
+
   [UserRole.Owner]: [
     'view:dashboard',
     'view:members', 'manage:members',
@@ -58,8 +64,11 @@ export const ROLE_PERMISSIONS: Record<UserRole, Permission[]> = {
     'view:body-progress',
     'manage:settings',
     'export:reports',
-    'invite:staff'
+    'invite:staff',
+    'view:finance',
+    'manage:finance'
   ],
+
   [UserRole.Trainer]: [
     'view:attendance', 'manage:attendance',
     'view:body-progress',
@@ -87,8 +96,15 @@ export const ROUTE_PERMISSION_MAP: Record<string, Permission> = {
   '/trainers':      'view:trainers',
   '/whatsapp':      'view:whatsapp',
   '/body-progress': 'view:body-progress',
-  '/settings':      'manage:settings'
+  '/settings':      'manage:settings',
+  '/finance/dashboard': 'view:finance',
+  '/finance/invoices': 'view:finance',
+  '/finance/collections': 'view:finance',
+  '/finance/expenses': 'view:finance',
+  '/finance/reports': 'view:finance',
+  '/finance/cash-flow': 'view:finance'
 };
+
 
 /**
  * Navigation item descriptor used by PermissionService and AppComponent.
@@ -99,7 +115,9 @@ export interface NavItem {
   icon: string;
   permission: Permission;
   roles: UserRole[];
+  subItems?: { label: string; route: string; icon: string }[];
 }
+
 
 /** Full ordered nav manifest — filtered at runtime per user role. */
 export const ALL_NAV_ITEMS: NavItem[] = [
@@ -108,7 +126,15 @@ export const ALL_NAV_ITEMS: NavItem[] = [
   { label: 'Leads',            route: '/leads',          icon: 'leaderboard',     permission: 'view:leads',         roles: [UserRole.SuperAdmin, UserRole.Owner, UserRole.Staff] },
   { label: 'Attendance',       route: '/attendance',     icon: 'event_available', permission: 'view:attendance',    roles: [UserRole.SuperAdmin, UserRole.Owner, UserRole.Trainer, UserRole.Staff] },
   { label: 'Payments',         route: '/payments',       icon: 'payments',        permission: 'view:payments',      roles: [UserRole.SuperAdmin, UserRole.Owner, UserRole.Staff] },
+  {
+    label: 'Finance',
+    route: '/finance/dashboard',
+    icon: 'account_balance_wallet',
+    permission: 'view:finance',
+    roles: [UserRole.SuperAdmin, UserRole.Owner]
+  },
   { label: 'Membership Plans', route: '/plans',          icon: 'fitness_center',  permission: 'view:plans',         roles: [UserRole.SuperAdmin, UserRole.Owner] },
+
   { label: 'Trainers',         route: '/trainers',       icon: 'sports',          permission: 'view:trainers',      roles: [UserRole.SuperAdmin, UserRole.Owner] },
   { label: 'WhatsApp Center',  route: '/whatsapp',       icon: 'chat',            permission: 'view:whatsapp',      roles: [UserRole.SuperAdmin, UserRole.Owner] },
   { label: 'Body Progress',    route: '/body-progress',  icon: 'trending_up',     permission: 'view:body-progress', roles: [UserRole.SuperAdmin, UserRole.Owner, UserRole.Trainer, UserRole.Staff] },

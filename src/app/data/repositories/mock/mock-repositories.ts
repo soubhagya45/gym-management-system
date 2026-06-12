@@ -14,8 +14,10 @@ import {
   IMembershipPlanRepository,
   IActivityLogRepository,
   IWhatsAppRepository,
-  IBodyProgressRepository
+  IBodyProgressRepository,
+  IFinanceRepository
 } from '../../../core/interfaces/repository.interfaces';
+
 
 import { UserProfile } from '../../../core/models/user.model';
 import { Gym } from '../../../core/models/gym.entity';
@@ -30,6 +32,8 @@ import { SubscriptionPlan } from '../../../core/enums/subscription-plans.enum';
 import { WhatsAppTemplate } from '../../../core/models/whatsapp-template.entity';
 import { WhatsAppReminder } from '../../../core/models/whatsapp-reminder.entity';
 import { BodyProgressEntry } from '../../../core/models/body-progress.entity';
+import { Expense, Invoice } from '../../../core/models/finance.entity';
+
 
 // --- Static In-Memory Database State ---
 const dbGyms: Gym[] = [
@@ -285,6 +289,28 @@ const dbWhatsAppReminders: WhatsAppReminder[] = [
     scheduledTime: new Date(Date.now() + 24 * 3600 * 1000).toISOString()
   }
 ];
+
+const dbExpenses: Expense[] = [
+  { id: 'exp-1', gymId: 'gym-a', title: 'Monthly Gym Rent', category: 'Rent', amount: 35000, date: '2026-06-01', notes: 'Paid to landlord for June 2026' },
+  { id: 'exp-2', gymId: 'gym-a', title: 'Electricity Bill', category: 'Electricity', amount: 8400, date: '2026-06-05', notes: 'Summer AC usage bill' },
+  { id: 'exp-3', gymId: 'gym-a', title: 'Water Delivery', category: 'Water', amount: 1200, date: '2026-06-07', notes: 'Drinking water cans' },
+  { id: 'exp-4', gymId: 'gym-a', title: 'Salaries - Trainers & Staff', category: 'Salaries', amount: 45000, date: '2026-06-10', notes: 'Salary payout for May' },
+  { id: 'exp-5', gymId: 'gym-a', title: 'Marketing Campaign', category: 'Marketing', amount: 5000, date: '2026-06-03', notes: 'Instagram ads' },
+  { id: 'exp-6', gymId: 'gym-a', title: 'Cable Replacement (Lat Pulldown)', category: 'Maintenance', amount: 2500, date: '2026-06-08', notes: 'Equipment upkeep' }
+];
+
+const dbInvoices: Invoice[] = [
+  { id: 'inv-1', gymId: 'gym-a', invoiceNumber: 'INV-2026-0001', memberId: 'mem-2', memberName: 'Priya Patel', membershipPlan: 'Elite Annual Platinum', amount: 12711.86, gst: 2288.14, discount: 0, finalAmount: 15000, paymentMethod: 'UPI', invoiceDate: '2026-01-15', status: 'paid' },
+  { id: 'inv-2', gymId: 'gym-a', invoiceNumber: 'INV-2026-0002', memberId: 'mem-1', memberName: 'Amit Sharma', membershipPlan: 'Premium Quarterly', amount: 3389.83, gst: 610.17, discount: 0, finalAmount: 4000, paymentMethod: 'Card', invoiceDate: '2026-04-10', status: 'paid' },
+  { id: 'inv-3', gymId: 'gym-a', invoiceNumber: 'INV-2026-0003', memberId: 'mem-4', memberName: 'Anjali Rao', membershipPlan: 'Premium Quarterly', amount: 3389.83, gst: 610.17, discount: 0, finalAmount: 4000, paymentMethod: 'Cash', invoiceDate: '2026-05-01', status: 'paid' },
+  { id: 'inv-4', gymId: 'gym-a', invoiceNumber: 'INV-2026-0004', memberId: 'mem-6', memberName: 'Neha Gupta', membershipPlan: 'Elite Annual Platinum', amount: 12711.86, gst: 2288.14, discount: 0, finalAmount: 15000, paymentMethod: 'UPI', invoiceDate: '2026-03-20', status: 'paid' },
+  { id: 'inv-5', gymId: 'gym-a', invoiceNumber: 'INV-2026-0005', memberId: 'mem-3', memberName: 'Rajesh Kumar', membershipPlan: 'Essential Monthly', amount: 1271.19, gst: 228.81, discount: 0, finalAmount: 1500, paymentMethod: 'UPI', invoiceDate: '2026-05-08', status: 'pending' },
+  { id: 'inv-6', gymId: 'gym-a', invoiceNumber: 'INV-2026-0006', memberId: 'mem-7', memberName: 'Rohan Mehta', membershipPlan: 'Premium Quarterly', amount: 3389.83, gst: 610.17, discount: 0, finalAmount: 4000, paymentMethod: 'UPI', invoiceDate: '2026-03-10', status: 'pending' },
+  { id: 'inv-7', gymId: 'gym-a', invoiceNumber: 'INV-2026-0007', memberId: 'mem-1', memberName: 'Amit Sharma', membershipPlan: 'Premium Quarterly', amount: 3389.83, gst: 610.17, discount: 0, finalAmount: 4000, paymentMethod: 'UPI', invoiceDate: '2026-01-10', status: 'paid' },
+  { id: 'inv-b1', gymId: 'gym-b', invoiceNumber: 'INV-2026-0008', memberId: 'mem-b1', memberName: 'John Connor', membershipPlan: 'VIP Year Pass', amount: 15254.24, gst: 2745.76, discount: 0, finalAmount: 18000, paymentMethod: 'UPI', invoiceDate: '2026-03-01', status: 'paid' },
+  { id: 'inv-b2', gymId: 'gym-b', invoiceNumber: 'INV-2026-0009', memberId: 'mem-b2', memberName: 'Marcus Wright', membershipPlan: 'Standard Month Pass', amount: 1694.92, gst: 305.08, discount: 0, finalAmount: 2000, paymentMethod: 'UPI', invoiceDate: '2026-05-15', status: 'pending' }
+];
+
 
 // --- Mock Implementations ---
 
@@ -779,3 +805,59 @@ export class MockBodyProgressRepository implements IBodyProgressRepository {
     return of(undefined).pipe(delay(200));
   }
 }
+
+@Injectable({ providedIn: 'root' })
+export class MockFinanceRepository implements IFinanceRepository {
+  getExpenses(gymId: string): Observable<Expense[]> {
+    return of(dbExpenses.filter(e => e.gymId === gymId)).pipe(delay(300));
+  }
+
+  addExpense(gymId: string, expense: Omit<Expense, 'id'>): Observable<Expense> {
+    const newExpense: Expense = {
+      ...expense,
+      id: 'exp-' + Math.random().toString(36).substring(2, 9),
+      gymId
+    };
+    dbExpenses.unshift(newExpense);
+    return of(newExpense).pipe(delay(300));
+  }
+
+  updateExpense(gymId: string, expense: Expense): Observable<void> {
+    const idx = dbExpenses.findIndex(e => e.gymId === gymId && e.id === expense.id);
+    if (idx !== -1) {
+      dbExpenses[idx] = expense;
+    }
+    return of(undefined).pipe(delay(200));
+  }
+
+  deleteExpense(gymId: string, id: string): Observable<void> {
+    const idx = dbExpenses.findIndex(e => e.gymId === gymId && e.id === id);
+    if (idx !== -1) {
+      dbExpenses.splice(idx, 1);
+    }
+    return of(undefined).pipe(delay(200));
+  }
+
+  getInvoices(gymId: string): Observable<Invoice[]> {
+    return of(dbInvoices.filter(i => i.gymId === gymId)).pipe(delay(300));
+  }
+
+  addInvoice(gymId: string, invoice: Omit<Invoice, 'id'>): Observable<Invoice> {
+    const newInvoice: Invoice = {
+      ...invoice,
+      id: 'inv-' + Math.random().toString(36).substring(2, 9),
+      gymId
+    };
+    dbInvoices.unshift(newInvoice);
+    return of(newInvoice).pipe(delay(300));
+  }
+
+  updateInvoice(gymId: string, invoice: Invoice): Observable<void> {
+    const idx = dbInvoices.findIndex(i => i.gymId === gymId && i.id === invoice.id);
+    if (idx !== -1) {
+      dbInvoices[idx] = invoice;
+    }
+    return of(undefined).pipe(delay(200));
+  }
+}
+

@@ -1,0 +1,155 @@
+<div class="page-header">
+  <div class="title-area">
+    <h1>Cash Flow Ledger</h1>
+    <p>Reconcile cash inflows from member collections with cash outflows from overhead expenses.</p>
+  </div>
+</div>
+
+<div class="finance-navigation">
+  <a class="nav-tab" routerLink="/finance/dashboard" routerLinkActive="active-tab">
+    <mat-icon>dashboard</mat-icon>
+    <span>Dashboard</span>
+  </a>
+  <a class="nav-tab" routerLink="/finance/invoices" routerLinkActive="active-tab">
+    <mat-icon>receipt</mat-icon>
+    <span>Invoices</span>
+  </a>
+  <a class="nav-tab" routerLink="/finance/collections" routerLinkActive="active-tab">
+    <mat-icon>trending_up</mat-icon>
+    <span>Collections</span>
+  </a>
+  <a class="nav-tab" routerLink="/finance/expenses" routerLinkActive="active-tab">
+    <mat-icon>shopping_bag</mat-icon>
+    <span>Expenses</span>
+  </a>
+  <a class="nav-tab" routerLink="/finance/reports" routerLinkActive="active-tab">
+    <mat-icon>assessment</mat-icon>
+    <span>Reports</span>
+  </a>
+  <a class="nav-tab" routerLink="/finance/cash-flow" routerLinkActive="active-tab">
+    <mat-icon>show_chart</mat-icon>
+    <span>Cash Flow</span>
+  </a>
+</div>
+
+<div class="balance-sheets-grid" *ngIf="cashFlowSummary$ | async as summary">
+  <!-- Opening Balance -->
+  <div class="mat-card balance-card">
+    <div class="card-inner">
+      <div class="icon-wrapper primary">
+        <mat-icon>account_balance</mat-icon>
+      </div>
+      <div>
+        <p class="balance-label">Opening Balance</p>
+        <h3 class="balance-val">₹{{ summary.openingBalance | number:'1.2-2' }}</h3>
+      </div>
+    </div>
+  </div>
+
+  <!-- Cash Inflow -->
+  <div class="mat-card balance-card">
+    <div class="card-inner">
+      <div class="icon-wrapper success">
+        <mat-icon>south_west</mat-icon>
+      </div>
+      <div>
+        <p class="balance-label">Cash Inflow (+)</p>
+        <h3 class="balance-val text-success">₹{{ summary.cashInflow | number:'1.2-2' }}</h3>
+      </div>
+    </div>
+  </div>
+
+  <!-- Cash Outflow -->
+  <div class="mat-card balance-card">
+    <div class="card-inner">
+      <div class="icon-wrapper danger">
+        <mat-icon>north_east</mat-icon>
+      </div>
+      <div>
+        <p class="balance-label">Cash Outflow (-)</p>
+        <h3 class="balance-val text-danger">₹{{ summary.cashOutflow | number:'1.2-2' }}</h3>
+      </div>
+    </div>
+  </div>
+
+  <!-- Closing Balance -->
+  <div class="mat-card balance-card">
+    <div class="card-inner">
+      <div class="icon-wrapper success">
+        <mat-icon>savings</mat-icon>
+      </div>
+      <div>
+        <p class="balance-label">Closing Balance</p>
+        <h3 class="balance-val text-highlight">₹{{ summary.closingBalance | number:'1.2-2' }}</h3>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="charts-row">
+  <!-- Chart 1: Monthly Cash Flow Curve -->
+  <div class="mat-card chart-widget" *ngIf="cashFlowChart$ | async as trend">
+    <div class="chart-title-bar">
+      <h3>Monthly Cash Flow</h3>
+      <p class="subtitle">Net cash position curve (Last 6 Months)</p>
+    </div>
+    <div class="chart-content">
+      <svg viewBox="0 0 600 200" preserveAspectRatio="none">
+        <line x1="30" y1="20" x2="570" y2="20" class="grid-line" />
+        <line x1="30" y1="65" x2="570" y2="65" class="grid-line" />
+        <line x1="30" y1="110" x2="570" y2="110" class="grid-line" />
+        <line x1="30" y1="155" x2="570" y2="155" class="grid-line" />
+        <line x1="30" y1="180" x2="570" y2="180" class="grid-line line-axis" />
+
+        <path [attr.d]="trend.areaPath" class="flow-area" />
+        <polyline [attr.points]="trend.linePoints" class="flow-line" />
+
+        <!-- Dots -->
+        <circle *ngFor="let pt of trend.points" [attr.cx]="pt.x" [attr.cy]="pt.y" r="4.5" class="flow-dot"
+          [matTooltip]="pt.month + ': ₹' + (pt.value | number:'1.0-0')" />
+      </svg>
+      <div class="labels-x">
+        <span *ngFor="let label of trend.months">{{ label }}</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- Chart 2: Revenue vs Expenses (Comparison Bar Chart) -->
+  <div class="mat-card chart-widget" *ngIf="revenueVsExpensesChart$ | async as vs">
+    <div class="chart-title-bar">
+      <div class="flex-spread">
+        <div>
+          <h3>Inflow vs Outflow</h3>
+          <p class="subtitle">Comparison of monthly cash inflows against expenses</p>
+        </div>
+        <div class="bar-legend">
+          <span class="legend-item"><span class="legend-box inflow"></span> Inflow</span>
+          <span class="legend-item"><span class="legend-box outflow"></span> Outflow</span>
+        </div>
+      </div>
+    </div>
+    <div class="chart-content">
+      <svg [attr.viewBox]="'0 0 600 ' + vs.height" preserveAspectRatio="none">
+        <!-- Axes -->
+        <line x1="40" y1="20" x2="570" y2="20" class="grid-line" />
+        <line x1="40" y1="70" x2="570" y2="70" class="grid-line" />
+        <line x1="40" y1="120" x2="570" y2="120" class="grid-line" />
+        <line x1="40" y1="160" x2="570" y2="160" class="grid-line line-axis" />
+
+        <!-- Bars -->
+        <g *ngFor="let bar of vs.bars">
+          <!-- Inflow Bar -->
+          <rect [attr.x]="bar.revenueX" [attr.y]="bar.revenueY" width="20" [attr.height]="bar.revenueHeight" rx="4" class="bar-rect inflow"
+            [matTooltip]="'Inflow: ₹' + (bar.revenueVal | number:'1.0-0')" />
+          
+          <!-- Outflow Bar -->
+          <rect [attr.x]="bar.expenseX" [attr.y]="bar.expenseY" width="20" [attr.height]="bar.expenseHeight" rx="4" class="bar-rect outflow"
+            [matTooltip]="'Outflow: ₹' + (bar.expenseVal | number:'1.0-0')" />
+        </g>
+      </svg>
+      <div class="labels-x custom-spacing">
+        <span *ngFor="let bar of vs.bars" class="x-label">{{ bar.month }}</span>
+      </div>
+    </div>
+  </div>
+</div>

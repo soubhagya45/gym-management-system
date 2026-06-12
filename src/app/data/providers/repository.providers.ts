@@ -23,8 +23,11 @@ import {
   MEMBERSHIP_PLAN_REPOSITORY_TOKEN,
   ACTIVITY_LOG_REPOSITORY_TOKEN,
   WHATSAPP_REPOSITORY_TOKEN,
-  BODY_PROGRESS_REPOSITORY_TOKEN
+  BODY_PROGRESS_REPOSITORY_TOKEN,
+  IFinanceRepository,
+  FINANCE_REPOSITORY_TOKEN
 } from '../../core/interfaces/repository.interfaces';
+
 
 import {
   MockAuthRepository,
@@ -37,8 +40,10 @@ import {
   MockMembershipPlanRepository,
   MockActivityLogRepository,
   MockWhatsAppRepository,
-  MockBodyProgressRepository
+  MockBodyProgressRepository,
+  MockFinanceRepository
 } from '../repositories/mock/mock-repositories';
+
 
 import {
   FirebaseAuthRepository,
@@ -51,8 +56,10 @@ import {
   FirebaseMembershipPlanRepository,
   FirebaseActivityLogRepository,
   FirebaseWhatsAppRepository,
-  FirebaseBodyProgressRepository
+  FirebaseBodyProgressRepository,
+  FirebaseFinanceRepository
 } from '../repositories/firebase/firebase-repositories';
+
 
 import {
   SupabaseAuthRepository,
@@ -65,8 +72,10 @@ import {
   SupabaseMembershipPlanRepository,
   SupabaseActivityLogRepository,
   SupabaseWhatsAppRepository,
-  SupabaseBodyProgressRepository
+  SupabaseBodyProgressRepository,
+  SupabaseFinanceRepository
 } from '../repositories/supabase/supabase-repositories';
+
 
 import {
   ApiAuthRepository,
@@ -79,8 +88,10 @@ import {
   ApiMembershipPlanRepository,
   ApiActivityLogRepository,
   ApiWhatsAppRepository,
-  ApiBodyProgressRepository
+  ApiBodyProgressRepository,
+  ApiFinanceRepository
 } from '../repositories/api/api-repositories';
+
 
 // Helper factory functions
 
@@ -194,6 +205,17 @@ export function bodyProgressRepositoryFactory(configService: AppConfigService, i
   }
 }
 
+export function financeRepositoryFactory(configService: AppConfigService, injector: Injector): IFinanceRepository {
+  switch (configService.provider) {
+    case ProviderType.Firebase: return injector.get(FirebaseFinanceRepository);
+    case ProviderType.Supabase: return injector.get(SupabaseFinanceRepository);
+    case ProviderType.REST: return injector.get(ApiFinanceRepository);
+    case ProviderType.Mock:
+    default: return injector.get(MockFinanceRepository);
+  }
+}
+
+
 export const REPOSITORY_PROVIDERS = [
   {
     provide: AUTH_REPOSITORY_TOKEN,
@@ -249,5 +271,11 @@ export const REPOSITORY_PROVIDERS = [
     provide: BODY_PROGRESS_REPOSITORY_TOKEN,
     useFactory: bodyProgressRepositoryFactory,
     deps: [AppConfigService, Injector]
+  },
+  {
+    provide: FINANCE_REPOSITORY_TOKEN,
+    useFactory: financeRepositoryFactory,
+    deps: [AppConfigService, Injector]
   }
 ];
+
