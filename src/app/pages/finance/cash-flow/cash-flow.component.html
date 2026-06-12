@@ -34,7 +34,7 @@
 
 <div class="balance-sheets-grid" *ngIf="cashFlowSummary$ | async as summary">
   <!-- Opening Balance -->
-  <div class="mat-card balance-card">
+  <div class="mat-card balance-card interactive primary-glow">
     <div class="card-inner">
       <div class="icon-wrapper primary">
         <mat-icon>account_balance</mat-icon>
@@ -47,7 +47,7 @@
   </div>
 
   <!-- Cash Inflow -->
-  <div class="mat-card balance-card">
+  <div class="mat-card balance-card interactive success-glow">
     <div class="card-inner">
       <div class="icon-wrapper success">
         <mat-icon>south_west</mat-icon>
@@ -60,7 +60,7 @@
   </div>
 
   <!-- Cash Outflow -->
-  <div class="mat-card balance-card">
+  <div class="mat-card balance-card interactive danger-glow">
     <div class="card-inner">
       <div class="icon-wrapper danger">
         <mat-icon>north_east</mat-icon>
@@ -73,7 +73,7 @@
   </div>
 
   <!-- Closing Balance -->
-  <div class="mat-card balance-card">
+  <div class="mat-card balance-card interactive success-glow">
     <div class="card-inner">
       <div class="icon-wrapper success">
         <mat-icon>savings</mat-icon>
@@ -88,7 +88,7 @@
 
 <div class="charts-row">
   <!-- Chart 1: Monthly Cash Flow Curve -->
-  <div class="mat-card chart-widget" *ngIf="cashFlowChart$ | async as trend">
+  <div class="mat-card chart-widget interactive" *ngIf="cashFlowChart$ | async as trend">
     <div class="chart-title-bar">
       <h3>Monthly Cash Flow</h3>
       <p class="subtitle">Net cash position curve (Last 6 Months)</p>
@@ -100,10 +100,10 @@
         <line x1="30" y1="110" x2="570" y2="110" class="grid-line" />
         <line x1="30" y1="155" x2="570" y2="155" class="grid-line" />
         <line x1="30" y1="180" x2="570" y2="180" class="grid-line line-axis" />
-
+ 
         <path [attr.d]="trend.areaPath" class="flow-area" />
         <polyline [attr.points]="trend.linePoints" class="flow-line" />
-
+ 
         <!-- Dots -->
         <circle *ngFor="let pt of trend.points" [attr.cx]="pt.x" [attr.cy]="pt.y" r="4.5" class="flow-dot"
           [matTooltip]="pt.month + ': ₹' + (pt.value | number:'1.0-0')" />
@@ -115,7 +115,7 @@
   </div>
 
   <!-- Chart 2: Revenue vs Expenses (Comparison Bar Chart) -->
-  <div class="mat-card chart-widget" *ngIf="revenueVsExpensesChart$ | async as vs">
+  <div class="mat-card chart-widget interactive" *ngIf="revenueVsExpensesChart$ | async as vs">
     <div class="chart-title-bar">
       <div class="flex-spread">
         <div>

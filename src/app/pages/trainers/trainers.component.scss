@@ -14,13 +14,13 @@
 .trainer-card {
   display: flex;
   flex-direction: column;
-  height: 100%;
+  height: auto;
   padding: 20px !important;
-  transition: transform 0.3s ease, box-shadow 0.3s ease !important;
   
   &:hover {
-    transform: translateY(-6px);
-    box-shadow: var(--shadow-lg) !important;
+    .trainer-avatar {
+      transform: scale(1.1);
+    }
   }
 }
 
@@ -74,6 +74,7 @@
       border-radius: 50%;
       object-fit: cover;
       border: 3px solid var(--bg-secondary);
+      transition: transform var(--transition-speed) var(--transition-curve);
     }
   }
   

@@ -35,6 +35,8 @@ body.light-theme {
   --accent-hover: #4338ca;
   --accent-gradient: linear-gradient(135deg, #4f46e5 0%, #7c3aed 100%);
   --accent-light: rgba(79, 70, 229, 0.08);
+  --card-hover-glow: 0 12px 30px rgba(79, 70, 229, 0.12);
+  --card-hover-border: rgba(79, 70, 229, 0.3);
   
   --shadow-sm: 0 1px 3px rgba(0,0,0,0.05), 0 1px 2px rgba(0,0,0,0.02);
   --shadow-md: 0 10px 15px -3px rgba(0,0,0,0.05), 0 4px 6px -4px rgba(0,0,0,0.02);
@@ -71,6 +73,8 @@ body.dark-theme {
   --accent-hover: #818cf8;
   --accent-gradient: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%);
   --accent-light: rgba(99, 102, 241, 0.15);
+  --card-hover-glow: 0 12px 30px rgba(99, 102, 241, 0.2);
+  --card-hover-border: rgba(99, 102, 241, 0.4);
   
   --shadow-sm: 0 4px 6px -1px rgba(0, 0, 0, 0.2), 0 2px 4px -1px rgba(0, 0, 0, 0.1);
   --shadow-md: 0 10px 15px -3px rgba(0, 0, 0, 0.3), 0 4px 6px -2px rgba(0, 0, 0, 0.15);
@@ -136,18 +140,75 @@ h1, h2, h3, h4, h5, h6 {
   color: var(--text-primary) !important;
 }
 
-.mat-card {
+.mat-card, .mat-mdc-card {
   background-color: var(--bg-secondary) !important;
   color: var(--text-primary) !important;
   border-radius: 16px !important;
   border: var(--card-border) !important;
   box-shadow: var(--shadow-md) !important;
   padding: 24px !important;
-  transition: transform 0.2s ease, box-shadow 0.2s ease !important;
+  transition: transform var(--transition-speed) var(--transition-curve), 
+              box-shadow var(--transition-speed) var(--transition-curve), 
+              border-color var(--transition-speed) var(--transition-curve) !important;
+}
+
+.interactive {
+  transition: transform var(--transition-speed) var(--transition-curve), 
+              box-shadow var(--transition-speed) var(--transition-curve), 
+              border-color var(--transition-speed) var(--transition-curve) !important;
+  cursor: pointer;
   
-  &.interactive:hover {
+  &:hover {
     transform: translateY(-4px);
-    box-shadow: var(--shadow-lg) !important;
+    border-color: var(--card-hover-border) !important;
+    box-shadow: var(--card-hover-glow) !important;
+  }
+
+  /* Color-specific glow helpers */
+  &.primary-glow:hover {
+    border-color: rgba(99, 102, 241, 0.45) !important;
+    box-shadow: 0 12px 30px rgba(99, 102, 241, 0.2) !important;
+    
+    body.light-theme & {
+      border-color: rgba(79, 70, 229, 0.35) !important;
+      box-shadow: 0 12px 30px rgba(79, 70, 229, 0.12) !important;
+    }
+  }
+  &.success-glow:hover {
+    border-color: rgba(16, 185, 129, 0.45) !important;
+    box-shadow: 0 12px 30px rgba(16, 185, 129, 0.2) !important;
+    
+    body.light-theme & {
+      border-color: rgba(16, 185, 129, 0.35) !important;
+      box-shadow: 0 12px 30px rgba(16, 185, 129, 0.12) !important;
+    }
+  }
+  &.warning-glow:hover {
+    border-color: rgba(245, 158, 11, 0.45) !important;
+    box-shadow: 0 12px 30px rgba(245, 158, 11, 0.2) !important;
+    
+    body.light-theme & {
+      border-color: rgba(245, 158, 11, 0.35) !important;
+      box-shadow: 0 12px 30px rgba(245, 158, 11, 0.12) !important;
+    }
+  }
+  &.danger-glow:hover {
+    border-color: rgba(239, 68, 68, 0.45) !important;
+    box-shadow: 0 12px 30px rgba(239, 68, 68, 0.2) !important;
+    
+    body.light-theme & {
+      border-color: rgba(239, 68, 68, 0.35) !important;
+      box-shadow: 0 12px 30px rgba(239, 68, 68, 0.12) !important;
+    }
+  }
+  &.info-glow:hover {
+    border-color: rgba(59, 130, 246, 0.45) !important;
+    box-shadow: 0 12px 30px rgba(59, 130, 246, 0.2) !important;
+    
+    body.light-theme & {
+      border-color: rgba(59, 130, 246, 0.35) !important;
+      box-shadow: 0 12px 30px rgba(59, 130, 246, 0.12) !important;
+    }
   }
 }
 

@@ -288,7 +288,7 @@
               <!-- Stat Boxes Grid -->
               <div class="fitness-stats-row">
                 <!-- Weight Card -->
-                <div class="stat-card">
+                <div class="stat-card interactive danger-glow">
                   <div class="card-detail">
                     <span class="lbl">Current Weight</span>
                     <span class="val">{{ member.weight }} <small>kg</small></span>
@@ -300,7 +300,7 @@
                 </div>
 
                 <!-- Weight Change -->
-                <div class="stat-card" [class.positive-progress]="getWeightChange() > 0">
+                <div class="stat-card interactive success-glow" [class.positive-progress]="getWeightChange() > 0">
                   <div class="card-detail">
                     <span class="lbl">Weight Change</span>
                     <span class="val">
@@ -316,7 +316,7 @@
                 </div>
 
                 <!-- BMI -->
-                <div class="stat-card">
+                <div class="stat-card interactive primary-glow">
                   <div class="card-detail">
                     <span class="lbl">BMI (Class)</span>
                     <span class="val">{{ getBMI() }} <small class="text-sm">({{ getBMICategory() }})</small></span>

@@ -48,10 +48,7 @@ export class ReportsComponent implements OnInit {
   displayedColumns: string[] = [];
   reportTitle = '';
   reportSubtitle = '';
-
-  get generationDate(): string {
-    return new Date().toLocaleString();
-  }
+  generationDate = '';
 
   constructor(
     private paymentState: PaymentState,
@@ -66,6 +63,7 @@ export class ReportsComponent implements OnInit {
   }
 
   generateReport(): void {
+    this.generationDate = new Date().toLocaleString();
     combineLatest([
       this.paymentState.payments$,
       this.financeState.expenses$,

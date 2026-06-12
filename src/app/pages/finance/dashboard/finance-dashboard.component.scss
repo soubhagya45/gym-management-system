@@ -10,17 +10,7 @@
   flex-direction: column;
   justify-content: space-between;
   min-height: 120px;
-  background: var(--bg-card) !important;
-  border: var(--card-border) !important;
-  border-radius: 16px !important;
   padding: 20px !important;
-  box-shadow: var(--shadow-md) !important;
-  transition: transform 0.2s ease, box-shadow 0.2s ease !important;
-
-  &:hover {
-    transform: translateY(-4px);
-    box-shadow: var(--shadow-lg) !important;
-  }
 }
 
 .kpi-header {
@@ -80,11 +70,6 @@
 }
 
 .widget-card {
-  background-color: var(--bg-card) !important;
-  border: var(--card-border) !important;
-  border-radius: 16px !important;
-  padding: 24px !important;
-  box-shadow: var(--shadow-md) !important;
   display: flex;
   flex-direction: column;
 

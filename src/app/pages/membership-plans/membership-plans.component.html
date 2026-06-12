@@ -15,7 +15,10 @@
 
   <!-- Plans Pricing Card Grid -->
   <div class="plans-grid">
-    <div class="mat-card pricing-card" 
+    <div class="mat-card pricing-card interactive" 
+         [class.primary-glow]="plan.durationMonths === 3"
+         [class.success-glow]="plan.durationMonths === 12"
+         [class.info-glow]="plan.durationMonths === 1"
          *ngFor="let plan of plans$ | async" 
          [ngClass]="{'popular-border': plan.durationMonths === 3}">
       
