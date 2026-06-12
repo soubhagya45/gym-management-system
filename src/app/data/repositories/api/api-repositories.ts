@@ -26,8 +26,11 @@ import {
   IMembershipPlanRepository,
   IActivityLogRepository,
   IWhatsAppRepository,
-  IBodyProgressRepository
+  IBodyProgressRepository,
+  IFinanceRepository
 } from '../../../core/interfaces/repository.interfaces';
+import { Expense, Invoice } from '../../../core/models/finance.entity';
+
 
 /**
  * FUTURE MIGRATION STUB FOR REST API (NODE.JS, NESTJS, OR .NET CORE WITH POSTGRESQL/MONGODB)
@@ -155,3 +158,16 @@ export class ApiBodyProgressRepository implements IBodyProgressRepository {
   addEntry(gymId: string, entry: Omit<BodyProgressEntry, 'id'>): Observable<BodyProgressEntry> { return throwError(() => new Error('API integration is not enabled.')); }
   deleteEntry(gymId: string, id: string): Observable<void> { return throwError(() => new Error('API integration is not enabled.')); }
 }
+
+@Injectable({ providedIn: 'root' })
+export class ApiFinanceRepository implements IFinanceRepository {
+  constructor(private http: HttpClient) {}
+  getExpenses(gymId: string): Observable<Expense[]> { return throwError(() => new Error('API integration is not enabled.')); }
+  addExpense(gymId: string, expense: Omit<Expense, 'id'>): Observable<Expense> { return throwError(() => new Error('API integration is not enabled.')); }
+  updateExpense(gymId: string, expense: Expense): Observable<void> { return throwError(() => new Error('API integration is not enabled.')); }
+  deleteExpense(gymId: string, id: string): Observable<void> { return throwError(() => new Error('API integration is not enabled.')); }
+  getInvoices(gymId: string): Observable<Invoice[]> { return throwError(() => new Error('API integration is not enabled.')); }
+  addInvoice(gymId: string, invoice: Omit<Invoice, 'id'>): Observable<Invoice> { return throwError(() => new Error('API integration is not enabled.')); }
+  updateInvoice(gymId: string, invoice: Invoice): Observable<void> { return throwError(() => new Error('API integration is not enabled.')); }
+}
+

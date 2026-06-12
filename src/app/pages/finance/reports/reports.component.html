@@ -1,0 +1,249 @@
+<div class="page-header">
+  <div class="title-area">
+    <h1>Financial Reports</h1>
+    <p>Generate, examine, print, and export structured ledgers and statement sheets.</p>
+  </div>
+</div>
+
+<div class="finance-navigation">
+  <a class="nav-tab" routerLink="/finance/dashboard" routerLinkActive="active-tab">
+    <mat-icon>dashboard</mat-icon>
+    <span>Dashboard</span>
+  </a>
+  <a class="nav-tab" routerLink="/finance/invoices" routerLinkActive="active-tab">
+    <mat-icon>receipt</mat-icon>
+    <span>Invoices</span>
+  </a>
+  <a class="nav-tab" routerLink="/finance/collections" routerLinkActive="active-tab">
+    <mat-icon>trending_up</mat-icon>
+    <span>Collections</span>
+  </a>
+  <a class="nav-tab" routerLink="/finance/expenses" routerLinkActive="active-tab">
+    <mat-icon>shopping_bag</mat-icon>
+    <span>Expenses</span>
+  </a>
+  <a class="nav-tab" routerLink="/finance/reports" routerLinkActive="active-tab">
+    <mat-icon>assessment</mat-icon>
+    <span>Reports</span>
+  </a>
+  <a class="nav-tab" routerLink="/finance/cash-flow" routerLinkActive="active-tab">
+    <mat-icon>show_chart</mat-icon>
+    <span>Cash Flow</span>
+  </a>
+</div>
+
+<div class="mat-card selection-card glass-panel">
+  <div class="selection-row">
+    <!-- Select Template -->
+    <mat-form-field appearance="outline" class="template-select">
+      <mat-label>Select Report Template</mat-label>
+      <mat-select [(ngModel)]="selectedReportType" (selectionChange)="generateReport()">
+        <mat-option value="profit_loss">Profit & Loss Statement (P&L)</mat-option>
+        <mat-option value="daily_collection">Daily Collection Report</mat-option>
+        <mat-option value="monthly_collection">Monthly Collection Report</mat-option>
+        <mat-option value="membership_revenue">Membership Revenue Report</mat-option>
+        <mat-option value="outstanding_dues">Outstanding Dues Report</mat-option>
+        <mat-option value="expense_report">Expense Report</mat-option>
+      </mat-select>
+    </mat-form-field>
+
+    <span class="spacer"></span>
+
+    <!-- Actions -->
+    <div class="actions-group">
+      <button mat-stroked-button color="accent" (click)="printReport()" [disabled]="dataSource.data.length === 0">
+        <mat-icon>print</mat-icon>
+        Print Report
+      </button>
+      <button mat-flat-button color="primary" (click)="exportReport()" [disabled]="dataSource.data.length === 0">
+        <mat-icon>file_download</mat-icon>
+        Export CSV
+      </button>
+    </div>
+  </div>
+</div>
+
+<div class="report-wrapper mat-card">
+  <div class="report-header">
+    <div class="report-title-section">
+      <h2>{{ reportTitle }}</h2>
+      <p class="subtitle">{{ reportSubtitle }}</p>
+    </div>
+    <div class="report-meta">
+      <span>Generated on: {{ generationDate }}</span>
+    </div>
+  </div>
+
+  <div class="table-container">
+    <table mat-table [dataSource]="dataSource" class="mat-elevation-z0">
+      
+      <!-- Date Column -->
+      <ng-container matColumnDef="date">
+        <th mat-header-cell *matHeaderCellDef>Date</th>
+        <td mat-cell *matCellDef="let element">{{ element.date | date:'mediumDate' }}</td>
+      </ng-container>
+
+      <!-- Month Column -->
+      <ng-container matColumnDef="month">
+        <th mat-header-cell *matHeaderCellDef>Month</th>
+        <td mat-cell *matCellDef="let element">{{ element.month }}</td>
+      </ng-container>
+
+      <!-- Description Column (for P&L) -->
+      <ng-container matColumnDef="description">
+        <th mat-header-cell *matHeaderCellDef>Statement Item</th>
+        <td mat-cell *matCellDef="let element" [class.bold-label]="element.category === 'Summary'">
+          {{ element.description }}
+        </td>
+      </ng-container>
+
+      <!-- Category Column (for P&L) -->
+      <ng-container matColumnDef="category">
+        <th mat-header-cell *matHeaderCellDef>Category</th>
+        <td mat-cell *matCellDef="let element">
+          <span class="report-tag" [class]="element.category.toLowerCase()">
+            {{ element.category }}
+          </span>
+        </td>
+      </ng-container>
+
+      <!-- Transactions Count -->
+      <ng-container matColumnDef="transactions">
+        <th mat-header-cell *matHeaderCellDef>Transactions</th>
+        <td mat-cell *matCellDef="let element">{{ element.transactions }}</td>
+      </ng-container>
+
+      <!-- Credit Column -->
+      <ng-container matColumnDef="credit">
+        <th mat-header-cell *matHeaderCellDef class="text-right">Credit (+)</th>
+        <td mat-cell *matCellDef="let element" class="text-right credit-cell">
+          {{ element.credit > 0 ? '₹' + (element.credit | number:'1.2-2') : '-' }}
+        </td>
+      </ng-container>
+
+      <!-- Debit Column -->
+      <ng-container matColumnDef="debit">
+        <th mat-header-cell *matHeaderCellDef class="text-right">Debit (-)</th>
+        <td mat-cell *matCellDef="let element" class="text-right debit-cell">
+          {{ element.debit > 0 ? '₹' + (element.debit | number:'1.2-2') : '-' }}
+        </td>
+      </ng-container>
+
+      <!-- UPI Inflow -->
+      <ng-container matColumnDef="methodUPI">
+        <th mat-header-cell *matHeaderCellDef>UPI</th>
+        <td mat-cell *matCellDef="let element">₹{{ element.methodUPI | number:'1.2-2' }}</td>
+      </ng-container>
+
+      <!-- Cash Inflow -->
+      <ng-container matColumnDef="methodCash">
+        <th mat-header-cell *matHeaderCellDef>Cash</th>
+        <td mat-cell *matCellDef="let element">₹{{ element.methodCash | number:'1.2-2' }}</td>
+      </ng-container>
+
+      <!-- Card Inflow -->
+      <ng-container matColumnDef="methodCard">
+        <th mat-header-cell *matHeaderCellDef>Card</th>
+        <td mat-cell *matCellDef="let element">₹{{ element.methodCard | number:'1.2-2' }}</td>
+      </ng-container>
+
+      <!-- Average Transaction Value -->
+      <ng-container matColumnDef="averageTx">
+        <th mat-header-cell *matHeaderCellDef>Average Tx</th>
+        <td mat-cell *matCellDef="let element">₹{{ element.averageTx | number:'1.2-2' }}</td>
+      </ng-container>
+
+      <!-- Plan Name Column -->
+      <ng-container matColumnDef="planName">
+        <th mat-header-cell *matHeaderCellDef>Membership Plan</th>
+        <td mat-cell *matCellDef="let element">{{ element.planName }}</td>
+      </ng-container>
+
+      <!-- Subscribers Count -->
+      <ng-container matColumnDef="subscribers">
+        <th mat-header-cell *matHeaderCellDef>Active Subscribers</th>
+        <td mat-cell *matCellDef="let element">{{ element.subscribers }} Members</td>
+      </ng-container>
+
+      <!-- Unit Price -->
+      <ng-container matColumnDef="unitPrice">
+        <th mat-header-cell *matHeaderCellDef>Price</th>
+        <td mat-cell *matCellDef="let element">₹{{ element.unitPrice | number:'1.2-2' }}</td>
+      </ng-container>
+
+      <!-- Total Revenue by Plan -->
+      <ng-container matColumnDef="totalRevenue">
+        <th mat-header-cell *matHeaderCellDef>Total Revenue</th>
+        <td mat-cell *matCellDef="let element" class="credit-cell">₹{{ element.totalRevenue | number:'1.2-2' }}</td>
+      </ng-container>
+
+      <!-- Member Name -->
+      <ng-container matColumnDef="memberName">
+        <th mat-header-cell *matHeaderCellDef>Member</th>
+        <td mat-cell *matCellDef="let element">{{ element.memberName }}</td>
+      </ng-container>
+
+      <!-- Phone -->
+      <ng-container matColumnDef="phone">
+        <th mat-header-cell *matHeaderCellDef>Phone</th>
+        <td mat-cell *matCellDef="let element">{{ element.phone }}</td>
+      </ng-container>
+
+      <!-- Due Amount -->
+      <ng-container matColumnDef="dueAmount">
+        <th mat-header-cell *matHeaderCellDef>Due Amount</th>
+        <td mat-cell *matCellDef="let element" class="debit-cell">₹{{ element.dueAmount | number:'1.2-2' }}</td>
+      </ng-container>
+
+      <!-- Due Date -->
+      <ng-container matColumnDef="dueDate">
+        <th mat-header-cell *matHeaderCellDef>Due Date</th>
+        <td mat-cell *matCellDef="let element">{{ element.dueDate | date:'mediumDate' }}</td>
+      </ng-container>
+
+      <!-- Status Column -->
+      <ng-container matColumnDef="status">
+        <th mat-header-cell *matHeaderCellDef>Status</th>
+        <td mat-cell *matCellDef="let element">
+          <span class="status-badge" [class]="element.status">{{ element.status }}</span>
+        </td>
+      </ng-container>
+
+      <!-- Expense Title -->
+      <ng-container matColumnDef="title">
+        <th mat-header-cell *matHeaderCellDef>Expense Description</th>
+        <td mat-cell *matCellDef="let element">{{ element.title }}</td>
+      </ng-container>
+
+      <!-- Expense Category -->
+      <ng-container matColumnDef="expenseCategory">
+        <th mat-header-cell *matHeaderCellDef>Category</th>
+        <td mat-cell *matCellDef="let element">{{ element.category }}</td>
+      </ng-container>
+
+      <!-- Expense Amount -->
+      <ng-container matColumnDef="amount">
+        <th mat-header-cell *matHeaderCellDef>Amount</th>
+        <td mat-cell *matCellDef="let element" class="debit-cell">₹{{ element.amount | number:'1.2-2' }}</td>
+      </ng-container>
+
+      <!-- Total Column -->
+      <ng-container matColumnDef="total">
+        <th mat-header-cell *matHeaderCellDef>Total</th>
+        <td mat-cell *matCellDef="let element" class="bold-text">₹{{ element.total | number:'1.2-2' }}</td>
+      </ng-container>
+
+      <!-- Balance Column -->
+      <ng-container matColumnDef="balance">
+        <th mat-header-cell *matHeaderCellDef class="text-right">Balance</th>
+        <td mat-cell *matCellDef="let element" class="text-right bold-text" [class.negative]="element.balance < 0">
+          ₹{{ element.balance | number:'1.2-2' }}
+        </td>
+      </ng-container>
+
+      <tr mat-header-row *matHeaderRowDef="displayedColumns"></tr>
+      <tr mat-row *matRowDef="let row; columns: displayedColumns;" [class.summary-row]="row.category === 'Summary'"></tr>
+    </table>
+  </div>
+</div>
+

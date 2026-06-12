@@ -68,6 +68,43 @@ const routes: Routes = [
     data: { permission: 'view:payments' }
   },
   {
+    path: 'finance/dashboard',
+    loadComponent: () => import('./pages/finance/dashboard/finance-dashboard.component').then(m => m.FinanceDashboardComponent),
+    canActivate: [authGuard, permissionGuard],
+    data: { permission: 'view:finance' }
+  },
+  {
+    path: 'finance/invoices',
+    loadComponent: () => import('./pages/finance/invoices/invoices.component').then(m => m.InvoicesComponent),
+    canActivate: [authGuard, permissionGuard],
+    data: { permission: 'view:finance' }
+  },
+  {
+    path: 'finance/collections',
+    loadComponent: () => import('./pages/finance/collections/collections.component').then(m => m.CollectionsComponent),
+    canActivate: [authGuard, permissionGuard],
+    data: { permission: 'view:finance' }
+  },
+  {
+    path: 'finance/expenses',
+    loadComponent: () => import('./pages/finance/expenses/expenses.component').then(m => m.ExpensesComponent),
+    canActivate: [authGuard, permissionGuard],
+    data: { permission: 'view:finance' }
+  },
+  {
+    path: 'finance/reports',
+    loadComponent: () => import('./pages/finance/reports/reports.component').then(m => m.ReportsComponent),
+    canActivate: [authGuard, permissionGuard],
+    data: { permission: 'view:finance' }
+  },
+  {
+    path: 'finance/cash-flow',
+    loadComponent: () => import('./pages/finance/cash-flow/cash-flow.component').then(m => m.CashFlowComponent),
+    canActivate: [authGuard, permissionGuard],
+    data: { permission: 'view:finance' }
+  },
+
+  {
     path: 'plans',
     loadComponent: () => import('./pages/membership-plans/membership-plans.component').then(m => m.MembershipPlansComponent),
     canActivate: [authGuard, permissionGuard],

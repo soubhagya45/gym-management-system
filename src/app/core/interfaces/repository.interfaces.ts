@@ -13,6 +13,7 @@ import { ActivityLog } from '../models/activity-log.entity';
 import { WhatsAppTemplate } from '../models/whatsapp-template.entity';
 import { WhatsAppReminder } from '../models/whatsapp-reminder.entity';
 import { BodyProgressEntry } from '../models/body-progress.entity';
+import { Expense, Invoice } from '../models/finance.entity';
 
 // --- Interface Definitions ---
 
@@ -104,6 +105,17 @@ export interface IBodyProgressRepository {
   deleteEntry(gymId: string, id: string): Observable<void>;
 }
 
+export interface IFinanceRepository {
+  getExpenses(gymId: string): Observable<Expense[]>;
+  addExpense(gymId: string, expense: Omit<Expense, 'id'>): Observable<Expense>;
+  updateExpense(gymId: string, expense: Expense): Observable<void>;
+  deleteExpense(gymId: string, id: string): Observable<void>;
+  getInvoices(gymId: string): Observable<Invoice[]>;
+  addInvoice(gymId: string, invoice: Omit<Invoice, 'id'>): Observable<Invoice>;
+  updateInvoice(gymId: string, invoice: Invoice): Observable<void>;
+}
+
+
 // --- Angular InjectionTokens ---
 
 export const AUTH_REPOSITORY_TOKEN = new InjectionToken<IAuthRepository>('AUTH_REPOSITORY_TOKEN');
@@ -117,3 +129,5 @@ export const MEMBERSHIP_PLAN_REPOSITORY_TOKEN = new InjectionToken<IMembershipPl
 export const ACTIVITY_LOG_REPOSITORY_TOKEN = new InjectionToken<IActivityLogRepository>('ACTIVITY_LOG_REPOSITORY_TOKEN');
 export const WHATSAPP_REPOSITORY_TOKEN = new InjectionToken<IWhatsAppRepository>('WHATSAPP_REPOSITORY_TOKEN');
 export const BODY_PROGRESS_REPOSITORY_TOKEN = new InjectionToken<IBodyProgressRepository>('BODY_PROGRESS_REPOSITORY_TOKEN');
+export const FINANCE_REPOSITORY_TOKEN = new InjectionToken<IFinanceRepository>('FINANCE_REPOSITORY_TOKEN');
+

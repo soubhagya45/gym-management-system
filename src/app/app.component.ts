@@ -114,6 +114,21 @@ export class AppComponent implements OnInit {
     this.sidenavOpened = !this.sidenavOpened;
   }
 
+  expandedMenus: Record<string, boolean> = { 'Finance': false };
+
+  toggleSubmenu(menuLabel: string): void {
+    this.expandedMenus[menuLabel] = !this.expandedMenus[menuLabel];
+  }
+
+  isSubmenuExpanded(menuLabel: string): boolean {
+    return !!this.expandedMenus[menuLabel];
+  }
+
+  isRouteActiveInSubmenu(item: any): boolean {
+    return item.subItems?.some((sub: any) => this.router.url.includes(sub.route)) ?? false;
+  }
+
+
   toggleTheme() {
     this.isDarkMode = !this.isDarkMode;
     if (this.isDarkMode) {

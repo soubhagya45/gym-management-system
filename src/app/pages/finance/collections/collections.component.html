@@ -1,0 +1,139 @@
+<div class="page-header">
+  <div class="title-area">
+    <h1>Collections & Revenue</h1>
+    <p>Monitor customer inflow payments, transaction velocity, and revenue cycle trends.</p>
+  </div>
+</div>
+
+<div class="finance-navigation">
+  <a class="nav-tab" routerLink="/finance/dashboard" routerLinkActive="active-tab">
+    <mat-icon>dashboard</mat-icon>
+    <span>Dashboard</span>
+  </a>
+  <a class="nav-tab" routerLink="/finance/invoices" routerLinkActive="active-tab">
+    <mat-icon>receipt</mat-icon>
+    <span>Invoices</span>
+  </a>
+  <a class="nav-tab" routerLink="/finance/collections" routerLinkActive="active-tab">
+    <mat-icon>trending_up</mat-icon>
+    <span>Collections</span>
+  </a>
+  <a class="nav-tab" routerLink="/finance/expenses" routerLinkActive="active-tab">
+    <mat-icon>shopping_bag</mat-icon>
+    <span>Expenses</span>
+  </a>
+  <a class="nav-tab" routerLink="/finance/reports" routerLinkActive="active-tab">
+    <mat-icon>assessment</mat-icon>
+    <span>Reports</span>
+  </a>
+  <a class="nav-tab" routerLink="/finance/cash-flow" routerLinkActive="active-tab">
+    <mat-icon>show_chart</mat-icon>
+    <span>Cash Flow</span>
+  </a>
+</div>
+
+<div class="stats-row" *ngIf="stats$ | async as periods">
+  <div class="mat-card stat-card" *ngFor="let stat of periods">
+    <div class="stat-header">
+      <span class="period-title">{{ stat.period }}</span>
+      <div class="stat-icon-wrapper mini" [class]="stat.colorClass">
+        <mat-icon *ngIf="stat.colorClass === 'success'">payments</mat-icon>
+        <mat-icon *ngIf="stat.colorClass === 'primary'">trending_up</mat-icon>
+        <mat-icon *ngIf="stat.colorClass === 'warning'">account_balance</mat-icon>
+      </div>
+    </div>
+    <div class="stat-amount">₹{{ stat.amount | number:'1.0-0' }}</div>
+    <div class="stat-footer">
+      <span class="tx-count">{{ stat.transactions }} Transactions</span>
+      <span class="growth" [class.positive]="stat.isPositive">
+        <mat-icon class="arrow-icon">{{ stat.isPositive ? 'arrow_upward' : 'arrow_downward' }}</mat-icon>
+        {{ stat.growth }}%
+      </span>
+    </div>
+  </div>
+</div>
+
+<div class="mat-card chart-card glass-panel">
+  <div class="chart-header-row">
+    <div>
+      <h3>Inflow Collections Curve</h3>
+      <p class="subtitle">Select billing period granularity to display collections</p>
+    </div>
+    <div class="toggle-group">
+      <button [class.active]="activeChart === 'daily'" (click)="switchChart('daily')">Daily</button>
+      <button [class.active]="activeChart === 'weekly'" (click)="switchChart('weekly')">Weekly</button>
+      <button [class.active]="activeChart === 'monthly'" (click)="switchChart('monthly')">Monthly</button>
+    </div>
+  </div>
+
+  <div class="chart-viewport">
+    <!-- Daily Revenue Chart -->
+    <ng-container *ngIf="activeChart === 'daily' && (dailyChart$ | async) as chart">
+      <div class="svg-wrapper">
+        <svg viewBox="0 0 600 250" preserveAspectRatio="none">
+          <line x1="30" y1="30" x2="570" y2="30" class="grid-line" />
+          <line x1="30" y1="85" x2="570" y2="85" class="grid-line" />
+          <line x1="30" y1="140" x2="570" y2="140" class="grid-line" />
+          <line x1="30" y1="195" x2="570" y2="195" class="grid-line" />
+          <line x1="30" y1="220" x2="570" y2="220" class="grid-line line-axis" />
+
+          <path [attr.d]="chart.areaPath" class="area-fill" />
+          <polyline [attr.points]="chart.linePoints" class="line-plot" />
+
+          <!-- Interactive dots -->
+          <circle *ngFor="let pt of chart.pointCoords" [attr.cx]="pt.x" [attr.cy]="pt.y" r="5" class="chart-dot"
+            [matTooltip]="'₹' + (pt.value | number:'1.0-0')" />
+        </svg>
+        <div class="labels-x">
+          <span *ngFor="let label of chart.labels">{{ label }}</span>
+        </div>
+      </div>
+    </ng-container>
+
+    <!-- Weekly Revenue Chart -->
+    <ng-container *ngIf="activeChart === 'weekly' && (weeklyChart$ | async) as chart">
+      <div class="svg-wrapper">
+        <svg viewBox="0 0 600 250" preserveAspectRatio="none">
+          <line x1="30" y1="30" x2="570" y2="30" class="grid-line" />
+          <line x1="30" y1="85" x2="570" y2="85" class="grid-line" />
+          <line x1="30" y1="140" x2="570" y2="140" class="grid-line" />
+          <line x1="30" y1="195" x2="570" y2="195" class="grid-line" />
+          <line x1="30" y1="220" x2="570" y2="220" class="grid-line line-axis" />
+
+          <path [attr.d]="chart.areaPath" class="area-fill primary-area" />
+          <polyline [attr.points]="chart.linePoints" class="line-plot primary-line" />
+
+          <!-- Interactive dots -->
+          <circle *ngFor="let pt of chart.pointCoords" [attr.cx]="pt.x" [attr.cy]="pt.y" r="5" class="chart-dot primary-dot"
+            [matTooltip]="'₹' + (pt.value | number:'1.0-0')" />
+        </svg>
+        <div class="labels-x">
+          <span *ngFor="let label of chart.labels">{{ label }}</span>
+        </div>
+      </div>
+    </ng-container>
+
+    <!-- Monthly Revenue Chart -->
+    <ng-container *ngIf="activeChart === 'monthly' && (monthlyChart$ | async) as chart">
+      <div class="svg-wrapper">
+        <svg viewBox="0 0 600 250" preserveAspectRatio="none">
+          <line x1="30" y1="30" x2="570" y2="30" class="grid-line" />
+          <line x1="30" y1="85" x2="570" y2="85" class="grid-line" />
+          <line x1="30" y1="140" x2="570" y2="140" class="grid-line" />
+          <line x1="30" y1="195" x2="570" y2="195" class="grid-line" />
+          <line x1="30" y1="220" x2="570" y2="220" class="grid-line line-axis" />
+
+          <path [attr.d]="chart.areaPath" class="area-fill warning-area" />
+          <polyline [attr.points]="chart.linePoints" class="line-plot warning-line" />
+
+          <!-- Interactive dots -->
+          <circle *ngFor="let pt of chart.pointCoords" [attr.cx]="pt.x" [attr.cy]="pt.y" r="5" class="chart-dot warning-dot"
+            [matTooltip]="'₹' + (pt.value | number:'1.0-0')" />
+        </svg>
+        <div class="labels-x">
+          <span *ngFor="let label of chart.labels">{{ label }}</span>
+        </div>
+      </div>
+    </ng-container>
+  </div>
+</div>
