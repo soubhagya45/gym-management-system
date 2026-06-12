@@ -1,4 +1,4 @@
-import { Component, Inject, OnInit } from '@angular/core';
+import { Component, Inject, OnInit, OnDestroy } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { MatDialogRef, MAT_DIALOG_DATA, MatDialogModule } from '@angular/material/dialog';
@@ -13,7 +13,7 @@ import { MatSnackBar } from '@angular/material/snack-bar';
 
 import { WhatsAppState } from '../../presentation/state/whatsapp.state';
 import { WhatsAppTemplate } from '../../core/models/whatsapp-template.entity';
-import { Observable } from 'rxjs';
+import { Observable, Subscription } from 'rxjs';
 import { map } from 'rxjs/operators';
 
 export interface WhatsAppPreviewData {
@@ -48,10 +48,11 @@ export interface WhatsAppPreviewData {
   templateUrl: './whatsapp-preview-modal.component.html',
   styleUrls: ['./whatsapp-preview-modal.component.scss']
 })
-export class WhatsAppPreviewModalComponent implements OnInit {
+export class WhatsAppPreviewModalComponent implements OnInit, OnDestroy {
   templates$: Observable<WhatsAppTemplate[]> | undefined;
   templates: WhatsAppTemplate[] = [];
   selectedTemplate: WhatsAppTemplate | null = null;
+  private subscription: Subscription | undefined;
   
   messageContent = '';
   isEditing = false;
@@ -80,18 +81,26 @@ export class WhatsAppPreviewModalComponent implements OnInit {
 
   ngOnInit(): void {
     // 1. Fetch and filter templates matching recipient type
-    this.templates$ = this.whatsappState.templates$.pipe(
-      map(list => {
-        this.templates = list.filter(t => t.isActive);
-        this.preselectTemplate();
-        return this.templates;
-      })
-    );
+    this.subscription = this.whatsappState.templates$.subscribe(list => {
+      this.templates = list.filter(t => t.isActive);
+      this.preselectTemplate();
+    });
     this.whatsappState.loadTemplates();
+  }
+
+  ngOnDestroy(): void {
+    if (this.subscription) {
+      this.subscription.unsubscribe();
+    }
+  }
+
+  compareTemplates(t1: WhatsAppTemplate, t2: WhatsAppTemplate): boolean {
+    return t1 && t2 ? t1.id === t2.id : t1 === t2;
   }
 
   preselectTemplate(): void {
     if (this.templates.length === 0) return;
+    if (this.selectedTemplate) return;
     
     // Choose appropriate default template type
     let defaultType = 'welcome_message';

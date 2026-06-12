@@ -32,7 +32,7 @@
       <!-- Template Selector -->
       <mat-form-field appearance="outline" class="w-100 mt-3">
         <mat-label>Select Message Template</mat-label>
-        <mat-select [(ngModel)]="selectedTemplate" (selectionChange)="onTemplateChange()">
+        <mat-select [(ngModel)]="selectedTemplate" (selectionChange)="onTemplateChange()" [compareWith]="compareTemplates">
           <mat-option *ngFor="let tpl of templates" [value]="tpl">
             {{ tpl.name }}
           </mat-option>
