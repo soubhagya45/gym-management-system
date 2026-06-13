@@ -6,29 +6,33 @@
 </div>
 
 <div class="finance-navigation">
-  <a class="nav-tab" routerLink="/finance/dashboard" routerLinkActive="active-tab">
+  <a class="nav-tab" routerLink="/finance/dashboard" routerLinkActive="active-tab" [routerLinkActiveOptions]="{exact: true}">
     <mat-icon>dashboard</mat-icon>
     <span>Dashboard</span>
-  </a>
-  <a class="nav-tab" routerLink="/finance/invoices" routerLinkActive="active-tab">
-    <mat-icon>receipt</mat-icon>
-    <span>Invoices</span>
   </a>
   <a class="nav-tab" routerLink="/finance/collections" routerLinkActive="active-tab">
     <mat-icon>trending_up</mat-icon>
     <span>Collections</span>
   </a>
+  <a class="nav-tab" routerLink="/finance/invoices" routerLinkActive="active-tab">
+    <mat-icon>receipt</mat-icon>
+    <span>Invoices</span>
+  </a>
   <a class="nav-tab" routerLink="/finance/expenses" routerLinkActive="active-tab">
     <mat-icon>shopping_bag</mat-icon>
     <span>Expenses</span>
   </a>
-  <a class="nav-tab" routerLink="/finance/reports" routerLinkActive="active-tab">
-    <mat-icon>assessment</mat-icon>
-    <span>Reports</span>
+  <a class="nav-tab" routerLink="/finance/revenue-analytics" routerLinkActive="active-tab">
+    <mat-icon>bar_chart</mat-icon>
+    <span>Revenue Analytics</span>
   </a>
   <a class="nav-tab" routerLink="/finance/cash-flow" routerLinkActive="active-tab">
     <mat-icon>show_chart</mat-icon>
     <span>Cash Flow</span>
+  </a>
+  <a class="nav-tab" routerLink="/finance/reports" routerLinkActive="active-tab">
+    <mat-icon>assessment</mat-icon>
+    <span>Reports</span>
   </a>
 </div>
 
@@ -51,13 +55,13 @@
 
     <!-- Actions -->
     <div class="actions-group">
-      <button mat-stroked-button color="accent" (click)="printReport()" [disabled]="dataSource.data.length === 0">
+      <button mat-stroked-button color="accent" (click)="printReport()" [disabled]="dataSource.data.length === 0" matTooltip="Print or save as PDF">
         <mat-icon>print</mat-icon>
-        Print Report
+        Export PDF / Print
       </button>
-      <button mat-flat-button color="primary" (click)="exportReport()" [disabled]="dataSource.data.length === 0">
+      <button mat-flat-button color="primary" (click)="exportReport()" [disabled]="dataSource.data.length === 0" matTooltip="Export as Excel CSV sheet">
         <mat-icon>file_download</mat-icon>
-        Export CSV
+        Export Excel
       </button>
     </div>
   </div>

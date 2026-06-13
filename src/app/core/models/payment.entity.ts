@@ -10,4 +10,6 @@ export interface Payment {
   date: string;
   status: 'paid' | 'pending' | 'overdue';
   planName: string;
+  paymentMethod?: string;
+  collectedBy?: string;
 }

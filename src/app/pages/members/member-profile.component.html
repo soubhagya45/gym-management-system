@@ -40,6 +40,11 @@
           <span class="member-id-tag">ID: {{ member.id }}</span>
         </div>
 
+        <div class="outstanding-dues-alert" *ngIf="member.balance > 0">
+          <mat-icon>warning</mat-icon>
+          <span>Outstanding Balance: <strong>₹{{ member.balance }}</strong></span>
+        </div>
+
         <mat-divider></mat-divider>
 
         <div class="info-details-list">
@@ -223,13 +228,13 @@
             <div class="tab-content payments-tab">
               <div class="section-summary-header">
                 <h3>Billing & Transactions</h3>
-                <span class="metric-tag">Invoices: {{ payments.length }}</span>
+                <span class="metric-tag">Payments: {{ payments.length }}</span>
               </div>
 
               <div class="table-scroll-wrapper" *ngIf="payments.length > 0; else noPayments">
                 <table mat-table [dataSource]="payments" class="w-100">
                   <ng-container matColumnDef="id">
-                    <th mat-header-cell *matHeaderCellDef> Invoice ID </th>
+                    <th mat-header-cell *matHeaderCellDef> Payment ID </th>
                     <td mat-cell *matCellDef="let element" class="invoice-id"> {{ element.id }} </td>
                   </ng-container>
 
@@ -239,7 +244,7 @@
                   </ng-container>
 
                   <ng-container matColumnDef="date">
-                    <th mat-header-cell *matHeaderCellDef> Transaction Date </th>
+                    <th mat-header-cell *matHeaderCellDef> Date </th>
                     <td mat-cell *matCellDef="let element"> {{ element.date | date:'mediumDate' }} </td>
                   </ng-container>
 
@@ -262,8 +267,64 @@
               <ng-template #noPayments>
                 <div class="empty-tab-state">
                   <mat-icon>receipt_long</mat-icon>
+                  <h4>No payments found</h4>
+                  <p>There are no recorded payments for this member.</p>
+                </div>
+              </ng-template>
+            </div>
+          </mat-tab>
+
+          <!-- Tab 3b: Invoice History -->
+          <mat-tab>
+            <ng-template mat-tab-label>
+              <mat-icon class="tab-icon">description</mat-icon>
+              <span>Invoice History</span>
+            </ng-template>
+            
+            <div class="tab-content invoices-tab">
+              <div class="section-summary-header">
+                <h3>Member Invoices</h3>
+                <span class="metric-tag">Invoices: {{ invoices.length }}</span>
+              </div>
+
+              <div class="table-scroll-wrapper" *ngIf="invoices.length > 0; else noInvoices">
+                <table mat-table [dataSource]="invoices" class="w-100">
+                  <ng-container matColumnDef="invoiceNumber">
+                    <th mat-header-cell *matHeaderCellDef> Invoice # </th>
+                    <td mat-cell *matCellDef="let element" class="invoice-id"> {{ element.invoiceNumber }} </td>
+                  </ng-container>
+
+                  <ng-container matColumnDef="invoiceDate">
+                    <th mat-header-cell *matHeaderCellDef> Date </th>
+                    <td mat-cell *matCellDef="let element"> {{ element.invoiceDate | date:'mediumDate' }} </td>
+                  </ng-container>
+
+                  <ng-container matColumnDef="finalAmount">
+                    <th mat-header-cell *matHeaderCellDef> Amount </th>
+                    <td mat-cell *matCellDef="let element"> ₹{{ element.finalAmount | number:'1.2-2' }} </td>
+                  </ng-container>
+
+                  <ng-container matColumnDef="paymentMethod">
+                    <th mat-header-cell *matHeaderCellDef> Method </th>
+                    <td mat-cell *matCellDef="let element"> {{ element.paymentMethod }} </td>
+                  </ng-container>
+
+                  <ng-container matColumnDef="status">
+                    <th mat-header-cell *matHeaderCellDef> Status </th>
+                    <td mat-cell *matCellDef="let element">
+                      <span class="status-badge" [ngClass]="element.status">{{ element.status }}</span>
+                    </td>
+                  </ng-container>
+
+                  <tr mat-header-row *matHeaderRowDef="invoiceColumns"></tr>
+                  <tr mat-row *matRowDef="let row; columns: invoiceColumns;"></tr>
+                </table>
+              </div>
+              <ng-template #noInvoices>
+                <div class="empty-tab-state">
+                  <mat-icon>receipt_long</mat-icon>
                   <h4>No invoices found</h4>
-                  <p>There are no recorded transactions for this member.</p>
+                  <p>There are no invoices generated for this member.</p>
                 </div>
               </ng-template>
             </div>

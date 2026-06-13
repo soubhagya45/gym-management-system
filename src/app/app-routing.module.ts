@@ -109,6 +109,12 @@ const routes: Routes = [
     canActivate: [authGuard, permissionGuard],
     data: { permission: 'view:finance' }
   },
+  {
+    path: 'finance/revenue-analytics',
+    loadComponent: () => import('./pages/finance/revenue-analytics/revenue-analytics.component').then(m => m.RevenueAnalyticsComponent),
+    canActivate: [authGuard, permissionGuard],
+    data: { permission: 'view:finance' }
+  },
 
   {
     path: 'plans',

@@ -6,6 +6,7 @@ export type ExpenseCategory =
   | 'Maintenance'
   | 'Salaries'
   | 'Marketing'
+  | 'Software'
   | 'Miscellaneous';
 
 export interface Expense {
@@ -16,6 +17,8 @@ export interface Expense {
   amount: number;
   date: string;
   notes?: string;
+  createdBy: string;
+  approvedBy?: string;
 }
 
 export interface Invoice {
@@ -31,7 +34,23 @@ export interface Invoice {
   finalAmount: number;
   paymentMethod: string;
   invoiceDate: string;
-  status: 'paid' | 'pending' | 'cancelled';
+  status: 'paid' | 'pending' | 'cancelled' | 'refunded';
+  collectedBy?: string;
+  createdBy?: string;
+  approvedBy?: string;
+}
+
+export interface Collection {
+  id: string;
+  gymId: string;
+  receiptNo: string;
+  memberId: string;
+  memberName: string;
+  membershipPlan: string;
+  amount: number;
+  paymentMethod: string;
+  date: string;
+  collectedBy: string;
 }
 
 export interface CashFlowSummary {

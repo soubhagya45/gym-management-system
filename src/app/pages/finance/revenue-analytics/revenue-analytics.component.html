@@ -1,0 +1,126 @@
+<div class="page-header">
+  <div class="title-area">
+    <h1>Revenue Analytics</h1>
+    <p>Detailed performance metrics, trainer performance, branch comparison, and revenue growth trend.</p>
+  </div>
+</div>
+
+<div class="finance-navigation">
+  <a class="nav-tab" routerLink="/finance/dashboard" routerLinkActive="active-tab" [routerLinkActiveOptions]="{exact: true}">
+    <mat-icon>dashboard</mat-icon>
+    <span>Dashboard</span>
+  </a>
+  <a class="nav-tab" routerLink="/finance/collections" routerLinkActive="active-tab">
+    <mat-icon>trending_up</mat-icon>
+    <span>Collections</span>
+  </a>
+  <a class="nav-tab" routerLink="/finance/invoices" routerLinkActive="active-tab">
+    <mat-icon>receipt</mat-icon>
+    <span>Invoices</span>
+  </a>
+  <a class="nav-tab" routerLink="/finance/expenses" routerLinkActive="active-tab">
+    <mat-icon>shopping_bag</mat-icon>
+    <span>Expenses</span>
+  </a>
+  <a class="nav-tab" routerLink="/finance/revenue-analytics" routerLinkActive="active-tab">
+    <mat-icon>bar_chart</mat-icon>
+    <span>Revenue Analytics</span>
+  </a>
+  <a class="nav-tab" routerLink="/finance/cash-flow" routerLinkActive="active-tab">
+    <mat-icon>show_chart</mat-icon>
+    <span>Cash Flow</span>
+  </a>
+  <a class="nav-tab" routerLink="/finance/reports" routerLinkActive="active-tab">
+    <mat-icon>assessment</mat-icon>
+    <span>Reports</span>
+  </a>
+</div>
+
+<div class="analytics-grid" *ngIf="analyticsData$ | async as data">
+  <!-- Chart 1: Revenue Growth Curve -->
+  <div class="mat-card chart-card glass-panel span-two-cols" *ngIf="growthChart$ | async as growth">
+    <div class="chart-header">
+      <div>
+        <h3>Revenue Growth Curve</h3>
+        <p class="subtitle">Timeline analysis of paid collections (Last 6 Months)</p>
+      </div>
+      <span class="total-growth-badge positive">+18.4% YoY</span>
+    </div>
+    <div class="chart-viewport">
+      <svg viewBox="0 0 600 200" class="growth-svg" preserveAspectRatio="none">
+        <line x1="20" y1="20" x2="580" y2="20" class="grid-line" />
+        <line x1="20" y1="65" x2="580" y2="65" class="grid-line" />
+        <line x1="20" y1="110" x2="580" y2="110" class="grid-line" />
+        <line x1="20" y1="155" x2="580" y2="155" class="grid-line" />
+        <line x1="20" y1="180" x2="580" y2="180" class="grid-line line-axis" />
+
+        <path [attr.d]="growth.areaPath" class="area-fill" />
+        <polyline [attr.points]="growth.points" class="line-plot" />
+      </svg>
+      <div class="chart-labels-x">
+        <span *ngFor="let label of growth.labels">{{ label }}</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- Chart 2: Branch Distribution -->
+  <div class="mat-card chart-card glass-panel" *ngIf="branchChart$ | async as branches">
+    <div class="chart-header">
+      <h3>Revenue by Branch</h3>
+      <p class="subtitle">Revenue share between active branches</p>
+    </div>
+    <div class="branch-pie-container">
+      <svg viewBox="0 0 200 200" class="pie-svg">
+        <path *ngFor="let b of branches" [attr.d]="b.pathD" [class]="b.colorClass"
+          [matTooltip]="b.name + ': ₹' + b.amount" />
+      </svg>
+      <div class="pie-legend">
+        <div class="legend-row" *ngFor="let b of branches">
+          <span class="legend-dot" [class]="b.colorClass"></span>
+          <span class="legend-label">{{ b.name }} ({{ b.percentage }}%)</span>
+          <span class="legend-value">₹{{ b.amount | number:'1.0-0' }}</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Chart 3: Top Revenue Plans -->
+  <div class="mat-card chart-card glass-panel" *ngIf="planChart$ | async as plans">
+    <div class="chart-header">
+      <h3>Top Revenue Plans</h3>
+      <p class="subtitle">Total revenue collections by membership plan</p>
+    </div>
+    <div class="bar-chart-vertical-list">
+      <div class="bar-row" *ngFor="let plan of plans">
+        <div class="bar-labels">
+          <span class="name">{{ plan.name }}</span>
+          <span class="value">₹{{ plan.amount | number:'1.0-0' }} ({{ plan.percentage }}%)</span>
+        </div>
+        <div class="bar-container">
+          <div class="bar-fill primary" [style.width.%]="plan.widthPct"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Chart 4: Trainer Contribution -->
+  <div class="mat-card chart-card glass-panel span-two-cols" *ngIf="trainerChart$ | async as trainers">
+    <div class="chart-header">
+      <h3>Trainer Revenue Performance</h3>
+      <p class="subtitle">Direct sales volume attributed to trainers</p>
+    </div>
+    <div class="trainer-columns-container">
+      <div class="trainer-column-item" *ngFor="let t of trainers">
+        <div class="column-value">₹{{ t.amount | number:'1.0-0' }}</div>
+        <div class="column-bar-wrapper">
+          <div class="column-bar-fill warning" [style.height.%]="t.heightPct"></div>
+        </div>
+        <span class="column-label text-truncate" style="max-width: 100px;">{{ t.name }}</span>
+      </div>
+      <div class="no-data" *ngIf="trainers.length === 0">
+        <mat-icon>sports</mat-icon>
+        <p>No trainer metrics recorded.</p>
+      </div>
+    </div>
+  </div>
+</div>

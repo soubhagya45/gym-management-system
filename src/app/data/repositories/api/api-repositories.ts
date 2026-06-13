@@ -29,7 +29,7 @@ import {
   IBodyProgressRepository,
   IFinanceRepository
 } from '../../../core/interfaces/repository.interfaces';
-import { Expense, Invoice } from '../../../core/models/finance.entity';
+import { Expense, Invoice, Collection } from '../../../core/models/finance.entity';
 import { Employee, EmployeeAttendance, EmployeePayroll, EmployeePerformance } from '../../../core/models/employee.entity';
 import { IEmployeeRepository } from '../../../core/interfaces/repository.interfaces';
 
@@ -177,6 +177,8 @@ export class ApiFinanceRepository implements IFinanceRepository {
   getInvoices(gymId: string): Observable<Invoice[]> { return throwError(() => new Error('API integration is not enabled.')); }
   addInvoice(gymId: string, invoice: Omit<Invoice, 'id'>): Observable<Invoice> { return throwError(() => new Error('API integration is not enabled.')); }
   updateInvoice(gymId: string, invoice: Invoice): Observable<void> { return throwError(() => new Error('API integration is not enabled.')); }
+  getCollections(gymId: string): Observable<Collection[]> { return throwError(() => new Error('API integration is not enabled.')); }
+  addCollection(gymId: string, collection: Omit<Collection, 'id'>): Observable<Collection> { return throwError(() => new Error('API integration is not enabled.')); }
 }
 
 @Injectable({ providedIn: 'root' })

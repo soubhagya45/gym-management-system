@@ -13,7 +13,7 @@ import { ActivityLog } from '../models/activity-log.entity';
 import { WhatsAppTemplate } from '../models/whatsapp-template.entity';
 import { WhatsAppReminder } from '../models/whatsapp-reminder.entity';
 import { BodyProgressEntry } from '../models/body-progress.entity';
-import { Expense, Invoice } from '../models/finance.entity';
+import { Expense, Invoice, Collection } from '../models/finance.entity';
 import { Employee, EmployeeAttendance, EmployeePayroll, EmployeePerformance } from '../models/employee.entity';
 
 // --- Interface Definitions ---
@@ -116,6 +116,8 @@ export interface IFinanceRepository {
   getInvoices(gymId: string): Observable<Invoice[]>;
   addInvoice(gymId: string, invoice: Omit<Invoice, 'id'>): Observable<Invoice>;
   updateInvoice(gymId: string, invoice: Invoice): Observable<void>;
+  getCollections(gymId: string): Observable<Collection[]>;
+  addCollection(gymId: string, collection: Omit<Collection, 'id'>): Observable<Collection>;
 }
 
 export interface IEmployeeRepository {
