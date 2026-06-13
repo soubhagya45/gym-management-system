@@ -22,7 +22,7 @@ export class AppComponent implements OnInit {
   isDarkMode = true;
   isMobile = false;
   sidenavOpened = true;
-  
+
   currentUser$: Observable<UserProfile | null>;
   menuItems$: Observable<NavItem[]>;
   sessionWarning$: Observable<number | null>;
@@ -88,7 +88,7 @@ export class AppComponent implements OnInit {
         const currentRoute = items.find(item => event.urlAfterRedirects.includes(item.route));
         this.pageTitle = currentRoute ? currentRoute.label : 'Dashboard';
       }
-      
+
       // Auto-close drawer on mobile navigation
       if (this.isMobile) {
         this.sidenavOpened = false;

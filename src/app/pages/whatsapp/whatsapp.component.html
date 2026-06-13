@@ -148,26 +148,26 @@
                 <th mat-header-cell *matHeaderCellDef> Recipient </th>
                 <td mat-cell *matCellDef="let element" class="font-semibold text-primary">
                   {{ element.recipientName }}
-                  <span class="recipient-badge ml-2" [ngClass]="element.recipientType">{{ element.recipientType }}</span>
+                  <span class="recipient-badge ml-2 hide-md" [ngClass]="element.recipientType">{{ element.recipientType }}</span>
                 </td>
               </ng-container>
 
               <!-- Phone Column -->
               <ng-container matColumnDef="phone">
-                <th mat-header-cell *matHeaderCellDef> Phone Number </th>
-                <td mat-cell *matCellDef="let element"> {{ element.recipientPhone }} </td>
+                <th mat-header-cell *matHeaderCellDef class="hide-xs"> Phone Number </th>
+                <td mat-cell *matCellDef="let element" class="hide-xs"> {{ element.recipientPhone }} </td>
               </ng-container>
 
               <!-- Template Name Column -->
               <ng-container matColumnDef="template">
-                <th mat-header-cell *matHeaderCellDef> Template </th>
-                <td mat-cell *matCellDef="let element"> {{ element.templateName }} </td>
+                <th mat-header-cell *matHeaderCellDef class="hide-sm"> Template </th>
+                <td mat-cell *matCellDef="let element" class="hide-sm"> {{ element.templateName }} </td>
               </ng-container>
 
               <!-- Scheduled Dispatch Column -->
               <ng-container matColumnDef="scheduledTime">
-                <th mat-header-cell *matHeaderCellDef> Scheduled Dispatch </th>
-                <td mat-cell *matCellDef="let element" class="font-semibold">
+                <th mat-header-cell *matHeaderCellDef class="hide-sm"> Scheduled Dispatch </th>
+                <td mat-cell *matCellDef="let element" class="font-semibold hide-sm">
                   {{ element.scheduledTime | date:'medium' }}
                 </td>
               </ng-container>
@@ -219,20 +219,20 @@
                 <th mat-header-cell *matHeaderCellDef> Recipient </th>
                 <td mat-cell *matCellDef="let element" class="font-semibold text-primary">
                   {{ element.recipientName }}
-                  <span class="recipient-badge ml-2" [ngClass]="element.recipientType">{{ element.recipientType }}</span>
+                  <span class="recipient-badge ml-2 hide-md" [ngClass]="element.recipientType">{{ element.recipientType }}</span>
                 </td>
               </ng-container>
 
               <!-- Phone Column -->
               <ng-container matColumnDef="phone">
-                <th mat-header-cell *matHeaderCellDef> Phone Number </th>
-                <td mat-cell *matCellDef="let element"> {{ element.recipientPhone }} </td>
+                <th mat-header-cell *matHeaderCellDef class="hide-xs"> Phone Number </th>
+                <td mat-cell *matCellDef="let element" class="hide-xs"> {{ element.recipientPhone }} </td>
               </ng-container>
 
               <!-- Template Column -->
               <ng-container matColumnDef="template">
-                <th mat-header-cell *matHeaderCellDef> Template </th>
-                <td mat-cell *matCellDef="let element"> {{ element.templateName }} </td>
+                <th mat-header-cell *matHeaderCellDef class="hide-sm"> Template </th>
+                <td mat-cell *matCellDef="let element" class="hide-sm"> {{ element.templateName }} </td>
               </ng-container>
 
               <!-- Message Body Preview Column -->
@@ -246,8 +246,8 @@
 
               <!-- Sent Time Column -->
               <ng-container matColumnDef="sentTime">
-                <th mat-header-cell *matHeaderCellDef> Dispatched At </th>
-                <td mat-cell *matCellDef="let element"> {{ element.sentTime | date:'medium' }} </td>
+                <th mat-header-cell *matHeaderCellDef class="hide-sm"> Dispatched At </th>
+                <td mat-cell *matCellDef="let element" class="hide-sm"> {{ element.sentTime | date:'medium' }} </td>
               </ng-container>
 
               <!-- Status Column -->

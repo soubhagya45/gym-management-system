@@ -126,32 +126,32 @@
 
         <!-- Phone Column -->
         <ng-container matColumnDef="phone">
-          <th mat-header-cell *matHeaderCellDef mat-sort-header> Phone Number </th>
-          <td mat-cell *matCellDef="let element"> {{ element.phone }} </td>
+          <th mat-header-cell *matHeaderCellDef mat-sort-header class="hide-xs"> Phone Number </th>
+          <td mat-cell *matCellDef="let element" class="hide-xs"> {{ element.phone }} </td>
         </ng-container>
 
         <!-- Trial Date Column -->
         <ng-container matColumnDef="trialDate">
-          <th mat-header-cell *matHeaderCellDef mat-sort-header> Trial Date </th>
-          <td mat-cell *matCellDef="let element"> {{ element.trialDate | date:'mediumDate' }} </td>
+          <th mat-header-cell *matHeaderCellDef mat-sort-header class="hide-sm"> Trial Date </th>
+          <td mat-cell *matCellDef="let element" class="hide-sm"> {{ element.trialDate | date:'mediumDate' }} </td>
         </ng-container>
 
         <!-- Source Column -->
         <ng-container matColumnDef="leadSource">
-          <th mat-header-cell *matHeaderCellDef mat-sort-header> Lead Source </th>
-          <td mat-cell *matCellDef="let element"> {{ element.leadSource }} </td>
+          <th mat-header-cell *matHeaderCellDef mat-sort-header class="hide-md"> Lead Source </th>
+          <td mat-cell *matCellDef="let element" class="hide-md"> {{ element.leadSource }} </td>
         </ng-container>
 
         <!-- Interested Plan Column -->
         <ng-container matColumnDef="interestedPlan">
-          <th mat-header-cell *matHeaderCellDef mat-sort-header> Plan of Interest </th>
-          <td mat-cell *matCellDef="let element"> {{ element.interestedPlan }} </td>
+          <th mat-header-cell *matHeaderCellDef mat-sort-header class="hide-md"> Plan of Interest </th>
+          <td mat-cell *matCellDef="let element" class="hide-md"> {{ element.interestedPlan }} </td>
         </ng-container>
 
         <!-- Assigned Staff Column -->
         <ng-container matColumnDef="assignedStaff">
-          <th mat-header-cell *matHeaderCellDef mat-sort-header> Assigned Staff </th>
-          <td mat-cell *matCellDef="let element" class="text-secondary"> {{ element.assignedStaff || 'Unassigned' }} </td>
+          <th mat-header-cell *matHeaderCellDef mat-sort-header class="hide-sm"> Assigned Staff </th>
+          <td mat-cell *matCellDef="let element" class="text-secondary hide-sm"> {{ element.assignedStaff || 'Unassigned' }} </td>
         </ng-container>
 
         <!-- Status Column -->
