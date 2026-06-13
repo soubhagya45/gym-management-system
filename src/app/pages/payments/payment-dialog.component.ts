@@ -86,12 +86,24 @@ import { Member } from '../../core/models/member.entity';
           <!-- Select Status -->
           <mat-form-field appearance="outline" class="full-width">
             <mat-label>Invoice Status</mat-label>
-            <mat-select formControlName="status">
+            <mat-select formControlName="status" (selectionChange)="updateDueCalculations()">
               <mat-option value="paid">Paid / Settled</mat-option>
               <mat-option value="pending">Pending</mat-option>
               <mat-option value="overdue">Overdue</mat-option>
             </mat-select>
             <mat-error *ngIf="paymentForm.get('status')?.hasError('required')">Status is required</mat-error>
+          </mat-form-field>
+
+          <!-- Payment Method -->
+          <mat-form-field appearance="outline" class="full-width" *ngIf="paymentForm.get('paidAmount')?.value > 0 || paymentForm.get('status')?.value === 'paid'">
+            <mat-label>Payment Method</mat-label>
+            <mat-select formControlName="paymentMethod">
+              <mat-option value="UPI">UPI</mat-option>
+              <mat-option value="Cash">Cash</mat-option>
+              <mat-option value="Card">Card</mat-option>
+              <mat-option value="Net Banking">Net Banking</mat-option>
+            </mat-select>
+            <mat-error *ngIf="paymentForm.get('paymentMethod')?.hasError('required')">Payment method is required</mat-error>
           </mat-form-field>
         </div>
       </mat-dialog-content>
@@ -163,7 +175,8 @@ export class PaymentDialogComponent implements OnInit {
       dueAmount: [{ value: 0, disabled: true }],
       dueDate: [new Date()],
       date: [new Date(), [Validators.required]],
-      status: ['paid', [Validators.required]]
+      status: ['paid', [Validators.required]],
+      paymentMethod: ['UPI']
     });
   }
 
@@ -180,6 +193,7 @@ export class PaymentDialogComponent implements OnInit {
   updateDueCalculations(): void {
     const amount = Number(this.paymentForm.get('amount')?.value || 0);
     const paid = Number(this.paymentForm.get('paidAmount')?.value || 0);
+    const status = this.paymentForm.get('status')?.value;
 
     this.paymentForm.get('paidAmount')?.setValidators([
       Validators.required,
@@ -194,14 +208,26 @@ export class PaymentDialogComponent implements OnInit {
     if (due > 0) {
       this.showDueDateField = true;
       this.paymentForm.get('dueDate')?.setValidators([Validators.required]);
-      this.paymentForm.get('status')?.setValue('pending');
+      if (status === 'paid') {
+        this.paymentForm.get('status')?.setValue('pending');
+      }
     } else {
       this.showDueDateField = false;
       this.paymentForm.get('dueDate')?.clearValidators();
-      this.paymentForm.get('status')?.setValue('paid');
+      if (status !== 'paid') {
+        this.paymentForm.get('status')?.setValue('paid');
+      }
     }
+
+    if (this.paymentForm.get('status')?.value === 'paid' || paid > 0) {
+      this.paymentForm.get('paymentMethod')?.setValidators([Validators.required]);
+    } else {
+      this.paymentForm.get('paymentMethod')?.clearValidators();
+    }
+
     this.paymentForm.get('dueDate')?.updateValueAndValidity();
     this.paymentForm.get('status')?.updateValueAndValidity();
+    this.paymentForm.get('paymentMethod')?.updateValueAndValidity();
   }
 
   onCancel(): void {
@@ -222,7 +248,9 @@ export class PaymentDialogComponent implements OnInit {
         dueDate: this.formatDate(formValue.dueDate || new Date()),
         date: this.formatDate(formValue.date),
         status: formValue.status,
-        planName: member ? member.planName : 'Custom Plan'
+        planName: member ? member.planName : 'Custom Plan',
+        paymentMethod: formValue.paidAmount > 0 || formValue.status === 'paid' ? (formValue.paymentMethod || 'UPI') : 'Pending',
+        collectedBy: 'Sophia Chen'
       };
 
       this.dialogRef.close(paymentResult);

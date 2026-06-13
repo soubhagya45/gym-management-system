@@ -15,10 +15,12 @@ import { MemberState } from '../../presentation/state/member.state';
 import { AttendanceState } from '../../presentation/state/attendance.state';
 import { PaymentState } from '../../presentation/state/payment.state';
 import { BodyProgressState } from '../../presentation/state/body-progress.state';
+import { FinanceState } from '../../presentation/state/finance.state';
 import { Member } from '../../core/models/member.entity';
 import { Attendance } from '../../core/models/attendance.entity';
 import { Payment } from '../../core/models/payment.entity';
 import { BodyProgressEntry } from '../../core/models/body-progress.entity';
+import { Invoice } from '../../core/models/finance.entity';
 import { MemberDialogComponent } from './member-dialog.component';
 import { LogBodyProgressDialogComponent } from './log-body-progress-dialog.component';
 
@@ -47,10 +49,12 @@ export class MemberProfileComponent implements OnInit {
   member: Member | undefined;
   attendance: Attendance[] = [];
   payments: Payment[] = [];
+  invoices: Invoice[] = [];
   progressEntries: BodyProgressEntry[] = [];
   
   attendanceColumns = ['date', 'timeIn', 'status'];
   paymentColumns = ['id', 'planName', 'date', 'amount', 'status'];
+  invoiceColumns = ['invoiceNumber', 'invoiceDate', 'finalAmount', 'paymentMethod', 'status'];
   progressColumns = ['date', 'weight', 'bodyFat', 'bmi', 'notes', 'actions'];
   
   weightHistory: { label: string; value: number }[] = [];
@@ -63,6 +67,7 @@ export class MemberProfileComponent implements OnInit {
     private attendanceState: AttendanceState,
     private paymentState: PaymentState,
     private progressState: BodyProgressState,
+    private financeState: FinanceState,
     private dialog: MatDialog,
     private snackBar: MatSnackBar
   ) {}
@@ -92,6 +97,11 @@ export class MemberProfileComponent implements OnInit {
     // 4. Fetch Payment History for Member
     this.paymentState.payments$.subscribe(payList => {
       this.payments = payList.filter(p => p.memberId === this.memberId);
+    });
+
+    // Fetch Invoices History for Member
+    this.financeState.invoices$.subscribe(invoiceList => {
+      this.invoices = invoiceList.filter(inv => inv.memberId === this.memberId);
     });
 
     // 5. Fetch Fitness Progress Entries for Member

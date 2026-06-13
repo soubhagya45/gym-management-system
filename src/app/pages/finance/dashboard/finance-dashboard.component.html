@@ -16,29 +16,33 @@
 </div>
 
 <div class="finance-navigation">
-  <a class="nav-tab" routerLink="/finance/dashboard" routerLinkActive="active-tab">
+  <a class="nav-tab" routerLink="/finance/dashboard" routerLinkActive="active-tab" [routerLinkActiveOptions]="{exact: true}">
     <mat-icon>dashboard</mat-icon>
     <span>Dashboard</span>
-  </a>
-  <a class="nav-tab" routerLink="/finance/invoices" routerLinkActive="active-tab">
-    <mat-icon>receipt</mat-icon>
-    <span>Invoices</span>
   </a>
   <a class="nav-tab" routerLink="/finance/collections" routerLinkActive="active-tab">
     <mat-icon>trending_up</mat-icon>
     <span>Collections</span>
   </a>
+  <a class="nav-tab" routerLink="/finance/invoices" routerLinkActive="active-tab">
+    <mat-icon>receipt</mat-icon>
+    <span>Invoices</span>
+  </a>
   <a class="nav-tab" routerLink="/finance/expenses" routerLinkActive="active-tab">
     <mat-icon>shopping_bag</mat-icon>
     <span>Expenses</span>
   </a>
-  <a class="nav-tab" routerLink="/finance/reports" routerLinkActive="active-tab">
-    <mat-icon>assessment</mat-icon>
-    <span>Reports</span>
+  <a class="nav-tab" routerLink="/finance/revenue-analytics" routerLinkActive="active-tab">
+    <mat-icon>bar_chart</mat-icon>
+    <span>Revenue Analytics</span>
   </a>
   <a class="nav-tab" routerLink="/finance/cash-flow" routerLinkActive="active-tab">
     <mat-icon>show_chart</mat-icon>
     <span>Cash Flow</span>
+  </a>
+  <a class="nav-tab" routerLink="/finance/reports" routerLinkActive="active-tab">
+    <mat-icon>assessment</mat-icon>
+    <span>Reports</span>
   </a>
 </div>
 
@@ -58,6 +62,20 @@
     </div>
   </div>
 
+  <!-- Weekly Collection -->
+  <div class="mat-card kpi-card interactive primary-glow">
+    <div class="kpi-header">
+      <div class="stat-icon-wrapper primary">
+        <mat-icon>date_range</mat-icon>
+      </div>
+      <span class="growth-badge positive">+5.7%</span>
+    </div>
+    <div class="kpi-body">
+      <h3 class="kpi-value">₹{{ kpis.weeklyCollection | number:'1.0-2' }}</h3>
+      <p class="kpi-label">Weekly Collection</p>
+    </div>
+  </div>
+
   <!-- Monthly Collection -->
   <div class="mat-card kpi-card interactive primary-glow">
     <div class="kpi-header">
@@ -69,6 +87,20 @@
     <div class="kpi-body">
       <h3 class="kpi-value">₹{{ kpis.monthlyCollection | number:'1.0-2' }}</h3>
       <p class="kpi-label">Monthly Collection</p>
+    </div>
+  </div>
+
+  <!-- Total Revenue -->
+  <div class="mat-card kpi-card interactive success-glow">
+    <div class="kpi-header">
+      <div class="stat-icon-wrapper success">
+        <mat-icon>monetization_on</mat-icon>
+      </div>
+      <span class="growth-badge positive">+15.3%</span>
+    </div>
+    <div class="kpi-body">
+      <h3 class="kpi-value">₹{{ kpis.totalRevenue | number:'1.0-2' }}</h3>
+      <p class="kpi-label">Total Revenue</p>
     </div>
   </div>
 
@@ -170,6 +202,64 @@
     </div>
   </div>
 
+  <!-- Widget 1b: Daily Revenue Trend (Chart) -->
+  <div class="mat-card widget-card interactive" *ngIf="dailyRevenueTrend$ | async as daily">
+    <div class="widget-header">
+      <div>
+        <h3>Daily Revenue Trend</h3>
+        <p class="subtitle">Daily collections trend (Last 7 Days)</p>
+      </div>
+    </div>
+    <div class="chart-container">
+      <svg class="trend-svg" viewBox="0 0 600 200" preserveAspectRatio="none">
+        <!-- Grid Lines -->
+        <line x1="20" y1="20" x2="580" y2="20" class="grid-line" />
+        <line x1="20" y1="65" x2="580" y2="65" class="grid-line" />
+        <line x1="20" y1="110" x2="580" y2="110" class="grid-line" />
+        <line x1="20" y1="155" x2="580" y2="155" class="grid-line" />
+        <line x1="20" y1="180" x2="580" y2="180" class="grid-line line-axis" />
+
+        <!-- Area Fill -->
+        <path [attr.d]="daily.areaPath" class="area-fill revenue-area" />
+
+        <!-- Line Plot -->
+        <polyline [attr.points]="daily.linePoints" class="trend-line revenue-line" />
+      </svg>
+      <div class="chart-labels-x">
+        <span *ngFor="let label of daily.labels">{{ label }}</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- Widget 1c: Monthly Revenue Trend (Chart) -->
+  <div class="mat-card widget-card interactive" *ngIf="monthlyRevenueTrend$ | async as monthly">
+    <div class="widget-header">
+      <div>
+        <h3>Monthly Revenue Trend</h3>
+        <p class="subtitle">Timeline analysis of collections (Last 6 Months)</p>
+      </div>
+    </div>
+    <div class="chart-container">
+      <svg class="trend-svg" viewBox="0 0 600 200" preserveAspectRatio="none">
+        <!-- Grid Lines -->
+        <line x1="20" y1="20" x2="580" y2="20" class="grid-line" />
+        <line x1="20" y1="65" x2="580" y2="65" class="grid-line" />
+        <line x1="20" y1="110" x2="580" y2="110" class="grid-line" />
+        <line x1="20" y1="155" x2="580" y2="155" class="grid-line" />
+        <line x1="20" y1="180" x2="580" y2="180" class="grid-line line-axis" />
+
+        <!-- Area Fill -->
+        <path [attr.d]="monthly.areaPath" class="area-fill revenue-area" />
+
+        <!-- Line Plot -->
+        <polyline [attr.points]="monthly.linePoints" class="trend-line revenue-line" />
+      </svg>
+      <div class="chart-labels-x">
+        <span *ngFor="let label of monthly.labels">{{ label }}</span>
+      </div>
+    </div>
+  </div>
+
   <!-- Widget 2: Top Revenue Membership Plans -->
   <div class="mat-card widget-card interactive" *ngIf="planRevenue$ | async as plans">
     <div class="widget-header">
@@ -216,7 +306,7 @@
   </div>
 
   <!-- Widget 4: Expense Breakdown -->
-  <div class="mat-card widget-card interactive" *ngIf="expenseCategories$ | async as catExpenses">
+  <div class="mat-card widget-card interactive span-two-cols" *ngIf="expenseCategories$ | async as catExpenses">
     <div class="widget-header">
       <h3>Expense Breakdown</h3>
       <p class="subtitle">Cost allocation grouped by category</p>

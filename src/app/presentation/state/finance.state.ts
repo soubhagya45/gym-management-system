@@ -7,10 +7,11 @@ import {
   IActivityLogRepository,
   ACTIVITY_LOG_REPOSITORY_TOKEN
 } from '../../core/interfaces/repository.interfaces';
-import { Expense, Invoice } from '../../core/models/finance.entity';
+import { Expense, Invoice, Collection } from '../../core/models/finance.entity';
 import { Payment } from '../../core/models/payment.entity';
 import { TenantContextService } from '../../domain/tenancy/tenant-context.service';
 import { PaymentState } from './payment.state';
+import { AuthState } from './auth.state';
 
 @Injectable({
   providedIn: 'root'
@@ -22,42 +23,48 @@ export class FinanceState {
   private expensesSubject = new BehaviorSubject<Expense[]>([]);
   expenses$ = this.expensesSubject.asObservable();
 
+  private collectionsSubject = new BehaviorSubject<Collection[]>([]);
+  collections$ = this.collectionsSubject.asObservable();
+
   constructor(
     @Inject(FINANCE_REPOSITORY_TOKEN) private financeRepository: IFinanceRepository,
     @Inject(ACTIVITY_LOG_REPOSITORY_TOKEN) private logRepository: IActivityLogRepository,
     private tenantContext: TenantContextService,
-    private paymentState: PaymentState
+    private paymentState: PaymentState,
+    private authState: AuthState
   ) {
     // Combine active gym loading with payment state updates to keep everything fully synced.
     combineLatest([
       this.tenantContext.activeGymId$.pipe(
         switchMap(gymId => {
-          if (!gymId) return of({ invoices: [], expenses: [] });
+          if (!gymId) return of({ invoices: [], expenses: [], collections: [] });
           return combineLatest([
             this.financeRepository.getInvoices(gymId),
-            this.financeRepository.getExpenses(gymId)
+            this.financeRepository.getExpenses(gymId),
+            this.financeRepository.getCollections(gymId)
           ]).pipe(
-            map(([invoices, expenses]) => ({ invoices, expenses }))
+            map(([invoices, expenses, collections]) => ({ invoices, expenses, collections }))
           );
         })
       ),
       this.paymentState.payments$
-    ]).subscribe(([{ invoices, expenses }, payments]) => {
+    ]).subscribe(([{ invoices, expenses, collections }, payments]) => {
       const gymId = this.tenantContext.getTenantId();
       if (!gymId) return;
 
       const reconciledInvoices = [...invoices];
+      const reconciledCollections = [...collections];
       let hasChanges = false;
 
       payments.forEach(payment => {
-        // Match invoice by memberId, amount, and date
-        const matchingIdx = reconciledInvoices.findIndex(inv => 
+        // Reconcile Invoice
+        const matchingInvIdx = reconciledInvoices.findIndex(inv => 
           inv.memberId === payment.memberId &&
           Math.abs(inv.finalAmount - payment.amount) < 0.01 &&
           (inv.invoiceDate === payment.date || inv.invoiceDate === payment.dueDate)
         );
 
-        if (matchingIdx === -1) {
+        if (matchingInvIdx === -1) {
           // Automatically generate an invoice
           const year = new Date().getFullYear();
           const rand = Math.floor(1000 + Math.random() * 9000);
@@ -79,9 +86,11 @@ export class FinanceState {
             gst: Number(gst.toFixed(2)),
             discount,
             finalAmount,
-            paymentMethod: payment.status === 'paid' ? 'UPI' : 'Pending',
+            paymentMethod: payment.status === 'paid' ? (payment.paymentMethod || 'UPI') : 'Pending',
             invoiceDate: payment.date || new Date().toISOString().split('T')[0],
-            status: payment.status === 'overdue' ? 'pending' : (payment.status === 'paid' ? 'paid' : 'pending')
+            status: payment.status === 'overdue' ? 'pending' : (payment.status === 'paid' ? 'paid' : 'pending'),
+            collectedBy: payment.collectedBy || 'Sophia Chen',
+            createdBy: payment.collectedBy || 'Sophia Chen'
           };
 
           this.financeRepository.addInvoice(gymId, newInvoice).subscribe();
@@ -89,14 +98,48 @@ export class FinanceState {
           hasChanges = true;
         } else {
           // Reconcile status
-          const invoice = reconciledInvoices[matchingIdx];
+          const invoice = reconciledInvoices[matchingInvIdx];
           const expectedStatus = payment.status === 'overdue' ? 'pending' : (payment.status === 'paid' ? 'paid' : 'pending');
           if (invoice.status !== expectedStatus) {
             invoice.status = expectedStatus as any;
             if (expectedStatus === 'paid') {
-              invoice.paymentMethod = 'UPI';
+              invoice.paymentMethod = payment.paymentMethod || 'UPI';
+              invoice.collectedBy = payment.collectedBy || 'Sophia Chen';
             }
             this.financeRepository.updateInvoice(gymId, invoice).subscribe();
+            hasChanges = true;
+          }
+        }
+
+        // Reconcile Collection: Only if payment is 'paid'
+        if (payment.status === 'paid') {
+          const matchingColIdx = reconciledCollections.findIndex(col => 
+            col.memberId === payment.memberId &&
+            Math.abs(col.amount - payment.paidAmount) < 0.01 &&
+            col.date === payment.date
+          );
+
+          if (matchingColIdx === -1) {
+            // Automatically generate a collection entry
+            const year = new Date().getFullYear();
+            const rand = Math.floor(1000 + Math.random() * 9000);
+            const receiptNo = `REC-${year}-${rand}`;
+
+            const newCollection: Collection = {
+              id: 'col-' + Math.random().toString(36).substring(2, 9),
+              gymId,
+              receiptNo,
+              memberId: payment.memberId,
+              memberName: payment.memberName,
+              membershipPlan: payment.planName,
+              amount: payment.paidAmount,
+              paymentMethod: payment.paymentMethod || 'UPI',
+              date: payment.date || new Date().toISOString().split('T')[0],
+              collectedBy: payment.collectedBy || 'Sophia Chen'
+            };
+
+            this.financeRepository.addCollection(gymId, newCollection).subscribe();
+            reconciledCollections.push(newCollection);
             hasChanges = true;
           }
         }
@@ -104,6 +147,7 @@ export class FinanceState {
 
       this.invoicesSubject.next(reconciledInvoices);
       this.expensesSubject.next(expenses);
+      this.collectionsSubject.next(reconciledCollections);
     });
   }
 
@@ -112,21 +156,24 @@ export class FinanceState {
     if (gymId) {
       combineLatest([
         this.financeRepository.getInvoices(gymId),
-        this.financeRepository.getExpenses(gymId)
-      ]).subscribe(([invoices, expenses]) => {
+        this.financeRepository.getExpenses(gymId),
+        this.financeRepository.getCollections(gymId)
+      ]).subscribe(([invoices, expenses, collections]) => {
         this.invoicesSubject.next(invoices);
         this.expensesSubject.next(expenses);
+        this.collectionsSubject.next(collections);
       });
     }
   }
 
   // --- Expenses Operations ---
 
-  addExpense(expense: Omit<Expense, 'id' | 'gymId'>): Observable<Expense> {
+  addExpense(expense: Omit<Expense, 'id' | 'gymId' | 'createdBy'>): Observable<Expense> {
     const gymId = this.tenantContext.getTenantId();
     if (!gymId) throw new Error('No active tenant selected');
+    const createdBy = this.authState.currentUserValue?.name || 'Rahul Sharma';
 
-    return this.financeRepository.addExpense(gymId, { ...expense, gymId }).pipe(
+    return this.financeRepository.addExpense(gymId, { ...expense, gymId, createdBy }).pipe(
       tap(newExp => {
         this.loadFinanceData();
         this.logRepository.addLog(gymId, `Recorded expense: ${newExp.title} (₹${newExp.amount}) under ${newExp.category}`, 'payment').subscribe();

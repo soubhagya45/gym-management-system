@@ -134,6 +134,7 @@ export const ROUTE_PERMISSION_MAP: Record<string, Permission> = {
   '/finance/expenses': 'view:finance',
   '/finance/reports': 'view:finance',
   '/finance/cash-flow': 'view:finance',
+  '/finance/revenue-analytics': 'view:finance',
   '/employees':     'view:employees'
 };
 

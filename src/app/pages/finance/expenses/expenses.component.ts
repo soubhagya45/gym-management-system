@@ -38,7 +38,7 @@ import { ExpenseDialogComponent } from './expense-dialog.component';
   styleUrls: ['./expenses.component.scss']
 })
 export class ExpensesComponent implements OnInit {
-  displayedColumns = ['title', 'category', 'amount', 'date', 'notes', 'actions'];
+  displayedColumns = ['title', 'category', 'amount', 'date', 'createdBy', 'notes', 'actions'];
   dataSource = new MatTableDataSource<Expense>();
 
   searchQuery = '';
@@ -52,6 +52,7 @@ export class ExpensesComponent implements OnInit {
     'Maintenance',
     'Salaries',
     'Marketing',
+    'Software',
     'Miscellaneous'
   ];
 
@@ -139,6 +140,7 @@ export class ExpensesComponent implements OnInit {
       'Maintenance': 'accent',
       'Salaries': 'primary',
       'Marketing': 'info',
+      'Software': 'success',
       'Miscellaneous': 'muted'
     };
     return colors[cat] || 'muted';

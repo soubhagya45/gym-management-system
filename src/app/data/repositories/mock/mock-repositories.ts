@@ -33,7 +33,7 @@ import { SubscriptionPlan } from '../../../core/enums/subscription-plans.enum';
 import { WhatsAppTemplate } from '../../../core/models/whatsapp-template.entity';
 import { WhatsAppReminder } from '../../../core/models/whatsapp-reminder.entity';
 import { BodyProgressEntry } from '../../../core/models/body-progress.entity';
-import { Expense, Invoice } from '../../../core/models/finance.entity';
+import { Expense, Invoice, Collection } from '../../../core/models/finance.entity';
 import { Employee, EmployeeAttendance, EmployeePayroll, EmployeePerformance } from '../../../core/models/employee.entity';
 
 
@@ -430,24 +430,33 @@ const dbWhatsAppReminders: WhatsAppReminder[] = [
 ];
 
 const dbExpenses: Expense[] = [
-  { id: 'exp-1', gymId: 'gym-a', title: 'Monthly Gym Rent', category: 'Rent', amount: 35000, date: '2026-06-01', notes: 'Paid to landlord for June 2026' },
-  { id: 'exp-2', gymId: 'gym-a', title: 'Electricity Bill', category: 'Electricity', amount: 8400, date: '2026-06-05', notes: 'Summer AC usage bill' },
-  { id: 'exp-3', gymId: 'gym-a', title: 'Water Delivery', category: 'Water', amount: 1200, date: '2026-06-07', notes: 'Drinking water cans' },
-  { id: 'exp-4', gymId: 'gym-a', title: 'Salaries - Trainers & Staff', category: 'Salaries', amount: 45000, date: '2026-06-10', notes: 'Salary payout for May' },
-  { id: 'exp-5', gymId: 'gym-a', title: 'Marketing Campaign', category: 'Marketing', amount: 5000, date: '2026-06-03', notes: 'Instagram ads' },
-  { id: 'exp-6', gymId: 'gym-a', title: 'Cable Replacement (Lat Pulldown)', category: 'Maintenance', amount: 2500, date: '2026-06-08', notes: 'Equipment upkeep' }
+  { id: 'exp-1', gymId: 'gym-a', title: 'Monthly Gym Rent', category: 'Rent', amount: 35000, date: '2026-06-01', notes: 'Paid to landlord for June 2026', createdBy: 'Rahul Sharma' },
+  { id: 'exp-2', gymId: 'gym-a', title: 'Electricity Bill', category: 'Electricity', amount: 8400, date: '2026-06-05', notes: 'Summer AC usage bill', createdBy: 'Vikram Mehta' },
+  { id: 'exp-3', gymId: 'gym-a', title: 'Water Delivery', category: 'Water', amount: 1200, date: '2026-06-07', notes: 'Drinking water cans', createdBy: 'Kavita Patel' },
+  { id: 'exp-4', gymId: 'gym-a', title: 'Salaries - Trainers & Staff', category: 'Salaries', amount: 45000, date: '2026-06-10', notes: 'Salary payout for May', createdBy: 'Rahul Sharma' },
+  { id: 'exp-5', gymId: 'gym-a', title: 'Marketing Campaign', category: 'Marketing', amount: 5000, date: '2026-06-03', notes: 'Instagram ads', createdBy: 'Sophia Chen' },
+  { id: 'exp-6', gymId: 'gym-a', title: 'Cable Replacement (Lat Pulldown)', category: 'Maintenance', amount: 2500, date: '2026-06-08', notes: 'Equipment upkeep', createdBy: 'Vikram Mehta' }
 ];
 
 const dbInvoices: Invoice[] = [
-  { id: 'inv-1', gymId: 'gym-a', invoiceNumber: 'INV-2026-0001', memberId: 'mem-2', memberName: 'Priya Patel', membershipPlan: 'Elite Annual Platinum', amount: 12711.86, gst: 2288.14, discount: 0, finalAmount: 15000, paymentMethod: 'UPI', invoiceDate: '2026-01-15', status: 'paid' },
-  { id: 'inv-2', gymId: 'gym-a', invoiceNumber: 'INV-2026-0002', memberId: 'mem-1', memberName: 'Amit Sharma', membershipPlan: 'Premium Quarterly', amount: 3389.83, gst: 610.17, discount: 0, finalAmount: 4000, paymentMethod: 'Card', invoiceDate: '2026-04-10', status: 'paid' },
-  { id: 'inv-3', gymId: 'gym-a', invoiceNumber: 'INV-2026-0003', memberId: 'mem-4', memberName: 'Anjali Rao', membershipPlan: 'Premium Quarterly', amount: 3389.83, gst: 610.17, discount: 0, finalAmount: 4000, paymentMethod: 'Cash', invoiceDate: '2026-05-01', status: 'paid' },
-  { id: 'inv-4', gymId: 'gym-a', invoiceNumber: 'INV-2026-0004', memberId: 'mem-6', memberName: 'Neha Gupta', membershipPlan: 'Elite Annual Platinum', amount: 12711.86, gst: 2288.14, discount: 0, finalAmount: 15000, paymentMethod: 'UPI', invoiceDate: '2026-03-20', status: 'paid' },
+  { id: 'inv-1', gymId: 'gym-a', invoiceNumber: 'INV-2026-0001', memberId: 'mem-2', memberName: 'Priya Patel', membershipPlan: 'Elite Annual Platinum', amount: 12711.86, gst: 2288.14, discount: 0, finalAmount: 15000, paymentMethod: 'UPI', invoiceDate: '2026-01-15', status: 'paid', collectedBy: 'Sophia Chen', createdBy: 'Sophia Chen' },
+  { id: 'inv-2', gymId: 'gym-a', invoiceNumber: 'INV-2026-0002', memberId: 'mem-1', memberName: 'Amit Sharma', membershipPlan: 'Premium Quarterly', amount: 3389.83, gst: 610.17, discount: 0, finalAmount: 4000, paymentMethod: 'Card', invoiceDate: '2026-04-10', status: 'paid', collectedBy: 'Sophia Chen', createdBy: 'Sophia Chen' },
+  { id: 'inv-3', gymId: 'gym-a', invoiceNumber: 'INV-2026-0003', memberId: 'mem-4', memberName: 'Anjali Rao', membershipPlan: 'Premium Quarterly', amount: 3389.83, gst: 610.17, discount: 0, finalAmount: 4000, paymentMethod: 'Cash', invoiceDate: '2026-05-01', status: 'paid', collectedBy: 'Sophia Chen', createdBy: 'Sophia Chen' },
+  { id: 'inv-4', gymId: 'gym-a', invoiceNumber: 'INV-2026-0004', memberId: 'mem-6', memberName: 'Neha Gupta', membershipPlan: 'Elite Annual Platinum', amount: 12711.86, gst: 2288.14, discount: 0, finalAmount: 15000, paymentMethod: 'UPI', invoiceDate: '2026-03-20', status: 'paid', collectedBy: 'Kavita Patel', createdBy: 'Kavita Patel' },
   { id: 'inv-5', gymId: 'gym-a', invoiceNumber: 'INV-2026-0005', memberId: 'mem-3', memberName: 'Rajesh Kumar', membershipPlan: 'Essential Monthly', amount: 1271.19, gst: 228.81, discount: 0, finalAmount: 1500, paymentMethod: 'UPI', invoiceDate: '2026-05-08', status: 'pending' },
   { id: 'inv-6', gymId: 'gym-a', invoiceNumber: 'INV-2026-0006', memberId: 'mem-7', memberName: 'Rohan Mehta', membershipPlan: 'Premium Quarterly', amount: 3389.83, gst: 610.17, discount: 0, finalAmount: 4000, paymentMethod: 'UPI', invoiceDate: '2026-03-10', status: 'pending' },
-  { id: 'inv-7', gymId: 'gym-a', invoiceNumber: 'INV-2026-0007', memberId: 'mem-1', memberName: 'Amit Sharma', membershipPlan: 'Premium Quarterly', amount: 3389.83, gst: 610.17, discount: 0, finalAmount: 4000, paymentMethod: 'UPI', invoiceDate: '2026-01-10', status: 'paid' },
-  { id: 'inv-b1', gymId: 'gym-b', invoiceNumber: 'INV-2026-0008', memberId: 'mem-b1', memberName: 'John Connor', membershipPlan: 'VIP Year Pass', amount: 15254.24, gst: 2745.76, discount: 0, finalAmount: 18000, paymentMethod: 'UPI', invoiceDate: '2026-03-01', status: 'paid' },
+  { id: 'inv-7', gymId: 'gym-a', invoiceNumber: 'INV-2026-0007', memberId: 'mem-1', memberName: 'Amit Sharma', membershipPlan: 'Premium Quarterly', amount: 3389.83, gst: 610.17, discount: 0, finalAmount: 4000, paymentMethod: 'UPI', invoiceDate: '2026-01-10', status: 'paid', collectedBy: 'Sophia Chen', createdBy: 'Sophia Chen' },
+  { id: 'inv-b1', gymId: 'gym-b', invoiceNumber: 'INV-2026-0008', memberId: 'mem-b1', memberName: 'John Connor', membershipPlan: 'VIP Year Pass', amount: 15254.24, gst: 2745.76, discount: 0, finalAmount: 18000, paymentMethod: 'UPI', invoiceDate: '2026-03-01', status: 'paid', collectedBy: 'Kyle Reese', createdBy: 'Kyle Reese' },
   { id: 'inv-b2', gymId: 'gym-b', invoiceNumber: 'INV-2026-0009', memberId: 'mem-b2', memberName: 'Marcus Wright', membershipPlan: 'Standard Month Pass', amount: 1694.92, gst: 305.08, discount: 0, finalAmount: 2000, paymentMethod: 'UPI', invoiceDate: '2026-05-15', status: 'pending' }
+];
+
+const dbCollections: Collection[] = [
+  { id: 'col-1', gymId: 'gym-a', receiptNo: 'REC-2026-0001', memberId: 'mem-2', memberName: 'Priya Patel', membershipPlan: 'Elite Annual Platinum', amount: 15000, paymentMethod: 'UPI', date: '2026-01-15', collectedBy: 'Sophia Chen' },
+  { id: 'col-2', gymId: 'gym-a', receiptNo: 'REC-2026-0002', memberId: 'mem-1', memberName: 'Amit Sharma', membershipPlan: 'Premium Quarterly', amount: 4000, paymentMethod: 'Card', date: '2026-04-10', collectedBy: 'Sophia Chen' },
+  { id: 'col-3', gymId: 'gym-a', receiptNo: 'REC-2026-0003', memberId: 'mem-4', memberName: 'Anjali Rao', membershipPlan: 'Premium Quarterly', amount: 4000, paymentMethod: 'Cash', date: '2026-05-01', collectedBy: 'Sophia Chen' },
+  { id: 'col-4', gymId: 'gym-a', receiptNo: 'REC-2026-0004', memberId: 'mem-6', memberName: 'Neha Gupta', membershipPlan: 'Elite Annual Platinum', amount: 15000, paymentMethod: 'UPI', date: '2026-03-20', collectedBy: 'Kavita Patel' },
+  { id: 'col-7', gymId: 'gym-a', receiptNo: 'REC-2026-0007', memberId: 'mem-1', memberName: 'Amit Sharma', membershipPlan: 'Premium Quarterly', amount: 4000, paymentMethod: 'UPI', date: '2026-01-10', collectedBy: 'Sophia Chen' },
+  { id: 'col-b1', gymId: 'gym-b', receiptNo: 'REC-2026-0008', memberId: 'mem-b1', memberName: 'John Connor', membershipPlan: 'VIP Year Pass', amount: 18000, paymentMethod: 'UPI', date: '2026-03-01', collectedBy: 'Kyle Reese' }
 ];
 
 
@@ -1251,6 +1260,20 @@ export class MockFinanceRepository implements IFinanceRepository {
       dbInvoices[idx] = invoice;
     }
     return of(undefined).pipe(delay(200));
+  }
+
+  getCollections(gymId: string): Observable<Collection[]> {
+    return of(dbCollections.filter(c => c.gymId === gymId)).pipe(delay(300));
+  }
+
+  addCollection(gymId: string, collection: Omit<Collection, 'id'>): Observable<Collection> {
+    const newCollection: Collection = {
+      ...collection,
+      id: 'col-' + Math.random().toString(36).substring(2, 9),
+      gymId
+    };
+    dbCollections.unshift(newCollection);
+    return of(newCollection).pipe(delay(300));
   }
 }
 @Injectable({ providedIn: 'root' })
