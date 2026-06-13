@@ -10,4 +10,5 @@ export interface UserProfile {
   permissions: string[];   // Snapshot of allowed permission keys (populated on login)
   lastLogin: string;       // ISO timestamp
   sessionExpiresAt: string; // ISO timestamp — used by SessionService for auto-logout
+  isFirstLogin?: boolean;   // Tracks if this is the user's first login
 }

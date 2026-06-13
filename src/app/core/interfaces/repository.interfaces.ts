@@ -14,6 +14,7 @@ import { WhatsAppTemplate } from '../models/whatsapp-template.entity';
 import { WhatsAppReminder } from '../models/whatsapp-reminder.entity';
 import { BodyProgressEntry } from '../models/body-progress.entity';
 import { Expense, Invoice } from '../models/finance.entity';
+import { Employee, EmployeeAttendance, EmployeePayroll, EmployeePerformance } from '../models/employee.entity';
 
 // --- Interface Definitions ---
 
@@ -35,6 +36,8 @@ export interface IAuthRepository {
   ): Observable<UserProfile>;
   getUserProfile(userId: string): Observable<UserProfile | null>;
   inviteStaff(email: string, name: string, role: UserRole, gymId: string): Observable<UserProfile>;
+  changePassword(email: string, newPassword: string): Observable<void>;
+  clearFirstLoginFlag(email: string): Observable<void>;
 }
 
 export interface IGymRepository {
@@ -115,6 +118,26 @@ export interface IFinanceRepository {
   updateInvoice(gymId: string, invoice: Invoice): Observable<void>;
 }
 
+export interface IEmployeeRepository {
+  getEmployees(gymId: string): Observable<Employee[]>;
+  getEmployeeById(gymId: string, id: string): Observable<Employee | null>;
+  addEmployee(gymId: string, employee: Omit<Employee, 'id'>): Observable<Employee>;
+  updateEmployee(gymId: string, employee: Employee): Observable<void>;
+  deleteEmployee(gymId: string, id: string): Observable<void>;
+
+  // Attendance
+  getAttendance(gymId: string): Observable<EmployeeAttendance[]>;
+  markAttendance(gymId: string, record: Omit<EmployeeAttendance, 'id'>): Observable<EmployeeAttendance>;
+
+  // Payroll
+  getPayroll(gymId: string): Observable<EmployeePayroll[]>;
+  addPayroll(gymId: string, payroll: Omit<EmployeePayroll, 'id'>): Observable<EmployeePayroll>;
+
+  // Performance
+  getPerformance(gymId: string): Observable<EmployeePerformance[]>;
+  addPerformance(gymId: string, performance: Omit<EmployeePerformance, 'id'>): Observable<EmployeePerformance>;
+}
+
 
 // --- Angular InjectionTokens ---
 
@@ -130,4 +153,5 @@ export const ACTIVITY_LOG_REPOSITORY_TOKEN = new InjectionToken<IActivityLogRepo
 export const WHATSAPP_REPOSITORY_TOKEN = new InjectionToken<IWhatsAppRepository>('WHATSAPP_REPOSITORY_TOKEN');
 export const BODY_PROGRESS_REPOSITORY_TOKEN = new InjectionToken<IBodyProgressRepository>('BODY_PROGRESS_REPOSITORY_TOKEN');
 export const FINANCE_REPOSITORY_TOKEN = new InjectionToken<IFinanceRepository>('FINANCE_REPOSITORY_TOKEN');
+export const EMPLOYEE_REPOSITORY_TOKEN = new InjectionToken<IEmployeeRepository>('EMPLOYEE_REPOSITORY_TOKEN');
 

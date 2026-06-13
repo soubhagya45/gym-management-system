@@ -34,23 +34,20 @@
 
           <form [formGroup]="loginForm" (ngSubmit)="onSubmit()">
             
-            <!-- Email Input -->
+            <!-- Email/Username Input -->
             <div class="cyber-form-group">
-              <label class="cyber-label">IDENTITY NODE (EMAIL)</label>
+              <label class="cyber-label">IDENTITY NODE (EMAIL OR USERNAME)</label>
               <div class="cyber-input-wrapper">
                 <mat-icon class="input-icon">alternate_email</mat-icon>
                 <input 
-                  type="email" 
-                  formControlName="email" 
-                  placeholder="name@apexfit.com" 
+                  type="text" 
+                  formControlName="usernameOrEmail" 
+                  placeholder="name@apexfit.com or username" 
                   class="cyber-input"
                   [readonly]="isLoading">
               </div>
-              <span class="error-msg" *ngIf="loginForm.get('email')?.touched && loginForm.get('email')?.hasError('required')">
-                Identity email required.
-              </span>
-              <span class="error-msg" *ngIf="loginForm.get('email')?.touched && loginForm.get('email')?.hasError('email')">
-                Invalid email layout format.
+              <span class="error-msg" *ngIf="loginForm.get('usernameOrEmail')?.touched && loginForm.get('usernameOrEmail')?.hasError('required')">
+                Identity email or username is required.
               </span>
             </div>
 
@@ -156,3 +153,53 @@
     </div>
   </div>
 </div>
+
+<!-- First-Time Password Reset Dialog Template -->
+<ng-template #passwordChangeDialog>
+  <div class="password-change-dialog glass-panel">
+    <h3 class="dialog-title">
+      <mat-icon class="title-icon">security</mat-icon>
+      First-Time Authentication Reset
+    </h3>
+    <p class="dialog-desc">
+      For security reasons, please configure a new personal access key. You can choose to skip this and maintain the default key.
+    </p>
+
+    <form [formGroup]="changePasswordForm" (ngSubmit)="confirmPasswordChange()">
+      <div class="cyber-form-group">
+        <label class="cyber-label">NEW ACCESS KEY (PASSWORD)</label>
+        <div class="cyber-input-wrapper">
+          <mat-icon class="input-icon">vpn_key</mat-icon>
+          <input 
+            [type]="hideChangePassword ? 'password' : 'text'" 
+            formControlName="newPassword" 
+            placeholder="Min 6 characters" 
+            class="cyber-input">
+          <button 
+            type="button" 
+            class="password-toggle-btn" 
+            (click)="hideChangePassword = !hideChangePassword">
+            <mat-icon>{{ hideChangePassword ? 'visibility_off' : 'visibility' }}</mat-icon>
+          </button>
+        </div>
+        <span class="error-msg" *ngIf="changePasswordForm.get('newPassword')?.touched && changePasswordForm.get('newPassword')?.hasError('required')">
+          New password is required.
+        </span>
+        <span class="error-msg" *ngIf="changePasswordForm.get('newPassword')?.touched && changePasswordForm.get('newPassword')?.hasError('minlength')">
+          Must be at least 6 characters.
+        </span>
+      </div>
+
+      <div class="dialog-actions">
+        <button type="button" class="cyber-btn outline-btn" (click)="cancelPasswordChange()">
+          <span class="btn-content">SKIP & KEEP DEFAULT</span>
+        </button>
+        <button type="submit" class="cyber-btn primary-submit" [disabled]="changePasswordForm.invalid || isLoading">
+          <span class="btn-glow"></span>
+          <span class="btn-content" *ngIf="!isLoading">UPDATE KEY</span>
+          <span class="btn-content" *ngIf="isLoading">UPDATING...</span>
+        </button>
+      </div>
+    </form>
+  </div>
+</ng-template>

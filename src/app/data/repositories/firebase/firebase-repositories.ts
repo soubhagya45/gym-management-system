@@ -29,6 +29,8 @@ import {
   IFinanceRepository
 } from '../../../core/interfaces/repository.interfaces';
 import { Expense, Invoice } from '../../../core/models/finance.entity';
+import { Employee, EmployeeAttendance, EmployeePayroll, EmployeePerformance } from '../../../core/models/employee.entity';
+import { IEmployeeRepository } from '../../../core/interfaces/repository.interfaces';
 
 
 /**
@@ -65,6 +67,12 @@ export class FirebaseAuthRepository implements IAuthRepository {
     return throwError(() => new Error('Firebase integration is not enabled.'));
   }
   inviteStaff(_email: string, _name: string, _role: UserRole, _gymId: string): Observable<UserProfile> {
+    return throwError(() => new Error('Firebase integration is not enabled.'));
+  }
+  changePassword(email: string, newPassword: string): Observable<void> {
+    return throwError(() => new Error('Firebase integration is not enabled.'));
+  }
+  clearFirstLoginFlag(email: string): Observable<void> {
     return throwError(() => new Error('Firebase integration is not enabled.'));
   }
 }
@@ -156,5 +164,20 @@ export class FirebaseFinanceRepository implements IFinanceRepository {
   getInvoices(gymId: string): Observable<Invoice[]> { return throwError(() => new Error('Firebase integration is not enabled.')); }
   addInvoice(gymId: string, invoice: Omit<Invoice, 'id'>): Observable<Invoice> { return throwError(() => new Error('Firebase integration is not enabled.')); }
   updateInvoice(gymId: string, invoice: Invoice): Observable<void> { return throwError(() => new Error('Firebase integration is not enabled.')); }
+}
+
+@Injectable({ providedIn: 'root' })
+export class FirebaseEmployeeRepository implements IEmployeeRepository {
+  getEmployees(gymId: string): Observable<Employee[]> { return throwError(() => new Error('Firebase integration is not enabled.')); }
+  getEmployeeById(gymId: string, id: string): Observable<Employee | null> { return throwError(() => new Error('Firebase integration is not enabled.')); }
+  addEmployee(gymId: string, employee: Omit<Employee, 'id'>): Observable<Employee> { return throwError(() => new Error('Firebase integration is not enabled.')); }
+  updateEmployee(gymId: string, employee: Employee): Observable<void> { return throwError(() => new Error('Firebase integration is not enabled.')); }
+  deleteEmployee(gymId: string, id: string): Observable<void> { return throwError(() => new Error('Firebase integration is not enabled.')); }
+  getAttendance(gymId: string): Observable<EmployeeAttendance[]> { return throwError(() => new Error('Firebase integration is not enabled.')); }
+  markAttendance(gymId: string, record: Omit<EmployeeAttendance, 'id'>): Observable<EmployeeAttendance> { return throwError(() => new Error('Firebase integration is not enabled.')); }
+  getPayroll(gymId: string): Observable<EmployeePayroll[]> { return throwError(() => new Error('Firebase integration is not enabled.')); }
+  addPayroll(gymId: string, payroll: Omit<EmployeePayroll, 'id'>): Observable<EmployeePayroll> { return throwError(() => new Error('Firebase integration is not enabled.')); }
+  getPerformance(gymId: string): Observable<EmployeePerformance[]> { return throwError(() => new Error('Firebase integration is not enabled.')); }
+  addPerformance(gymId: string, performance: Omit<EmployeePerformance, 'id'>): Observable<EmployeePerformance> { return throwError(() => new Error('Firebase integration is not enabled.')); }
 }
 

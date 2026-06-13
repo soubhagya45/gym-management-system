@@ -26,7 +26,9 @@ export type Permission =
   | 'export:reports'
   | 'invite:staff'
   | 'view:finance'
-  | 'manage:finance';
+  | 'manage:finance'
+  | 'view:employees'
+  | 'manage:employees';
 
 
 /**
@@ -49,7 +51,9 @@ export const ROLE_PERMISSIONS: Record<UserRole, Permission[]> = {
     'export:reports',
     'invite:staff',
     'view:finance',
-    'manage:finance'
+    'manage:finance',
+    'view:employees',
+    'manage:employees'
   ],
 
   [UserRole.Owner]: [
@@ -66,19 +70,46 @@ export const ROLE_PERMISSIONS: Record<UserRole, Permission[]> = {
     'export:reports',
     'invite:staff',
     'view:finance',
-    'manage:finance'
+    'manage:finance',
+    'view:employees',
+    'manage:employees'
   ],
 
-  [UserRole.Trainer]: [
-    'view:attendance', 'manage:attendance',
-    'view:body-progress',
-    'view:members'  // trainers can view their assigned members
-  ],
-  [UserRole.Staff]: [
+  [UserRole.Manager]: [
+    'view:dashboard',
     'view:members', 'manage:members',
     'view:payments', 'manage:payments',
     'view:leads', 'manage:leads',
     'view:attendance', 'manage:attendance',
+    'view:body-progress',
+    'view:finance',
+    'view:employees',
+    'manage:employees'
+  ],
+
+  [UserRole.Receptionist]: [
+    'view:members', 'manage:members',
+    'view:leads', 'manage:leads',
+    'view:payments', 'manage:payments',
+    'view:attendance', 'manage:attendance',
+    'view:finance'
+  ],
+
+  [UserRole.Accountant]: [
+    'view:payments', 'manage:payments',
+    'view:finance', 'manage:finance'
+  ],
+
+  [UserRole.Trainer]: [
+    'view:members',
+    'view:attendance', 'manage:attendance',
+    'view:body-progress'
+  ],
+
+  [UserRole.Staff]: [
+    'view:members',
+    'view:leads',
+    'view:attendance',
     'view:body-progress'
   ]
 };
@@ -102,7 +133,8 @@ export const ROUTE_PERMISSION_MAP: Record<string, Permission> = {
   '/finance/collections': 'view:finance',
   '/finance/expenses': 'view:finance',
   '/finance/reports': 'view:finance',
-  '/finance/cash-flow': 'view:finance'
+  '/finance/cash-flow': 'view:finance',
+  '/employees':     'view:employees'
 };
 
 
@@ -121,22 +153,22 @@ export interface NavItem {
 
 /** Full ordered nav manifest — filtered at runtime per user role. */
 export const ALL_NAV_ITEMS: NavItem[] = [
-  { label: 'Dashboard',        route: '/dashboard',     icon: 'dashboard',       permission: 'view:dashboard',     roles: [UserRole.SuperAdmin, UserRole.Owner] },
-  { label: 'Members',          route: '/members',        icon: 'people',          permission: 'view:members',       roles: [UserRole.SuperAdmin, UserRole.Owner, UserRole.Staff, UserRole.Trainer] },
-  { label: 'Leads',            route: '/leads',          icon: 'leaderboard',     permission: 'view:leads',         roles: [UserRole.SuperAdmin, UserRole.Owner, UserRole.Staff] },
-  { label: 'Attendance',       route: '/attendance',     icon: 'event_available', permission: 'view:attendance',    roles: [UserRole.SuperAdmin, UserRole.Owner, UserRole.Trainer, UserRole.Staff] },
-  { label: 'Payments',         route: '/payments',       icon: 'payments',        permission: 'view:payments',      roles: [UserRole.SuperAdmin, UserRole.Owner, UserRole.Staff] },
+  { label: 'Dashboard',        route: '/dashboard',     icon: 'dashboard',       permission: 'view:dashboard',     roles: [UserRole.SuperAdmin, UserRole.Owner, UserRole.Manager] },
+  { label: 'Members',          route: '/members',        icon: 'people',          permission: 'view:members',       roles: [UserRole.SuperAdmin, UserRole.Owner, UserRole.Manager, UserRole.Receptionist, UserRole.Staff, UserRole.Trainer] },
+  { label: 'Leads',            route: '/leads',          icon: 'leaderboard',     permission: 'view:leads',         roles: [UserRole.SuperAdmin, UserRole.Owner, UserRole.Manager, UserRole.Receptionist, UserRole.Staff] },
+  { label: 'Employees',        route: '/employees',      icon: 'badge',           permission: 'view:employees',     roles: [UserRole.SuperAdmin, UserRole.Owner, UserRole.Manager] },
+  { label: 'Attendance',       route: '/attendance',     icon: 'event_available', permission: 'view:attendance',    roles: [UserRole.SuperAdmin, UserRole.Owner, UserRole.Manager, UserRole.Receptionist, UserRole.Trainer, UserRole.Staff] },
+  { label: 'Payments',         route: '/payments',       icon: 'payments',        permission: 'view:payments',      roles: [UserRole.SuperAdmin, UserRole.Owner, UserRole.Manager, UserRole.Receptionist, UserRole.Accountant, UserRole.Staff] },
   {
     label: 'Finance',
     route: '/finance/dashboard',
     icon: 'account_balance_wallet',
     permission: 'view:finance',
-    roles: [UserRole.SuperAdmin, UserRole.Owner]
+    roles: [UserRole.SuperAdmin, UserRole.Owner, UserRole.Accountant, UserRole.Receptionist]
   },
   { label: 'Membership Plans', route: '/plans',          icon: 'fitness_center',  permission: 'view:plans',         roles: [UserRole.SuperAdmin, UserRole.Owner] },
-
   { label: 'Trainers',         route: '/trainers',       icon: 'sports',          permission: 'view:trainers',      roles: [UserRole.SuperAdmin, UserRole.Owner] },
   { label: 'WhatsApp Center',  route: '/whatsapp',       icon: 'chat',            permission: 'view:whatsapp',      roles: [UserRole.SuperAdmin, UserRole.Owner] },
-  { label: 'Body Progress',    route: '/body-progress',  icon: 'trending_up',     permission: 'view:body-progress', roles: [UserRole.SuperAdmin, UserRole.Owner, UserRole.Trainer, UserRole.Staff] },
+  { label: 'Body Progress',    route: '/body-progress',  icon: 'trending_up',     permission: 'view:body-progress', roles: [UserRole.SuperAdmin, UserRole.Owner, UserRole.Manager, UserRole.Trainer, UserRole.Staff] },
   { label: 'Settings',         route: '/settings',       icon: 'settings',        permission: 'manage:settings',    roles: [UserRole.SuperAdmin, UserRole.Owner] }
 ];
