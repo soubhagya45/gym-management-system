@@ -6,13 +6,13 @@
     "types": []
   },
   "files": [
-    "src/main.ts"
+    "./src/main.ts"
   ],
   "include": [
-    "src/**/*.ts",
-    "src/**/*.d.ts"
+    "./src/**/*.ts",
+    "./src/**/*.d.ts"
   ],
   "exclude": [
-    "src/**/*.spec.ts"
+    "./src/**/*.spec.ts"
   ]
 }
