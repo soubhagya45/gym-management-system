@@ -387,7 +387,7 @@
           <mat-card class="list-table-card glassmorphic">
             <h3>Attendance Log Entries</h3>
             
-            <div class="table-responsive">
+            <div class="table-scroll-wrapper">
               <table mat-table [dataSource]="(attendance$ | async) || []" class="w-100 bg-transparent">
                 <!-- Employee Name -->
                 <ng-container matColumnDef="employeeName">
@@ -397,8 +397,8 @@
 
                 <!-- Role -->
                 <ng-container matColumnDef="role">
-                  <th mat-header-cell *matHeaderCellDef> Role </th>
-                  <td mat-cell *matCellDef="let record">
+                  <th mat-header-cell *matHeaderCellDef class="hide-sm"> Role </th>
+                  <td mat-cell *matCellDef="let record" class="hide-sm">
                     <span class="mini-role-badge" [ngClass]="record.role">{{getRoleLabel(record.role)}}</span>
                   </td>
                 </ng-container>
@@ -419,20 +419,20 @@
 
                 <!-- CheckIn -->
                 <ng-container matColumnDef="checkInTime">
-                  <th mat-header-cell *matHeaderCellDef> Check In </th>
-                  <td mat-cell *matCellDef="let record"> {{record.checkInTime || '-'}} </td>
+                  <th mat-header-cell *matHeaderCellDef class="hide-xs"> Check In </th>
+                  <td mat-cell *matCellDef="let record" class="hide-xs"> {{record.checkInTime || '-'}} </td>
                 </ng-container>
 
                 <!-- CheckOut -->
                 <ng-container matColumnDef="checkOutTime">
-                  <th mat-header-cell *matHeaderCellDef> Check Out </th>
-                  <td mat-cell *matCellDef="let record"> {{record.checkOutTime || '-'}} </td>
+                  <th mat-header-cell *matHeaderCellDef class="hide-xs"> Check Out </th>
+                  <td mat-cell *matCellDef="let record" class="hide-xs"> {{record.checkOutTime || '-'}} </td>
                 </ng-container>
 
                 <!-- Notes -->
                 <ng-container matColumnDef="notes">
-                  <th mat-header-cell *matHeaderCellDef> Notes </th>
-                  <td mat-cell *matCellDef="let record"> {{record.notes || '-'}} </td>
+                  <th mat-header-cell *matHeaderCellDef class="hide-md"> Notes </th>
+                  <td mat-cell *matCellDef="let record" class="hide-md"> {{record.notes || '-'}} </td>
                 </ng-container>
 
                 <tr mat-header-row *matHeaderRowDef="attendanceColumns"></tr>
@@ -530,7 +530,7 @@
           <!-- Ledger Table -->
           <mat-card class="list-table-card glassmorphic">
             <h3>Salary Disbursal Ledger</h3>
-            <div class="table-responsive">
+            <div class="table-scroll-wrapper">
               <table mat-table [dataSource]="(payroll$ | async) || []" class="w-100 bg-transparent">
                 <!-- Employee Name -->
                 <ng-container matColumnDef="employeeName">
@@ -540,8 +540,8 @@
 
                 <!-- Role -->
                 <ng-container matColumnDef="role">
-                  <th mat-header-cell *matHeaderCellDef> Role </th>
-                  <td mat-cell *matCellDef="let record">
+                  <th mat-header-cell *matHeaderCellDef class="hide-sm"> Role </th>
+                  <td mat-cell *matCellDef="let record" class="hide-sm">
                     <span class="mini-role-badge" [ngClass]="record.role">{{getRoleLabel(record.role)}}</span>
                   </td>
                 </ng-container>
@@ -554,20 +554,20 @@
 
                 <!-- Base Salary -->
                 <ng-container matColumnDef="baseSalary">
-                  <th mat-header-cell *matHeaderCellDef> Base </th>
-                  <td mat-cell *matCellDef="let record"> ₹{{record.baseSalary}} </td>
+                  <th mat-header-cell *matHeaderCellDef class="hide-md"> Base </th>
+                  <td mat-cell *matCellDef="let record" class="hide-md"> ₹{{record.baseSalary}} </td>
                 </ng-container>
 
                 <!-- Bonus -->
                 <ng-container matColumnDef="bonus">
-                  <th mat-header-cell *matHeaderCellDef> Bonus </th>
-                  <td mat-cell *matCellDef="let record"> +₹{{record.bonus}} </td>
+                  <th mat-header-cell *matHeaderCellDef class="hide-xs"> Bonus </th>
+                  <td mat-cell *matCellDef="let record" class="hide-xs"> +₹{{record.bonus}} </td>
                 </ng-container>
 
                 <!-- Deductions -->
                 <ng-container matColumnDef="deductions">
-                  <th mat-header-cell *matHeaderCellDef> Deduct </th>
-                  <td mat-cell *matCellDef="let record"> -₹{{record.deductions}} </td>
+                  <th mat-header-cell *matHeaderCellDef class="hide-xs"> Deduct </th>
+                  <td mat-cell *matCellDef="let record" class="hide-xs"> -₹{{record.deductions}} </td>
                 </ng-container>
 
                 <!-- Net Paid -->
@@ -661,7 +661,7 @@
           <!-- Log Section -->
           <mat-card class="list-table-card glassmorphic">
             <h3>Staff Appraisals Log</h3>
-            <div class="table-responsive">
+            <div class="table-scroll-wrapper">
               <table mat-table [dataSource]="(performance$ | async) || []" class="w-100 bg-transparent">
                 <!-- Employee Name -->
                 <ng-container matColumnDef="employeeName">
@@ -680,8 +680,8 @@
 
                 <!-- Task Ratio -->
                 <ng-container matColumnDef="tasks">
-                  <th mat-header-cell *matHeaderCellDef> Task Completion Ratio </th>
-                  <td mat-cell *matCellDef="let record">
+                  <th mat-header-cell *matHeaderCellDef class="hide-xs"> Task Completion Ratio </th>
+                  <td mat-cell *matCellDef="let record" class="hide-xs">
                     <div class="progress-bar-wrapper">
                       <div class="bar-bg">
                         <div class="bar-fill" [style.width.%]="(record.tasksCompletedCount / record.tasksAssignedCount) * 100"></div>
@@ -693,8 +693,8 @@
 
                 <!-- Review Date -->
                 <ng-container matColumnDef="reviewDate">
-                  <th mat-header-cell *matHeaderCellDef> Review Date </th>
-                  <td mat-cell *matCellDef="let record"> {{record.reviewDate}} </td>
+                  <th mat-header-cell *matHeaderCellDef class="hide-sm"> Review Date </th>
+                  <td mat-cell *matCellDef="let record" class="hide-sm"> {{record.reviewDate}} </td>
                 </ng-container>
 
                 <!-- Comments -->

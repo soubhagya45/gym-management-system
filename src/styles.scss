@@ -917,4 +917,34 @@ body.light-theme {
   }
 }
 
+/* Responsive visibility utility classes */
+@media (max-width: 1199.98px) {
+  .hide-lg {
+    display: none !important;
+  }
+}
+@media (max-width: 959.98px) {
+  .hide-md {
+    display: none !important;
+  }
+}
+@media (max-width: 767.98px) {
+  .hide-sm {
+    display: none !important;
+  }
+}
+@media (max-width: 599.98px) {
+  .hide-xs {
+    display: none !important;
+  }
+}
+
+/* Global scrollwrapper for responsive tables */
+.table-scroll-wrapper {
+  overflow-x: auto !important;
+  -webkit-overflow-scrolling: touch;
+  width: 100%;
+}
+
+
 

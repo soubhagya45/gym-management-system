@@ -346,3 +346,11 @@
     font-size: 13px;
   }
 }
+
+/* Responsiveness */
+@media (max-width: 599.98px) {
+  .templates-grid {
+    grid-template-columns: 1fr;
+  }
+}
+

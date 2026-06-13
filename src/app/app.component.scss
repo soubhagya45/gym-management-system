@@ -534,6 +534,31 @@ body.light-theme .top-navbar.glass-panel {
   }
 }
 
+@media (max-width: 599.98px) {
+  .top-navbar {
+    padding: 0 8px !important;
+    height: 60px !important;
+    min-height: 60px !important;
+  }
+  
+  .toolbar-title {
+    font-size: 16px !important;
+  }
+
+  .menu-toggle-btn {
+    margin-right: 4px !important;
+  }
+
+  .content-body {
+    padding: 16px !important;
+  }
+  
+  .navbar-actions {
+    gap: 4px !important;
+  }
+}
+
+
 .gym-badge {
   display: flex;
   align-items: center;
