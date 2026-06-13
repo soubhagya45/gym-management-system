@@ -1,10 +1,11 @@
-import { Component, OnInit } from '@angular/core';
+import { Component, OnInit, TemplateRef, ViewChild } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormBuilder, FormGroup, Validators, ReactiveFormsModule } from '@angular/forms';
 import { Router, RouterModule } from '@angular/router';
 import { AuthState } from '../../presentation/state/auth.state';
 import { UserRole } from '../../core/enums/roles.enum';
 import { PermissionService } from '../../domain/auth/permission.service';
+import { UserProfile } from '../../core/models/user.model';
 
 // Angular Material Imports
 import { MatCardModule } from '@angular/material/card';
@@ -13,6 +14,8 @@ import { MatInputModule } from '@angular/material/input';
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
 import { MatProgressBarModule } from '@angular/material/progress-bar';
+import { MatDialog, MatDialogModule } from '@angular/material/dialog';
+import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
 
 @Component({
   selector: 'app-login',
@@ -26,16 +29,24 @@ import { MatProgressBarModule } from '@angular/material/progress-bar';
     MatInputModule,
     MatButtonModule,
     MatIconModule,
-    MatProgressBarModule
+    MatProgressBarModule,
+    MatDialogModule,
+    MatSnackBarModule
   ],
   templateUrl: './login.component.html',
   styleUrls: ['./login.component.scss']
 })
 export class LoginComponent implements OnInit {
+  @ViewChild('passwordChangeDialog') passwordChangeDialogTemplate!: TemplateRef<any>;
+
   loginForm!: FormGroup;
+  changePasswordForm!: FormGroup;
   isLoading = false;
   errorMessage: string | null = null;
   hidePassword = true;
+  hideChangePassword = true;
+  pendingUser: UserProfile | null = null;
+  dialogRef: any = null;
 
   // Selected quick role for UI presentation
   activeRole: UserRole = UserRole.Owner;
@@ -45,12 +56,15 @@ export class LoginComponent implements OnInit {
   availableRoles = [
     UserRole.SuperAdmin,
     UserRole.Owner,
+    UserRole.Manager,
+    UserRole.Receptionist,
+    UserRole.Accountant,
     UserRole.Trainer,
     UserRole.Staff
   ];
 
   // Role details for dynamic styling & descriptions in the futuristic interface
-  roleDetails = {
+  roleDetails: Record<UserRole, { title: string; desc: string; badge: string; color: string; email: string; icon: string }> = {
     [UserRole.SuperAdmin]: {
       title: 'Super Administrator',
       desc: 'Global system overview, multi-tenant gym directories & database provider swapping.',
@@ -66,6 +80,30 @@ export class LoginComponent implements OnInit {
       color: '#6366f1', // Indigo glow
       email: 'owner@apexfit.com',
       icon: 'storefront'
+    },
+    [UserRole.Manager]: {
+      title: 'General Manager',
+      desc: 'Direct gym operations: view dashboard, manage members, check-ins, and employees.',
+      badge: 'Manager Auth',
+      color: '#3b82f6', // Blue glow
+      email: 'manager@apexfit.com',
+      icon: 'assignment_ind'
+    },
+    [UserRole.Receptionist]: {
+      title: 'Front Desk Terminal',
+      desc: 'Check in members, log attendance, register new leads, and view payments.',
+      badge: 'Reception Auth',
+      color: '#06b6d4', // Cyan glow
+      email: 'receptionist@apexfit.com',
+      icon: 'contact_phone'
+    },
+    [UserRole.Accountant]: {
+      title: 'Financial Accountant',
+      desc: 'Log expenses, review invoices, manage collection records, and handle payroll.',
+      badge: 'Finance Auth',
+      color: '#14b8a6', // Teal glow
+      email: 'accountant@apexfit.com',
+      icon: 'account_balance'
     },
     [UserRole.Trainer]: {
       title: 'Pro Coach Terminal',
@@ -89,12 +127,14 @@ export class LoginComponent implements OnInit {
     private fb: FormBuilder,
     private authState: AuthState,
     private permissionService: PermissionService,
-    private router: Router
+    private router: Router,
+    private dialog: MatDialog,
+    private snackBar: MatSnackBar
   ) {}
 
   ngOnInit(): void {
     this.loginForm = this.fb.group({
-      email: ['', [Validators.required, Validators.email]],
+      usernameOrEmail: ['', [Validators.required]],
       password: ['', [Validators.required, Validators.minLength(4)]]
     });
 
@@ -112,7 +152,7 @@ export class LoginComponent implements OnInit {
   private syncFormWithRole(): void {
     const email = this.roleDetails[this.activeRole].email;
     this.loginForm.patchValue({
-      email: email,
+      usernameOrEmail: email,
       password: 'password' // Standard default password for all mock accounts
     });
   }
@@ -126,12 +166,16 @@ export class LoginComponent implements OnInit {
     this.isLoading = true;
     this.errorMessage = null;
 
-    const { email, password } = this.loginForm.value;
+    const { usernameOrEmail, password } = this.loginForm.value;
 
-    this.authState.login(email, password).subscribe({
+    this.authState.login(usernameOrEmail, password).subscribe({
       next: (user) => {
         this.isLoading = false;
-        this.navigateToWorkspace(user.role);
+        if (user.isFirstLogin) {
+          this.promptPasswordChange(user);
+        } else {
+          this.navigateToWorkspace(user.role);
+        }
       },
       error: (err) => {
         this.isLoading = false;
@@ -148,11 +192,81 @@ export class LoginComponent implements OnInit {
     this.authState.loginWithRole(this.activeRole).subscribe({
       next: (user) => {
         this.isLoading = false;
-        this.navigateToWorkspace(user.role);
+        if (user.isFirstLogin) {
+          this.promptPasswordChange(user);
+        } else {
+          this.navigateToWorkspace(user.role);
+        }
       },
       error: (err) => {
         this.isLoading = false;
         this.errorMessage = err.message || 'Quick login synchronization failed.';
+      }
+    });
+  }
+
+  promptPasswordChange(user: UserProfile): void {
+    this.pendingUser = user;
+    this.changePasswordForm = this.fb.group({
+      newPassword: ['', [Validators.required, Validators.minLength(6)]]
+    });
+    this.hideChangePassword = true;
+
+    this.dialogRef = this.dialog.open(this.passwordChangeDialogTemplate, {
+      width: '450px',
+      disableClose: true,
+      panelClass: 'cyber-dialog-panel'
+    });
+  }
+
+  confirmPasswordChange(): void {
+    if (this.changePasswordForm.invalid || !this.pendingUser) {
+      return;
+    }
+
+    this.isLoading = true;
+    const newPassword = this.changePasswordForm.value.newPassword;
+    const email = this.pendingUser.email;
+
+    this.authState.changePassword(email, newPassword).subscribe({
+      next: () => {
+        this.isLoading = false;
+        this.dialogRef?.close();
+        this.snackBar.open('Access key updated successfully!', 'Close', { duration: 3000 });
+        const role = this.pendingUser!.role;
+        this.pendingUser = null;
+        this.navigateToWorkspace(role);
+      },
+      error: (err) => {
+        this.isLoading = false;
+        this.snackBar.open(err.message || 'Failed to update key', 'Close', { duration: 3000 });
+      }
+    });
+  }
+
+  cancelPasswordChange(): void {
+    if (!this.pendingUser) {
+      return;
+    }
+
+    this.isLoading = true;
+    const email = this.pendingUser.email;
+
+    this.authState.clearFirstLoginFlag(email).subscribe({
+      next: () => {
+        this.isLoading = false;
+        this.dialogRef?.close();
+        this.snackBar.open('Bypassed. Logged in with default access key.', 'Close', { duration: 3000 });
+        const role = this.pendingUser!.role;
+        this.pendingUser = null;
+        this.navigateToWorkspace(role);
+      },
+      error: (err) => {
+        this.isLoading = false;
+        this.dialogRef?.close();
+        const role = this.pendingUser!.role;
+        this.pendingUser = null;
+        this.navigateToWorkspace(role);
       }
     });
   }

@@ -25,7 +25,9 @@ import {
   WHATSAPP_REPOSITORY_TOKEN,
   BODY_PROGRESS_REPOSITORY_TOKEN,
   IFinanceRepository,
-  FINANCE_REPOSITORY_TOKEN
+  FINANCE_REPOSITORY_TOKEN,
+  IEmployeeRepository,
+  EMPLOYEE_REPOSITORY_TOKEN
 } from '../../core/interfaces/repository.interfaces';
 
 
@@ -41,7 +43,8 @@ import {
   MockActivityLogRepository,
   MockWhatsAppRepository,
   MockBodyProgressRepository,
-  MockFinanceRepository
+  MockFinanceRepository,
+  MockEmployeeRepository
 } from '../repositories/mock/mock-repositories';
 
 
@@ -57,7 +60,8 @@ import {
   FirebaseActivityLogRepository,
   FirebaseWhatsAppRepository,
   FirebaseBodyProgressRepository,
-  FirebaseFinanceRepository
+  FirebaseFinanceRepository,
+  FirebaseEmployeeRepository
 } from '../repositories/firebase/firebase-repositories';
 
 
@@ -73,7 +77,8 @@ import {
   SupabaseActivityLogRepository,
   SupabaseWhatsAppRepository,
   SupabaseBodyProgressRepository,
-  SupabaseFinanceRepository
+  SupabaseFinanceRepository,
+  SupabaseEmployeeRepository
 } from '../repositories/supabase/supabase-repositories';
 
 
@@ -89,7 +94,8 @@ import {
   ApiActivityLogRepository,
   ApiWhatsAppRepository,
   ApiBodyProgressRepository,
-  ApiFinanceRepository
+  ApiFinanceRepository,
+  ApiEmployeeRepository
 } from '../repositories/api/api-repositories';
 
 
@@ -215,6 +221,16 @@ export function financeRepositoryFactory(configService: AppConfigService, inject
   }
 }
 
+export function employeeRepositoryFactory(configService: AppConfigService, injector: Injector): IEmployeeRepository {
+  switch (configService.provider) {
+    case ProviderType.Firebase: return injector.get(FirebaseEmployeeRepository);
+    case ProviderType.Supabase: return injector.get(SupabaseEmployeeRepository);
+    case ProviderType.REST: return injector.get(ApiEmployeeRepository);
+    case ProviderType.Mock:
+    default: return injector.get(MockEmployeeRepository);
+  }
+}
+
 
 export const REPOSITORY_PROVIDERS = [
   {
@@ -275,6 +291,11 @@ export const REPOSITORY_PROVIDERS = [
   {
     provide: FINANCE_REPOSITORY_TOKEN,
     useFactory: financeRepositoryFactory,
+    deps: [AppConfigService, Injector]
+  },
+  {
+    provide: EMPLOYEE_REPOSITORY_TOKEN,
+    useFactory: employeeRepositoryFactory,
     deps: [AppConfigService, Injector]
   }
 ];

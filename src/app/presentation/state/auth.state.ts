@@ -127,6 +127,30 @@ export class AuthState {
     );
   }
 
+  changePassword(email: string, newPassword: string): Observable<void> {
+    return this.authRepository.changePassword(email, newPassword).pipe(
+      tap(() => {
+        const currentUser = this.currentUserValue;
+        if (currentUser && currentUser.email.toLowerCase().trim() === email.toLowerCase().trim()) {
+          const updated = { ...currentUser, isFirstLogin: false };
+          this.setCurrentUser(updated);
+        }
+      })
+    );
+  }
+
+  clearFirstLoginFlag(email: string): Observable<void> {
+    return this.authRepository.clearFirstLoginFlag(email).pipe(
+      tap(() => {
+        const currentUser = this.currentUserValue;
+        if (currentUser && currentUser.email.toLowerCase().trim() === email.toLowerCase().trim()) {
+          const updated = { ...currentUser, isFirstLogin: false };
+          this.setCurrentUser(updated);
+        }
+      })
+    );
+  }
+
   logout(): void {
     localStorage.removeItem(this.STORAGE_KEY);
     this.currentUserSubject.next(null);

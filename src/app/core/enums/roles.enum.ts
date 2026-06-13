@@ -3,8 +3,11 @@
  * Values are stable strings preserved across sessions (localStorage safe).
  */
 export enum UserRole {
-  SuperAdmin = 'super-admin',
-  Owner      = 'owner',
-  Trainer    = 'trainer',
-  Staff      = 'staff'
+  SuperAdmin   = 'super-admin',
+  Owner        = 'owner',
+  Manager      = 'manager',
+  Receptionist = 'receptionist',
+  Trainer      = 'trainer',
+  Accountant   = 'accountant',
+  Staff        = 'staff'
 }

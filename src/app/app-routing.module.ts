@@ -62,6 +62,12 @@ const routes: Routes = [
     data: { permission: 'view:attendance' }
   },
   {
+    path: 'employees',
+    loadComponent: () => import('./pages/employees/employees.component').then(m => m.EmployeesComponent),
+    canActivate: [authGuard, permissionGuard],
+    data: { permission: 'view:employees' }
+  },
+  {
     path: 'payments',
     loadComponent: () => import('./pages/payments/payments.component').then(m => m.PaymentsComponent),
     canActivate: [authGuard, permissionGuard],

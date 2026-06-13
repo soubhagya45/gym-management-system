@@ -15,7 +15,8 @@ import {
   IActivityLogRepository,
   IWhatsAppRepository,
   IBodyProgressRepository,
-  IFinanceRepository
+  IFinanceRepository,
+  IEmployeeRepository
 } from '../../../core/interfaces/repository.interfaces';
 
 
@@ -33,6 +34,7 @@ import { WhatsAppTemplate } from '../../../core/models/whatsapp-template.entity'
 import { WhatsAppReminder } from '../../../core/models/whatsapp-reminder.entity';
 import { BodyProgressEntry } from '../../../core/models/body-progress.entity';
 import { Expense, Invoice } from '../../../core/models/finance.entity';
+import { Employee, EmployeeAttendance, EmployeePayroll, EmployeePerformance } from '../../../core/models/employee.entity';
 
 
 // --- Static In-Memory Database State ---
@@ -113,6 +115,31 @@ const dbMockAccounts: Record<string, UserProfile> = {
     email: 'staff@apexfit.com',
     avatarUrl: 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=150',
     role: UserRole.Staff,
+    gymId: 'gym-a',
+    isFirstLogin: true
+  }),
+  'manager@apexfit.com': buildUser({
+    id: 'usr-manager-1',
+    name: 'Rahul Sharma',
+    email: 'manager@apexfit.com',
+    avatarUrl: 'https://api.dicebear.com/7.x/initials/svg?seed=Rahul%20Sharma',
+    role: UserRole.Manager,
+    gymId: 'gym-a'
+  }),
+  'receptionist@apexfit.com': buildUser({
+    id: 'usr-receptionist-1',
+    name: 'Kavita Patel',
+    email: 'receptionist@apexfit.com',
+    avatarUrl: 'https://api.dicebear.com/7.x/initials/svg?seed=Kavita%20Patel',
+    role: UserRole.Receptionist,
+    gymId: 'gym-a'
+  }),
+  'accountant@apexfit.com': buildUser({
+    id: 'usr-accountant-1',
+    name: 'Vikram Mehta',
+    email: 'accountant@apexfit.com',
+    avatarUrl: 'https://api.dicebear.com/7.x/initials/svg?seed=Vikram%20Mehta',
+    role: UserRole.Accountant,
     gymId: 'gym-a'
   })
 };
@@ -122,7 +149,10 @@ const dbPasswords: Record<string, string> = {
   'owner@apexfit.com': 'password',
   'owner-b@apexfit.com': 'password',
   'trainer@apexfit.com': 'password',
-  'staff@apexfit.com': 'password'
+  'staff@apexfit.com': 'password',
+  'manager@apexfit.com': 'password',
+  'receptionist@apexfit.com': 'password',
+  'accountant@apexfit.com': 'password'
 };
 
 const dbPlans: MembershipPlan[] = [
@@ -312,14 +342,246 @@ const dbInvoices: Invoice[] = [
 ];
 
 
+// --- Employee DB Seed Data ---
+const dbEmployees: Employee[] = [
+  {
+    id: 'usr-manager-1',
+    gymId: 'gym-a',
+    fullName: 'Rahul Sharma',
+    phone: '+91 98765 00001',
+    email: 'manager@apexfit.com',
+    gender: 'Male',
+    dob: '1988-05-15',
+    address: '45 MG Road, Bangalore',
+    role: UserRole.Manager,
+    department: 'Management',
+    joinDate: '2026-01-01',
+    salary: 65000,
+    shift: 'General',
+    username: 'rahul_manager',
+    accountStatus: 'Active'
+  },
+  {
+    id: 'usr-receptionist-1',
+    gymId: 'gym-a',
+    fullName: 'Kavita Patel',
+    phone: '+91 98765 00002',
+    email: 'receptionist@apexfit.com',
+    gender: 'Female',
+    dob: '1995-08-20',
+    address: '88 Indiranagar, Bangalore',
+    role: UserRole.Receptionist,
+    department: 'Front Desk',
+    joinDate: '2026-02-15',
+    salary: 25000,
+    shift: 'Morning',
+    reportingManagerId: 'usr-manager-1',
+    reportingManagerName: 'Rahul Sharma',
+    username: 'kavita_receptionist',
+    accountStatus: 'Active'
+  },
+  {
+    id: 'usr-accountant-1',
+    gymId: 'gym-a',
+    fullName: 'Vikram Mehta',
+    phone: '+91 98765 00003',
+    email: 'accountant@apexfit.com',
+    gender: 'Male',
+    dob: '1990-12-10',
+    address: '12 Whitefield, Bangalore',
+    role: UserRole.Accountant,
+    department: 'Finance',
+    joinDate: '2026-03-01',
+    salary: 45000,
+    shift: 'General',
+    reportingManagerId: 'usr-manager-1',
+    reportingManagerName: 'Rahul Sharma',
+    username: 'vikram_accountant',
+    accountStatus: 'Active'
+  },
+  {
+    id: 'trainer-1',
+    gymId: 'gym-a',
+    fullName: 'Rahul Dev',
+    phone: '+91 98765 43210',
+    email: 'rahul.dev@apexfit.com',
+    gender: 'Male',
+    dob: '1992-04-10',
+    address: '15 JP Nagar, Bangalore',
+    role: UserRole.Trainer,
+    department: 'Fitness',
+    joinDate: '2026-01-10',
+    salary: 35000,
+    shift: 'Morning',
+    reportingManagerId: 'usr-manager-1',
+    reportingManagerName: 'Rahul Sharma',
+    username: 'rahul_dev',
+    accountStatus: 'Active',
+    specialty: 'Strength & Conditioning',
+    experienceYears: 6,
+    assignedMembersCount: 14
+  },
+  {
+    id: 'trainer-2',
+    gymId: 'gym-a',
+    fullName: 'Kavita Sharma',
+    phone: '+91 98765 43211',
+    email: 'kavita.sharma@apexfit.com',
+    gender: 'Female',
+    dob: '1994-07-22',
+    address: '22 Jayanagar, Bangalore',
+    role: UserRole.Trainer,
+    department: 'Fitness',
+    joinDate: '2026-01-15',
+    salary: 32000,
+    shift: 'General',
+    reportingManagerId: 'usr-manager-1',
+    reportingManagerName: 'Rahul Sharma',
+    username: 'kavita_yoga',
+    accountStatus: 'Active',
+    specialty: 'Yoga & Functional Mobility',
+    experienceYears: 5,
+    assignedMembersCount: 18
+  },
+  {
+    id: 'trainer-3',
+    gymId: 'gym-a',
+    fullName: 'Vikram Malhotra',
+    phone: '+91 98765 43212',
+    email: 'vikram.m@apexfit.com',
+    gender: 'Male',
+    dob: '1991-11-05',
+    address: '77 Koramangala, Bangalore',
+    role: UserRole.Trainer,
+    department: 'Fitness',
+    joinDate: '2026-02-01',
+    salary: 38000,
+    shift: 'Evening',
+    reportingManagerId: 'usr-manager-1',
+    reportingManagerName: 'Rahul Sharma',
+    username: 'vikram_hiit',
+    accountStatus: 'Active',
+    specialty: 'High Intensity Interval Training (HIIT)',
+    experienceYears: 7,
+    assignedMembersCount: 12
+  },
+  {
+    id: 'trainer-4',
+    gymId: 'gym-a',
+    fullName: 'Gurpreet Singh',
+    phone: '+91 98765 43213',
+    email: 'gurpreet.s@apexfit.com',
+    gender: 'Male',
+    dob: '1989-09-18',
+    address: '99 Sadashivanagar, Bangalore',
+    role: UserRole.Trainer,
+    department: 'Fitness',
+    joinDate: '2026-02-10',
+    salary: 40000,
+    shift: 'Evening',
+    reportingManagerId: 'usr-manager-1',
+    reportingManagerName: 'Rahul Sharma',
+    username: 'gurpreet_power',
+    accountStatus: 'Suspended',
+    specialty: 'Bodybuilding & Powerlifting',
+    experienceYears: 10,
+    assignedMembersCount: 9
+  },
+  {
+    id: 'usr-staff-1',
+    gymId: 'gym-a',
+    fullName: 'Sophia Chen',
+    phone: '+91 99887 76655',
+    email: 'staff@apexfit.com',
+    gender: 'Female',
+    dob: '1996-03-24',
+    address: '11 MG Road, Bangalore',
+    role: UserRole.Staff,
+    department: 'Operations',
+    joinDate: '2026-03-10',
+    salary: 20000,
+    shift: 'Morning',
+    reportingManagerId: 'usr-manager-1',
+    reportingManagerName: 'Rahul Sharma',
+    username: 'sophia_staff',
+    accountStatus: 'Active'
+  },
+  {
+    id: 'trainer-b1',
+    gymId: 'gym-b',
+    fullName: 'Kyle Reese',
+    phone: '+91 98765 43299',
+    email: 'kyle.reese@sky.net',
+    gender: 'Male',
+    dob: '1998-12-01',
+    address: '456 Resistance Road, Uptown',
+    role: UserRole.Trainer,
+    department: 'Fitness',
+    joinDate: '2026-03-01',
+    salary: 30000,
+    shift: 'Morning',
+    username: 'kyle_tactical',
+    accountStatus: 'Active',
+    specialty: 'Tactical Conditioning & Cardio',
+    experienceYears: 4,
+    assignedMembersCount: 3
+  }
+];
+
+const dbEmployeeAttendance: EmployeeAttendance[] = [
+  { id: 'att-emp-1', gymId: 'gym-a', employeeId: 'usr-manager-1', employeeName: 'Rahul Sharma', role: UserRole.Manager, date: '2026-06-12', status: 'Present', checkInTime: '09:00 AM', checkOutTime: '05:30 PM' },
+  { id: 'att-emp-2', gymId: 'gym-a', employeeId: 'usr-receptionist-1', employeeName: 'Kavita Patel', role: UserRole.Receptionist, date: '2026-06-12', status: 'Present', checkInTime: '08:00 AM', checkOutTime: '04:00 PM' },
+  { id: 'att-emp-3', gymId: 'gym-a', employeeId: 'usr-accountant-1', employeeName: 'Vikram Mehta', role: UserRole.Accountant, date: '2026-06-12', status: 'Present', checkInTime: '09:15 AM', checkOutTime: '05:00 PM' },
+  { id: 'att-emp-4', gymId: 'gym-a', employeeId: 'trainer-1', employeeName: 'Rahul Dev', role: UserRole.Trainer, date: '2026-06-12', status: 'Present', checkInTime: '06:00 AM', checkOutTime: '02:00 PM' },
+  { id: 'att-emp-5', gymId: 'gym-a', employeeId: 'trainer-2', employeeName: 'Kavita Sharma', role: UserRole.Trainer, date: '2026-06-12', status: 'Present', checkInTime: '08:30 AM', checkOutTime: '04:30 PM' },
+  { id: 'att-emp-6', gymId: 'gym-a', employeeId: 'trainer-3', employeeName: 'Vikram Malhotra', role: UserRole.Trainer, date: '2026-06-12', status: 'Leave', notes: 'Personal work' },
+  { id: 'att-emp-7', gymId: 'gym-a', employeeId: 'trainer-4', employeeName: 'Gurpreet Singh', role: UserRole.Trainer, date: '2026-06-12', status: 'Absent' }
+];
+
+const dbEmployeePayroll: EmployeePayroll[] = [
+  { id: 'pay-emp-1', gymId: 'gym-a', employeeId: 'usr-manager-1', employeeName: 'Rahul Sharma', role: UserRole.Manager, monthYear: 'May 2026', baseSalary: 65000, bonus: 5000, deductions: 2000, netPaid: 68000, paymentDate: '2026-06-05', status: 'Paid' },
+  { id: 'pay-emp-2', gymId: 'gym-a', employeeId: 'usr-receptionist-1', employeeName: 'Kavita Patel', role: UserRole.Receptionist, monthYear: 'May 2026', baseSalary: 25000, bonus: 1000, deductions: 500, netPaid: 25500, paymentDate: '2026-06-05', status: 'Paid' },
+  { id: 'pay-emp-3', gymId: 'gym-a', employeeId: 'usr-accountant-1', employeeName: 'Vikram Mehta', role: UserRole.Accountant, monthYear: 'May 2026', baseSalary: 45000, bonus: 2000, deductions: 1000, netPaid: 46000, paymentDate: '2026-06-05', status: 'Paid' },
+  { id: 'pay-emp-4', gymId: 'gym-a', employeeId: 'trainer-1', employeeName: 'Rahul Dev', role: UserRole.Trainer, monthYear: 'May 2026', baseSalary: 35000, bonus: 3000, deductions: 1000, netPaid: 37000, paymentDate: '2026-06-05', status: 'Paid' },
+  { id: 'pay-emp-5', gymId: 'gym-a', employeeId: 'trainer-2', employeeName: 'Kavita Sharma', role: UserRole.Trainer, monthYear: 'May 2026', baseSalary: 32000, bonus: 4000, deductions: 500, netPaid: 35500, paymentDate: '2026-06-05', status: 'Paid' },
+  
+  { id: 'pay-emp-6', gymId: 'gym-a', employeeId: 'usr-manager-1', employeeName: 'Rahul Sharma', role: UserRole.Manager, monthYear: 'June 2026', baseSalary: 65000, bonus: 0, deductions: 0, netPaid: 65000, status: 'Pending' },
+  { id: 'pay-emp-7', gymId: 'gym-a', employeeId: 'usr-receptionist-1', employeeName: 'Kavita Patel', role: UserRole.Receptionist, monthYear: 'June 2026', baseSalary: 25000, bonus: 0, deductions: 0, netPaid: 25000, status: 'Pending' },
+  { id: 'pay-emp-8', gymId: 'gym-a', employeeId: 'usr-accountant-1', employeeName: 'Vikram Mehta', role: UserRole.Accountant, monthYear: 'June 2026', baseSalary: 45000, bonus: 0, deductions: 0, netPaid: 45000, status: 'Pending' }
+];
+
+const dbEmployeePerformance: EmployeePerformance[] = [
+  { id: 'perf-1', gymId: 'gym-a', employeeId: 'usr-manager-1', employeeName: 'Rahul Sharma', rating: 4.8, reviewDate: '2026-06-01', feedback: 'Excellent management skills, keeps team motivated and operations smooth.', tasksAssignedCount: 15, tasksCompletedCount: 14 },
+  { id: 'perf-2', gymId: 'gym-a', employeeId: 'usr-receptionist-1', employeeName: 'Kavita Patel', rating: 4.5, reviewDate: '2026-06-02', feedback: 'Very polite with members, highly organized. Needs slight improvement in handling peak hour crowd.', tasksAssignedCount: 10, tasksCompletedCount: 9 },
+  { id: 'perf-3', gymId: 'gym-a', employeeId: 'usr-accountant-1', employeeName: 'Vikram Mehta', rating: 4.9, reviewDate: '2026-06-03', feedback: 'Flawless book-keeping, timely salary disbursements, clear expense tracking.', tasksAssignedCount: 8, tasksCompletedCount: 8 },
+  { id: 'perf-4', gymId: 'gym-a', employeeId: 'trainer-1', employeeName: 'Rahul Dev', rating: 4.7, reviewDate: '2026-06-04', feedback: 'Great personal training feedback, members appreciate his customized plans.', tasksAssignedCount: 20, tasksCompletedCount: 18 }
+];
+
+
 // --- Mock Implementations ---
 
 @Injectable({ providedIn: 'root' })
 @Injectable({ providedIn: 'root' })
 export class MockAuthRepository implements IAuthRepository {
-  login(email: string, password: string): Observable<UserProfile> {
-    const emailKey = email.toLowerCase().trim();
-    const user = dbMockAccounts[emailKey];
+  login(emailOrUsername: string, password: string): Observable<UserProfile> {
+    const identifier = emailOrUsername.toLowerCase().trim();
+    
+    // Check if directly in mock accounts (email match)
+    let user = dbMockAccounts[identifier];
+    let emailKey = identifier;
+
+    // Search in dbEmployees for a match on username or email
+    if (!user) {
+      const foundEmp = dbEmployees.find(e => 
+        e.username?.toLowerCase() === identifier || 
+        e.email?.toLowerCase() === identifier
+      );
+      if (foundEmp && foundEmp.email) {
+        emailKey = foundEmp.email.toLowerCase().trim();
+        user = dbMockAccounts[emailKey];
+      }
+    }
+
     const storedPassword = dbPasswords[emailKey] || 'password';
     if (user && password === storedPassword) {
       // Refresh session timestamps on each login
@@ -327,7 +589,7 @@ export class MockAuthRepository implements IAuthRepository {
       dbMockAccounts[emailKey] = fresh;
       return of(fresh).pipe(delay(800));
     }
-    return throwError(() => new Error('Invalid email or password. Hint: password'));
+    return throwError(() => new Error('Invalid email, username or password. Hint: password'));
   }
 
   loginWithRole(role: UserRole): Observable<UserProfile> {
@@ -363,7 +625,8 @@ export class MockAuthRepository implements IAuthRepository {
       email,
       avatarUrl: `https://api.dicebear.com/7.x/initials/svg?seed=${encodeURIComponent(name)}`,
       role,
-      gymId
+      gymId,
+      isFirstLogin: true
     });
     dbMockAccounts[emailKey] = newUser;
     dbPasswords[emailKey] = 'welcome123';
@@ -417,6 +680,27 @@ export class MockAuthRepository implements IAuthRepository {
     if (password) dbPasswords[emailKey] = password;
 
     return of(newUser).pipe(delay(800));
+  }
+
+  changePassword(email: string, newPassword: string): Observable<void> {
+    const emailKey = email.toLowerCase().trim();
+    dbPasswords[emailKey] = newPassword;
+    const user = dbMockAccounts[emailKey];
+    if (user) {
+      user.isFirstLogin = false;
+      dbMockAccounts[emailKey] = user;
+    }
+    return of(undefined).pipe(delay(400));
+  }
+
+  clearFirstLoginFlag(email: string): Observable<void> {
+    const emailKey = email.toLowerCase().trim();
+    const user = dbMockAccounts[emailKey];
+    if (user) {
+      user.isFirstLogin = false;
+      dbMockAccounts[emailKey] = user;
+    }
+    return of(undefined).pipe(delay(200));
   }
 }
 
@@ -858,6 +1142,123 @@ export class MockFinanceRepository implements IFinanceRepository {
       dbInvoices[idx] = invoice;
     }
     return of(undefined).pipe(delay(200));
+  }
+}
+@Injectable({ providedIn: 'root' })
+export class MockEmployeeRepository implements IEmployeeRepository {
+  getEmployees(gymId: string): Observable<Employee[]> {
+    return of(dbEmployees.filter(e => e.gymId === gymId)).pipe(delay(300));
+  }
+
+  getEmployeeById(gymId: string, id: string): Observable<Employee | null> {
+    const emp = dbEmployees.find(e => e.gymId === gymId && e.id === id) || null;
+    return of(emp).pipe(delay(200));
+  }
+
+  addEmployee(gymId: string, employee: Omit<Employee, 'id'>): Observable<Employee> {
+    const newEmp: Employee = {
+      ...employee,
+      id: 'emp-' + Math.random().toString(36).substring(2, 9),
+      gymId
+    };
+    dbEmployees.push(newEmp);
+
+    // If there is an email, create a login account for them in mock db
+    if (newEmp.email) {
+      const emailKey = newEmp.email.toLowerCase().trim();
+      dbMockAccounts[emailKey] = buildUser({
+        id: newEmp.id,
+        name: newEmp.fullName,
+        email: newEmp.email,
+        avatarUrl: newEmp.photoUrl || `https://api.dicebear.com/7.x/initials/svg?seed=${encodeURIComponent(newEmp.fullName)}`,
+        role: newEmp.role,
+        gymId,
+        isFirstLogin: true
+      });
+      dbPasswords[emailKey] = 'password';
+    }
+
+    return of(newEmp).pipe(delay(300));
+  }
+
+  updateEmployee(gymId: string, employee: Employee): Observable<void> {
+    const idx = dbEmployees.findIndex(e => e.gymId === gymId && e.id === employee.id);
+    if (idx !== -1) {
+      dbEmployees[idx] = employee;
+      
+      // Update the user profile if it exists in dbMockAccounts
+      if (employee.email) {
+        const emailKey = employee.email.toLowerCase().trim();
+        const existingUser = dbMockAccounts[emailKey];
+        if (existingUser) {
+          dbMockAccounts[emailKey] = {
+            ...existingUser,
+            name: employee.fullName,
+            role: employee.role,
+            avatarUrl: employee.photoUrl || existingUser.avatarUrl
+          };
+        }
+      }
+    }
+    return of(undefined).pipe(delay(200));
+  }
+
+  deleteEmployee(gymId: string, id: string): Observable<void> {
+    const idx = dbEmployees.findIndex(e => e.gymId === gymId && e.id === id);
+    if (idx !== -1) {
+      const emp = dbEmployees[idx];
+      dbEmployees.splice(idx, 1);
+      
+      if (emp.email) {
+        delete dbMockAccounts[emp.email.toLowerCase().trim()];
+      }
+    }
+    return of(undefined).pipe(delay(200));
+  }
+
+  // Attendance
+  getAttendance(gymId: string): Observable<EmployeeAttendance[]> {
+    return of(dbEmployeeAttendance.filter(a => a.gymId === gymId)).pipe(delay(300));
+  }
+
+  markAttendance(gymId: string, record: Omit<EmployeeAttendance, 'id'>): Observable<EmployeeAttendance> {
+    const newRecord: EmployeeAttendance = {
+      ...record,
+      id: 'att-emp-' + Math.random().toString(36).substring(2, 9),
+      gymId
+    };
+    dbEmployeeAttendance.push(newRecord);
+    return of(newRecord).pipe(delay(200));
+  }
+
+  // Payroll
+  getPayroll(gymId: string): Observable<EmployeePayroll[]> {
+    return of(dbEmployeePayroll.filter(p => p.gymId === gymId)).pipe(delay(300));
+  }
+
+  addPayroll(gymId: string, payroll: Omit<EmployeePayroll, 'id'>): Observable<EmployeePayroll> {
+    const newPayroll: EmployeePayroll = {
+      ...payroll,
+      id: 'pay-emp-' + Math.random().toString(36).substring(2, 9),
+      gymId
+    };
+    dbEmployeePayroll.push(newPayroll);
+    return of(newPayroll).pipe(delay(200));
+  }
+
+  // Performance
+  getPerformance(gymId: string): Observable<EmployeePerformance[]> {
+    return of(dbEmployeePerformance.filter(p => p.gymId === gymId)).pipe(delay(300));
+  }
+
+  addPerformance(gymId: string, performance: Omit<EmployeePerformance, 'id'>): Observable<EmployeePerformance> {
+    const newPerformance: EmployeePerformance = {
+      ...performance,
+      id: 'perf-' + Math.random().toString(36).substring(2, 9),
+      gymId
+    };
+    dbEmployeePerformance.push(newPerformance);
+    return of(newPerformance).pipe(delay(200));
   }
 }
 

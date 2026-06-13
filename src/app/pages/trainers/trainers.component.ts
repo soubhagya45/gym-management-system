@@ -81,62 +81,18 @@ export class TrainersComponent implements OnInit {
         return;
       }
 
-      const dialogRef = this.dialog.open(TrainerDialogComponent, {
-        width: '550px',
-        data: null
-      });
-
-      dialogRef.afterClosed().subscribe(result => {
-        if (result) {
-          this.trainerState.addTrainer(result).subscribe(() => {
-            this.snackBar.open('Trainer profile registered successfully!', 'Dismiss', {
-              duration: 3000
-            });
-          });
-        }
-      });
+      this.router.navigate(['/employees'], { queryParams: { tab: 1, prefillRole: 'trainer' } });
     });
   }
 
 
   // Edit Trainer
   openEditTrainerDialog(trainer: Trainer) {
-    const dialogRef = this.dialog.open(TrainerDialogComponent, {
-      width: '550px',
-      data: trainer
-    });
-
-    dialogRef.afterClosed().subscribe(result => {
-      if (result) {
-        this.trainerState.updateTrainer(result).subscribe(() => {
-          this.snackBar.open('Trainer profile updated!', 'Dismiss', {
-            duration: 3000
-          });
-        });
-      }
-    });
+    this.router.navigate(['/employees'], { queryParams: { tab: 0, search: trainer.name, role: 'trainer' } });
   }
 
   // Delete Trainer
   confirmDeleteTrainer(trainer: Trainer) {
-    const dialogRef = this.dialog.open(ConfirmDialogComponent, {
-      width: '400px',
-      data: {
-        title: 'Remove Trainer Profile',
-        message: `Are you sure you want to permanently remove "${trainer.name}" from the system directory?`,
-        confirmText: 'Remove Trainer',
-        cancelText: 'Cancel'
-      }
-    });
-
-    dialogRef.afterClosed().subscribe(confirm => {
-      if (confirm) {
-        this.trainerState.deleteTrainer(trainer.id).subscribe(() => {
-          this.snackBar.open('Trainer profile removed.', 'Dismiss', {
-            duration: 3000
-          });
-        });
-      }
-    });
+    this.router.navigate(['/employees'], { queryParams: { tab: 0, search: trainer.name, role: 'trainer' } });
   }
 }
