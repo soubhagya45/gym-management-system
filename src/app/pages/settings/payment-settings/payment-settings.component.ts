@@ -749,15 +749,15 @@ export class PaymentSettingsComponent implements OnInit, OnDestroy {
   billingCycle: 'monthly' | 'yearly' = 'monthly';
   invoiceColumns = ['invoiceNumber', 'date', 'plan', 'paymentMethod', 'amount', 'status', 'actions'];
 
-  readonly planPrices = PLAN_PRICES;
-  readonly planFeatures = PLAN_FEATURES;
+  readonly planPrices: Record<any, any> = PLAN_PRICES;
+  readonly planFeatures: Record<any, any> = PLAN_FEATURES;
   readonly subscriptionPlans: SubscriptionPlan[] = [
     SubscriptionPlan.FreeTrial,
     SubscriptionPlan.Basic,
     SubscriptionPlan.Pro,
     SubscriptionPlan.Enterprise
   ];
-  readonly planLabels = PLAN_LABEL_MAP;
+  readonly planLabels: Record<any, any> = PLAN_LABEL_MAP;
   planPriceTexts: Record<string, string> = {};
 
   constructor(
