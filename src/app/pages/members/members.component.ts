@@ -41,8 +41,7 @@ import { take } from 'rxjs/operators';
     MatIconModule,
     MatDialogModule,
     MatSnackBarModule,
-    MatTooltipModule,
-    WhatsAppPreviewModalComponent
+    MatTooltipModule
   ],
   templateUrl: './members.component.html',
   styleUrls: ['./members.component.scss']
