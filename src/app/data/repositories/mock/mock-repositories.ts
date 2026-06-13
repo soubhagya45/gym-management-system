@@ -49,7 +49,63 @@ const dbGyms: Gym[] = [
     status: 'active',
     createdAt: '2026-01-01',
     address: '123 Elite Athlete Boulevard, Suite 500, Downtown',
-    gstNumber: '29ABCDE1234F1Z5'
+    gstNumber: '29ABCDE1234F1Z5',
+    logoUrl: 'https://images.unsplash.com/photo-1517838277536-f5f99be501cd?w=150',
+    website: 'https://downtown.apexfit.com',
+    socialLinks: {
+      facebook: 'https://facebook.com/apexfitdowntown',
+      instagram: 'https://instagram.com/apexfitdowntown',
+      twitter: 'https://twitter.com/apexfitdt',
+      linkedin: 'https://linkedin.com/company/apexfitdowntown'
+    },
+    branches: [
+      { id: 'br-1', name: 'Downtown Main Branch', code: 'DT-01', address: '123 Elite Athlete Boulevard, Suite 500', manager: 'Rahul Sharma', phone: '+91 99887 76655' },
+      { id: 'br-2', name: 'Koramangala Extension', code: 'DT-02', address: '77 Koramangala 4th Block, Bangalore', manager: 'Vikram Malhotra', phone: '+91 99887 76688' }
+    ],
+    membershipSettings: {
+      monthlyPrice: 1500,
+      quarterlyPrice: 4000,
+      halfYearlyPrice: 7500,
+      annualPrice: 15000,
+      autoExpiryEnabled: true,
+      autoExpiryGraceDays: 3,
+      renewalReminderDays: 7
+    },
+    paymentSettings: {
+      currency: '₹',
+      enableCard: true,
+      enableUPI: true,
+      enableCash: true,
+      bankName: 'HDFC Bank',
+      bankAccountNo: '50100223344556',
+      bankIfsc: 'HDFC0000123',
+      bankHolderName: 'Apex Fit Downtown Private Limited'
+    },
+    invoiceSettings: {
+      prefix: 'APEX-DT-',
+      taxName: 'GST',
+      taxRate: 18,
+      footerNotes: 'Thank you for choosing Apex Fit. Keep pushing your limits!'
+    },
+    notificationSettings: {
+      renewalRemindersEnabled: true,
+      paymentRemindersEnabled: true,
+      leadFollowUpsEnabled: true,
+      attendanceRemindersEnabled: false
+    },
+    branding: {
+      logoUrl: 'https://images.unsplash.com/photo-1517838277536-f5f99be501cd?w=150',
+      primaryColor: '#6366f1',
+      secondaryColor: '#8b5cf6',
+      theme: 'dark'
+    },
+    integrations: {
+      whatsapp: { isEnabled: true, apiKey: 'wa_live_998877abc123xyz', senderPhone: '+91 90000 11111' },
+      razorpay: { isEnabled: true, merchantId: 'mid_rzp_123', keyId: 'rzp_live_abc123', keySecret: '••••••••••••••••' },
+      stripe: { isEnabled: false },
+      firebase: { isEnabled: false },
+      restApi: { isEnabled: false }
+    }
   },
   {
     gymId: 'gym-b',
@@ -61,7 +117,60 @@ const dbGyms: Gym[] = [
     status: 'active',
     createdAt: '2026-03-01',
     address: '456 Resistance Road, Level 2, Uptown',
-    gstNumber: '29FGHIJ5678K2Z6'
+    gstNumber: '29FGHIJ5678K2Z6',
+    logoUrl: 'https://images.unsplash.com/photo-1571019613454-1cb2f99b2d8b?w=150',
+    website: 'https://uptown.apexfit.com',
+    socialLinks: {
+      facebook: 'https://facebook.com/apexfituptown',
+      instagram: 'https://instagram.com/apexfituptown'
+    },
+    branches: [
+      { id: 'br-b1', name: 'Uptown Head Office', code: 'UT-01', address: '456 Resistance Road, Level 2', manager: 'Sarah Connor', phone: '+91 99887 76699' }
+    ],
+    membershipSettings: {
+      monthlyPrice: 2000,
+      quarterlyPrice: 5500,
+      halfYearlyPrice: 10000,
+      annualPrice: 18000,
+      autoExpiryEnabled: true,
+      autoExpiryGraceDays: 0,
+      renewalReminderDays: 5
+    },
+    paymentSettings: {
+      currency: '₹',
+      enableCard: false,
+      enableUPI: true,
+      enableCash: true,
+      bankName: 'ICICI Bank',
+      bankAccountNo: '000401502633',
+      bankIfsc: 'ICIC0000004',
+      bankHolderName: 'Apex Fit Uptown Ltd'
+    },
+    invoiceSettings: {
+      prefix: 'APEX-UT-',
+      taxName: 'GST',
+      taxRate: 18,
+      footerNotes: 'Join the resistance. Stay strong!'
+    },
+    notificationSettings: {
+      renewalRemindersEnabled: true,
+      paymentRemindersEnabled: false,
+      leadFollowUpsEnabled: false,
+      attendanceRemindersEnabled: true
+    },
+    branding: {
+      logoUrl: 'https://images.unsplash.com/photo-1571019613454-1cb2f99b2d8b?w=150',
+      primaryColor: '#3b82f6',
+      secondaryColor: '#1d4ed8',
+      theme: 'dark'
+    },
+    integrations: {
+      whatsapp: { isEnabled: false },
+      razorpay: { isEnabled: false },
+      stripe: { isEnabled: false },
+      firebase: { isEnabled: false },
+      restApi: { isEnabled: false }
+    }
   }
 ];
 
