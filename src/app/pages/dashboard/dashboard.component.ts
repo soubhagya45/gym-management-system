@@ -29,7 +29,6 @@ import { GymState } from '../../presentation/state/gym.state';
 import { RenewDialogComponent } from '../payments/renew-dialog.component';
 import { Observable, combineLatest } from 'rxjs';
 import { map } from 'rxjs/operators';
-import { WhatsAppPreviewModalComponent } from '../whatsapp/whatsapp-preview-modal.component';
 
 @Component({
   selector: 'app-dashboard',
@@ -44,8 +43,7 @@ import { WhatsAppPreviewModalComponent } from '../whatsapp/whatsapp-preview-moda
     MatTooltipModule,
     MatTabsModule,
     MatDialogModule,
-    MatSnackBarModule,
-    WhatsAppPreviewModalComponent
+    MatSnackBarModule
   ],
   templateUrl: './dashboard.component.html',
   styleUrls: ['./dashboard.component.scss']

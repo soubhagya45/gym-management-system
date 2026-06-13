@@ -51,8 +51,7 @@ const PLAN_LABEL_MAP: Record<SubscriptionPlan, string> = {
     MatProgressBarModule,
     MatDividerModule,
     MatTabsModule,
-    MatDialogModule,
-    CheckoutDialogComponent
+    MatDialogModule
   ],
   template: `
     <div class="settings-container">

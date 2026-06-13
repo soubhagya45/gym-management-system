@@ -53,8 +53,7 @@ interface PaymentStats {
     MatSnackBarModule,
     MatTooltipModule,
     MatTabsModule,
-    MatProgressBarModule,
-    WhatsAppPreviewModalComponent
+    MatProgressBarModule
   ],
   templateUrl: './payments.component.html',
   styleUrls: ['./payments.component.scss']

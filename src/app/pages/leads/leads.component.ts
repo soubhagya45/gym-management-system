@@ -47,8 +47,7 @@ interface LeadStats {
     MatDialogModule,
     MatSnackBarModule,
     MatTooltipModule,
-    MatCardModule,
-    WhatsAppPreviewModalComponent
+    MatCardModule
   ],
   templateUrl: './leads.component.html',
   styleUrls: ['./leads.component.scss']
