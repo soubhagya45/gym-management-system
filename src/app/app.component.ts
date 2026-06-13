@@ -89,9 +89,45 @@ export class AppComponent implements OnInit {
         this.pageTitle = currentRoute ? currentRoute.label : 'Dashboard';
       }
 
+
       // Auto-close drawer on mobile navigation
       if (this.isMobile) {
         this.sidenavOpened = false;
+      }
+    });
+
+    // 3. Dynamic Gym Branding Integration
+    this.gymState.activeGym$.subscribe(gym => {
+      if (gym && gym.branding) {
+        const root = document.documentElement;
+        const primary = gym.branding.primaryColor || '#6366f1';
+        const secondary = gym.branding.secondaryColor || '#8b5cf6';
+        
+        root.style.setProperty('--accent-color', primary);
+        root.style.setProperty('--accent-hover', primary);
+        root.style.setProperty('--accent-gradient', `linear-gradient(135deg, ${primary} 0%, ${secondary} 100%)`);
+        root.style.setProperty('--accent-light', `${primary}15`);
+
+        if (gym.branding.theme) {
+          if (gym.branding.theme === 'dark') {
+            this.isDarkMode = true;
+            document.body.classList.remove('light-theme');
+            document.body.classList.add('dark-theme');
+            localStorage.setItem('theme', 'dark');
+          } else if (gym.branding.theme === 'light') {
+            this.isDarkMode = false;
+            document.body.classList.remove('dark-theme');
+            document.body.classList.add('light-theme');
+            localStorage.setItem('theme', 'light');
+          }
+        }
+      } else {
+        // Fallback default colors
+        const root = document.documentElement;
+        root.style.setProperty('--accent-color', '#6366f1');
+        root.style.setProperty('--accent-hover', '#818cf8');
+        root.style.setProperty('--accent-gradient', 'linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%)');
+        root.style.setProperty('--accent-light', 'rgba(99, 102, 241, 0.15)');
       }
     });
   }
