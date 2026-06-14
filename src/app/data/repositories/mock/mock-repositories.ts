@@ -2,6 +2,8 @@ import { Injectable } from '@angular/core';
 import { Observable, of, throwError } from 'rxjs';
 import { delay, map } from 'rxjs/operators';
 import { UserRole } from '../../../core/enums/roles.enum';
+import { IOnboardingRepository } from '../../../core/interfaces/onboarding-repository.interface';
+import { OnboardingData } from '../../../core/models/onboarding.model';
 
 import {
   IAuthRepository,
@@ -849,6 +851,115 @@ export class MockGymRepository implements IGymRepository {
       dbGyms[idx] = gym;
     }
     return of(undefined).pipe(delay(200));
+  }
+}
+
+@Injectable({ providedIn: 'root' })
+export class MockOnboardingRepository implements IOnboardingRepository {
+  sendVerificationCode(email: string): Observable<boolean> {
+    console.log(`[MockOnboardingRepository] Verification code sent to ${email}`);
+    return of(true).pipe(delay(1000));
+  }
+
+  verifyEmailCode(email: string, code: string): Observable<boolean> {
+    const isValid = code.length === 6;
+    return of(isValid).pipe(delay(800));
+  }
+
+  onboardWorkspace(payload: OnboardingData): Observable<{ gym: Gym; owner: UserProfile }> {
+    const gymId = 'gym-' + Math.random().toString(36).substring(2, 9);
+    const today = new Date();
+    const trialExpiry = new Date();
+    trialExpiry.setDate(today.getDate() + 14);
+
+    const newGym: Gym = {
+      gymId,
+      gymName: payload.gymName,
+      ownerName: payload.ownerFullName,
+      email: payload.gymEmail,
+      phone: payload.gymPhone,
+      subscriptionPlan: SubscriptionPlan.FreeTrial,
+      status: 'active',
+      createdAt: today.toISOString().split('T')[0],
+      address: payload.gymAddress,
+      city: payload.gymCity,
+      state: payload.gymState,
+      country: payload.gymCountry,
+      trialExpiryDate: trialExpiry.toISOString().split('T')[0],
+      subscriptionStatus: 'trialing',
+      branches: [
+        {
+          id: 'branch-' + Math.random().toString(36).substring(2, 9),
+          name: payload.branchName,
+          code: payload.branchName.toUpperCase().replace(/\s+/g, '-').substring(0, 5),
+          address: payload.branchAddress,
+          manager: payload.ownerFullName,
+          phone: payload.branchPhone
+        }
+      ],
+      membershipSettings: {
+        monthlyPrice: 1500,
+        quarterlyPrice: 4000,
+        halfYearlyPrice: 7500,
+        annualPrice: 14000,
+        autoExpiryEnabled: true,
+        autoExpiryGraceDays: 3,
+        renewalReminderDays: 7
+      },
+      paymentSettings: {
+        currency: 'INR',
+        enableCard: true,
+        enableUPI: true,
+        enableCash: true
+      },
+      invoiceSettings: {
+        prefix: 'INV',
+        taxName: 'GST',
+        taxRate: 18
+      },
+      notificationSettings: {
+        renewalRemindersEnabled: true,
+        paymentRemindersEnabled: true,
+        leadFollowUpsEnabled: true,
+        attendanceRemindersEnabled: false
+      }
+    };
+
+    dbGyms.push(newGym);
+
+    const userId = 'usr-' + Math.random().toString(36).substring(2, 9);
+    const ownerProfile = buildUser({
+      id: userId,
+      name: payload.ownerFullName,
+      email: payload.ownerEmail,
+      avatarUrl: `https://api.dicebear.com/7.x/initials/svg?seed=${encodeURIComponent(payload.ownerFullName)}`,
+      role: UserRole.Owner,
+      gymId: gymId,
+      isFirstLogin: true
+    });
+
+    const emailKey = payload.ownerEmail.toLowerCase().trim();
+    dbMockAccounts[emailKey] = ownerProfile;
+    dbPasswords[emailKey] = payload.ownerPassword || 'password';
+
+    if (payload.plans && payload.plans.length > 0) {
+      payload.plans.forEach(planConfig => {
+        if (planConfig.enabled) {
+          dbPlans.push({
+            id: 'plan-' + Math.random().toString(36).substring(2, 9),
+            gymId,
+            name: planConfig.name,
+            durationMonths: planConfig.durationMonths,
+            price: planConfig.price,
+            description: planConfig.description,
+            features: planConfig.features,
+            activeMembersCount: 0
+          });
+        }
+      });
+    }
+
+    return of({ gym: newGym, owner: ownerProfile }).pipe(delay(2000));
   }
 }
 

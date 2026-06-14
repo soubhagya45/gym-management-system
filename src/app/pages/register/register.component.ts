@@ -1,8 +1,10 @@
-import { Component, OnInit } from '@angular/core';
+import { Component, OnInit, OnDestroy } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { FormBuilder, FormGroup, Validators, ReactiveFormsModule } from '@angular/forms';
+import { FormBuilder, FormGroup, Validators, ReactiveFormsModule, FormsModule } from '@angular/forms';
 import { Router, RouterModule } from '@angular/router';
 import { AuthState } from '../../presentation/state/auth.state';
+import { OnboardingService } from '../../domain/onboarding/onboarding.service';
+import { DefaultPlanConfig, OnboardingData } from '../../core/models/onboarding.model';
 import { UserProfile } from '../../core/models/user.model';
 
 import { trigger, transition, style, animate } from '@angular/animations';
@@ -23,6 +25,7 @@ import { MatSelectModule } from '@angular/material/select';
     CommonModule,
     RouterModule,
     ReactiveFormsModule,
+    FormsModule,
     MatCardModule,
     MatFormFieldModule,
     MatInputModule,
@@ -42,118 +45,311 @@ import { MatSelectModule } from '@angular/material/select';
     ])
   ]
 })
-export class RegisterComponent implements OnInit {
-  currentStep: number = 1; // 1: Gym Info, 2: Owner Info, 3: Onboarding Loader
+export class RegisterComponent implements OnInit, OnDestroy {
+  // Steps:
+  // 1: Register Gym Profile
+  // 2: Verify Email OTP
+  // 3: Provisioning database spinner
+  // 4: Owner credentials form
+  // 5: Branch configuration
+  // 6: Custom pricing plans setup
+  // 7: Full workspace deployment logs console
+  currentStep: number = 1; 
+  
   gymForm!: FormGroup;
+  otpForm!: FormGroup;
   ownerForm!: FormGroup;
-  registeredUser: UserProfile | null = null;
+  branchForm!: FormGroup;
+  
+  plans: DefaultPlanConfig[] = [];
   
   isLoading = false;
   errorMessage: string | null = null;
   hidePassword = true;
-
-  // Onboarding simulation steps
+  
+  // OTP Countdown timer
+  resendCountdown = 30;
+  resendTimerInterval: any;
+  verificationSent = false;
+  
+  // Loader parameters
   onboardingProgress = 0;
-  onboardingTasks = [
-    { label: 'Generating secure gym tenant ID...', status: 'pending' },
-    { label: 'Initializing member transformation log tables...', status: 'pending' },
-    { label: 'Deploying baseline WhatsApp reminder templates...', status: 'pending' },
-    { label: 'Creating administrator credential database records...', status: 'pending' },
-    { label: 'Compiling SaaS workspace dashboards...', status: 'pending' }
-  ];
+  onboardingTasks: { label: string; status: 'pending' | 'running' | 'done' }[] = [];
+  
+  registeredUser: UserProfile | null = null;
 
   constructor(
     private fb: FormBuilder,
     private authState: AuthState,
+    private onboardingService: OnboardingService,
     private router: Router
   ) {}
 
   ngOnInit(): void {
     this.gymForm = this.fb.group({
       gymName: ['', [Validators.required, Validators.minLength(3)]],
-      phone: ['', [Validators.required, Validators.pattern(/^[+]?[0-9\s-]{7,15}$/)]],
-      address: ['', [Validators.required, Validators.minLength(5)]],
-      gstNumber: ['', [Validators.pattern(/^[0-9]{2}[A-Z]{5}[0-9]{4}[A-Z]{1}[1-9A-Z]{1}Z[0-9A-Z]{1}$/)]], // GST Number pattern validation
-      gymType: ['', [Validators.required]],
-      openingTime: ['', [Validators.required]],
-      closingTime: ['', [Validators.required]]
+      gymPhone: ['', [Validators.required, Validators.pattern(/^[+]?[0-9\s-]{7,15}$/)]],
+      gymEmail: ['', [Validators.required, Validators.email]],
+      gymAddress: ['', [Validators.required, Validators.minLength(5)]],
+      gymCity: ['', [Validators.required]],
+      gymState: ['', [Validators.required]],
+      gymCountry: ['', [Validators.required]]
+    });
+
+    this.otpForm = this.fb.group({
+      code: ['', [Validators.required, Validators.pattern(/^\d{6}$/)]]
     });
 
     this.ownerForm = this.fb.group({
-      ownerName: ['', [Validators.required, Validators.minLength(2)]],
-      email: ['', [Validators.required, Validators.email]],
-      password: ['', [Validators.required, Validators.minLength(4)]]
+      ownerFullName: ['', [Validators.required, Validators.minLength(2)]],
+      ownerEmail: [{ value: '', disabled: true }, [Validators.required, Validators.email]],
+      ownerPhone: ['', [Validators.required, Validators.pattern(/^[+]?[0-9\s-]{7,15}$/)]],
+      ownerPassword: ['', [Validators.required, Validators.minLength(6)]]
     });
+
+    this.branchForm = this.fb.group({
+      branchName: ['Main Branch', [Validators.required, Validators.minLength(3)]],
+      branchPhone: ['', [Validators.required, Validators.pattern(/^[+]?[0-9\s-]{7,15}$/)]],
+      branchAddress: ['', [Validators.required, Validators.minLength(5)]]
+    });
+    
+    this.plans = this.onboardingService.getDefaultPlans();
   }
 
-  nextStep(): void {
-    if (this.gymForm.valid) {
-      this.currentStep = 2;
-    } else {
-      this.gymForm.markAllAsTouched();
+  ngOnDestroy(): void {
+    if (this.resendTimerInterval) {
+      clearInterval(this.resendTimerInterval);
     }
   }
 
-  prevStep(): void {
-    this.currentStep = 1;
+  startResendTimer(): void {
+    this.resendCountdown = 30;
+    if (this.resendTimerInterval) clearInterval(this.resendTimerInterval);
+    this.resendTimerInterval = setInterval(() => {
+      if (this.resendCountdown > 0) {
+        this.resendCountdown--;
+      } else {
+        clearInterval(this.resendTimerInterval);
+      }
+    }, 1000);
   }
 
-  startOnboarding(): void {
-    if (this.ownerForm.invalid || this.gymForm.invalid || this.isLoading) {
+  submitGymInfo(): void {
+    if (this.gymForm.invalid) {
+      this.gymForm.markAllAsTouched();
+      return;
+    }
+    
+    this.isLoading = true;
+    this.errorMessage = null;
+    const email = this.gymForm.value.gymEmail;
+    
+    this.onboardingService.sendVerificationCode(email).subscribe({
+      next: () => {
+        this.isLoading = false;
+        this.verificationSent = true;
+        this.currentStep = 2;
+        this.startResendTimer();
+      },
+      error: (err) => {
+        this.isLoading = false;
+        this.errorMessage = err.message || 'Failed to send verification code. Please check gym email.';
+      }
+    });
+  }
+
+  resendVerificationCode(): void {
+    if (this.resendCountdown > 0) return;
+    const email = this.gymForm.value.gymEmail;
+    this.isLoading = true;
+    this.onboardingService.sendVerificationCode(email).subscribe({
+      next: () => {
+        this.isLoading = false;
+        this.startResendTimer();
+      },
+      error: (err) => {
+        this.isLoading = false;
+        this.errorMessage = err.message || 'Failed to resend code.';
+      }
+    });
+  }
+
+  verifyEmail(): void {
+    if (this.otpForm.invalid) {
+      this.otpForm.markAllAsTouched();
       return;
     }
 
     this.isLoading = true;
     this.errorMessage = null;
+    const email = this.gymForm.value.gymEmail;
+    const code = this.otpForm.value.code;
 
-    const { gymName, phone, address, gstNumber, gymType, openingTime, closingTime } = this.gymForm.value;
-    const { ownerName, email, password } = this.ownerForm.value;
-
-    // Call registration immediately, deferring the logged-in session state update
-    this.authState.register(gymName, ownerName, email, phone, password, address, gstNumber, true, gymType, openingTime, closingTime).subscribe({
-      next: (user) => {
-        // Successful registration! Save the registered user profile locally
-        this.registeredUser = user;
-        // Now trigger step 3 onboarding animations (while remaining in the login/wizard layout view)
-        this.currentStep = 3;
-        this.runOnboardingSimulation();
+    this.onboardingService.verifyEmailCode(email, code).subscribe({
+      next: (isValid) => {
+        this.isLoading = false;
+        if (isValid) {
+          this.ownerForm.patchValue({
+            ownerEmail: email,
+            ownerPhone: this.gymForm.value.gymPhone
+          });
+          this.ownerForm.get('ownerEmail')?.disable();
+          
+          this.currentStep = 3;
+          this.runGymCreationLoader();
+        } else {
+          this.errorMessage = 'Invalid verification code. Please enter standard 6 digit code.';
+        }
       },
       error: (err) => {
         this.isLoading = false;
-        this.errorMessage = err.message || 'Registration failed. Please check your credentials.';
+        this.errorMessage = err.message || 'Verification check failed.';
       }
     });
   }
 
-  private runOnboardingSimulation(): void {
-    let taskIdx = 0;
-    this.onboardingTasks[0].status = 'running';
-
+  runGymCreationLoader(): void {
+    this.onboardingProgress = 0;
+    this.onboardingTasks = [
+      { label: 'Registering tenant domain workspace...', status: 'running' },
+      { label: 'Provisioning multi-tenant database space...', status: 'pending' },
+      { label: 'Establishing secure SaaS API keys...', status: 'pending' }
+    ];
+    
+    let currentTask = 0;
     const interval = setInterval(() => {
-      this.onboardingProgress += 5;
-
-      // Determine task transitions
-      const threshold = (taskIdx + 1) * 20;
-      if (this.onboardingProgress >= threshold && taskIdx < this.onboardingTasks.length) {
-        this.onboardingTasks[taskIdx].status = 'done';
-        taskIdx++;
-        if (taskIdx < this.onboardingTasks.length) {
-          this.onboardingTasks[taskIdx].status = 'running';
-        }
+      this.onboardingProgress += 10;
+      
+      if (this.onboardingProgress >= 30 && currentTask === 0) {
+        this.onboardingTasks[0].status = 'done';
+        this.onboardingTasks[1].status = 'running';
+        currentTask = 1;
+      }
+      
+      if (this.onboardingProgress >= 70 && currentTask === 1) {
+        this.onboardingTasks[1].status = 'done';
+        this.onboardingTasks[2].status = 'running';
+        currentTask = 2;
       }
 
       if (this.onboardingProgress >= 100) {
+        this.onboardingTasks[2].status = 'done';
         clearInterval(interval);
         setTimeout(() => {
-          this.isLoading = false;
-          if (this.registeredUser) {
-            // Establish the session in AuthState now that onboarding is complete
-            this.authState.setCurrentUser(this.registeredUser);
-          }
-          // Redirect to administrative dashboard
-          this.router.navigate(['/dashboard']);
-        }, 600);
+          this.currentStep = 4;
+        }, 500);
       }
     }, 150);
+  }
+
+  submitOwnerDetails(): void {
+    if (this.ownerForm.invalid) {
+      this.ownerForm.markAllAsTouched();
+      return;
+    }
+
+    this.branchForm.patchValue({
+      branchPhone: this.ownerForm.value.ownerPhone || this.gymForm.value.gymPhone,
+      branchAddress: this.gymForm.value.gymAddress
+    });
+
+    this.currentStep = 5;
+  }
+
+  submitBranchDetails(): void {
+    if (this.branchForm.invalid) {
+      this.branchForm.markAllAsTouched();
+      return;
+    }
+
+    this.currentStep = 6;
+  }
+
+  addNewPlan(): void {
+    this.plans.push({
+      name: 'Custom Plan ' + (this.plans.length + 1),
+      durationMonths: 1,
+      price: 1200,
+      description: 'Customized facility access tier.',
+      features: ['Access to Gym Equipments', 'Locker Room Access'],
+      enabled: true
+    });
+  }
+
+  finalizeOnboarding(): void {
+    this.isLoading = true;
+    this.errorMessage = null;
+
+    const payload: OnboardingData = {
+      ...this.gymForm.value,
+      verificationCode: this.otpForm.value.code,
+      
+      ownerFullName: this.ownerForm.value.ownerFullName,
+      ownerEmail: this.ownerForm.getRawValue().ownerEmail,
+      ownerPassword: this.ownerForm.value.ownerPassword,
+      ownerPhone: this.ownerForm.value.ownerPhone,
+      
+      branchName: this.branchForm.value.branchName,
+      branchPhone: this.branchForm.value.branchPhone,
+      branchAddress: this.branchForm.value.branchAddress,
+      
+      plans: this.plans
+    };
+
+    this.currentStep = 7;
+    this.runFinalWorkspaceDeployment(payload);
+  }
+
+  runFinalWorkspaceDeployment(payload: OnboardingData): void {
+    this.onboardingProgress = 0;
+    this.onboardingTasks = [
+      { label: 'Registering owner credentials...', status: 'running' },
+      { label: 'Configuring default branch workspace...', status: 'pending' },
+      { label: 'Deploying custom membership plans...', status: 'pending' },
+      { label: 'Enabling 14-day free trial tier...', status: 'pending' },
+      { label: 'Redirecting to your administrative console...', status: 'pending' }
+    ];
+
+    this.onboardingService.onboardWorkspace(payload).subscribe({
+      next: (result) => {
+        this.registeredUser = result.owner;
+        
+        let currentTask = 0;
+        const interval = setInterval(() => {
+          this.onboardingProgress += 5;
+
+          const threshold = (currentTask + 1) * 20;
+          if (this.onboardingProgress >= threshold && currentTask < this.onboardingTasks.length - 1) {
+            this.onboardingTasks[currentTask].status = 'done';
+            currentTask++;
+            this.onboardingTasks[currentTask].status = 'running';
+          }
+
+          if (this.onboardingProgress >= 100) {
+            this.onboardingTasks[currentTask].status = 'done';
+            this.onboardingTasks[4].status = 'running';
+            clearInterval(interval);
+            setTimeout(() => {
+              this.onboardingTasks[4].status = 'done';
+              this.isLoading = false;
+              if (this.registeredUser) {
+                this.authState.setCurrentUser(this.registeredUser);
+              }
+              this.router.navigate(['/dashboard']);
+            }, 800);
+          }
+        }, 100);
+      },
+      error: (err) => {
+        this.currentStep = 6;
+        this.isLoading = false;
+        this.errorMessage = err.message || 'Workspace creation failed. Please check parameters.';
+      }
+    });
+  }
+
+  prevStep(targetStep: number): void {
+    this.errorMessage = null;
+    this.currentStep = targetStep;
   }
 }
