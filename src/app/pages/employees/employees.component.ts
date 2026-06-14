@@ -171,6 +171,30 @@ export class EmployeesComponent implements OnInit {
   }
 
   ngOnInit(): void {
+    this.initForms();
+
+    // Set up reactive filtering of Reporting Manager based on selected role
+    const roleControl = this.employeeForm.get('role');
+    if (roleControl) {
+      this.managers$ = combineLatest([
+        this.employees$,
+        roleControl.valueChanges.pipe(startWith(roleControl.value))
+      ]).pipe(
+        map(([emps, selectedRole]) => {
+          if (selectedRole === UserRole.Manager) {
+            // Manager role: show owners' names
+            return emps.filter(e => e.role === UserRole.Owner);
+          } else if (selectedRole !== UserRole.Owner) {
+            // Other roles: show managers' names
+            return emps.filter(e => e.role === UserRole.Manager);
+          } else {
+            // Gym Owner: no reporting manager
+            return [];
+          }
+        })
+      );
+    }
+
     // Check for active tab query param
     this.route.queryParams.subscribe(params => {
       if (params['tab']) {
@@ -181,13 +205,11 @@ export class EmployeesComponent implements OnInit {
       this.statusFilter = params['status'] || 'all';
 
       // Prefill role if onboarding redirected e.g. from trainer page
-      if (params['prefillRole'] && this.employeeForm) {
+      if (params['prefillRole']) {
         this.employeeForm.patchValue({ role: params['prefillRole'] });
         this.onRoleChange(params['prefillRole']);
       }
     });
-
-    this.initForms();
   }
 
   initForms(): void {
@@ -268,6 +290,10 @@ export class EmployeesComponent implements OnInit {
     const specialtyCtrl = this.employeeForm.get('specialty');
     const expCtrl = this.employeeForm.get('experienceYears');
     const deptCtrl = this.employeeForm.get('department');
+    const reportingManagerCtrl = this.employeeForm.get('reportingManagerId');
+
+    // Reset selected reporting manager on role change to prevent invalid state
+    reportingManagerCtrl?.setValue('');
 
     if (role === UserRole.Trainer) {
       specialtyCtrl?.setValidators([Validators.required]);
@@ -286,6 +312,7 @@ export class EmployeesComponent implements OnInit {
 
     specialtyCtrl?.updateValueAndValidity();
     expCtrl?.updateValueAndValidity();
+    reportingManagerCtrl?.updateValueAndValidity();
   }
 
   onTabChange(index: number): void {

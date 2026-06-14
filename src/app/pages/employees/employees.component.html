@@ -228,7 +228,7 @@
                 </mat-select>
               </mat-form-field>
 
-              <mat-form-field appearance="outline">
+              <mat-form-field appearance="outline" *ngIf="employeeForm.get('role')?.value !== 'owner'">
                 <mat-label>Reporting Manager</mat-label>
                 <mat-select formControlName="reportingManagerId">
                   <mat-option value="">None / Top Level</mat-option>
