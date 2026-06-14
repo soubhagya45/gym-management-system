@@ -86,6 +86,9 @@ export class RegisterComponent implements OnInit, OnDestroy {
   ) {}
 
   ngOnInit(): void {
+    document.documentElement.classList.add('auth-page-active');
+    document.body.classList.add('auth-page-active');
+
     this.gymForm = this.fb.group({
       gymName: ['', [Validators.required, Validators.minLength(3)]],
       gymPhone: ['', [Validators.required, Validators.pattern(/^[+]?[0-9\s-]{7,15}$/)]],
@@ -117,6 +120,9 @@ export class RegisterComponent implements OnInit, OnDestroy {
   }
 
   ngOnDestroy(): void {
+    document.documentElement.classList.remove('auth-page-active');
+    document.body.classList.remove('auth-page-active');
+
     if (this.resendTimerInterval) {
       clearInterval(this.resendTimerInterval);
     }

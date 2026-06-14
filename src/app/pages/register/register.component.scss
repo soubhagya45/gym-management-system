@@ -1,7 +1,7 @@
 .register-wrapper {
   position: relative;
   width: 100%;
-  height: 100vh;
+  min-height: 100vh;
   box-sizing: border-box;
   background-color: var(--bg-primary, #0a0b10);
   color: var(--text-primary, #ffffff);
@@ -10,7 +10,6 @@
   align-items: center;
   justify-content: flex-start;
   padding: 0 20px;
-  overflow-y: auto;
   font-family: 'Inter', sans-serif;
   transition: background-color 0.3s ease, color 0.3s ease;
 }

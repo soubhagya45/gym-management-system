@@ -106,6 +106,13 @@ html, body {
   overflow: hidden;
 }
 
+/* Enable native body scrolling on standalone auth/registration pages */
+html.auth-page-active,
+body.auth-page-active {
+  overflow: auto !important;
+  height: auto !important;
+}
+
 /* Scrollbar Customization */
 ::-webkit-scrollbar {
   width: 6px;

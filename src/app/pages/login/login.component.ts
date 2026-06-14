@@ -1,4 +1,4 @@
-import { Component, OnInit, TemplateRef, ViewChild } from '@angular/core';
+import { Component, OnInit, OnDestroy, TemplateRef, ViewChild } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormBuilder, FormGroup, Validators, ReactiveFormsModule } from '@angular/forms';
 import { Router, RouterModule } from '@angular/router';
@@ -37,7 +37,7 @@ import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
   templateUrl: './login.component.html',
   styleUrls: ['./login.component.scss']
 })
-export class LoginComponent implements OnInit {
+export class LoginComponent implements OnInit, OnDestroy {
   @ViewChild('passwordChangeDialog') passwordChangeDialogTemplate!: TemplateRef<any>;
 
   loginForm!: FormGroup;
@@ -140,6 +140,9 @@ export class LoginComponent implements OnInit {
   }
 
   ngOnInit(): void {
+    document.documentElement.classList.add('auth-page-active');
+    document.body.classList.add('auth-page-active');
+
     this.loginForm = this.fb.group({
       usernameOrEmail: ['', [Validators.required]],
       password: ['', [Validators.required, Validators.minLength(4)]]
@@ -147,6 +150,11 @@ export class LoginComponent implements OnInit {
 
     // Preset the form with the selected role email for UX convenience
     this.syncFormWithRole();
+  }
+
+  ngOnDestroy(): void {
+    document.documentElement.classList.remove('auth-page-active');
+    document.body.classList.remove('auth-page-active');
   }
 
   // Set selected quick role and auto-fill email field
