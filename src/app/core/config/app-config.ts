@@ -21,7 +21,19 @@ export const APP_CONFIG = new InjectionToken<AppConfig>('app.config');
 })
 export class AppConfigService {
   private config: AppConfig = {
-    provider: ProviderType.Mock // Default to mock database for local demo
+    // provider: ProviderType.Mock 
+    // Default to mock database for local demo
+
+    provider: ProviderType.Mock, // Default to mock database for local demo
+    firebaseConfig: {
+      apiKey: "AIzaSyAgOsXMU4Mpy7AmBZXa11-GFDJWCYoyc90",
+      authDomain: "apexfit-saas-dev.firebaseapp.com",
+      projectId: "apexfit-saas-dev",
+      storageBucket: "apexfit-saas-dev.firebasestorage.app",
+      messagingSenderId: "463009229431",
+      appId: "1:463009229431:web:c5e0282bf11a0c701f7472",
+      measurementId: "G-W1WL8C1HB3"
+    }
   };
 
   constructor() {
@@ -34,6 +46,10 @@ export class AppConfigService {
 
   get provider(): ProviderType {
     return this.config.provider;
+  }
+
+  get firebaseConfig(): any {
+    return this.config.firebaseConfig;
   }
 
   get apiUrl(): string | undefined {

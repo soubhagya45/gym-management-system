@@ -35,6 +35,11 @@ import { FirebaseOnboardingRepository } from '../repositories/firebase/firebase-
 import { SupabaseOnboardingRepository } from '../repositories/supabase/supabase-onboarding.repository';
 import { ApiOnboardingRepository } from '../repositories/api/api-onboarding.repository';
 
+import { IFileStorageRepository, FILE_STORAGE_REPOSITORY_TOKEN } from '../../core/interfaces/file-storage-repository.interface';
+import { MockFileStorageRepository } from '../repositories/mock/mock-file-storage.repository';
+import { FirebaseStorageRepository } from '../repositories/firebase/firebase-file-storage.repository';
+import { ApiFileStorageRepository } from '../repositories/api/api-file-storage.repository';
+
 
 import {
   MockAuthRepository,
@@ -246,6 +251,15 @@ export function onboardingRepositoryFactory(configService: AppConfigService, inj
   }
 }
 
+export function fileStorageRepositoryFactory(configService: AppConfigService, injector: Injector): IFileStorageRepository {
+  switch (configService.provider) {
+    case ProviderType.Firebase: return injector.get(FirebaseStorageRepository);
+    case ProviderType.REST: return injector.get(ApiFileStorageRepository);
+    case ProviderType.Mock:
+    default: return injector.get(MockFileStorageRepository);
+  }
+}
+
 
 export const REPOSITORY_PROVIDERS = [
   {
@@ -316,6 +330,11 @@ export const REPOSITORY_PROVIDERS = [
   {
     provide: ONBOARDING_REPOSITORY_TOKEN,
     useFactory: onboardingRepositoryFactory,
+    deps: [AppConfigService, Injector]
+  },
+  {
+    provide: FILE_STORAGE_REPOSITORY_TOKEN,
+    useFactory: fileStorageRepositoryFactory,
     deps: [AppConfigService, Injector]
   }
 ];

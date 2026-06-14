@@ -8,9 +8,12 @@ import { MatSelectModule } from '@angular/material/select';
 import { MatButtonModule } from '@angular/material/button';
 import { MatDatepickerModule } from '@angular/material/datepicker';
 import { MatNativeDateModule } from '@angular/material/core';
+import { MatIconModule } from '@angular/material/icon';
+import { MatTooltipModule } from '@angular/material/tooltip';
 import { MembershipPlanState } from '../../presentation/state/membership-plan.state';
 import { Member } from '../../core/models/member.entity';
 import { MembershipPlan } from '../../core/models/membership-plan.entity';
+import { FILE_STORAGE_REPOSITORY_TOKEN, IFileStorageRepository } from '../../core/interfaces/file-storage-repository.interface';
 
 @Component({
   selector: 'app-member-dialog',
@@ -24,7 +27,9 @@ import { MembershipPlan } from '../../core/models/membership-plan.entity';
     MatSelectModule,
     MatButtonModule,
     MatDatepickerModule,
-    MatNativeDateModule
+    MatNativeDateModule,
+    MatIconModule,
+    MatTooltipModule
   ],
   template: `
     <h2 mat-dialog-title class="gradient-text dialogue-title">
@@ -35,15 +40,20 @@ import { MembershipPlan } from '../../core/models/membership-plan.entity';
       <mat-dialog-content class="dialog-form-content">
         <!-- Profile Image Display & Avatar URL selection -->
         <div class="avatar-select-section">
-          <div class="avatar-preview">
+          <div class="avatar-preview" (click)="memberPhotoInput.click()" style="cursor: pointer" matTooltip="Click to upload avatar">
             <img [src]="selectedAvatarUrl || 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=80'" alt="Avatar Preview">
           </div>
-          <div class="avatar-inputs">
-            <mat-form-field appearance="outline">
+          <div class="avatar-inputs" style="display: flex; gap: 8px; align-items: center; width: 100%;">
+            <mat-form-field appearance="outline" style="flex: 1;">
               <mat-label>Avatar Image URL</mat-label>
               <input matInput placeholder="Unsplash URL" (input)="onAvatarChange($event)" formControlName="avatarUrl">
-              <mat-hint>Paste an image URL or leave blank for default</mat-hint>
+              <mat-hint>Paste an image URL or upload file</mat-hint>
             </mat-form-field>
+            <input type="file" #memberPhotoInput (change)="onMemberPhotoUpload($event)" accept="image/*" style="display: none">
+            <button type="button" mat-stroked-button color="accent" (click)="memberPhotoInput.click()" [disabled]="isUploading" style="height: 54px; margin-top: -18px;">
+              <mat-icon *ngIf="!isUploading">cloud_upload</mat-icon>
+              <mat-icon *ngIf="isUploading" class="spin-icon">sync</mat-icon>
+            </button>
           </div>
         </div>
 
@@ -239,13 +249,34 @@ export class MemberDialogComponent implements OnInit {
   isEdit = false;
   plans: MembershipPlan[] = [];
   selectedAvatarUrl = '';
+  isUploading = false;
 
   constructor(
     private fb: FormBuilder,
     private planState: MembershipPlanState,
     private dialogRef: MatDialogRef<MemberDialogComponent>,
-    @Inject(MAT_DIALOG_DATA) public data: Member | null
+    @Inject(MAT_DIALOG_DATA) public data: Member | null,
+    @Inject(FILE_STORAGE_REPOSITORY_TOKEN) private fileStorage: IFileStorageRepository
   ) {}
+
+  onMemberPhotoUpload(event: Event): void {
+    const input = event.target as HTMLInputElement;
+    if (input.files && input.files.length > 0) {
+      const file = input.files[0];
+      this.isUploading = true;
+      this.fileStorage.uploadFile(file, 'members').subscribe({
+        next: (url) => {
+          this.memberForm.patchValue({ avatarUrl: url });
+          this.selectedAvatarUrl = url;
+          this.isUploading = false;
+        },
+        error: (err) => {
+          this.isUploading = false;
+          console.error('Member photo upload failed:', err);
+        }
+      });
+    }
+  }
 
   ngOnInit(): void {
     // 1. Fetch available plans

@@ -1,4 +1,4 @@
-import { Component, OnInit, TemplateRef, ViewChild } from '@angular/core';
+import { Component, OnInit, TemplateRef, ViewChild, Inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule, ReactiveFormsModule, FormBuilder, FormGroup, Validators } from '@angular/forms';
 import { MatTabsModule } from '@angular/material/tabs';
@@ -8,7 +8,7 @@ import { MatButtonModule } from '@angular/material/button';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatInputModule } from '@angular/material/input';
 import { MatSelectModule } from '@angular/material/select';
-import { MatTableModule } from '@angular/material/table';
+import { MatTableModule, MatTableDataSource } from '@angular/material/table';
 import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
 import { MatDialog, MatDialogModule } from '@angular/material/dialog';
 import { MatTooltipModule } from '@angular/material/tooltip';
@@ -22,6 +22,7 @@ import { GymState } from '../../presentation/state/gym.state';
 import { SubscriptionService } from '../../domain/subscription/subscription.service';
 import { Employee, EmployeeAttendance, EmployeePayroll, EmployeePerformance } from '../../core/models/employee.entity';
 import { UserRole } from '../../core/enums/roles.enum';
+import { FILE_STORAGE_REPOSITORY_TOKEN, IFileStorageRepository } from '../../core/interfaces/file-storage-repository.interface';
 
 @Component({
   selector: 'app-employees',
@@ -108,6 +109,8 @@ export class EmployeesComponent implements OnInit {
     { feature: 'Send WhatsApp Reminders', roles: { owner: true, manager: false, receptionist: false, trainer: false, accountant: false, staff: false } }
   ];
 
+  isUploadingPhoto = false;
+
   constructor(
     private fb: FormBuilder,
     private employeeState: EmployeeState,
@@ -116,7 +119,8 @@ export class EmployeesComponent implements OnInit {
     private snackBar: MatSnackBar,
     private dialog: MatDialog,
     private route: ActivatedRoute,
-    private router: Router
+    private router: Router,
+    @Inject(FILE_STORAGE_REPOSITORY_TOKEN) private fileStorage: IFileStorageRepository
   ) {
     this.employees$ = this.employeeState.employees$;
     this.attendance$ = this.employeeState.attendance$;
@@ -145,6 +149,25 @@ export class EmployeesComponent implements OnInit {
         });
       })
     );
+  }
+
+  onEmployeePhotoUpload(event: Event): void {
+    const input = event.target as HTMLInputElement;
+    if (input.files && input.files.length > 0) {
+      const file = input.files[0];
+      this.isUploadingPhoto = true;
+      this.fileStorage.uploadFile(file, 'employees').subscribe({
+        next: (url) => {
+          this.employeeForm.patchValue({ photoUrl: url });
+          this.isUploadingPhoto = false;
+          this.snackBar.open('Employee photo uploaded successfully!', 'Dismiss', { duration: 3000 });
+        },
+        error: (err) => {
+          this.isUploadingPhoto = false;
+          this.snackBar.open(`Photo upload failed: ${err.message || err}`, 'Dismiss', { duration: 4000 });
+        }
+      });
+    }
   }
 
   ngOnInit(): void {

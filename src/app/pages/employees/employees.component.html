@@ -169,10 +169,18 @@
                 <input matInput type="date" formControlName="dob" required>
               </mat-form-field>
 
-              <mat-form-field appearance="outline">
-                <mat-label>Photo URL (Optional)</mat-label>
-                <input matInput formControlName="photoUrl" placeholder="https://unsplash.com/...">
-              </mat-form-field>
+              <div style="display: flex; align-items: center; gap: 8px; width: 100%;">
+                <mat-form-field appearance="outline" style="flex: 1;">
+                  <mat-label>Photo URL (Optional)</mat-label>
+                  <input matInput formControlName="photoUrl" placeholder="https://unsplash.com/...">
+                </mat-form-field>
+                <input type="file" #empPhotoInput (change)="onEmployeePhotoUpload($event)" accept="image/*" style="display: none">
+                <button type="button" mat-stroked-button color="accent" (click)="empPhotoInput.click()" [disabled]="isUploadingPhoto" style="height: 54px; margin-top: -4px;">
+                  <mat-icon *ngIf="!isUploadingPhoto">cloud_upload</mat-icon>
+                  <mat-icon *ngIf="isUploadingPhoto" class="spin-icon">sync</mat-icon>
+                  <span>Upload</span>
+                </button>
+              </div>
             </div>
 
             <mat-form-field appearance="outline" class="w-100">

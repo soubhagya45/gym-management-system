@@ -4,7 +4,10 @@ import { MatDialogRef, MAT_DIALOG_DATA, MatDialogModule } from '@angular/materia
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
 import { MatDividerModule } from '@angular/material/divider';
+import { MatTooltipModule } from '@angular/material/tooltip';
 import { Invoice } from '../../../core/models/finance.entity';
+import { FinanceState } from '../../../presentation/state/finance.state';
+import { FILE_STORAGE_REPOSITORY_TOKEN, IFileStorageRepository } from '../../../core/interfaces/file-storage-repository.interface';
 
 @Component({
   selector: 'app-invoice-view-dialog',
@@ -14,7 +17,8 @@ import { Invoice } from '../../../core/models/finance.entity';
     MatDialogModule,
     MatButtonModule,
     MatIconModule,
-    MatDividerModule
+    MatDividerModule,
+    MatTooltipModule
   ],
   template: `
     <div class="invoice-container dark-theme-dialog">
@@ -98,6 +102,29 @@ import { Invoice } from '../../../core/models/finance.entity';
             <span>₹{{ data.finalAmount | number:'1.2-2' }}</span>
           </div>
         </div>
+      </div>
+
+      <mat-divider class="divider" style="margin-top: 16px; margin-bottom: 16px;"></mat-divider>
+      
+      <!-- Attachment Section -->
+      <div class="attachment-section">
+        <div *ngIf="data.attachmentUrl; else noAttachment" class="attachment-info">
+          <mat-icon class="attachment-icon">attachment</mat-icon>
+          <a [href]="data.attachmentUrl" target="_blank" class="attachment-link">View Invoice Attachment</a>
+          <button mat-icon-button color="warn" (click)="removeAttachment()" matTooltip="Remove Attachment" class="remove-btn">
+            <mat-icon>delete</mat-icon>
+          </button>
+        </div>
+        <ng-template #noAttachment>
+          <div class="upload-attachment-btn">
+            <input type="file" #fileInput (change)="onUploadAttachment($event)" accept="image/*,application/pdf" style="display: none">
+            <button mat-stroked-button color="accent" (click)="fileInput.click()" [disabled]="isUploading">
+              <mat-icon *ngIf="!isUploading">cloud_upload</mat-icon>
+              <mat-icon *ngIf="isUploading" class="spin-icon">sync</mat-icon>
+              <span>{{ isUploading ? 'Uploading...' : 'Attach Receipt/Document' }}</span>
+            </button>
+          </div>
+        </ng-template>
       </div>
 
       <!-- Footer Actions -->
@@ -307,6 +334,45 @@ import { Invoice } from '../../../core/models/finance.entity';
       }
     }
 
+    .attachment-section {
+      margin-bottom: 24px;
+      padding: 12px 16px;
+      background: rgba(255, 255, 255, 0.02);
+      border: 1px dashed var(--border-color);
+      border-radius: 8px;
+    }
+    .attachment-info {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+    .attachment-icon {
+      color: var(--accent-color);
+    }
+    .attachment-link {
+      color: var(--accent-color);
+      text-decoration: none;
+      font-weight: 500;
+      flex: 1;
+      &:hover {
+        text-decoration: underline;
+      }
+    }
+    .remove-btn {
+      color: var(--danger);
+    }
+    .upload-attachment-btn {
+      display: flex;
+      justify-content: flex-start;
+    }
+    .spin-icon {
+      animation: spin 1.5s infinite linear;
+      display: inline-block;
+    }
+    @keyframes spin {
+      100% { transform: rotate(360deg); }
+    }
+
     .dialog-actions {
       display: flex;
       justify-content: flex-end;
@@ -336,12 +402,64 @@ import { Invoice } from '../../../core/models/finance.entity';
   `]
 })
 export class InvoiceViewDialogComponent {
+  isUploading = false;
+
   constructor(
     public dialogRef: MatDialogRef<InvoiceViewDialogComponent>,
-    @Inject(MAT_DIALOG_DATA) public data: Invoice
+    @Inject(MAT_DIALOG_DATA) public data: Invoice,
+    private financeState: FinanceState,
+    @Inject(FILE_STORAGE_REPOSITORY_TOKEN) private fileStorage: IFileStorageRepository
   ) {}
 
   printInvoice(): void {
     window.print();
+  }
+
+  onUploadAttachment(event: Event): void {
+    const input = event.target as HTMLInputElement;
+    if (input.files && input.files.length > 0) {
+      const file = input.files[0];
+      this.isUploading = true;
+      this.fileStorage.uploadFile(file, 'invoices').subscribe({
+        next: (url) => {
+          this.data = {
+            ...this.data,
+            attachmentUrl: url
+          };
+          this.financeState.updateInvoice(this.data).subscribe({
+            next: () => {
+              this.isUploading = false;
+            },
+            error: () => {
+              this.isUploading = false;
+            }
+          });
+        },
+        error: (err) => {
+          this.isUploading = false;
+          console.error('Invoice attachment upload failed:', err);
+        }
+      });
+    }
+  }
+
+  removeAttachment(): void {
+    if (this.data.attachmentUrl) {
+      this.fileStorage.deleteFile(this.data.attachmentUrl).subscribe({
+        next: () => {
+          const updated = { ...this.data };
+          delete updated.attachmentUrl;
+          this.data = updated;
+          this.financeState.updateInvoice(this.data).subscribe();
+        },
+        error: (err) => {
+          console.error('Invoice attachment delete failed:', err);
+          const updated = { ...this.data };
+          delete updated.attachmentUrl;
+          this.data = updated;
+          this.financeState.updateInvoice(this.data).subscribe();
+        }
+      });
+    }
   }
 }
