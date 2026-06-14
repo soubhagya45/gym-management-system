@@ -54,28 +54,28 @@ export class RegisterComponent implements OnInit, OnDestroy {
   // 5: Branch configuration
   // 6: Custom pricing plans setup
   // 7: Full workspace deployment logs console
-  currentStep: number = 1; 
-  
+  currentStep: number = 1;
+
   gymForm!: FormGroup;
   otpForm!: FormGroup;
   ownerForm!: FormGroup;
   branchForm!: FormGroup;
-  
+
   plans: DefaultPlanConfig[] = [];
-  
+
   isLoading = false;
   errorMessage: string | null = null;
   hidePassword = true;
-  
+
   // OTP Countdown timer
   resendCountdown = 30;
   resendTimerInterval: any;
   verificationSent = false;
-  
+
   // Loader parameters
   onboardingProgress = 0;
   onboardingTasks: { label: string; status: 'pending' | 'running' | 'done' }[] = [];
-  
+
   registeredUser: UserProfile | null = null;
 
   constructor(
@@ -83,7 +83,7 @@ export class RegisterComponent implements OnInit, OnDestroy {
     private authState: AuthState,
     private onboardingService: OnboardingService,
     private router: Router
-  ) {}
+  ) { }
 
   ngOnInit(): void {
     this.gymForm = this.fb.group({
@@ -112,7 +112,7 @@ export class RegisterComponent implements OnInit, OnDestroy {
       branchPhone: ['', [Validators.required, Validators.pattern(/^[+]?[0-9\s-]{7,15}$/)]],
       branchAddress: ['', [Validators.required, Validators.minLength(5)]]
     });
-    
+
     this.plans = this.onboardingService.getDefaultPlans();
   }
 
@@ -139,11 +139,11 @@ export class RegisterComponent implements OnInit, OnDestroy {
       this.gymForm.markAllAsTouched();
       return;
     }
-    
+
     this.isLoading = true;
     this.errorMessage = null;
     const email = this.gymForm.value.gymEmail;
-    
+
     this.onboardingService.sendVerificationCode(email).subscribe({
       next: () => {
         this.isLoading = false;
@@ -151,7 +151,7 @@ export class RegisterComponent implements OnInit, OnDestroy {
         this.currentStep = 2;
         this.startResendTimer();
       },
-      error: (err) => {
+      error: (err: any) => {
         this.isLoading = false;
         this.errorMessage = err.message || 'Failed to send verification code. Please check gym email.';
       }
@@ -167,7 +167,7 @@ export class RegisterComponent implements OnInit, OnDestroy {
         this.isLoading = false;
         this.startResendTimer();
       },
-      error: (err) => {
+      error: (err: any) => {
         this.isLoading = false;
         this.errorMessage = err.message || 'Failed to resend code.';
       }
@@ -186,7 +186,7 @@ export class RegisterComponent implements OnInit, OnDestroy {
     const code = this.otpForm.value.code;
 
     this.onboardingService.verifyEmailCode(email, code).subscribe({
-      next: (isValid) => {
+      next: (isValid: boolean) => {
         this.isLoading = false;
         if (isValid) {
           this.ownerForm.patchValue({
@@ -194,14 +194,14 @@ export class RegisterComponent implements OnInit, OnDestroy {
             ownerPhone: this.gymForm.value.gymPhone
           });
           this.ownerForm.get('ownerEmail')?.disable();
-          
+
           this.currentStep = 3;
           this.runGymCreationLoader();
         } else {
           this.errorMessage = 'Invalid verification code. Please enter standard 6 digit code.';
         }
       },
-      error: (err) => {
+      error: (err: any) => {
         this.isLoading = false;
         this.errorMessage = err.message || 'Verification check failed.';
       }
@@ -215,17 +215,17 @@ export class RegisterComponent implements OnInit, OnDestroy {
       { label: 'Provisioning multi-tenant database space...', status: 'pending' },
       { label: 'Establishing secure SaaS API keys...', status: 'pending' }
     ];
-    
+
     let currentTask = 0;
     const interval = setInterval(() => {
       this.onboardingProgress += 10;
-      
+
       if (this.onboardingProgress >= 30 && currentTask === 0) {
         this.onboardingTasks[0].status = 'done';
         this.onboardingTasks[1].status = 'running';
         currentTask = 1;
       }
-      
+
       if (this.onboardingProgress >= 70 && currentTask === 1) {
         this.onboardingTasks[1].status = 'done';
         this.onboardingTasks[2].status = 'running';
@@ -283,16 +283,16 @@ export class RegisterComponent implements OnInit, OnDestroy {
     const payload: OnboardingData = {
       ...this.gymForm.value,
       verificationCode: this.otpForm.value.code,
-      
+
       ownerFullName: this.ownerForm.value.ownerFullName,
       ownerEmail: this.ownerForm.getRawValue().ownerEmail,
       ownerPassword: this.ownerForm.value.ownerPassword,
       ownerPhone: this.ownerForm.value.ownerPhone,
-      
+
       branchName: this.branchForm.value.branchName,
       branchPhone: this.branchForm.value.branchPhone,
       branchAddress: this.branchForm.value.branchAddress,
-      
+
       plans: this.plans
     };
 
@@ -311,9 +311,9 @@ export class RegisterComponent implements OnInit, OnDestroy {
     ];
 
     this.onboardingService.onboardWorkspace(payload).subscribe({
-      next: (result) => {
+      next: (result: any) => {
         this.registeredUser = result.owner;
-        
+
         let currentTask = 0;
         const interval = setInterval(() => {
           this.onboardingProgress += 5;
@@ -340,7 +340,7 @@ export class RegisterComponent implements OnInit, OnDestroy {
           }
         }, 100);
       },
-      error: (err) => {
+      error: (err: any) => {
         this.currentStep = 6;
         this.isLoading = false;
         this.errorMessage = err.message || 'Workspace creation failed. Please check parameters.';
