@@ -1,4 +1,4 @@
-import { Component, OnInit, OnDestroy, ChangeDetectionStrategy, ChangeDetectorRef } from '@angular/core';
+import { Component, OnInit, OnDestroy, ChangeDetectionStrategy, ChangeDetectorRef, Inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormBuilder, FormGroup, Validators, ReactiveFormsModule } from '@angular/forms';
 import { MatCardModule } from '@angular/material/card';
@@ -7,10 +7,12 @@ import { MatButtonModule } from '@angular/material/button';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatInputModule } from '@angular/material/input';
 import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
+import { MatTooltipModule } from '@angular/material/tooltip';
 import { Subject } from 'rxjs';
 import { takeUntil } from 'rxjs/operators';
 import { GymState } from '../../../presentation/state/gym.state';
 import { Gym } from '../../../core/models/gym.entity';
+import { FILE_STORAGE_REPOSITORY_TOKEN, IFileStorageRepository } from '../../../core/interfaces/file-storage-repository.interface';
 
 @Component({
   selector: 'app-gym-profile',
@@ -24,7 +26,8 @@ import { Gym } from '../../../core/models/gym.entity';
     MatButtonModule,
     MatFormFieldModule,
     MatInputModule,
-    MatSnackBarModule
+    MatSnackBarModule,
+    MatTooltipModule
   ],
   template: `
     <div class="settings-container">
@@ -48,9 +51,9 @@ import { Gym } from '../../../core/models/gym.entity';
                 </div>
                 <p class="section-desc">Primary identification details used for invoices, branding, and correspondence.</p>
 
-                <!-- Logo Uploader Mockup -->
+                <!-- Logo Uploader -->
                 <div class="logo-uploader-container">
-                  <div class="logo-preview-box">
+                  <div class="logo-preview-box" (click)="logoInput.click()" style="cursor: pointer" matTooltip="Click to upload logo">
                     <img *ngIf="profileForm.get('logoUrl')?.value; else noLogo" 
                          [src]="profileForm.get('logoUrl')?.value" 
                          alt="Gym Logo" 
@@ -61,7 +64,13 @@ import { Gym } from '../../../core/models/gym.entity';
                   </div>
                   <div class="uploader-actions">
                     <span class="uploader-title">Gym Branding Logo</span>
-                    <span class="uploader-desc">Click below to provide an image URL. JPG or PNG.</span>
+                    <span class="uploader-desc">Select a logo image file or provide a URL below.</span>
+                    <input type="file" #logoInput (change)="onLogoUpload($event)" accept="image/*" style="display: none">
+                    <button type="button" mat-stroked-button color="accent" (click)="logoInput.click()" [disabled]="isUploadingLogo" style="margin-bottom: 8px; align-self: flex-start;">
+                      <mat-icon *ngIf="!isUploadingLogo">cloud_upload</mat-icon>
+                      <mat-icon *ngIf="isUploadingLogo" class="spin-icon">sync</mat-icon>
+                      <span>{{ isUploadingLogo ? 'Uploading...' : 'Upload Logo File' }}</span>
+                    </button>
                     <mat-form-field appearance="outline" class="w-100 mini-field">
                       <mat-label>Logo Image URL</mat-label>
                       <input matInput formControlName="logoUrl" placeholder="https://example.com/logo.png">
@@ -358,13 +367,38 @@ export class GymProfileComponent implements OnInit, OnDestroy {
   private destroy$ = new Subject<void>();
   profileForm!: FormGroup;
   activeGym: Gym | null = null;
+  isUploadingLogo = false;
 
   constructor(
     private fb: FormBuilder,
     private gymState: GymState,
     private snackBar: MatSnackBar,
-    private cdr: ChangeDetectorRef
+    private cdr: ChangeDetectorRef,
+    @Inject(FILE_STORAGE_REPOSITORY_TOKEN) private fileStorage: IFileStorageRepository
   ) {}
+
+  onLogoUpload(event: Event): void {
+    const input = event.target as HTMLInputElement;
+    if (input.files && input.files.length > 0) {
+      const file = input.files[0];
+      this.isUploadingLogo = true;
+      this.cdr.markForCheck();
+      
+      this.fileStorage.uploadFile(file, 'logos').subscribe({
+        next: (url) => {
+          this.profileForm.patchValue({ logoUrl: url });
+          this.isUploadingLogo = false;
+          this.snackBar.open('Gym logo uploaded successfully!', 'Dismiss', { duration: 3000 });
+          this.cdr.markForCheck();
+        },
+        error: (err) => {
+          this.isUploadingLogo = false;
+          this.snackBar.open(`Logo upload failed: ${err.message || err}`, 'Dismiss', { duration: 4000 });
+          this.cdr.markForCheck();
+        }
+      });
+    }
+  }
 
   ngOnInit(): void {
     this.profileForm = this.fb.group({

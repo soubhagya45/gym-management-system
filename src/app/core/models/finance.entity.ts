@@ -38,6 +38,7 @@ export interface Invoice {
   collectedBy?: string;
   createdBy?: string;
   approvedBy?: string;
+  attachmentUrl?: string;
 }
 
 export interface Collection {

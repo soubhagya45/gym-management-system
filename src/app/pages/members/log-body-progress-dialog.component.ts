@@ -7,7 +7,10 @@ import { MatInputModule } from '@angular/material/input';
 import { MatButtonModule } from '@angular/material/button';
 import { MatDatepickerModule } from '@angular/material/datepicker';
 import { MatNativeDateModule } from '@angular/material/core';
+import { MatIconModule } from '@angular/material/icon';
+import { MatTooltipModule } from '@angular/material/tooltip';
 import { Member } from '../../core/models/member.entity';
+import { FILE_STORAGE_REPOSITORY_TOKEN, IFileStorageRepository } from '../../core/interfaces/file-storage-repository.interface';
 
 @Component({
   selector: 'app-log-body-progress-dialog',
@@ -20,7 +23,9 @@ import { Member } from '../../core/models/member.entity';
     MatInputModule,
     MatButtonModule,
     MatDatepickerModule,
-    MatNativeDateModule
+    MatNativeDateModule,
+    MatIconModule,
+    MatTooltipModule
   ],
   template: `
     <h2 mat-dialog-title class="gradient-text dialogue-title">
@@ -103,22 +108,43 @@ import { Member } from '../../core/models/member.entity';
           </mat-form-field>
         </div>
 
-        <h3 class="section-title">Progress Photos (URLs)</h3>
+        <h3 class="section-title">Progress Photos</h3>
         <div class="photo-inputs">
-          <mat-form-field appearance="outline">
-            <mat-label>Front Photo URL</mat-label>
-            <input matInput formControlName="frontPhoto" placeholder="https://images.unsplash.com...">
-          </mat-form-field>
+          <div style="display: flex; gap: 8px; align-items: center; width: 100%;">
+            <mat-form-field appearance="outline" style="flex: 1;">
+              <mat-label>Front Photo URL</mat-label>
+              <input matInput formControlName="frontPhoto" placeholder="https://images.unsplash.com...">
+            </mat-form-field>
+            <input type="file" #frontPhoto (change)="onPhotoUpload($event, 'frontPhoto')" accept="image/*" style="display: none">
+            <button type="button" mat-stroked-button color="accent" (click)="frontPhoto.click()" [disabled]="uploadingField === 'frontPhoto'" style="height: 54px; margin-top: -18px;" matTooltip="Upload Front Photo">
+              <mat-icon *ngIf="uploadingField !== 'frontPhoto'">cloud_upload</mat-icon>
+              <mat-icon *ngIf="uploadingField === 'frontPhoto'" class="spin-icon">sync</mat-icon>
+            </button>
+          </div>
 
-          <mat-form-field appearance="outline">
-            <mat-label>Side Photo URL</mat-label>
-            <input matInput formControlName="sidePhoto" placeholder="https://images.unsplash.com...">
-          </mat-form-field>
+          <div style="display: flex; gap: 8px; align-items: center; width: 100%;">
+            <mat-form-field appearance="outline" style="flex: 1;">
+              <mat-label>Side Photo URL</mat-label>
+              <input matInput formControlName="sidePhoto" placeholder="https://images.unsplash.com...">
+            </mat-form-field>
+            <input type="file" #sidePhoto (change)="onPhotoUpload($event, 'sidePhoto')" accept="image/*" style="display: none">
+            <button type="button" mat-stroked-button color="accent" (click)="sidePhoto.click()" [disabled]="uploadingField === 'sidePhoto'" style="height: 54px; margin-top: -18px;" matTooltip="Upload Side Photo">
+              <mat-icon *ngIf="uploadingField !== 'sidePhoto'">cloud_upload</mat-icon>
+              <mat-icon *ngIf="uploadingField === 'sidePhoto'" class="spin-icon">sync</mat-icon>
+            </button>
+          </div>
 
-          <mat-form-field appearance="outline">
-            <mat-label>Back Photo URL</mat-label>
-            <input matInput formControlName="backPhoto" placeholder="https://images.unsplash.com...">
-          </mat-form-field>
+          <div style="display: flex; gap: 8px; align-items: center; width: 100%;">
+            <mat-form-field appearance="outline" style="flex: 1;">
+              <mat-label>Back Photo URL</mat-label>
+              <input matInput formControlName="backPhoto" placeholder="https://images.unsplash.com...">
+            </mat-form-field>
+            <input type="file" #backPhoto (change)="onPhotoUpload($event, 'backPhoto')" accept="image/*" style="display: none">
+            <button type="button" mat-stroked-button color="accent" (click)="backPhoto.click()" [disabled]="uploadingField === 'backPhoto'" style="height: 54px; margin-top: -18px;" matTooltip="Upload Back Photo">
+              <mat-icon *ngIf="uploadingField !== 'backPhoto'">cloud_upload</mat-icon>
+              <mat-icon *ngIf="uploadingField === 'backPhoto'" class="spin-icon">sync</mat-icon>
+            </button>
+          </div>
         </div>
 
         <h3 class="section-title">Additional Info</h3>
@@ -223,13 +249,33 @@ import { Member } from '../../core/models/member.entity';
 export class LogBodyProgressDialogComponent implements OnInit {
   progressForm!: FormGroup;
   member: Member;
+  uploadingField: string | null = null;
 
   constructor(
     private fb: FormBuilder,
     private dialogRef: MatDialogRef<LogBodyProgressDialogComponent>,
-    @Inject(MAT_DIALOG_DATA) public data: { member: Member }
+    @Inject(MAT_DIALOG_DATA) public data: { member: Member },
+    @Inject(FILE_STORAGE_REPOSITORY_TOKEN) private fileStorage: IFileStorageRepository
   ) {
     this.member = data.member;
+  }
+
+  onPhotoUpload(event: Event, controlName: string): void {
+    const input = event.target as HTMLInputElement;
+    if (input.files && input.files.length > 0) {
+      const file = input.files[0];
+      this.uploadingField = controlName;
+      this.fileStorage.uploadFile(file, 'progress').subscribe({
+        next: (url) => {
+          this.progressForm.patchValue({ [controlName]: url });
+          this.uploadingField = null;
+        },
+        error: (err) => {
+          this.uploadingField = null;
+          console.error(`${controlName} upload failed:`, err);
+        }
+      });
+    }
   }
 
   ngOnInit(): void {

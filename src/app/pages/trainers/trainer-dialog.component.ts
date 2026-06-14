@@ -6,7 +6,10 @@ import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatInputModule } from '@angular/material/input';
 import { MatSelectModule } from '@angular/material/select';
 import { MatButtonModule } from '@angular/material/button';
+import { MatIconModule } from '@angular/material/icon';
+import { MatTooltipModule } from '@angular/material/tooltip';
 import { Trainer } from '../../core/models/trainer.entity';
+import { FILE_STORAGE_REPOSITORY_TOKEN, IFileStorageRepository } from '../../core/interfaces/file-storage-repository.interface';
 
 @Component({
   selector: 'app-trainer-dialog',
@@ -18,7 +21,9 @@ import { Trainer } from '../../core/models/trainer.entity';
     MatFormFieldModule,
     MatInputModule,
     MatSelectModule,
-    MatButtonModule
+    MatButtonModule,
+    MatIconModule,
+    MatTooltipModule
   ],
   template: `
     <h2 mat-dialog-title class="gradient-text dialogue-title">
@@ -29,15 +34,20 @@ import { Trainer } from '../../core/models/trainer.entity';
       <mat-dialog-content class="dialog-form-content">
         <!-- Avatar Preview -->
         <div class="avatar-select-section">
-          <div class="avatar-preview">
+          <div class="avatar-preview" (click)="trainerPhotoInput.click()" style="cursor: pointer" matTooltip="Click to upload avatar">
             <img [src]="selectedAvatarUrl || 'https://images.unsplash.com/photo-1567013127542-490d757e51fc?w=150'" alt="Trainer Avatar Preview">
           </div>
-          <div class="avatar-inputs">
-            <mat-form-field appearance="outline">
+          <div class="avatar-inputs" style="display: flex; gap: 8px; align-items: center; width: 100%;">
+            <mat-form-field appearance="outline" style="flex: 1;">
               <mat-label>Avatar Image URL</mat-label>
               <input matInput formControlName="avatarUrl" placeholder="Unsplash URL" (input)="onAvatarChange($event)">
-              <mat-hint>Paste an image URL or leave blank for default</mat-hint>
+              <mat-hint>Paste an image URL or upload file</mat-hint>
             </mat-form-field>
+            <input type="file" #trainerPhotoInput (change)="onTrainerPhotoUpload($event)" accept="image/*" style="display: none">
+            <button type="button" mat-stroked-button color="accent" (click)="trainerPhotoInput.click()" [disabled]="isUploading" style="height: 54px; margin-top: -18px;">
+              <mat-icon *ngIf="!isUploading">cloud_upload</mat-icon>
+              <mat-icon *ngIf="isUploading" class="spin-icon">sync</mat-icon>
+            </button>
           </div>
         </div>
 
@@ -154,12 +164,33 @@ export class TrainerDialogComponent implements OnInit {
   trainerForm!: FormGroup;
   isEdit = false;
   selectedAvatarUrl = '';
+  isUploading = false;
 
   constructor(
     private fb: FormBuilder,
     private dialogRef: MatDialogRef<TrainerDialogComponent>,
-    @Inject(MAT_DIALOG_DATA) public data: Trainer | null
+    @Inject(MAT_DIALOG_DATA) public data: Trainer | null,
+    @Inject(FILE_STORAGE_REPOSITORY_TOKEN) private fileStorage: IFileStorageRepository
   ) {}
+
+  onTrainerPhotoUpload(event: Event): void {
+    const input = event.target as HTMLInputElement;
+    if (input.files && input.files.length > 0) {
+      const file = input.files[0];
+      this.isUploading = true;
+      this.fileStorage.uploadFile(file, 'employees').subscribe({
+        next: (url) => {
+          this.trainerForm.patchValue({ avatarUrl: url });
+          this.selectedAvatarUrl = url;
+          this.isUploading = false;
+        },
+        error: (err) => {
+          this.isUploading = false;
+          console.error('Trainer photo upload failed:', err);
+        }
+      });
+    }
+  }
 
   ngOnInit(): void {
     this.isEdit = !!this.data;
