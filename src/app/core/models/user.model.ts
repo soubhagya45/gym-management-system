@@ -11,4 +11,5 @@ export interface UserProfile {
   lastLogin: string;       // ISO timestamp
   sessionExpiresAt: string; // ISO timestamp — used by SessionService for auto-logout
   isFirstLogin?: boolean;   // Tracks if this is the user's first login
+  token?: string;          // Bearer token for API authentication
 }
