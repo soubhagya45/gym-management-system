@@ -104,17 +104,37 @@
           </form>
         </div>
 
-        <!-- Right Side: Identity Core (Quick Select Router) -->
+        <!-- Right Side: Identity Core (Role Selector) -->
         <div class="identity-selector-section">
           <h2 class="section-title">Identity Node</h2>
-          <p class="section-subtitle">Select role matrix module for instant verification.</p>
+          <p class="section-subtitle">
+            <ng-container *ngIf="!isFirebaseMode">Select role matrix module for instant verification.</ng-container>
+            <ng-container *ngIf="isFirebaseMode">Select your role, then enter your registered credentials.</ng-container>
+          </p>
+
+          <!-- Firebase mode: role validation hint banner -->
+          <div *ngIf="isFirebaseMode" style="
+            background: rgba(251,146,60,0.08);
+            border: 1px solid rgba(251,146,60,0.35);
+            border-radius: 8px;
+            padding: 10px 14px;
+            margin-bottom: 12px;
+            display: flex;
+            align-items: flex-start;
+            gap: 8px;">
+            <mat-icon style="color:#fb923c; font-size:16px; margin-top:2px; flex-shrink:0;">local_fire_department</mat-icon>
+            <span style="color:rgba(255,255,255,0.75); font-size:11.5px; line-height:1.5;">
+              <strong style="color:#fb923c;">Firebase Live Mode</strong> — Select your role below, then enter
+              your registered email &amp; password. If your role doesn't match, access will be denied.
+            </span>
+          </div>
 
           <!-- Module Picker Grid -->
           <div class="role-grid">
-            <div 
+            <div
               *ngFor="let role of availableRoles"
-              class="role-card" 
-              [class.active]="activeRole === role" 
+              class="role-card"
+              [class.active]="activeRole === role"
               (click)="selectRole(role)"
               [style.--active-color]="roleDetails[role].color">
               <div class="role-card-header">
@@ -128,15 +148,16 @@
             </div>
           </div>
 
-          <!-- Quick Bypass Link Button -->
+          <!-- Action Button -->
           <div class="quick-action-area">
-            <button 
-              type="button" 
-              class="cyber-btn outline-btn" 
+            <button
+              type="button"
+              class="cyber-btn outline-btn"
               (click)="onQuickLoginClick()"
               [disabled]="isLoading">
               <span class="btn-content">
-                SYNC SELECT NODES & ENTER
+                <ng-container *ngIf="!isFirebaseMode">SYNC SELECT NODES &amp; ENTER</ng-container>
+                <ng-container *ngIf="isFirebaseMode">VERIFY ROLE &amp; AUTHENTICATE</ng-container>
                 <mat-icon>vpn_lock</mat-icon>
               </span>
             </button>

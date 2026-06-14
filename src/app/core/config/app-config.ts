@@ -24,7 +24,7 @@ export class AppConfigService {
     // provider: ProviderType.Mock 
     // Default to mock database for local demo
 
-    provider: ProviderType.Mock, // Default to mock database for local demo
+    provider: ProviderType.Firebase, // 🔥 FIREBASE ACTIVE — switch back to ProviderType.Mock for demo mode
     firebaseConfig: {
       apiKey: "AIzaSyAgOsXMU4Mpy7AmBZXa11-GFDJWCYoyc90",
       authDomain: "apexfit-saas-dev.firebaseapp.com",

@@ -6,6 +6,7 @@ import { AuthState } from '../../presentation/state/auth.state';
 import { UserRole } from '../../core/enums/roles.enum';
 import { PermissionService } from '../../domain/auth/permission.service';
 import { UserProfile } from '../../core/models/user.model';
+import { AppConfigService, ProviderType } from '../../core/config/app-config';
 
 // Angular Material Imports
 import { MatCardModule } from '@angular/material/card';
@@ -129,8 +130,14 @@ export class LoginComponent implements OnInit {
     private permissionService: PermissionService,
     private router: Router,
     private dialog: MatDialog,
-    private snackBar: MatSnackBar
+    private snackBar: MatSnackBar,
+    private appConfig: AppConfigService
   ) {}
+
+  /** True when app is running against live Firebase — hides demo role panel */
+  get isFirebaseMode(): boolean {
+    return this.appConfig.provider === ProviderType.Firebase;
+  }
 
   ngOnInit(): void {
     this.loginForm = this.fb.group({
@@ -150,6 +157,11 @@ export class LoginComponent implements OnInit {
   }
 
   private syncFormWithRole(): void {
+    if (this.isFirebaseMode) {
+      // In Firebase mode: keep role selected for validation, but don't auto-fill demo credentials
+      // User must type their real registered email and password
+      return;
+    }
     const email = this.roleDetails[this.activeRole].email;
     this.loginForm.patchValue({
       usernameOrEmail: email,
@@ -171,6 +183,16 @@ export class LoginComponent implements OnInit {
     this.authState.login(usernameOrEmail, password).subscribe({
       next: (user) => {
         this.isLoading = false;
+
+        // In Firebase mode: validate that the logged-in user's role matches the selected role chip
+        if (this.isFirebaseMode && user.role !== this.activeRole) {
+          this.authState.logout();
+          this.errorMessage =
+            `Access denied. This account is registered as "${user.role}", not "${this.activeRole}". ` +
+            `Please select the correct role or log in with the right account.`;
+          return;
+        }
+
         if (user.isFirstLogin) {
           this.promptPasswordChange(user);
         } else {
@@ -186,6 +208,18 @@ export class LoginComponent implements OnInit {
 
   // Direct quick login action
   onQuickLoginClick(): void {
+    if (this.isFirebaseMode) {
+      // In Firebase mode: quick login validates the form email/password against the selected role
+      if (this.loginForm.invalid) {
+        this.loginForm.markAllAsTouched();
+        this.errorMessage = 'Please enter your email and password to authenticate.';
+        return;
+      }
+      this.onSubmit();
+      return;
+    }
+
+    // Mock/Demo mode: instant role login with demo accounts
     this.isLoading = true;
     this.errorMessage = null;
 
