@@ -16,9 +16,10 @@ import { MatDividerModule } from '@angular/material/divider';
 import { MatRadioModule } from '@angular/material/radio';
 import { ActivatedRoute, Router } from '@angular/router';
 import { Observable, combineLatest, of } from 'rxjs';
-import { map, startWith } from 'rxjs/operators';
+import { map, startWith, take } from 'rxjs/operators';
 import { EmployeeState } from '../../presentation/state/employee.state';
 import { GymState } from '../../presentation/state/gym.state';
+import { SubscriptionService } from '../../domain/subscription/subscription.service';
 import { Employee, EmployeeAttendance, EmployeePayroll, EmployeePerformance } from '../../core/models/employee.entity';
 import { UserRole } from '../../core/enums/roles.enum';
 
@@ -111,6 +112,7 @@ export class EmployeesComponent implements OnInit {
     private fb: FormBuilder,
     private employeeState: EmployeeState,
     private gymState: GymState,
+    private subscriptionService: SubscriptionService,
     private snackBar: MatSnackBar,
     private dialog: MatDialog,
     private route: ActivatedRoute,
@@ -347,58 +349,90 @@ export class EmployeesComponent implements OnInit {
       return;
     }
 
-    const val = this.employeeForm.value;
-    
-    // Resolve reporting manager name
-    let repName = '';
-    if (val.reportingManagerId) {
-      const manager = this.employeeState.employees.find(e => e.id === val.reportingManagerId);
-      if (manager) repName = manager.fullName;
-    }
+    this.gymState.activeGym$.pipe(take(1)).subscribe(gym => {
+      if (!gym) return;
 
-    const payload: Omit<Employee, 'id'> = {
-      fullName: val.fullName,
-      photoUrl: val.photoUrl || `https://api.dicebear.com/7.x/initials/svg?seed=${encodeURIComponent(val.fullName)}`,
-      phone: val.phone,
-      email: val.email,
-      gender: val.gender,
-      dob: val.dob,
-      address: val.address,
-      role: val.role,
-      department: val.department,
-      joinDate: val.joinDate,
-      salary: val.salary,
-      shift: val.shift,
-      reportingManagerId: val.reportingManagerId || undefined,
-      reportingManagerName: repName || undefined,
-      username: val.username,
-      accountStatus: val.accountStatus,
-      specialty: val.role === UserRole.Trainer ? val.specialty : undefined,
-      experienceYears: val.role === UserRole.Trainer ? val.experienceYears : undefined,
-      assignedMembersCount: val.role === UserRole.Trainer ? 0 : undefined,
-      gymId: '' // state injection will assign active tenant gymId
-    };
+      const employeeCount = this.employeeState.employees.length;
+      const isLimitReached = this.subscriptionService.hasReachedLimit(
+        gym.subscriptionPlan,
+        'maxEmployees',
+        employeeCount
+      );
 
-    this.employeeState.addEmployee(payload).subscribe({
-      next: () => {
-        this.snackBar.open('Employee registered and onboarded successfully!', 'Close', { duration: 3000 });
-        this.employeeForm.reset({
-          gender: 'Male',
-          dob: '1995-01-01',
-          role: UserRole.Staff,
-          department: 'Operations',
-          joinDate: new Date().toISOString().split('T')[0],
-          salary: 20000,
-          shift: 'General',
-          accountStatus: 'Active'
+      if (isLimitReached) {
+        this.snackBar.open(
+          `Employee limit reached for plan: ${this.getSubscriptionPlanLabel(gym.subscriptionPlan)}. Please upgrade to onboard more staff.`,
+          'Upgrade Plan',
+          { duration: 5000 }
+        ).onAction().subscribe(() => {
+          this.router.navigate(['/settings']);
         });
-        // Switch back to Directory tab
-        this.onTabChange(0);
-      },
-      error: (err) => {
-        this.snackBar.open(err.message || 'Failed to register employee', 'Close', { duration: 3000 });
+        return;
       }
+
+      const val = this.employeeForm.value;
+      
+      // Resolve reporting manager name
+      let repName = '';
+      if (val.reportingManagerId) {
+        const manager = this.employeeState.employees.find(e => e.id === val.reportingManagerId);
+        if (manager) repName = manager.fullName;
+      }
+
+      const payload: Omit<Employee, 'id'> = {
+        fullName: val.fullName,
+        photoUrl: val.photoUrl || `https://api.dicebear.com/7.x/initials/svg?seed=${encodeURIComponent(val.fullName)}`,
+        phone: val.phone,
+        email: val.email,
+        gender: val.gender,
+        dob: val.dob,
+        address: val.address,
+        role: val.role,
+        department: val.department,
+        joinDate: val.joinDate,
+        salary: val.salary,
+        shift: val.shift,
+        reportingManagerId: val.reportingManagerId || undefined,
+        reportingManagerName: repName || undefined,
+        username: val.username,
+        accountStatus: val.accountStatus,
+        specialty: val.role === UserRole.Trainer ? val.specialty : undefined,
+        experienceYears: val.role === UserRole.Trainer ? val.experienceYears : undefined,
+        assignedMembersCount: val.role === UserRole.Trainer ? 0 : undefined,
+        gymId: '' // state injection will assign active tenant gymId
+      };
+
+      this.employeeState.addEmployee(payload).subscribe({
+        next: () => {
+          this.snackBar.open('Employee registered and onboarded successfully!', 'Close', { duration: 3000 });
+          this.employeeForm.reset({
+            gender: 'Male',
+            dob: '1995-01-01',
+            role: UserRole.Staff,
+            department: 'Operations',
+            joinDate: new Date().toISOString().split('T')[0],
+            salary: 20000,
+            shift: 'General',
+            accountStatus: 'Active'
+          });
+          // Switch back to Directory tab
+          this.onTabChange(0);
+        },
+        error: (err) => {
+          this.snackBar.open(err.message || 'Failed to register employee', 'Close', { duration: 3000 });
+        }
+      });
     });
+  }
+
+  getSubscriptionPlanLabel(plan: string): string {
+    switch (plan) {
+      case 'FREE_TRIAL': return 'Free Trial';
+      case 'BASIC': return 'Basic';
+      case 'PRO': return 'Pro';
+      case 'ENTERPRISE': return 'Enterprise';
+      default: return plan;
+    }
   }
 
   submitAttendance(): void {
