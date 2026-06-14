@@ -19,6 +19,11 @@ export interface Gym {
   status: 'active' | 'suspended';
   createdAt: string;
   address: string;
+  city?: string;
+  state?: string;
+  country?: string;
+  trialExpiryDate?: string;
+  subscriptionStatus?: 'trialing' | 'active' | 'expired' | 'suspended';
   gstNumber?: string;
   gymType?: string;
   openingTime?: string;

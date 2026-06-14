@@ -1,8 +1,9 @@
 <div class="register-wrapper">
-  <!-- Glow Backdrops -->
+  <!-- Glowing backdrops -->
   <div class="orb orb-pink"></div>
   <div class="orb orb-purple"></div>
 
+  <!-- Brand logo header -->
   <div class="brand-header" routerLink="/">
     <mat-icon class="brand-icon">fitness_center</mat-icon>
     <span class="brand-text">APEX<span>FIT</span></span>
@@ -10,7 +11,7 @@
 
   <div class="register-container">
     <!-- Stepper Navigation Header -->
-    <div class="stepper-header" *ngIf="currentStep < 3">
+    <div class="stepper-header" *ngIf="currentStep !== 3 && currentStep !== 7">
       <div class="step-indicator" [class.active]="currentStep === 1" [class.completed]="currentStep > 1">
         <div class="circle">
           <mat-icon *ngIf="currentStep > 1">check</mat-icon>
@@ -19,15 +20,43 @@
         <span>Gym Profile</span>
       </div>
       <div class="step-line" [class.filled]="currentStep > 1"></div>
+      
       <div class="step-indicator" [class.active]="currentStep === 2" [class.completed]="currentStep > 2">
         <div class="circle">
-          <span>2</span>
+          <mat-icon *ngIf="currentStep > 2">check</mat-icon>
+          <span *ngIf="currentStep <= 2">2</span>
+        </div>
+        <span>Verify Email</span>
+      </div>
+      <div class="step-line" [class.filled]="currentStep > 2"></div>
+
+      <div class="step-indicator" [class.active]="currentStep === 4" [class.completed]="currentStep > 4">
+        <div class="circle">
+          <mat-icon *ngIf="currentStep > 4">check</mat-icon>
+          <span *ngIf="currentStep <= 4">3</span>
         </div>
         <span>Owner Account</span>
       </div>
+      <div class="step-line" [class.filled]="currentStep > 4"></div>
+
+      <div class="step-indicator" [class.active]="currentStep === 5" [class.completed]="currentStep > 5">
+        <div class="circle">
+          <mat-icon *ngIf="currentStep > 5">check</mat-icon>
+          <span *ngIf="currentStep <= 5">4</span>
+        </div>
+        <span>Default Branch</span>
+      </div>
+      <div class="step-line" [class.filled]="currentStep > 5"></div>
+
+      <div class="step-indicator" [class.active]="currentStep === 6" [class.completed]="currentStep > 6">
+        <div class="circle">
+          <span *ngIf="currentStep <= 6">5</span>
+        </div>
+        <span>Default Plans</span>
+      </div>
     </div>
 
-    <!-- MAIN FORM CARD -->
+    <!-- MAIN GLASS CONTAINER CARD -->
     <div class="mat-card glass-form-card">
       <div class="error-banner" *ngIf="errorMessage">
         <mat-icon>error_outline</mat-icon>
@@ -38,12 +67,11 @@
       <div class="step-content" *ngIf="currentStep === 1" @stepAnimation>
         <div class="step-title-area">
           <h2>Register Your Gym Profile</h2>
-          <p>Tell us about your fitness center or club workspace details.</p>
+          <p>Let's configure your tenant business settings first.</p>
         </div>
 
-        <form [formGroup]="gymForm" (ngSubmit)="nextStep()">
+        <form [formGroup]="gymForm" (ngSubmit)="submitGymInfo()">
           <div class="form-inputs-grid">
-            <!-- Gym Name -->
             <mat-form-field appearance="outline" class="full-width">
               <mat-label>Gym Name</mat-label>
               <input matInput formControlName="gymName" placeholder="Apex Fit Downtown">
@@ -52,130 +80,291 @@
               <mat-error *ngIf="gymForm.get('gymName')?.hasError('minlength')">Must be at least 3 characters</mat-error>
             </mat-form-field>
 
-            <!-- Gym Type -->
-            <mat-form-field appearance="outline" class="full-width">
-              <mat-label>Gym Type</mat-label>
-              <mat-select formControlName="gymType" placeholder="Select Gym Type">
-                <mat-option value="Unisex">Unisex Gym</mat-option>
-                <mat-option value="Men Only">Men Only Gym</mat-option>
-                <mat-option value="Women Only">Women Only Gym</mat-option>
-                <mat-option value="CrossFit Box">CrossFit Box</mat-option>
-                <mat-option value="Yoga/Pilates Studio">Yoga/Pilates Studio</mat-option>
-                <mat-option value="Powerlifting">Powerlifting Gym</mat-option>
-              </mat-select>
-              <mat-icon matSuffix>fitness_center</mat-icon>
-              <mat-error *ngIf="gymForm.get('gymType')?.hasError('required')">Gym Type is required</mat-error>
-            </mat-form-field>
-
-            <!-- Operating Hours (Opening & Closing) -->
-            <div class="form-time-row">
-              <mat-form-field appearance="outline" class="time-field">
-                <mat-label>Opening Time</mat-label>
-                <input matInput type="time" formControlName="openingTime">
-                <mat-icon matSuffix>schedule</mat-icon>
-                <mat-error *ngIf="gymForm.get('openingTime')?.hasError('required')">Opening Time is required</mat-error>
+            <div class="form-row">
+              <mat-form-field appearance="outline" class="flex-field">
+                <mat-label>Gym Phone Number</mat-label>
+                <input matInput formControlName="gymPhone" placeholder="+91 99887 76655">
+                <mat-icon matSuffix>phone</mat-icon>
+                <mat-error *ngIf="gymForm.get('gymPhone')?.hasError('required')">Phone number is required</mat-error>
+                <mat-error *ngIf="gymForm.get('gymPhone')?.hasError('pattern')">Please enter a valid phone number</mat-error>
               </mat-form-field>
-              
-              <mat-form-field appearance="outline" class="time-field">
-                <mat-label>Closing Time</mat-label>
-                <input matInput type="time" formControlName="closingTime">
-                <mat-icon matSuffix>update</mat-icon>
-                <mat-error *ngIf="gymForm.get('closingTime')?.hasError('required')">Closing Time is required</mat-error>
+
+              <mat-form-field appearance="outline" class="flex-field">
+                <mat-label>Gym Corporate Email</mat-label>
+                <input matInput type="email" formControlName="gymEmail" placeholder="contact@gymname.com">
+                <mat-icon matSuffix>email</mat-icon>
+                <mat-error *ngIf="gymForm.get('gymEmail')?.hasError('required')">Corporate email is required</mat-error>
+                <mat-error *ngIf="gymForm.get('gymEmail')?.hasError('email')">Please enter a valid email address</mat-error>
               </mat-form-field>
             </div>
 
-            <!-- Phone -->
             <mat-form-field appearance="outline" class="full-width">
-              <mat-label>Phone Number</mat-label>
-              <input matInput formControlName="phone" placeholder="+91 99887 76655">
-              <mat-icon matSuffix>phone</mat-icon>
-              <mat-error *ngIf="gymForm.get('phone')?.hasError('required')">Phone is required</mat-error>
-              <mat-error *ngIf="gymForm.get('phone')?.hasError('pattern')">Please enter a valid phone number</mat-error>
-            </mat-form-field>
-
-            <!-- Address -->
-            <mat-form-field appearance="outline" class="full-width">
-              <mat-label>Address</mat-label>
-              <input matInput formControlName="address" placeholder="123 Elite Athlete Boulevard, Suite 500">
+              <mat-label>Gym Address</mat-label>
+              <input matInput formControlName="gymAddress" placeholder="123 Fitness Ave, Block C">
               <mat-icon matSuffix>place</mat-icon>
-              <mat-error *ngIf="gymForm.get('address')?.hasError('required')">Address is required</mat-error>
+              <mat-error *ngIf="gymForm.get('gymAddress')?.hasError('required')">Address is required</mat-error>
             </mat-form-field>
 
-            <!-- GST Number (Optional) -->
-            <mat-form-field appearance="outline" class="full-width">
-              <mat-label>GST Number (Optional)</mat-label>
-              <input matInput formControlName="gstNumber" placeholder="29ABCDE1234F1Z5">
-              <mat-icon matSuffix>receipt</mat-icon>
-              <mat-hint>Enter valid 15-digit GSTIN</mat-hint>
-              <mat-error *ngIf="gymForm.get('gstNumber')?.hasError('pattern')">Enter valid GSTIN format (e.g. 29ABCDE1234F1Z5)</mat-error>
-            </mat-form-field>
+            <div class="form-row-three">
+              <mat-form-field appearance="outline">
+                <mat-label>City</mat-label>
+                <input matInput formControlName="gymCity" placeholder="Bangalore">
+                <mat-error *ngIf="gymForm.get('gymCity')?.hasError('required')">City is required</mat-error>
+              </mat-form-field>
+
+              <mat-form-field appearance="outline">
+                <mat-label>State</mat-label>
+                <input matInput formControlName="gymState" placeholder="Karnataka">
+                <mat-error *ngIf="gymForm.get('gymState')?.hasError('required')">State is required</mat-error>
+              </mat-form-field>
+
+              <mat-form-field appearance="outline">
+                <mat-label>Country</mat-label>
+                <input matInput formControlName="gymCountry" placeholder="India">
+                <mat-error *ngIf="gymForm.get('gymCountry')?.hasError('required')">Country is required</mat-error>
+              </mat-form-field>
+            </div>
           </div>
 
           <div class="actions-row align-right">
-            <button mat-raised-button color="primary" type="submit" [disabled]="gymForm.invalid" class="action-btn">
-              <span>Next Step</span>
+            <button mat-raised-button color="primary" type="submit" [disabled]="gymForm.invalid || isLoading" class="action-btn">
+              <span>Send Verification Code</span>
               <mat-icon>chevron_right</mat-icon>
             </button>
           </div>
         </form>
       </div>
 
-      <!-- STEP 2: OWNER INFORMATION -->
+      <!-- STEP 2: VERIFY EMAIL -->
       <div class="step-content" *ngIf="currentStep === 2" @stepAnimation>
-        <div class="step-title-area">
-          <h2>Create Owner Account</h2>
-          <p>Set up the primary administrative credentials to manage this gym.</p>
+        <div class="step-title-area text-center">
+          <h2>Email Verification</h2>
+          <p>We've sent a 6-digit OTP code to the gym corporate email: <strong>{{ gymForm.value.gymEmail }}</strong></p>
         </div>
 
-        <form [formGroup]="ownerForm" (ngSubmit)="startOnboarding()">
-          <div class="form-inputs-grid">
-            <!-- Owner Name -->
-            <mat-form-field appearance="outline" class="full-width">
-              <mat-label>Owner's Full Name</mat-label>
-              <input matInput formControlName="ownerName" placeholder="Alex Johnson">
-              <mat-icon matSuffix>person</mat-icon>
-              <mat-error *ngIf="ownerForm.get('ownerName')?.hasError('required')">Owner Name is required</mat-error>
+        <form [formGroup]="otpForm" (ngSubmit)="verifyEmail()">
+          <div class="verification-box">
+            <mat-form-field appearance="outline" class="otp-field text-center">
+              <mat-label>Verification Code</mat-label>
+              <input matInput formControlName="code" placeholder="123456" maxlength="6" class="otp-input">
+              <mat-icon matSuffix>lock_open</mat-icon>
+              <mat-error *ngIf="otpForm.get('code')?.hasError('required')">Code is required</mat-error>
+              <mat-error *ngIf="otpForm.get('code')?.hasError('pattern')">Please enter 6-digit code</mat-error>
             </mat-form-field>
 
-            <!-- Email Address -->
-            <mat-form-field appearance="outline" class="full-width">
-              <mat-label>Owner Email Address</mat-label>
-              <input matInput type="email" formControlName="email" placeholder="owner@apexfit.com">
-              <mat-icon matSuffix>email</mat-icon>
-              <mat-error *ngIf="ownerForm.get('email')?.hasError('required')">Email is required</mat-error>
-              <mat-error *ngIf="ownerForm.get('email')?.hasError('email')">Please enter a valid email address</mat-error>
-            </mat-form-field>
-
-            <!-- Password -->
-            <mat-form-field appearance="outline" class="full-width">
-              <mat-label>Account Password</mat-label>
-              <input matInput [type]="hidePassword ? 'password' : 'text'" formControlName="password">
-              <button mat-icon-button matSuffix (click)="hidePassword = !hidePassword" type="button" [attr.aria-label]="'Hide password'" [attr.aria-pressed]="hidePassword">
-                <mat-icon>{{hidePassword ? 'visibility_off' : 'visibility'}}</mat-icon>
+            <div class="timer-row">
+              <span class="countdown-text" *ngIf="resendCountdown > 0">Resend code in {{ resendCountdown }}s</span>
+              <button mat-button type="button" class="resend-btn" *ngIf="resendCountdown === 0" (click)="resendVerificationCode()" [disabled]="isLoading">
+                Resend Code
               </button>
-              <mat-error *ngIf="ownerForm.get('password')?.hasError('required')">Password is required</mat-error>
-              <mat-error *ngIf="ownerForm.get('password')?.hasError('minlength')">Must be at least 4 characters</mat-error>
-            </mat-form-field>
+            </div>
           </div>
 
           <div class="actions-row">
-            <button mat-button type="button" (click)="prevStep()" class="back-btn">
+            <button mat-button type="button" (click)="prevStep(1)" class="back-btn" [disabled]="isLoading">
               <mat-icon>chevron_left</mat-icon>
               <span>Back</span>
             </button>
-            <button mat-raised-button color="primary" type="submit" [disabled]="ownerForm.invalid" class="action-btn">
-              <mat-icon>rocket_launch</mat-icon>
-              <span>Register & Build Workspace</span>
+            <button mat-raised-button color="primary" type="submit" [disabled]="otpForm.invalid || isLoading" class="action-btn">
+              <span>Verify & Continue</span>
+              <mat-icon>chevron_right</mat-icon>
             </button>
           </div>
         </form>
       </div>
 
-      <!-- STEP 3: ONBOARDING CONSOLE & DEPLOYMENT LOADER -->
+      <!-- STEP 3: DATABASE PROVISIONING SPINNER -->
       <div class="step-content onboarding-console" *ngIf="currentStep === 3" @stepAnimation>
         <div class="step-title-area text-center">
-          <h2 class="gradient-text">Building Gym Workspace</h2>
-          <p>Please wait while we initialize your secure cloud tenant environments...</p>
+          <h2 class="gradient-text">Creating Gym Profile</h2>
+          <p>Please wait while we provision your secure cloud tenant environments...</p>
+        </div>
+
+        <div class="onboarding-progress-section">
+          <mat-progress-bar mode="determinate" [value]="onboardingProgress" class="premium-progress-bar"></mat-progress-bar>
+          <span class="progress-number">{{ onboardingProgress }}%</span>
+        </div>
+
+        <div class="console-box">
+          <div class="console-line" *ngFor="let task of onboardingTasks" [ngClass]="task.status">
+            <mat-icon class="status-icon" *ngIf="task.status === 'pending'">hourglass_empty</mat-icon>
+            <mat-icon class="status-icon spinner" *ngIf="task.status === 'running'">sync</mat-icon>
+            <mat-icon class="status-icon checked" *ngIf="task.status === 'done'">check_circle</mat-icon>
+            <span class="line-text">{{ task.label }}</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- STEP 4: OWNER ACCOUNT DETAILS -->
+      <div class="step-content" *ngIf="currentStep === 4" @stepAnimation>
+        <div class="step-title-area">
+          <h2>Create Owner Account</h2>
+          <p>Set up administrative credentials to log in and manage your gym.</p>
+        </div>
+
+        <form [formGroup]="ownerForm" (ngSubmit)="submitOwnerDetails()">
+          <div class="form-inputs-grid">
+            <mat-form-field appearance="outline" class="full-width">
+              <mat-label>Owner Full Name</mat-label>
+              <input matInput formControlName="ownerFullName" placeholder="Alex Johnson">
+              <mat-icon matSuffix>person</mat-icon>
+              <mat-error *ngIf="ownerForm.get('ownerFullName')?.hasError('required')">Name is required</mat-error>
+              <mat-error *ngIf="ownerForm.get('ownerFullName')?.hasError('minlength')">Must be at least 2 characters</mat-error>
+            </mat-form-field>
+
+            <div class="form-row">
+              <mat-form-field appearance="outline" class="flex-field">
+                <mat-label>Owner Email (Verified)</mat-label>
+                <input matInput formControlName="ownerEmail">
+                <mat-icon matSuffix>verified_user</mat-icon>
+              </mat-form-field>
+
+              <mat-form-field appearance="outline" class="flex-field">
+                <mat-label>Owner Contact Phone</mat-label>
+                <input matInput formControlName="ownerPhone" placeholder="+91 99887 76655">
+                <mat-icon matSuffix>phone</mat-icon>
+                <mat-error *ngIf="ownerForm.get('ownerPhone')?.hasError('required')">Phone number is required</mat-error>
+                <mat-error *ngIf="ownerForm.get('ownerPhone')?.hasError('pattern')">Please enter a valid phone number</mat-error>
+              </mat-form-field>
+            </div>
+
+            <mat-form-field appearance="outline" class="full-width">
+              <mat-label>Password</mat-label>
+              <input matInput [type]="hidePassword ? 'password' : 'text'" formControlName="ownerPassword">
+              <button mat-icon-button matSuffix (click)="hidePassword = !hidePassword" type="button" [attr.aria-label]="'Hide password'" [attr.aria-pressed]="hidePassword">
+                <mat-icon>{{hidePassword ? 'visibility_off' : 'visibility'}}</mat-icon>
+              </button>
+              <mat-error *ngIf="ownerForm.get('ownerPassword')?.hasError('required')">Password is required</mat-error>
+              <mat-error *ngIf="ownerForm.get('ownerPassword')?.hasError('minlength')">Must be at least 6 characters</mat-error>
+            </mat-form-field>
+          </div>
+
+          <div class="actions-row">
+            <button mat-button type="button" (click)="prevStep(2)" class="back-btn">
+              <mat-icon>chevron_left</mat-icon>
+              <span>Back</span>
+            </button>
+            <button mat-raised-button color="primary" type="submit" [disabled]="ownerForm.invalid" class="action-btn">
+              <span>Next: Setup Branch</span>
+              <mat-icon>chevron_right</mat-icon>
+            </button>
+          </div>
+        </form>
+      </div>
+
+      <!-- STEP 5: CREATE DEFAULT BRANCH -->
+      <div class="step-content" *ngIf="currentStep === 5" @stepAnimation>
+        <div class="step-title-area">
+          <h2>Create Default Branch</h2>
+          <p>Every gym has at least one physical branch. Let's create your first location.</p>
+        </div>
+
+        <form [formGroup]="branchForm" (ngSubmit)="submitBranchDetails()">
+          <div class="form-inputs-grid">
+            <mat-form-field appearance="outline" class="full-width">
+              <mat-label>Branch Name</mat-label>
+              <input matInput formControlName="branchName" placeholder="Main HQ Branch">
+              <mat-icon matSuffix>store</mat-icon>
+              <mat-error *ngIf="branchForm.get('branchName')?.hasError('required')">Branch Name is required</mat-error>
+              <mat-error *ngIf="branchForm.get('branchName')?.hasError('minlength')">Must be at least 3 characters</mat-error>
+            </mat-form-field>
+
+            <mat-form-field appearance="outline" class="full-width">
+              <mat-label>Branch Phone</mat-label>
+              <input matInput formControlName="branchPhone" placeholder="+91 99887 76655">
+              <mat-icon matSuffix>phone</mat-icon>
+              <mat-error *ngIf="branchForm.get('branchPhone')?.hasError('required')">Phone is required</mat-error>
+              <mat-error *ngIf="branchForm.get('branchPhone')?.hasError('pattern')">Please enter a valid phone number</mat-error>
+            </mat-form-field>
+
+            <mat-form-field appearance="outline" class="full-width">
+              <mat-label>Branch Address</mat-label>
+              <input matInput formControlName="branchAddress" placeholder="Enter branch physical address">
+              <mat-icon matSuffix>place</mat-icon>
+              <mat-error *ngIf="branchForm.get('branchAddress')?.hasError('required')">Address is required</mat-error>
+            </mat-form-field>
+          </div>
+
+          <div class="actions-row">
+            <button mat-button type="button" (click)="prevStep(4)" class="back-btn">
+              <mat-icon>chevron_left</mat-icon>
+              <span>Back</span>
+            </button>
+            <button mat-raised-button color="primary" type="submit" [disabled]="branchForm.invalid" class="action-btn">
+              <span>Next: Setup Plans</span>
+              <mat-icon>chevron_right</mat-icon>
+            </button>
+          </div>
+        </form>
+      </div>
+
+      <!-- STEP 6: CREATE DEFAULT MEMBERSHIP PLANS -->
+      <div class="step-content" *ngIf="currentStep === 6" @stepAnimation>
+        <div class="step-title-area">
+          <h2>Configure Membership Plans</h2>
+          <p>We've pre-seeded standard baseline packages. Customize the pricing tiers or toggle them before launching.</p>
+        </div>
+
+        <div class="pricing-setup-list">
+          <div class="price-setup-card" *ngFor="let plan of plans; let i = index" [class.disabled]="!plan.enabled">
+            <div class="card-header-row">
+              <div class="card-header-left">
+                <label class="custom-checkbox-container">
+                  <input type="checkbox" [(ngModel)]="plan.enabled">
+                  <span class="checkmark"></span>
+                </label>
+                <input type="text" [(ngModel)]="plan.name" class="plan-name-input" *ngIf="plan.enabled" placeholder="Plan Name">
+                <span class="plan-name" *ngIf="!plan.enabled">{{ plan.name }}</span>
+              </div>
+              <div class="duration-edit-row" *ngIf="plan.enabled">
+                <input type="number" [(ngModel)]="plan.durationMonths" min="1" max="12" class="duration-number-input">
+                <span class="duration-label">Mo</span>
+              </div>
+              <span class="duration-badge" *ngIf="!plan.enabled">{{ plan.durationMonths }} Month{{ plan.durationMonths > 1 ? 's' : '' }}</span>
+            </div>
+            
+            <input type="text" [(ngModel)]="plan.description" class="plan-desc-input" *ngIf="plan.enabled" placeholder="Brief plan description...">
+            <p class="plan-desc" *ngIf="!plan.enabled">{{ plan.description }}</p>
+
+            <div class="plan-price-edit" *ngIf="plan.enabled">
+              <span class="currency-symbol">₹</span>
+              <input type="number" [(ngModel)]="plan.price" min="0" class="price-number-input">
+              <span class="billing-cycle">/ billing cycle</span>
+            </div>
+            
+            <div class="plan-features-list">
+              <div class="feature-item" *ngFor="let feat of plan.features">
+                <mat-icon class="feature-check">check</mat-icon>
+                <span>{{ feat }}</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="add-plan-action-row">
+          <button mat-stroked-button type="button" class="add-plan-btn" (click)="addNewPlan()">
+            <mat-icon>add</mat-icon>
+            <span>Add Custom Plan</span>
+          </button>
+        </div>
+
+        <div class="actions-row">
+          <button mat-button type="button" (click)="prevStep(5)" class="back-btn" [disabled]="isLoading">
+            <mat-icon>chevron_left</mat-icon>
+            <span>Back</span>
+          </button>
+          <button mat-raised-button color="primary" (click)="finalizeOnboarding()" class="action-btn" [disabled]="isLoading">
+            <mat-icon>rocket_launch</mat-icon>
+            <span>Finalize Workspace Onboarding</span>
+          </button>
+        </div>
+      </div>
+
+      <!-- STEP 7: FINAL ONBOARDING CONSOLE & REDIRECT -->
+      <div class="step-content onboarding-console" *ngIf="currentStep === 7" @stepAnimation>
+        <div class="step-title-area text-center">
+          <h2 class="gradient-text">Deploying ApexFit Tenant Environment</h2>
+          <p>Building your administrative database, default branch workspace, and pricing plan configurations...</p>
         </div>
 
         <div class="onboarding-progress-section">
@@ -194,8 +383,8 @@
       </div>
     </div>
 
-    <!-- Help Prompt -->
-    <div class="login-prompt" *ngIf="currentStep < 3">
+    <!-- Switch Login links -->
+    <div class="login-prompt" *ngIf="currentStep !== 3 && currentStep !== 7">
       Already have a gym account? <a routerLink="/login">Log In Instead</a>
     </div>
   </div>

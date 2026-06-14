@@ -29,6 +29,11 @@ import {
   IEmployeeRepository,
   EMPLOYEE_REPOSITORY_TOKEN
 } from '../../core/interfaces/repository.interfaces';
+import { IOnboardingRepository, ONBOARDING_REPOSITORY_TOKEN } from '../../core/interfaces/onboarding-repository.interface';
+import { MockOnboardingRepository } from '../repositories/mock/mock-onboarding.repository';
+import { FirebaseOnboardingRepository } from '../repositories/firebase/firebase-onboarding.repository';
+import { SupabaseOnboardingRepository } from '../repositories/supabase/supabase-onboarding.repository';
+import { ApiOnboardingRepository } from '../repositories/api/api-onboarding.repository';
 
 
 import {
@@ -231,6 +236,16 @@ export function employeeRepositoryFactory(configService: AppConfigService, injec
   }
 }
 
+export function onboardingRepositoryFactory(configService: AppConfigService, injector: Injector): IOnboardingRepository {
+  switch (configService.provider) {
+    case ProviderType.Firebase: return injector.get(FirebaseOnboardingRepository);
+    case ProviderType.Supabase: return injector.get(SupabaseOnboardingRepository);
+    case ProviderType.REST: return injector.get(ApiOnboardingRepository);
+    case ProviderType.Mock:
+    default: return injector.get(MockOnboardingRepository);
+  }
+}
+
 
 export const REPOSITORY_PROVIDERS = [
   {
@@ -296,6 +311,11 @@ export const REPOSITORY_PROVIDERS = [
   {
     provide: EMPLOYEE_REPOSITORY_TOKEN,
     useFactory: employeeRepositoryFactory,
+    deps: [AppConfigService, Injector]
+  },
+  {
+    provide: ONBOARDING_REPOSITORY_TOKEN,
+    useFactory: onboardingRepositoryFactory,
     deps: [AppConfigService, Injector]
   }
 ];
