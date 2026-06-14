@@ -1,34 +1,22 @@
 import { Injectable } from '@angular/core';
 import { Observable, from, throwError } from 'rxjs';
 import { switchMap, catchError } from 'rxjs/operators';
-import { initializeApp, getApp, getApps } from 'firebase/app';
-import { getStorage, ref, uploadBytes, getDownloadURL, deleteObject } from 'firebase/storage';
-import { AppConfigService } from '../../../core/config/app-config';
+import { ref, uploadBytes, getDownloadURL, deleteObject } from 'firebase/storage';
+import { FirebaseService } from './firebase.service';
 import { IFileStorageRepository } from '../../../core/interfaces/file-storage-repository.interface';
 
 @Injectable({
   providedIn: 'root'
 })
 export class FirebaseStorageRepository implements IFileStorageRepository {
-  private storage: any;
 
-  constructor(private configService: AppConfigService) {
-    try {
-      const config = this.configService.firebaseConfig;
-      if (config && config.apiKey) {
-        // Dynamically initialize Firebase if not already initialized
-        const app = getApps().length === 0 ? initializeApp(config) : getApp();
-        this.storage = getStorage(app);
-      }
-    } catch (e) {
-      console.warn('Firebase Storage initialization failed:', e);
-    }
+  constructor(private firebaseService: FirebaseService) {}
+
+  private get storage() {
+    return this.firebaseService.getStorage();
   }
 
   uploadFile(file: File, folder: string, fileName?: string): Observable<string> {
-    if (!this.storage) {
-      return throwError(() => new Error('Firebase Storage is not configured.'));
-    }
     const name = fileName || `${Date.now()}_${file.name}`;
     const storageRef = ref(this.storage, `${folder}/${name}`);
     return from(uploadBytes(storageRef, file)).pipe(
@@ -38,9 +26,6 @@ export class FirebaseStorageRepository implements IFileStorageRepository {
   }
 
   deleteFile(url: string): Observable<void> {
-    if (!this.storage) {
-      return throwError(() => new Error('Firebase Storage is not configured.'));
-    }
     try {
       const storageRef = ref(this.storage, url);
       return from(deleteObject(storageRef)).pipe(
