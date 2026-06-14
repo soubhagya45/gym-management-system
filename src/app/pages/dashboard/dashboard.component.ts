@@ -26,9 +26,12 @@ import { MembershipPlanState } from '../../presentation/state/membership-plan.st
 import { WhatsAppState } from '../../presentation/state/whatsapp.state';
 
 import { GymState } from '../../presentation/state/gym.state';
+import { TrainerState } from '../../presentation/state/trainer.state';
+import { SubscriptionService } from '../../domain/subscription/subscription.service';
+import { SubscriptionStatus } from '../../core/models/subscription.model';
 import { RenewDialogComponent } from '../payments/renew-dialog.component';
 import { Observable, combineLatest } from 'rxjs';
-import { map } from 'rxjs/operators';
+import { map, take } from 'rxjs/operators';
 
 @Component({
   selector: 'app-dashboard',
@@ -69,6 +72,7 @@ export class DashboardComponent implements OnInit {
   canAccessAnalytics$: Observable<boolean>;
   
   displayedColumns = ['avatar', 'name', 'time', 'status'];
+  subscriptionStatus$: Observable<SubscriptionStatus | null> | undefined;
 
   // Mock revenue chart points (months and amounts in ₹)
   revenueChartData = [
@@ -89,6 +93,8 @@ export class DashboardComponent implements OnInit {
     private planState: MembershipPlanState,
     private whatsappState: WhatsAppState,
     private gymState: GymState,
+    private trainerState: TrainerState,
+    private subscriptionService: SubscriptionService,
     private dialog: MatDialog,
     private snackBar: MatSnackBar
   ) {
@@ -99,6 +105,23 @@ export class DashboardComponent implements OnInit {
 
   ngOnInit(): void {
     const todayStr = new Date().toISOString().split('T')[0];
+
+    // Load active subscription status
+    this.subscriptionStatus$ = combineLatest([
+      this.gymState.activeGym$,
+      this.memberState.members$,
+      this.trainerState.trainers$
+    ]).pipe(
+      map(([gym, members, trainers]) => {
+        if (!gym) return null;
+        return this.subscriptionService.getSubscriptionStatus(
+          gym.subscriptionPlan,
+          gym.createdAt,
+          members.length,
+          trainers.length
+        );
+      })
+    );
 
     // 1. Calculate stats dynamically based on active member lists
     this.stats$ = combineLatest([
@@ -349,5 +372,15 @@ export class DashboardComponent implements OnInit {
     const endPoint = `${padding + (pointsCount - 1) * stepX},${height - padding}`;
 
     return `M ${startPoint} L ${linePoints.join(' L ')} L ${endPoint} Z`;
+  }
+
+  getPlanLabel(plan: string): string {
+    switch (plan) {
+      case 'FREE_TRIAL': return 'Free Trial';
+      case 'BASIC': return 'Basic';
+      case 'PRO': return 'Pro';
+      case 'ENTERPRISE': return 'Enterprise';
+      default: return plan;
+    }
   }
 }

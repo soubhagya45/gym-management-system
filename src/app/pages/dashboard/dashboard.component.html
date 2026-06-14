@@ -13,6 +13,63 @@
     </div>
   </div>
 
+  <!-- SaaS Subscription Banner Panel -->
+  <div class="saas-subscription-panel glass-panel" *ngIf="subscriptionStatus$ | async as sub">
+    <div class="sub-header-details">
+      <!-- Current Plan -->
+      <div class="sub-detail-item">
+        <div class="sub-icon-wrapper" [ngClass]="sub.activePlan | lowercase">
+          <mat-icon>workspace_premium</mat-icon>
+        </div>
+        <div class="sub-text">
+          <span class="sub-label">Current Plan</span>
+          <span class="sub-value">{{ getPlanLabel(sub.activePlan) }}</span>
+        </div>
+      </div>
+
+      <!-- Days Remaining -->
+      <div class="sub-detail-item">
+        <div class="sub-icon-wrapper days">
+          <mat-icon>today</mat-icon>
+        </div>
+        <div class="sub-text">
+          <span class="sub-label">Days Remaining</span>
+          <span class="sub-value">{{ sub.daysRemaining }} Days</span>
+        </div>
+      </div>
+
+      <!-- Trial / Active Status -->
+      <div class="sub-detail-item">
+        <div class="sub-icon-wrapper status">
+          <mat-icon>hourglass_empty</mat-icon>
+        </div>
+        <div class="sub-text">
+          <span class="sub-label">Subscription Status</span>
+          <span class="sub-value status-badge" [ngClass]="sub.status">{{ sub.status | titlecase }}</span>
+        </div>
+      </div>
+
+      <!-- Next Renewal Date -->
+      <div class="sub-detail-item">
+        <div class="sub-icon-wrapper billing">
+          <mat-icon>date_range</mat-icon>
+        </div>
+        <div class="sub-text">
+          <span class="sub-label">Next Billing Date</span>
+          <span class="sub-value">{{ sub.endDate | date:'mediumDate' }}</span>
+        </div>
+      </div>
+    </div>
+    
+    <!-- Upgrade Call to Action if on Trial -->
+    <div class="sub-action-button" *ngIf="sub.activePlan === 'FREE_TRIAL'">
+      <button mat-raised-button routerLink="/settings" [queryParams]="{ tab: 'payments' }">
+        <mat-icon>rocket_launch</mat-icon>
+        <span>Upgrade SaaS Plan</span>
+      </button>
+    </div>
+  </div>
+
   <!-- Stats Grid -->
   <div class="stats-grid" *ngIf="stats$ | async as stats">
     <!-- Card 1: Total Members -->
@@ -468,6 +525,19 @@
           <div class="loading-state">Loading reminders queue...</div>
         </ng-template>
       </div>
+    </div>
+  </div>
+
+  <!-- SaaS Trial Expired Blocker Block -->
+  <div class="trial-expired-blocker" *ngIf="(subscriptionStatus$ | async)?.status === 'expired'">
+    <div class="blocker-card mat-card glass-panel">
+      <mat-icon class="blocker-icon">warning</mat-icon>
+      <h2>APEXFIT Workspace Expired</h2>
+      <p>Your workspace free trial period has concluded. To restore access to your gym roster, management tools, and business configurations, please choose one of our active subscription tiers.</p>
+      <button mat-raised-button routerLink="/settings" [queryParams]="{ tab: 'payments' }">
+        <mat-icon>rocket_launch</mat-icon>
+        <span>Upgrade Plan Now</span>
+      </button>
     </div>
   </div>
 </div>

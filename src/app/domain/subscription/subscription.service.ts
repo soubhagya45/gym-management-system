@@ -9,29 +9,37 @@ export const PLAN_FEATURES: Record<SubscriptionPlan, FeatureFlags> = {
     canManageTrainers: false,
     canExportReports: false,
     canAccessAnalytics: false,
+    canManageBranches: false,
     maxMembers: 5,
-    maxTrainers: 1
+    maxTrainers: 1,
+    maxEmployees: 1
   },
   [SubscriptionPlan.Basic]: {
     canManageTrainers: true,
     canExportReports: false,
     canAccessAnalytics: false,
-    maxMembers: 50,
-    maxTrainers: 3
+    canManageBranches: false,
+    maxMembers: 200,
+    maxTrainers: 5,
+    maxEmployees: 5
   },
   [SubscriptionPlan.Pro]: {
     canManageTrainers: true,
     canExportReports: true,
-    canAccessAnalytics: true,
-    maxMembers: 500,
-    maxTrainers: 15
+    canAccessAnalytics: false,
+    canManageBranches: false,
+    maxMembers: Infinity,
+    maxTrainers: Infinity,
+    maxEmployees: Infinity
   },
   [SubscriptionPlan.Enterprise]: {
     canManageTrainers: true,
     canExportReports: true,
     canAccessAnalytics: true,
+    canManageBranches: true,
     maxMembers: Infinity,
-    maxTrainers: Infinity
+    maxTrainers: Infinity,
+    maxEmployees: Infinity
   }
 };
 
@@ -139,12 +147,12 @@ export class SubscriptionService {
     return PLAN_FEATURES[plan] || PLAN_FEATURES[SubscriptionPlan.FreeTrial];
   }
 
-  isFeatureAllowed(plan: SubscriptionPlan, feature: keyof Omit<FeatureFlags, 'maxMembers' | 'maxTrainers'>): boolean {
+  isFeatureAllowed(plan: SubscriptionPlan, feature: keyof Omit<FeatureFlags, 'maxMembers' | 'maxTrainers' | 'maxEmployees'>): boolean {
     const flags = this.getFeatureFlags(plan);
     return !!flags[feature];
   }
 
-  hasReachedLimit(plan: SubscriptionPlan, metric: 'maxMembers' | 'maxTrainers', currentCount: number): boolean {
+  hasReachedLimit(plan: SubscriptionPlan, metric: 'maxMembers' | 'maxTrainers' | 'maxEmployees', currentCount: number): boolean {
     const flags = this.getFeatureFlags(plan);
     const limit = flags[metric];
     return currentCount >= limit;
@@ -161,17 +169,37 @@ export class SubscriptionService {
     // Calculate end date based on created date or active subscription
     const start = new Date(createdAt || '2026-01-01');
     const end = new Date(start);
-    end.setFullYear(end.getFullYear() + 1); // 1 year renewal cycle standard
+    if (plan === SubscriptionPlan.FreeTrial) {
+      end.setDate(end.getDate() + 14); // 14-day Free Trial standard
+    } else {
+      end.setFullYear(end.getFullYear() + 1); // 1 year renewal cycle standard
+    }
+    
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const endMidnight = new Date(end);
+    endMidnight.setHours(23, 59, 59, 999);
+    
+    let status: 'active' | 'trialing' | 'expired' | 'suspended' = 'active';
+    if (plan === SubscriptionPlan.FreeTrial) {
+      status = today > endMidnight ? 'expired' : 'trialing';
+    } else {
+      status = today > endMidnight ? 'expired' : 'active';
+    }
+    
+    const diffTime = endMidnight.getTime() - today.getTime();
+    const daysRemaining = Math.max(0, Math.ceil(diffTime / (1000 * 60 * 60 * 24)));
     
     return {
       activePlan: plan,
-      status: plan === SubscriptionPlan.FreeTrial ? 'trialing' : 'active',
+      status,
       startDate: start.toISOString().split('T')[0],
       endDate: end.toISOString().split('T')[0],
       memberCount,
       memberLimit: flags.maxMembers,
       trainerCount,
-      trainerLimit: flags.maxTrainers
+      trainerLimit: flags.maxTrainers,
+      daysRemaining
     };
   }
 }

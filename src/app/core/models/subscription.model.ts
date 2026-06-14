@@ -4,8 +4,10 @@ export interface FeatureFlags {
   canManageTrainers: boolean;
   canExportReports: boolean;
   canAccessAnalytics: boolean;
+  canManageBranches: boolean;
   maxMembers: number;
   maxTrainers: number;
+  maxEmployees: number;
 }
 
 export interface SaaSPayment {
@@ -28,5 +30,6 @@ export interface SubscriptionStatus {
   memberLimit: number;
   trainerCount: number;
   trainerLimit: number;
+  daysRemaining: number;
 }
 

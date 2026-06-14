@@ -12,6 +12,7 @@ import { Subject } from 'rxjs';
 import { takeUntil } from 'rxjs/operators';
 import { GymState } from '../../../presentation/state/gym.state';
 import { Gym, Branch } from '../../../core/models/gym.entity';
+import { SubscriptionService } from '../../../domain/subscription/subscription.service';
 
 @Component({
   selector: 'app-branches',
@@ -335,6 +336,7 @@ export class BranchesComponent implements OnInit, OnDestroy {
   constructor(
     private fb: FormBuilder,
     private gymState: GymState,
+    private subscriptionService: SubscriptionService,
     private snackBar: MatSnackBar,
     private cdr: ChangeDetectorRef
   ) {}
@@ -363,6 +365,17 @@ export class BranchesComponent implements OnInit, OnDestroy {
   }
 
   toggleBranchForm(): void {
+    if (!this.showForm && !this.editMode && this.activeGym) {
+      const features = this.subscriptionService.getFeatureFlags(this.activeGym.subscriptionPlan);
+      if (!features.canManageBranches && this.branchesList.length >= 1) {
+        this.snackBar.open(
+          'Multi-branch management is restricted to the Enterprise plan. Please upgrade to manage multiple branches.',
+          'Upgrade Plan',
+          { duration: 5000 }
+        );
+        return;
+      }
+    }
     this.showForm = !this.showForm;
     if (!this.showForm) {
       this.cancelEdit();
@@ -408,6 +421,18 @@ export class BranchesComponent implements OnInit, OnDestroy {
         };
       }
     } else {
+      if (this.activeGym) {
+        const features = this.subscriptionService.getFeatureFlags(this.activeGym.subscriptionPlan);
+        if (!features.canManageBranches && this.branchesList.length >= 1) {
+          this.snackBar.open(
+            'Multi-branch management is restricted to the Enterprise plan. Please upgrade to manage multiple branches.',
+            'Upgrade Plan',
+            { duration: 5000 }
+          );
+          return;
+        }
+      }
+
       const newBranch: Branch = {
         id: 'br-' + Math.random().toString(36).substring(2, 9),
         name: this.branchForm.value.name,

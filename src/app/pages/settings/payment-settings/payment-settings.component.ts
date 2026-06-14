@@ -1,4 +1,4 @@
-import { Component, OnInit, OnDestroy, ChangeDetectionStrategy, ChangeDetectorRef } from '@angular/core';
+import { Component, OnInit, OnDestroy, ChangeDetectionStrategy, ChangeDetectorRef, Inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormBuilder, FormGroup, Validators, ReactiveFormsModule } from '@angular/forms';
 import { MatCardModule } from '@angular/material/card';
@@ -13,7 +13,7 @@ import { MatTableModule } from '@angular/material/table';
 import { MatProgressBarModule } from '@angular/material/progress-bar';
 import { MatDividerModule } from '@angular/material/divider';
 import { MatTabsModule } from '@angular/material/tabs';
-import { MatDialog, MatDialogModule } from '@angular/material/dialog';
+import { MatDialog, MatDialogModule, MatDialogRef, MAT_DIALOG_DATA } from '@angular/material/dialog';
 import { Subject } from 'rxjs';
 import { takeUntil, distinctUntilChanged } from 'rxjs/operators';
 import { GymState } from '../../../presentation/state/gym.state';
@@ -268,22 +268,26 @@ const PLAN_LABEL_MAP: Record<SubscriptionPlan, string> = {
                     <span>Members Limit (Max {{ isUnlimited(planFeatures[plan].maxMembers) ? 'Unlimited' : planFeatures[plan].maxMembers }})</span>
                   </li>
                   <li>
-                    <mat-icon class="feature-icon" [class.check]="planFeatures[plan].canManageTrainers" [class.cross]="!planFeatures[plan].canManageTrainers">
-                      {{ planFeatures[plan].canManageTrainers ? 'check_circle' : 'cancel' }}
-                    </mat-icon>
-                    <span>Trainers Limit (Max {{ isUnlimited(planFeatures[plan].maxTrainers) ? 'Unlimited' : planFeatures[plan].maxTrainers }})</span>
-                  </li>
-                  <li>
-                    <mat-icon class="feature-icon" [class.check]="planFeatures[plan].canAccessAnalytics" [class.cross]="!planFeatures[plan].canAccessAnalytics">
-                      {{ planFeatures[plan].canAccessAnalytics ? 'check_circle' : 'cancel' }}
-                    </mat-icon>
-                    <span>Dashboard Analytics Suite</span>
+                    <mat-icon class="feature-icon check">check_circle</mat-icon>
+                    <span>Employees Limit (Max {{ isUnlimited(planFeatures[plan].maxEmployees) ? 'Unlimited' : planFeatures[plan].maxEmployees }})</span>
                   </li>
                   <li>
                     <mat-icon class="feature-icon" [class.check]="planFeatures[plan].canExportReports" [class.cross]="!planFeatures[plan].canExportReports">
                       {{ planFeatures[plan].canExportReports ? 'check_circle' : 'cancel' }}
                     </mat-icon>
-                    <span>Export reports to Excel/CSV</span>
+                    <span>Advanced Reports Export</span>
+                  </li>
+                  <li>
+                    <mat-icon class="feature-icon" [class.check]="planFeatures[plan].canManageBranches" [class.cross]="!planFeatures[plan].canManageBranches">
+                      {{ planFeatures[plan].canManageBranches ? 'check_circle' : 'cancel' }}
+                    </mat-icon>
+                    <span>Multi Branch Operations</span>
+                  </li>
+                  <li>
+                    <mat-icon class="feature-icon" [class.check]="planFeatures[plan].canAccessAnalytics" [class.cross]="!planFeatures[plan].canAccessAnalytics">
+                      {{ planFeatures[plan].canAccessAnalytics ? 'check_circle' : 'cancel' }}
+                    </mat-icon>
+                    <span>Advanced Analytics Suite</span>
                   </li>
                 </ul>
 
@@ -641,20 +645,39 @@ const PLAN_LABEL_MAP: Record<SubscriptionPlan, string> = {
         flex: 1;
         li {
           display: flex;
-          align-items: flex-start;
+          align-items: center;
           gap: 10px;
-          font-size: 13px;
+          font-size: 13.5px;
           color: var(--text-secondary);
+          line-height: 1.4;
           .feature-icon {
-            font-size: 18px;
-            width: 18px;
-            height: 18px;
-            &.check { color: var(--success); }
-            &.cross { color: var(--text-muted); opacity: 0.5; }
+            font-size: 18px !important;
+            width: 18px !important;
+            height: 18px !important;
+            line-height: 18px !important;
+            display: inline-flex !important;
+            align-items: center;
+            justify-content: center;
+            overflow: hidden;
+            &.check { color: #22c55e !important; }
+            &.cross { color: #ef4444 !important; opacity: 0.7; }
           }
         }
       }
-      .action-btn-tier { width: 100%; border-radius: 8px !important; font-weight: 700 !important; }
+      .action-btn-tier {
+        width: 100% !important;
+        border-radius: 8px !important;
+        font-weight: 700 !important;
+        font-size: 12px !important;
+        padding: 0 8px !important;
+        white-space: normal !important;
+        line-height: 1.2 !important;
+        height: 42px !important;
+        display: inline-flex !important;
+        align-items: center;
+        justify-content: center;
+        text-align: center;
+      }
     }
     .saas-invoices-card {
       padding: 24px !important;
@@ -903,7 +926,7 @@ export class PaymentSettingsComponent implements OnInit, OnDestroy {
     }
   }
 
-  // SaaS upgrading plan handler
+  // SaaS plan action handler (handles both upgrade & downgrade)
   onUpgradePlan(plan: SubscriptionPlan): void {
     if (!this.activeGym) return;
 
@@ -917,25 +940,50 @@ export class PaymentSettingsComponent implements OnInit, OnDestroy {
       return;
     }
 
-    const dialogRef = this.dialog.open(CheckoutDialogComponent, {
-      width: '550px',
-      data: { plan, billingCycle: this.billingCycle }
-    });
+    // Check if plan action is a downgrade
+    const order = [SubscriptionPlan.FreeTrial, SubscriptionPlan.Basic, SubscriptionPlan.Pro, SubscriptionPlan.Enterprise];
+    const isDowngrade = order.indexOf(this.activeGym.subscriptionPlan) > order.indexOf(plan);
 
-    dialogRef.afterClosed().pipe(takeUntil(this.destroy$)).subscribe(result => {
-      if (result) {
-        const priceObj = PLAN_PRICES[plan];
-        const finalPrice = this.billingCycle === 'yearly' ? priceObj.yearly : priceObj.monthly;
+    if (isDowngrade) {
+      const dialogRef = this.dialog.open(DowngradeDialogComponent, {
+        width: '450px',
+        data: { planLabel: this.planLabels[plan] }
+      });
 
-        this.gymState.upgradeActiveGymSubscription(plan, result.paymentMethod, finalPrice)
-          .pipe(takeUntil(this.destroy$))
-          .subscribe(() => {
-            this.snackBar.open(`Successfully upgraded to ${this.planLabels[plan]} plan!`, 'Dismiss', { duration: 4000 });
-            this.computePlanPriceTexts();
-            this.cdr.markForCheck();
-          });
-      }
-    });
+      dialogRef.afterClosed().pipe(takeUntil(this.destroy$)).subscribe(confirmed => {
+        if (confirmed && this.activeGym) {
+          // Process Downgrade immediately (adds zero amount statement for transparency)
+          this.gymState.upgradeActiveGymSubscription(plan, 'SaaS Plan Downgrade', 0)
+            .pipe(takeUntil(this.destroy$))
+            .subscribe(() => {
+              this.snackBar.open(`Workspace plan downgraded to ${this.planLabels[plan]} successfully.`, 'Dismiss', { duration: 4000 });
+              this.computePlanPriceTexts();
+              this.cdr.markForCheck();
+            });
+        }
+      });
+    } else {
+      // Process Upgrade
+      const dialogRef = this.dialog.open(CheckoutDialogComponent, {
+        width: '550px',
+        data: { plan, billingCycle: this.billingCycle }
+      });
+
+      dialogRef.afterClosed().pipe(takeUntil(this.destroy$)).subscribe(result => {
+        if (result) {
+          const priceObj = PLAN_PRICES[plan];
+          const finalPrice = this.billingCycle === 'yearly' ? priceObj.yearly : priceObj.monthly;
+
+          this.gymState.upgradeActiveGymSubscription(plan, result.paymentMethod, finalPrice)
+            .pipe(takeUntil(this.destroy$))
+            .subscribe(() => {
+              this.snackBar.open(`Successfully upgraded to ${this.planLabels[plan]} plan!`, 'Dismiss', { duration: 4000 });
+              this.computePlanPriceTexts();
+              this.cdr.markForCheck();
+            });
+        }
+      });
+    }
   }
 
   getPlanLabel(plan: SubscriptionPlan): string {
@@ -979,6 +1027,213 @@ export class PaymentSettingsComponent implements OnInit, OnDestroy {
   }
 
   printInvoice(invoice: SaaSPayment): void {
-    this.snackBar.open(`Generating PDF receipt for Invoice #${invoice.invoiceNumber}...`, 'Dismiss', { duration: 3000 });
+    if (!this.activeGym) return;
+    
+    const printWindow = window.open('', '_blank');
+    if (!printWindow) {
+      this.snackBar.open('Pop-up blocked! Please allow pop-ups to print invoices.', 'Dismiss', { duration: 4000 });
+      return;
+    }
+
+    const basePrice = invoice.amount;
+    const tax = Math.round(basePrice * 0.18);
+    const total = basePrice + tax;
+
+    printWindow.document.write(`
+      <html>
+        <head>
+          <title>Invoice - ${invoice.invoiceNumber}</title>
+          <style>
+            body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; color: #1e293b; padding: 40px; line-height: 1.5; background-color: #ffffff; }
+            .invoice-container { max-width: 800px; margin: 0 auto; border: 1px solid #e2e8f0; padding: 40px; border-radius: 12px; box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1); }
+            .header { display: flex; justify-content: space-between; align-items: flex-start; border-bottom: 2px solid #f1f5f9; padding-bottom: 24px; }
+            .logo { font-size: 26px; font-weight: 800; color: #6366f1; letter-spacing: -0.5px; }
+            .company-info { text-align: right; font-size: 13px; color: #64748b; line-height: 1.4; }
+            .invoice-details { display: flex; justify-content: space-between; margin-top: 32px; font-size: 14px; }
+            .bill-to { display: flex; flex-direction: column; gap: 4px; }
+            .bill-meta { text-align: right; display: flex; flex-direction: column; gap: 4px; }
+            .table { width: 100%; border-collapse: collapse; margin-top: 40px; font-size: 14px; }
+            .table th { background: #f8fafc; text-align: left; padding: 12px 16px; font-weight: 600; border-bottom: 1px solid #e2e8f0; color: #475569; }
+            .table td { padding: 16px; border-bottom: 1px solid #f1f5f9; }
+            .totals-container { margin-top: 32px; display: flex; justify-content: flex-end; }
+            .totals-table { width: 300px; border-collapse: collapse; font-size: 14px; }
+            .totals-table td { padding: 8px 12px; }
+            .totals-table tr.total { font-weight: 700; border-top: 1px solid #e2e8f0; font-size: 16px; color: #6366f1; }
+            .badge { display: inline-block; padding: 4px 10px; font-size: 11px; font-weight: 700; border-radius: 6px; background: #dcfce7; color: #166534; text-transform: uppercase; }
+            .footer { margin-top: 60px; text-align: center; font-size: 12px; color: #94a3b8; border-top: 1px solid #f1f5f9; padding-top: 24px; }
+            @media print {
+              body { padding: 0; background-color: #ffffff; }
+              .invoice-container { border: none; padding: 0; box-shadow: none; }
+            }
+          </style>
+        </head>
+        <body>
+          <div class="invoice-container">
+            <div class="header">
+              <div class="logo">APEXFIT SaaS Suite</div>
+              <div class="company-info">
+                <strong>APEXFIT Technologies Pvt Ltd</strong><br>
+                100 Indiranagar Double Rd<br>
+                Bangalore, KA 560038<br>
+                support@apexfit.com
+              </div>
+            </div>
+            
+            <div class="invoice-details">
+              <div class="bill-to">
+                <span style="font-size: 12px; font-weight: 700; text-transform: uppercase; color: #94a3b8;">Billed To</span>
+                <strong>${this.activeGym.gymName}</strong>
+                <span>Owner: ${this.activeGym.ownerName}</span>
+                <span>Email: ${this.activeGym.email}</span>
+                <span>Phone: ${this.activeGym.phone}</span>
+                ${this.activeGym.gstNumber ? `<span>GSTIN: ${this.activeGym.gstNumber}</span>` : ''}
+              </div>
+              <div class="bill-meta">
+                <span style="font-size: 12px; font-weight: 700; text-transform: uppercase; color: #94a3b8;">Invoice Info</span>
+                <strong>Invoice #${invoice.invoiceNumber}</strong>
+                <span>Date: ${new Date(invoice.date).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })}</span>
+                <span>Payment Method: ${invoice.paymentMethod}</span>
+                <span>Status: <span class="badge">${invoice.status}</span></span>
+              </div>
+            </div>
+
+            <table class="table">
+              <thead>
+                <tr>
+                  <th>Subscription Service Description</th>
+                  <th style="text-align: right;">Billing Base</th>
+                  <th style="text-align: right;">Total Amount</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td>
+                    <strong>APEXFIT Gym SaaS Management Plan - ${this.getPlanLabel(invoice.plan)} Tier</strong><br>
+                    <span style="font-size: 12px; color: #64748b;">Annual/Monthly billing subscription for multi-tenant gym workspace management portal. Includes full client roster database, staff accounts directory, check-in tracking, WhatsApp reminder tools.</span>
+                  </td>
+                  <td style="text-align: right; vertical-align: top;">₹${basePrice.toLocaleString('en-IN')}</td>
+                  <td style="text-align: right; vertical-align: top; font-weight: 600;">₹${basePrice.toLocaleString('en-IN')}</td>
+                </tr>
+              </tbody>
+            </table>
+
+            <div class="totals-container">
+              <table class="totals-table">
+                <tr>
+                  <td>Subtotal</td>
+                  <td style="text-align: right;">₹${basePrice.toLocaleString('en-IN')}</td>
+                </tr>
+                <tr>
+                  <td>Estimated Tax (18% GST)</td>
+                  <td style="text-align: right;">₹${tax.toLocaleString('en-IN')}</td>
+                </tr>
+                <tr class="total">
+                  <td>Amount Charged</td>
+                  <td style="text-align: right;">₹${total.toLocaleString('en-IN')}</td>
+                </tr>
+              </table>
+            </div>
+
+            <div class="footer">
+              <p>Thank you for partnering with APEXFIT! Your subscription helps us power a healthier world.</p>
+              <p>For support, please write to billing@apexfit.com.</p>
+            </div>
+          </div>
+          <script>
+            window.onload = function() {
+              window.print();
+            }
+          </script>
+        </body>
+      </html>
+    `);
+    printWindow.document.close();
   }
+}
+
+@Component({
+  selector: 'app-downgrade-dialog',
+  standalone: true,
+  imports: [CommonModule, MatDialogModule, MatButtonModule, MatIconModule],
+  template: `
+    <div class="downgrade-dialog-container">
+      <div class="dialog-header text-warning">
+        <mat-icon class="warn-icon">warning</mat-icon>
+        <h2>Confirm Downgrade Plan</h2>
+      </div>
+      <div class="dialog-content">
+        <p>Are you sure you want to downgrade your subscription plan to <strong>{{ data.planLabel }}</strong>?</p>
+        <div class="warning-box glass-panel mt-3">
+          <p class="font-bold text-warn" style="color: #f59e0b; font-weight: 700; margin-bottom: 8px;">Please Note:</p>
+          <ul style="margin: 0; padding-left: 20px; color: var(--text-secondary); line-height: 1.6;">
+            <li>Your current resource usage limits will be reduced according to the target plan features.</li>
+            <li>No data will be deleted, but you will be unable to add new members or staff if you exceed the new limits.</li>
+          </ul>
+        </div>
+      </div>
+      <div class="actions-row">
+        <button mat-button (click)="onCancel()" class="cancel-btn">Cancel</button>
+        <button mat-raised-button color="warn" (click)="onConfirm()" class="confirm-btn">
+          Confirm & Downgrade
+        </button>
+      </div>
+    </div>
+  `,
+  styles: [`
+    .downgrade-dialog-container {
+      padding: 16px;
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+    }
+    .dialog-header {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      color: #f59e0b;
+      h2 {
+        margin: 0;
+        font-size: 20px;
+        font-weight: 700;
+        color: var(--text-primary);
+      }
+      .warn-icon {
+        font-size: 28px;
+        width: 28px;
+        height: 28px;
+        color: #f59e0b;
+      }
+    }
+    .dialog-content {
+      color: var(--text-primary);
+      p { margin: 0; font-size: 14px; }
+    }
+    .warning-box {
+      padding: 14px;
+      background: rgba(245, 158, 11, 0.05);
+      border: 1px solid rgba(245, 158, 11, 0.2) !important;
+      border-radius: 8px;
+      font-size: 13px;
+    }
+    .actions-row {
+      display: flex;
+      justify-content: flex-end;
+      gap: 12px;
+      margin-top: 16px;
+      border-top: 1px solid var(--border-color);
+      padding-top: 12px;
+      button {
+        border-radius: 8px !important;
+        font-weight: 600 !important;
+      }
+    }
+  `]
+})
+export class DowngradeDialogComponent {
+  constructor(
+    private dialogRef: MatDialogRef<DowngradeDialogComponent>,
+    @Inject(MAT_DIALOG_DATA) public data: { planLabel: string }
+  ) {}
+  onCancel(): void { this.dialogRef.close(false); }
+  onConfirm(): void { this.dialogRef.close(true); }
 }

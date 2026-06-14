@@ -862,3 +862,198 @@
   user-select: none;
 }
 
+/* SaaS Subscription Banner Panel */
+.saas-subscription-panel {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 16px 24px;
+  background: rgba(255, 255, 255, 0.02) !important;
+  backdrop-filter: blur(10px);
+  border: 1px solid rgba(255, 255, 255, 0.08) !important;
+  border-radius: 16px !important;
+  margin-bottom: 24px;
+  gap: 16px;
+  box-shadow: var(--shadow-sm);
+
+  body.light-theme & {
+    background: rgba(99, 102, 241, 0.03) !important;
+    border-color: rgba(99, 102, 241, 0.1) !important;
+  }
+
+  .sub-header-details {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 32px;
+    align-items: center;
+  }
+
+  .sub-detail-item {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+
+  .sub-icon-wrapper {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 38px;
+    height: 38px;
+    border-radius: 10px;
+    
+    mat-icon {
+      font-size: 20px;
+      width: 20px;
+      height: 20px;
+    }
+
+    /* Colors by type */
+    &.free_trial { background: rgba(148, 163, 184, 0.1); color: #94a3b8; }
+    &.basic { background: rgba(59, 130, 246, 0.1); color: #3b82f6; }
+    &.pro { background: rgba(168, 85, 247, 0.1); color: #a855f7; }
+    &.enterprise { background: rgba(236, 72, 153, 0.1); color: #ec4899; }
+    &.days { background: rgba(99, 102, 241, 0.1); color: var(--accent-color); }
+    &.status { background: rgba(16, 185, 129, 0.1); color: var(--success); }
+    &.billing { background: rgba(245, 158, 11, 0.1); color: var(--warning); }
+  }
+
+  .sub-text {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+  }
+
+  .sub-label {
+    font-size: 11px;
+    text-transform: uppercase;
+    color: var(--text-muted);
+    font-weight: 700;
+    letter-spacing: 0.5px;
+  }
+
+  .sub-value {
+    font-size: 15px;
+    font-weight: 700;
+    color: var(--text-primary);
+  }
+
+  .status-badge {
+    font-size: 11px;
+    font-weight: 800;
+    padding: 2px 8px;
+    border-radius: 4px;
+    text-transform: uppercase;
+    
+    &.trialing { background: rgba(59, 130, 246, 0.15); color: #3b82f6; }
+    &.active { background: rgba(34, 197, 94, 0.15); color: #22c55e; }
+    &.expired { background: rgba(239, 68, 68, 0.15); color: #ef4444; }
+    &.suspended { background: rgba(148, 163, 184, 0.15); color: #64748b; }
+  }
+
+  .sub-action-button {
+    button {
+      border-radius: 8px !important;
+      font-weight: 700 !important;
+      height: 42px !important;
+      line-height: 42px !important;
+      padding: 0 16px !important;
+      background: var(--accent-gradient);
+      color: #ffffff;
+      box-shadow: 0 4px 12px rgba(99, 102, 241, 0.2);
+    }
+  }
+}
+
+/* Trial Expired Alert Overlay for Dashboard */
+.trial-expired-blocker {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 1000;
+  background: rgba(15, 23, 42, 0.85);
+  backdrop-filter: blur(8px);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  padding: 24px;
+
+  .blocker-card {
+    max-width: 500px;
+    width: 100%;
+    text-align: center;
+    padding: 40px !important;
+    background: rgba(30, 41, 59, 0.9) !important;
+    border: 1px solid rgba(255, 255, 255, 0.1) !important;
+    border-radius: 20px !important;
+    box-shadow: 0 20px 50px rgba(0, 0, 0, 0.5) !important;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 20px;
+
+    .blocker-icon {
+      font-size: 56px;
+      width: 56px;
+      height: 56px;
+      color: #ef4444;
+      animation: pulse 2s infinite;
+    }
+
+    h2 {
+      font-size: 26px;
+      font-weight: 900;
+      color: #ffffff;
+      margin: 0;
+      letter-spacing: -0.5px;
+    }
+
+    p {
+      font-size: 14px;
+      line-height: 1.6;
+      color: var(--text-secondary);
+      margin: 0;
+    }
+
+    button {
+      font-weight: 700 !important;
+      border-radius: 8px !important;
+      padding: 0 32px !important;
+      height: 46px !important;
+      line-height: 46px !important;
+      background: var(--accent-gradient);
+      color: #ffffff;
+      box-shadow: 0 4px 15px rgba(99, 102, 241, 0.3);
+    }
+  }
+}
+
+@keyframes pulse {
+  0% { transform: scale(1); opacity: 1; }
+  50% { transform: scale(1.1); opacity: 0.7; }
+  100% { transform: scale(1); opacity: 1; }
+}
+
+@media (max-width: 959.98px) {
+  .saas-subscription-panel {
+    flex-direction: column;
+    align-items: flex-start;
+    padding: 20px;
+    
+    .sub-header-details {
+      gap: 20px;
+      width: 100%;
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+    }
+    
+    .sub-action-button {
+      width: 100%;
+      margin-top: 8px;
+      button { width: 100%; }
+    }
+  }
+}
+
