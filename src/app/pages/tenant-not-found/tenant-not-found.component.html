@@ -1,0 +1,41 @@
+<div class="unauthorized-page-wrapper">
+  <!-- Grid background -->
+  <div class="cyber-grid"></div>
+  <div class="glow-sphere-alert"></div>
+
+  <div class="warning-container">
+    <div class="glass-panel alert-card animate-fade-in">
+      <div class="alert-icon-ring">
+        <mat-icon class="shield-icon">report_problem</mat-icon>
+        <div class="pulse-ring"></div>
+      </div>
+
+      <h1 class="alert-title">TENANT_NOT_FOUND</h1>
+      <p class="alert-code">HTTP STATUS 404 // UNKNOWN_WORKSPACE_DOMAIN</p>
+      
+      <div class="alert-details">
+        <p>We were unable to locate or initialize a tenant database space matching your address segment:
+          <span class="tenant-display">"{{ attemptedTenant || 'unknown-workspace' }}"</span>
+        </p>
+        <p class="info-highlight">Please check the subdomain or path spelling, or return to the master registration gateway.</p>
+      </div>
+
+      <div class="action-bar">
+        <a routerLink="/login" [queryParams]="{ tenant: 'gym-a' }" class="cyber-btn outline-btn" style="margin-right: 12px; display: inline-flex; align-items: center;">
+          <span class="btn-content" style="display: inline-flex; align-items: center; gap: 8px;">
+            <mat-icon>login</mat-icon>
+            SIGN IN GATEWAY
+          </span>
+        </a>
+
+        <a routerLink="/register" class="cyber-btn primary-alert-btn" style="display: inline-flex; align-items: center;">
+          <span class="btn-glow"></span>
+          <span class="btn-content" style="display: inline-flex; align-items: center; gap: 8px;">
+            <mat-icon>add_business</mat-icon>
+            CREATE NEW GYM NODE
+          </span>
+        </a>
+      </div>
+    </div>
+  </div>
+</div>

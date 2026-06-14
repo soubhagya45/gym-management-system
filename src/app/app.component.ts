@@ -6,10 +6,14 @@ import { AuthState } from './presentation/state/auth.state';
 import { GymState } from './presentation/state/gym.state';
 import { AppConfigService, ProviderType } from './core/config/app-config';
 import { UserProfile } from './core/models/user.model';
-import { Gym } from './core/models/gym.entity';
+import { Gym, Branch } from './core/models/gym.entity';
 import { PermissionService } from './domain/auth/permission.service';
 import { NavItem } from './core/models/permission.model';
 import { SessionService } from './domain/auth/session.service';
+import { TenantContextService } from './domain/tenancy/tenant-context.service';
+import { SubscriptionPlan } from './core/enums/subscription-plans.enum';
+import { FeatureFlags } from './core/models/subscription.model';
+import { MatSnackBar } from '@angular/material/snack-bar';
 
 @Component({
   selector: 'app-root',
@@ -31,13 +35,20 @@ export class AppComponent implements OnInit {
   gyms$: Observable<Gym[]>;
   currentProvider: ProviderType;
 
+  activeBranchId$: Observable<string | null>;
+  activeBranch$: Observable<Branch | null>;
+  activeSubscription$: Observable<SubscriptionPlan | null>;
+  activeFeatureFlags$: Observable<FeatureFlags | null>;
+
   constructor(
     private router: Router,
     private authState: AuthState,
     private gymState: GymState,
     private configService: AppConfigService,
     private permissionService: PermissionService,
-    private sessionService: SessionService
+    private sessionService: SessionService,
+    private tenantContext: TenantContextService,
+    private snackBar: MatSnackBar
   ) {
     this.currentUser$ = this.authState.currentUser$;
     this.menuItems$ = this.currentUser$.pipe(
@@ -47,6 +58,12 @@ export class AppComponent implements OnInit {
     this.activeGym$ = this.gymState.activeGym$;
     this.gyms$ = this.gymState.gyms$;
     this.currentProvider = this.configService.provider;
+
+    this.activeBranchId$ = this.tenantContext.activeBranchId$;
+    this.activeBranch$ = this.tenantContext.activeBranch$;
+    this.activeSubscription$ = this.tenantContext.activeSubscription$;
+    this.activeFeatureFlags$ = this.tenantContext.activeFeatureFlags$;
+
     this.checkScreenSize();
   }
 
@@ -191,6 +208,11 @@ export class AppComponent implements OnInit {
 
   onSwitchGym(gymId: string): void {
     this.gymState.switchGym(gymId);
+  }
+
+  onSwitchBranch(branchId: string): void {
+    this.tenantContext.setBranchId(branchId);
+    this.snackBar.open('Switched active branch successfully', 'Close', { duration: 2000 });
   }
 
   onSwitchProvider(provider: string): void {

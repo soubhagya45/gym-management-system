@@ -72,11 +72,36 @@
 
         <span class="toolbar-title">{{ pageTitle }}</span>
 
-        <!-- Active Gym Tenant Indicator -->
-        <span class="gym-badge hide-on-mobile" *ngIf="activeGym$ | async as gym">
-          <mat-icon>storefront</mat-icon>
-          <span>{{ gym.gymName }}</span>
-        </span>
+        <!-- Active Gym Tenant Indicator & Subscription Plan Badge -->
+        <div class="tenant-branding-block hide-on-mobile" *ngIf="activeGym$ | async as gym" style="display: flex; align-items: center; gap: 8px;">
+          <span class="gym-badge">
+            <mat-icon>storefront</mat-icon>
+            <span>{{ gym.gymName }}</span>
+          </span>
+
+          <!-- Subscription Badge -->
+          <span class="subscription-plan-badge" *ngIf="activeSubscription$ | async as subPlan" [attr.data-plan]="subPlan">
+            {{ subPlan | uppercase }}
+          </span>
+
+          <!-- Branch Switcher (If canManageBranches is enabled and gym has branches) -->
+          <ng-container *ngIf="activeFeatureFlags$ | async as flags">
+            <ng-container *ngIf="flags.canManageBranches && gym.branches && gym.branches.length > 0">
+              <button mat-button [matMenuTriggerFor]="branchMenu" class="branch-switcher-btn" style="margin-left: 4px; display: inline-flex; align-items: center; gap: 4px; height: 32px; line-height: 32px; padding: 0 12px; border-radius: 16px; background: rgba(255, 255, 255, 0.05); border: 1px solid var(--border-color); color: var(--text-primary);">
+                <mat-icon style="font-size: 16px; width: 16px; height: 16px; margin: 0; display: inline-flex; align-items: center; justify-content: center;">place</mat-icon>
+                <span>Branch: {{ (activeBranch$ | async)?.name || 'Select Branch' }}</span>
+                <mat-icon style="font-size: 16px; width: 16px; height: 16px; margin: 0; display: inline-flex; align-items: center; justify-content: center;">expand_more</mat-icon>
+              </button>
+              <mat-menu #branchMenu="matMenu" class="premium-menu">
+                <div class="menu-header">Switch Branch Location</div>
+                <button mat-menu-item *ngFor="let branch of gym.branches" (click)="onSwitchBranch(branch.id)">
+                  <mat-icon [color]="(activeBranchId$ | async) === branch.id ? 'primary' : ''">location_on</mat-icon>
+                  <span>{{ branch.name }} ({{ branch.code }})</span>
+                </button>
+              </mat-menu>
+            </ng-container>
+          </ng-container>
+        </div>
 
         <span class="spacer"></span>
 
