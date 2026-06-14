@@ -1,7 +1,8 @@
 .register-wrapper {
   position: relative;
   width: 100%;
-  min-height: 100vh;
+  height: 100vh;
+  box-sizing: border-box;
   background-color: var(--bg-primary, #0a0b10);
   color: var(--text-primary, #ffffff);
   display: flex;
