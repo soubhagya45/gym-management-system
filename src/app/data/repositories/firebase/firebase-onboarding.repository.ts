@@ -10,6 +10,7 @@ import { UserRole } from '../../../core/enums/roles.enum';
 import { SubscriptionPlan } from '../../../core/enums/subscription-plans.enum';
 import { createUserWithEmailAndPassword } from 'firebase/auth';
 import { doc, setDoc } from 'firebase/firestore';
+import { Employee } from '../../../core/models/employee.entity';
 
 @Injectable({ providedIn: 'root' })
 export class FirebaseOnboardingRepository implements IOnboardingRepository {
@@ -103,9 +104,29 @@ export class FirebaseOnboardingRepository implements IOnboardingRepository {
           sessionExpiresAt: new Date(Date.now() + 8 * 60 * 60 * 1000).toISOString()
         };
 
+        const ownerEmployee: Employee = {
+          id: uid,
+          gymId,
+          fullName: payload.ownerFullName,
+          phone: payload.ownerPhone || payload.gymPhone,
+          email: payload.ownerEmail,
+          gender: 'Male',
+          dob: '1990-01-01',
+          address: payload.gymAddress || 'Not Specified',
+          role: UserRole.Owner,
+          department: 'Management',
+          joinDate: today.toISOString().split('T')[0],
+          salary: 0,
+          shift: 'General',
+          username: payload.ownerEmail.split('@')[0],
+          accountStatus: 'Active',
+          photoUrl: ownerProfile.avatarUrl
+        };
+
         const ops: Observable<any>[] = [
           from(setDoc(doc(db, 'gyms', gymId), newGym)),
-          from(setDoc(doc(db, 'users', uid), ownerProfile))
+          from(setDoc(doc(db, 'users', uid), ownerProfile)),
+          from(setDoc(doc(db, 'employees', uid), ownerEmployee))
         ];
 
         // Seed initial plans if enabled in onboarding

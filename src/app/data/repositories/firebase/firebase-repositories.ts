@@ -195,9 +195,29 @@ export class FirebaseAuthRepository implements IAuthRepository {
           sessionExpiresAt: new Date(Date.now() + 8 * 60 * 60 * 1000).toISOString()
         };
 
+        const ownerEmployee: Employee = {
+          id: uid,
+          gymId,
+          fullName: ownerName,
+          phone: phone,
+          email,
+          gender: 'Male',
+          dob: '1990-01-01',
+          address: address || 'Not Specified',
+          role: UserRole.Owner,
+          department: 'Management',
+          joinDate: today,
+          salary: 0,
+          shift: 'General',
+          username: email.split('@')[0],
+          accountStatus: 'Active',
+          photoUrl: userDoc.avatarUrl
+        };
+
         return forkJoin([
           from(setDoc(doc(db, 'gyms', gymId), newGym)),
-          from(setDoc(doc(db, 'users', uid), userDoc))
+          from(setDoc(doc(db, 'users', uid), userDoc)),
+          from(setDoc(doc(db, 'employees', uid), ownerEmployee))
         ]).pipe(
           map(() => userDoc)
         );

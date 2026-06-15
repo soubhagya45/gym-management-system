@@ -465,6 +465,40 @@ const dbCollections: Collection[] = [
 // --- Employee DB Seed Data ---
 const dbEmployees: Employee[] = [
   {
+    id: 'usr-owner-a',
+    gymId: 'gym-a',
+    fullName: 'Alex Johnson',
+    phone: '+91 99887 76655',
+    email: 'owner@apexfit.com',
+    gender: 'Male',
+    dob: '1985-03-10',
+    address: '123 Elite Athlete Boulevard, Suite 500, Downtown',
+    role: UserRole.Owner,
+    department: 'Management',
+    joinDate: '2026-01-01',
+    salary: 0,
+    shift: 'General',
+    username: 'owner',
+    accountStatus: 'Active'
+  },
+  {
+    id: 'usr-owner-b',
+    gymId: 'gym-b',
+    fullName: 'Sarah Connor',
+    phone: '+91 99887 76699',
+    email: 'owner-b@apexfit.com',
+    gender: 'Female',
+    dob: '1982-11-20',
+    address: '456 Resistance Road, Level 2, Uptown',
+    role: UserRole.Owner,
+    department: 'Management',
+    joinDate: '2026-03-01',
+    salary: 0,
+    shift: 'General',
+    username: 'owner-b',
+    accountStatus: 'Active'
+  },
+  {
     id: 'usr-manager-1',
     gymId: 'gym-a',
     fullName: 'Rahul Sharma',
@@ -799,6 +833,26 @@ export class MockAuthRepository implements IAuthRepository {
     dbMockAccounts[emailKey] = newUser;
     if (password) dbPasswords[emailKey] = password;
 
+    const ownerEmployee: Employee = {
+      id: newUser.id,
+      gymId,
+      fullName: ownerName,
+      phone: phone,
+      email,
+      gender: 'Male',
+      dob: '1990-01-01',
+      address: address || 'Not Specified',
+      role: UserRole.Owner,
+      department: 'Management',
+      joinDate: newGym.createdAt,
+      salary: 0,
+      shift: 'General',
+      username: email.split('@')[0],
+      accountStatus: 'Active',
+      photoUrl: newUser.avatarUrl
+    };
+    dbEmployees.push(ownerEmployee);
+
     return of(newUser).pipe(delay(800));
   }
 
@@ -941,6 +995,26 @@ export class MockOnboardingRepository implements IOnboardingRepository {
     const emailKey = payload.ownerEmail.toLowerCase().trim();
     dbMockAccounts[emailKey] = ownerProfile;
     dbPasswords[emailKey] = payload.ownerPassword || 'password';
+
+    const ownerEmployee: Employee = {
+      id: userId,
+      gymId,
+      fullName: payload.ownerFullName,
+      phone: payload.ownerPhone || payload.gymPhone,
+      email: payload.ownerEmail,
+      gender: 'Male',
+      dob: '1990-01-01',
+      address: payload.gymAddress || 'Not Specified',
+      role: UserRole.Owner,
+      department: 'Management',
+      joinDate: today.toISOString().split('T')[0],
+      salary: 0,
+      shift: 'General',
+      username: payload.ownerEmail.split('@')[0],
+      accountStatus: 'Active',
+      photoUrl: ownerProfile.avatarUrl
+    };
+    dbEmployees.push(ownerEmployee);
 
     if (payload.plans && payload.plans.length > 0) {
       payload.plans.forEach(planConfig => {
