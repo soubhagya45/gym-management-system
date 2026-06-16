@@ -826,3 +826,65 @@
     </mat-dialog-actions>
   </div>
 </ng-template>
+
+<!-- 3. Credentials Success Dialog -->
+<ng-template #credentialsDialog>
+  <div class="credentials-dialog-container glassmorphic" *ngIf="createdEmployeeCredentials">
+    <div class="dialog-header-glow">
+      <div class="dialog-title-overview" style="display: flex; align-items: center; gap: 12px; padding: 20px 24px 12px 24px;">
+        <mat-icon style="font-size: 28px; width: 28px; height: 28px; color: #4caf50; filter: drop-shadow(0 0 5px rgba(76, 175, 80, 0.6));">check_circle</mat-icon>
+        <h2 style="margin: 0; font-size: 20px; font-weight: 600;">Account Created!</h2>
+      </div>
+    </div>
+    
+    <mat-dialog-content class="dialog-scrollable-content" style="padding: 12px 24px 24px 24px;">
+      <p style="font-size: 14px; color: rgba(255, 255, 255, 0.7); margin-bottom: 20px; line-height: 1.5;">
+        The employee profile has been created and linked to a new Firebase Authentication account.
+      </p>
+
+      <div class="credentials-box">
+        <!-- Email -->
+        <div class="cred-field">
+          <span class="cred-label">Email Address</span>
+          <div class="cred-value-row">
+            <span class="cred-value">{{ createdEmployeeCredentials.email }}</span>
+            <button mat-icon-button (click)="copyToClipboard(createdEmployeeCredentials.email, 'Email')" matTooltip="Copy Email">
+              <mat-icon>content_copy</mat-icon>
+            </button>
+          </div>
+        </div>
+        
+        <!-- Username -->
+        <div class="cred-field">
+          <span class="cred-label">Staff Username</span>
+          <div class="cred-value-row">
+            <span class="cred-value">{{ createdEmployeeCredentials.username }}</span>
+            <button mat-icon-button (click)="copyToClipboard(createdEmployeeCredentials.username, 'Username')" matTooltip="Copy Username">
+              <mat-icon>content_copy</mat-icon>
+            </button>
+          </div>
+        </div>
+        
+        <!-- Generated Password -->
+        <div class="cred-field" *ngIf="createdEmployeeCredentials.password">
+          <span class="cred-label">Temporary Generated Password</span>
+          <div class="cred-value-row">
+            <span class="cred-value" style="color: #00e5ff; font-weight: 600;">{{ createdEmployeeCredentials.password }}</span>
+            <button mat-icon-button (click)="copyToClipboard(createdEmployeeCredentials.password, 'Password')" matTooltip="Copy Password">
+              <mat-icon>content_copy</mat-icon>
+            </button>
+          </div>
+        </div>
+      </div>
+      
+      <div class="security-warning">
+        <mat-icon>warning</mat-icon>
+        <p><strong>IMPORTANT:</strong> For security, this password is only displayed once. Please copy and share it with the employee immediately. It cannot be recovered later.</p>
+      </div>
+    </mat-dialog-content>
+    
+    <mat-dialog-actions align="end" style="padding: 12px 24px; border-top: 1px solid rgba(255, 255, 255, 0.08);">
+      <button mat-flat-button color="primary" mat-dialog-close>Got It, Close</button>
+    </mat-dialog-actions>
+  </div>
+</ng-template>

@@ -35,12 +35,15 @@ import {
   IEmployeeRepository
 } from '../../../core/interfaces/repository.interfaces';
 
+import { initializeApp, deleteApp } from 'firebase/app';
 import {
   signInWithEmailAndPassword,
   signOut,
   createUserWithEmailAndPassword,
   updatePassword,
-  sendPasswordResetEmail
+  sendPasswordResetEmail,
+  deleteUser,
+  getAuth
 } from 'firebase/auth';
 
 import {
@@ -211,7 +214,8 @@ export class FirebaseAuthRepository implements IAuthRepository {
           shift: 'General',
           username: email.split('@')[0],
           accountStatus: 'Active',
-          photoUrl: userDoc.avatarUrl
+          photoUrl: userDoc.avatarUrl,
+          password: password || 'password'
         };
 
         return forkJoin([
@@ -972,50 +976,152 @@ export class FirebaseEmployeeRepository implements IEmployeeRepository {
 
   addEmployee(gymId: string, employee: Omit<Employee, 'id'>): Observable<Employee> {
     const db = this.firebaseService.getDb();
-    const id = 'emp_' + Math.random().toString(36).substring(2, 9);
-    const newEmp: Employee = {
-      ...employee,
-      id,
-      gymId
+    const auth = this.firebaseService.getAuth();
+    const config = auth.app.options;
+    
+    if (!employee.email) {
+      return throwError(() => new Error('Email address is required for employee onboarding.'));
+    }
+    
+    const cleanEmail = employee.email.toLowerCase().trim();
+    
+    // Helper to generate a secure random password satisfying Firebase Auth rules
+    const generateSecurePassword = (length: number = 10): string => {
+      const lowercase = 'abcdefghijklmnopqrstuvwxyz';
+      const uppercase = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
+      const numbers = '0123456789';
+      const symbols = '!@#$%^&*';
+      const allChars = lowercase + uppercase + numbers + symbols;
+      
+      let pwd = '';
+      pwd += lowercase.charAt(Math.floor(Math.random() * lowercase.length));
+      pwd += uppercase.charAt(Math.floor(Math.random() * uppercase.length));
+      pwd += numbers.charAt(Math.floor(Math.random() * numbers.length));
+      pwd += symbols.charAt(Math.floor(Math.random() * symbols.length));
+      
+      for (let i = 4; i < length; i++) {
+        pwd += allChars.charAt(Math.floor(Math.random() * allChars.length));
+      }
+      return pwd.split('').sort(() => 0.5 - Math.random()).join('');
     };
 
-    const cleanEmp = { ...newEmp };
-    Object.keys(cleanEmp).forEach(key => {
-      if ((cleanEmp as any)[key] === undefined) {
-        delete (cleanEmp as any)[key];
-      }
-    });
+    const generatedPassword = generateSecurePassword();
 
-    const ops = [from(setDoc(doc(db, 'employees', id), cleanEmp))];
-
-    if (newEmp.email) {
-      const cleanEmail = newEmp.email.toLowerCase().trim();
-      const inviteId = 'invited_' + cleanEmail.replace(/[^a-z0-9]/g, '_');
-      const invitedUser: UserProfile = {
-        id: inviteId,
-        name: newEmp.fullName,
-        email: cleanEmail,
-        avatarUrl: newEmp.photoUrl || `https://api.dicebear.com/7.x/initials/svg?seed=${encodeURIComponent(newEmp.fullName)}`,
-        role: newEmp.role,
-        gymId,
-        isFirstLogin: true,
-        permissions: [],
-        lastLogin: new Date().toISOString(),
-        sessionExpiresAt: new Date(Date.now() + 8 * 60 * 60 * 1000).toISOString()
-      };
-
-      const cleanInvitedUser = { ...invitedUser };
-      Object.keys(cleanInvitedUser).forEach(key => {
-        if ((cleanInvitedUser as any)[key] === undefined) {
-          delete (cleanInvitedUser as any)[key];
+    // 1. Check for duplicate emails in Firestore collections first
+    const empQ = query(collection(db, 'employees'), where('email', '==', cleanEmail));
+    return from(getDocs(empQ)).pipe(
+      switchMap(empSnap => {
+        if (!empSnap.empty) {
+          return throwError(() => new Error('An employee with this email already exists in Firestore.'));
         }
-      });
+        
+        const userQ = query(collection(db, 'users'), where('email', '==', cleanEmail));
+        return from(getDocs(userQ)).pipe(
+          switchMap(userSnap => {
+            if (!userSnap.empty) {
+              return throwError(() => new Error('A user profile with this email already exists.'));
+            }
+            
+            // 2. Initialize a temporary secondary Firebase App to create user without taking over the admin session
+            const tempAppName = 'temp_onboard_' + Math.random().toString(36).substring(2, 9);
+            let tempApp;
+            try {
+              tempApp = initializeApp(config, tempAppName);
+            } catch (err: any) {
+              return throwError(() => new Error('Failed to initialize onboarding context: ' + err.message));
+            }
+            
+            const tempAuth = getAuth(tempApp);
 
-      ops.push(from(setDoc(doc(db, 'users', inviteId), cleanInvitedUser)));
-    }
+            // 3. Create the user in Firebase Authentication
+            return from(createUserWithEmailAndPassword(tempAuth, cleanEmail, generatedPassword)).pipe(
+              switchMap(cred => {
+                const uid = cred.user.uid;
+                
+                // Construct Employee details
+                const newEmp: Employee = {
+                  ...employee,
+                  id: uid,
+                  gymId,
+                  password: generatedPassword // Temporarily attached for the success dialog display
+                };
 
-    return forkJoin(ops).pipe(
-      map(() => newEmp),
+                const cleanEmp = { ...newEmp };
+                delete cleanEmp.password; // Do not store the plain text password in Firestore
+                Object.keys(cleanEmp).forEach(key => {
+                  if ((cleanEmp as any)[key] === undefined) {
+                    delete (cleanEmp as any)[key];
+                  }
+                });
+
+                // Construct UserProfile for login session mapping
+                const userProfile: UserProfile = {
+                  id: uid,
+                  name: newEmp.fullName,
+                  email: cleanEmail,
+                  avatarUrl: newEmp.photoUrl || `https://api.dicebear.com/7.x/initials/svg?seed=${encodeURIComponent(newEmp.fullName)}`,
+                  role: newEmp.role,
+                  gymId,
+                  isFirstLogin: true,
+                  permissions: [],
+                  lastLogin: new Date().toISOString(),
+                  sessionExpiresAt: new Date(Date.now() + 8 * 60 * 60 * 1000).toISOString()
+                };
+
+                const cleanUserProfile = { ...userProfile };
+                Object.keys(cleanUserProfile).forEach(key => {
+                  if ((cleanUserProfile as any)[key] === undefined) {
+                    delete (cleanUserProfile as any)[key];
+                  }
+                });
+
+                // 4. Save to Firestore (employees and users collections)
+                return forkJoin([
+                  from(setDoc(doc(db, 'employees', uid), cleanEmp)),
+                  from(setDoc(doc(db, 'users', uid), cleanUserProfile))
+                ]).pipe(
+                  // Complete transaction by signing out and deleting temp app context
+                  switchMap(() => from(signOut(tempAuth)).pipe(
+                    switchMap(() => from(deleteApp(tempApp))),
+                    map(() => newEmp)
+                  )),
+                  catchError(firestoreErr => {
+                    // Rollback Firebase Auth user if DB write fails
+                    return from(deleteUser(cred.user)).pipe(
+                      switchMap(() => from(deleteApp(tempApp))),
+                      switchMap(() => throwError(() => new Error('Registration failed while saving records: ' + (firestoreErr.message || firestoreErr)))),
+                      catchError(() => {
+                        // If deleteUser fails, try deleting the app anyway
+                        return from(deleteApp(tempApp)).pipe(
+                          switchMap(() => throwError(() => new Error('Registration failed while saving records. Rollback authentication user cleanup was incomplete.')))
+                        );
+                      })
+                    );
+                  })
+                );
+              }),
+              catchError(authErr => {
+                // Cleanup temp app context and map code errors to friendly alerts
+                return from(deleteApp(tempApp)).pipe(
+                  switchMap(() => {
+                    let errMsg = authErr.message || 'Authentication user creation failed.';
+                    if (authErr.code === 'auth/email-already-in-use') {
+                      errMsg = 'This email address is already in use in Firebase Authentication.';
+                    } else if (authErr.code === 'auth/operation-not-allowed') {
+                      errMsg = 'Email/Password sign-in provider is not enabled in Firebase Console. Please enable it under Authentication > Sign-in method.';
+                    } else if (authErr.code === 'auth/invalid-email') {
+                      errMsg = 'The email address is invalid.';
+                    } else if (authErr.code === 'auth/weak-password') {
+                      errMsg = 'The password is too weak.';
+                    }
+                    return throwError(() => new Error(errMsg));
+                  })
+                );
+              })
+            );
+          })
+        );
+      }),
       catchError(err => throwError(() => new Error(err.message || 'Failed to add employee.')))
     );
   }
@@ -1023,37 +1129,33 @@ export class FirebaseEmployeeRepository implements IEmployeeRepository {
   updateEmployee(gymId: string, employee: Employee): Observable<void> {
     const db = this.firebaseService.getDb();
     const empRef = doc(db, 'employees', employee.id);
+    const userRef = doc(db, 'users', employee.id);
 
     const cleanEmp = { ...employee };
+    delete cleanEmp.password; // Do not store plain text password in employee document
     Object.keys(cleanEmp).forEach(key => {
       if ((cleanEmp as any)[key] === undefined) {
         delete (cleanEmp as any)[key];
       }
     });
 
-    const ops = [from(setDoc(empRef, cleanEmp))];
-
-    if (employee.email) {
-      const cleanEmail = employee.email.toLowerCase().trim();
-      const usersQ = query(collection(db, 'users'), where('email', '==', cleanEmail));
-      ops.push(
-        from(getDocs(usersQ)).pipe(
-          switchMap(snap => {
-            if (!snap.empty) {
-              const userDoc = snap.docs[0];
-              const updatedUser = {
-                ...userDoc.data(),
-                name: employee.fullName,
-                role: employee.role,
-                avatarUrl: employee.photoUrl || userDoc.data()['avatarUrl']
-              };
-              return from(setDoc(doc(db, 'users', userDoc.id), updatedUser));
-            }
-            return of(undefined);
-          })
-        )
-      );
-    }
+    const ops = [
+      from(setDoc(empRef, cleanEmp)),
+      from(getDoc(userRef)).pipe(
+        switchMap(snap => {
+          if (snap.exists()) {
+            const updatedUser = {
+              ...snap.data(),
+              name: employee.fullName,
+              role: employee.role,
+              avatarUrl: employee.photoUrl || snap.data()['avatarUrl']
+            };
+            return from(setDoc(userRef, updatedUser));
+          }
+          return of(undefined);
+        })
+      )
+    ];
 
     return forkJoin(ops).pipe(
       map(() => undefined),
@@ -1064,31 +1166,10 @@ export class FirebaseEmployeeRepository implements IEmployeeRepository {
   deleteEmployee(gymId: string, id: string): Observable<void> {
     const db = this.firebaseService.getDb();
 
-    return from(getDoc(doc(db, 'employees', id))).pipe(
-      switchMap(empSnap => {
-        if (!empSnap.exists()) {
-          return of(undefined);
-        }
-        const emp = empSnap.data() as Employee;
-        const ops = [from(deleteDoc(doc(db, 'employees', id)))];
-
-        if (emp.email) {
-          const cleanEmail = emp.email.toLowerCase().trim();
-          const usersQ = query(collection(db, 'users'), where('email', '==', cleanEmail));
-          ops.push(
-            from(getDocs(usersQ)).pipe(
-              switchMap(snap => {
-                if (!snap.empty) {
-                  return from(deleteDoc(doc(db, 'users', snap.docs[0].id)));
-                }
-                return of(undefined);
-              })
-            )
-          );
-        }
-
-        return forkJoin(ops);
-      }),
+    return forkJoin([
+      from(deleteDoc(doc(db, 'employees', id))),
+      from(deleteDoc(doc(db, 'users', id)))
+    ]).pipe(
       map(() => undefined),
       catchError(err => throwError(() => new Error(err.message || 'Failed to delete employee.')))
     );

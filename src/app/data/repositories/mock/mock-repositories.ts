@@ -1777,10 +1777,42 @@ export class MockEmployeeRepository implements IEmployeeRepository {
   }
 
   addEmployee(gymId: string, employee: Omit<Employee, 'id'>): Observable<Employee> {
+    if (employee.email) {
+      const emailKey = employee.email.toLowerCase().trim();
+      const duplicateEmp = dbEmployees.find(e => e.gymId === gymId && e.email.toLowerCase().trim() === emailKey);
+      if (duplicateEmp) {
+        return throwError(() => new Error('An employee with this email already exists.'));
+      }
+    }
+
+    const id = 'emp-' + Math.random().toString(36).substring(2, 9);
+    
+    const generateSecurePassword = (length: number = 10): string => {
+      const lowercase = 'abcdefghijklmnopqrstuvwxyz';
+      const uppercase = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
+      const numbers = '0123456789';
+      const symbols = '!@#$%^&*';
+      const allChars = lowercase + uppercase + numbers + symbols;
+      
+      let pwd = '';
+      pwd += lowercase.charAt(Math.floor(Math.random() * lowercase.length));
+      pwd += uppercase.charAt(Math.floor(Math.random() * uppercase.length));
+      pwd += numbers.charAt(Math.floor(Math.random() * numbers.length));
+      pwd += symbols.charAt(Math.floor(Math.random() * symbols.length));
+      
+      for (let i = 4; i < length; i++) {
+        pwd += allChars.charAt(Math.floor(Math.random() * allChars.length));
+      }
+      return pwd.split('').sort(() => 0.5 - Math.random()).join('');
+    };
+
+    const generatedPassword = generateSecurePassword();
+
     const newEmp: Employee = {
       ...employee,
-      id: 'emp-' + Math.random().toString(36).substring(2, 9),
-      gymId
+      id,
+      gymId,
+      password: generatedPassword
     };
     dbEmployees.push(newEmp);
 
@@ -1796,7 +1828,7 @@ export class MockEmployeeRepository implements IEmployeeRepository {
         gymId,
         isFirstLogin: true
       });
-      dbPasswords[emailKey] = 'password';
+      dbPasswords[emailKey] = generatedPassword;
     }
 
     return of(newEmp).pipe(delay(300));

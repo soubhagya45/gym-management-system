@@ -24,6 +24,7 @@ export interface Employee {
   // Access Details
   username: string;
   accountStatus: 'Active' | 'Inactive' | 'Suspended';
+  password?: string; // Only populated temporarily during registration/onboarding response
 
   // Trainer Details (only relevant if role === UserRole.Trainer)
   specialty?: string;

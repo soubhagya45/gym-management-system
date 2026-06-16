@@ -993,3 +993,93 @@
   from { opacity: 0; transform: translateY(10px); }
   to { opacity: 1; transform: translateY(0); }
 }
+
+// Credentials Success Dialog styling
+.credentials-dialog-container {
+  color: #ffffff;
+
+  .credentials-box {
+    background: rgba(255, 255, 255, 0.03);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    border-radius: 12px;
+    padding: 16px;
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+    margin-bottom: 20px;
+  }
+
+  .cred-field {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    
+    .cred-label {
+      font-size: 11px;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      color: rgba(255, 255, 255, 0.4);
+    }
+    
+    .cred-value-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      background: rgba(0, 0, 0, 0.2);
+      border: 1px solid rgba(255, 255, 255, 0.05);
+      border-radius: 6px;
+      padding: 6px 12px;
+      
+      .cred-value {
+        font-family: monospace;
+        font-size: 14px;
+        color: #ffffff;
+        letter-spacing: 0.5px;
+        user-select: all;
+      }
+      
+      button {
+        color: rgba(255, 255, 255, 0.5);
+        width: 32px;
+        height: 32px;
+        line-height: 32px;
+        
+        mat-icon {
+          font-size: 16px;
+          width: 16px;
+          height: 16px;
+        }
+        
+        &:hover {
+          color: #00e5ff;
+          background: rgba(255, 255, 255, 0.05);
+        }
+      }
+    }
+  }
+
+  .security-warning {
+    display: flex;
+    gap: 12px;
+    background: rgba(244, 67, 54, 0.08);
+    border: 1px solid rgba(244, 67, 54, 0.25);
+    border-radius: 8px;
+    padding: 12px;
+    
+    mat-icon {
+      color: #f44336;
+      font-size: 20px;
+      width: 20px;
+      height: 20px;
+      flex-shrink: 0;
+    }
+    
+    p {
+      font-size: 12px;
+      color: rgba(255, 255, 255, 0.85);
+      margin: 0;
+      line-height: 1.4;
+    }
+  }
+}

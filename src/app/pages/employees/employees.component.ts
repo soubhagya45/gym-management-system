@@ -51,6 +51,7 @@ import { FILE_STORAGE_REPOSITORY_TOKEN, IFileStorageRepository } from '../../cor
 export class EmployeesComponent implements OnInit {
   @ViewChild('profileDialog') profileDialogTemplate!: TemplateRef<any>;
   @ViewChild('passwordDialog') passwordDialogTemplate!: TemplateRef<any>;
+  @ViewChild('credentialsDialog') credentialsDialogTemplate!: TemplateRef<any>;
 
   activeTab = 0;
   employees$: Observable<Employee[]>;
@@ -60,6 +61,8 @@ export class EmployeesComponent implements OnInit {
   
   filteredEmployees$: Observable<Employee[]>;
   managers$: Observable<Employee[]>;
+
+  createdEmployeeCredentials: Employee | null = null;
 
   // Form Groups
   employeeForm!: FormGroup;
@@ -453,8 +456,8 @@ export class EmployeesComponent implements OnInit {
       };
 
       this.employeeState.addEmployee(payload).subscribe({
-        next: () => {
-          this.snackBar.open('Employee registered and onboarded successfully!', 'Close', { duration: 3000 });
+        next: (createdEmp: Employee) => {
+          this.createdEmployeeCredentials = createdEmp;
           this.employeeForm.reset({
             gender: 'Male',
             dob: '1995-01-01',
@@ -465,13 +468,27 @@ export class EmployeesComponent implements OnInit {
             shift: 'General',
             accountStatus: 'Active'
           });
-          // Switch back to Directory tab
+          
+          this.dialog.open(this.credentialsDialogTemplate, {
+            width: '450px',
+            disableClose: true,
+            panelClass: 'dark-dialog-panel'
+          });
+          
           this.onTabChange(0);
         },
         error: (err) => {
-          this.snackBar.open(err.message || 'Failed to register employee', 'Close', { duration: 3000 });
+          this.snackBar.open(err.message || 'Failed to register employee', 'Close', { duration: 5000 });
         }
       });
+    });
+  }
+
+  copyToClipboard(text: string, label: string): void {
+    navigator.clipboard.writeText(text).then(() => {
+      this.snackBar.open(`${label} copied to clipboard!`, 'Close', { duration: 2500 });
+    }).catch(() => {
+      this.snackBar.open(`Failed to copy ${label}`, 'Close', { duration: 2500 });
     });
   }
 
