@@ -979,7 +979,14 @@ export class FirebaseEmployeeRepository implements IEmployeeRepository {
       gymId
     };
 
-    const ops = [from(setDoc(doc(db, 'employees', id), newEmp))];
+    const cleanEmp = { ...newEmp };
+    Object.keys(cleanEmp).forEach(key => {
+      if ((cleanEmp as any)[key] === undefined) {
+        delete (cleanEmp as any)[key];
+      }
+    });
+
+    const ops = [from(setDoc(doc(db, 'employees', id), cleanEmp))];
 
     if (newEmp.email) {
       const cleanEmail = newEmp.email.toLowerCase().trim();
@@ -996,7 +1003,15 @@ export class FirebaseEmployeeRepository implements IEmployeeRepository {
         lastLogin: new Date().toISOString(),
         sessionExpiresAt: new Date(Date.now() + 8 * 60 * 60 * 1000).toISOString()
       };
-      ops.push(from(setDoc(doc(db, 'users', inviteId), invitedUser)));
+
+      const cleanInvitedUser = { ...invitedUser };
+      Object.keys(cleanInvitedUser).forEach(key => {
+        if ((cleanInvitedUser as any)[key] === undefined) {
+          delete (cleanInvitedUser as any)[key];
+        }
+      });
+
+      ops.push(from(setDoc(doc(db, 'users', inviteId), cleanInvitedUser)));
     }
 
     return forkJoin(ops).pipe(
@@ -1009,7 +1024,14 @@ export class FirebaseEmployeeRepository implements IEmployeeRepository {
     const db = this.firebaseService.getDb();
     const empRef = doc(db, 'employees', employee.id);
 
-    const ops = [from(setDoc(empRef, employee))];
+    const cleanEmp = { ...employee };
+    Object.keys(cleanEmp).forEach(key => {
+      if ((cleanEmp as any)[key] === undefined) {
+        delete (cleanEmp as any)[key];
+      }
+    });
+
+    const ops = [from(setDoc(empRef, cleanEmp))];
 
     if (employee.email) {
       const cleanEmail = employee.email.toLowerCase().trim();
