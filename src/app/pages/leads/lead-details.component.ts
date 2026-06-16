@@ -133,8 +133,8 @@ export class LeadDetailsComponent implements OnInit {
     });
 
     dialogRef.afterClosed().subscribe(result => {
-      if (result) {
-        this.leadState.convertLeadToMember(this.leadId, result).subscribe(() => {
+      if (result && result.memberDetails && result.conversionDetails) {
+        this.leadState.convertLeadToMember(this.leadId, result.memberDetails, result.conversionDetails).subscribe(() => {
           this.snackBar.open(`Lead ${this.lead?.name} successfully converted to member!`, 'Dismiss', {
             duration: 3000,
             panelClass: ['premium-snack']
@@ -148,11 +148,21 @@ export class LeadDetailsComponent implements OnInit {
     switch (status) {
       case 'New': return 'new-badge';
       case 'Contacted': return 'contacted-badge';
-      case 'Trial Scheduled': return 'trial-scheduled-badge';
       case 'Follow Up': return 'follow-up-badge';
+      case 'Trial Scheduled': return 'trial-scheduled-badge';
+      case 'Trial Attended': return 'trial-attended-badge';
+      case 'Negotiation': return 'negotiation-badge';
       case 'Converted': return 'converted-badge';
       case 'Lost': return 'lost-badge';
       default: return '';
     }
+  }
+
+  getFitnessGoalsDisplay(goals: string | string[] | undefined): string {
+    if (!goals) return 'None';
+    if (Array.isArray(goals)) {
+      return goals.join(', ');
+    }
+    return goals;
   }
 }

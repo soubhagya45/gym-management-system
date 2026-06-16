@@ -9,10 +9,13 @@ import { MatButtonModule } from '@angular/material/button';
 import { MatDatepickerModule } from '@angular/material/datepicker';
 import { MatNativeDateModule } from '@angular/material/core';
 import { MatIconModule } from '@angular/material/icon';
+import { MatDividerModule } from '@angular/material/divider';
 import { Lead } from '../../core/models/lead.entity';
 import { MembershipPlan } from '../../core/models/membership-plan.entity';
 import { Member } from '../../core/models/member.entity';
+import { Employee } from '../../core/models/employee.entity';
 import { MembershipPlanState } from '../../presentation/state/membership-plan.state';
+import { EmployeeState } from '../../presentation/state/employee.state';
 
 @Component({
   selector: 'app-convert-dialog',
@@ -27,7 +30,8 @@ import { MembershipPlanState } from '../../presentation/state/membership-plan.st
     MatButtonModule,
     MatDatepickerModule,
     MatNativeDateModule,
-    MatIconModule
+    MatIconModule,
+    MatDividerModule
   ],
   template: `
     <h2 mat-dialog-title class="gradient-text dialogue-title">
@@ -36,7 +40,7 @@ import { MembershipPlanState } from '../../presentation/state/membership-plan.st
     
     <form [formGroup]="convertForm" (ngSubmit)="onSubmit()">
       <mat-dialog-content class="dialog-form-content">
-        <p class="dialog-desc">Complete membership details to convert this lead to an active member.</p>
+        <p class="dialog-desc">Complete membership details and payment options to finalize the sale.</p>
         
         <div class="form-grid">
           <!-- Plan Selection -->
@@ -52,7 +56,7 @@ import { MembershipPlanState } from '../../presentation/state/membership-plan.st
 
           <!-- Status -->
           <mat-form-field appearance="outline">
-            <mat-label>Status</mat-label>
+            <mat-label>Member Status</mat-label>
             <mat-select formControlName="status">
               <mat-option value="active">Active</mat-option>
               <mat-option value="inactive">Inactive</mat-option>
@@ -103,10 +107,69 @@ import { MembershipPlanState } from '../../presentation/state/membership-plan.st
           </mat-form-field>
 
           <!-- Fitness Goal -->
-          <mat-form-field appearance="outline" class="goal-field">
-            <mat-label>Fitness Goal</mat-label>
-            <input matInput formControlName="fitnessGoal" placeholder="e.g. Weight Loss, Muscle Gain">
+          <mat-form-field appearance="outline">
+            <mat-label>Fitness Goal(s)</mat-label>
+            <mat-select formControlName="fitnessGoal" multiple>
+              <mat-option *ngFor="let goal of fitnessGoalOptions" [value]="goal">{{ goal }}</mat-option>
+            </mat-select>
+            <mat-error *ngIf="convertForm.get('fitnessGoal')?.hasError('required')">Fitness goal is required</mat-error>
           </mat-form-field>
+
+          <!-- Converted By (Salesperson) -->
+          <mat-form-field appearance="outline">
+            <mat-label>Salesperson (Converted By)</mat-label>
+            <mat-select formControlName="convertedBy">
+              <mat-option *ngFor="let emp of employees" [value]="emp.fullName">
+                {{ emp.fullName }} ({{ emp.role === 'staff' ? 'Sales Executive' : emp.role | titlecase }})
+              </mat-option>
+            </mat-select>
+            <mat-error *ngIf="convertForm.get('convertedBy')?.hasError('required')">Salesperson is required</mat-error>
+          </mat-form-field>
+
+          <!-- Payment Status -->
+          <mat-form-field appearance="outline">
+            <mat-label>Payment Status</mat-label>
+            <mat-select formControlName="paymentStatus">
+              <mat-option value="paid">Paid immediately</mat-option>
+              <mat-option value="pending">Bill / Pay Later</mat-option>
+            </mat-select>
+          </mat-form-field>
+
+          <!-- Payment Method -->
+          <mat-form-field appearance="outline" *ngIf="convertForm.get('paymentStatus')?.value === 'paid'">
+            <mat-label>Payment Method</mat-label>
+            <mat-select formControlName="paymentMethod">
+              <mat-option value="UPI">UPI / GPay</mat-option>
+              <mat-option value="Card">Credit/Debit Card</mat-option>
+              <mat-option value="Cash">Cash</mat-option>
+              <mat-option value="NetBanking">Net Banking</mat-option>
+            </mat-select>
+          </mat-form-field>
+        </div>
+
+        <div class="billing-summary" *ngIf="selectedPlanPrice > 0">
+          <h4>Billing Invoice Summary</h4>
+          <div class="summary-row">
+            <span>Membership Plan:</span>
+            <strong>{{ selectedPlanName }}</strong>
+          </div>
+          <div class="summary-row">
+            <span>Base Amount:</span>
+            <span>₹{{ (selectedPlanPrice / 1.18) | number:'1.2-2' }}</span>
+          </div>
+          <div class="summary-row">
+            <span>Tax (GST 18%):</span>
+            <span>₹{{ (selectedPlanPrice - (selectedPlanPrice / 1.18)) | number:'1.2-2' }}</span>
+          </div>
+          <mat-divider></mat-divider>
+          <div class="summary-row total">
+            <span>Final Paid Amount:</span>
+            <strong>₹{{ selectedPlanPrice }}</strong>
+          </div>
+          <div class="summary-row commission">
+            <span>Commission Earned (10% Auto):</span>
+            <span class="success-text">₹{{ (selectedPlanPrice * 0.10) | number:'1.2-2' }}</span>
+          </div>
         </div>
       </mat-dialog-content>
       
@@ -134,14 +197,48 @@ import { MembershipPlanState } from '../../presentation/state/membership-plan.st
       display: flex;
       flex-direction: column;
       padding-top: 10px !important;
+      max-height: 60vh;
+      overflow-y: auto;
+      gap: 16px;
     }
     .form-grid {
       display: grid;
       grid-template-columns: repeat(2, 1fr);
       gap: 16px;
     }
-    .goal-field {
-      grid-column: span 2;
+    .billing-summary {
+      background: rgba(255, 255, 255, 0.03);
+      border: 1px solid var(--border-color);
+      padding: 16px;
+      border-radius: 12px;
+      margin-top: 8px;
+
+      h4 {
+        margin-bottom: 12px;
+        color: var(--accent-hover);
+        font-size: 15px;
+      }
+    }
+    .summary-row {
+      display: flex;
+      justify-content: space-between;
+      font-size: 13.5px;
+      margin-bottom: 8px;
+      color: var(--text-secondary);
+
+      &.total {
+        margin-top: 8px;
+        padding-top: 8px;
+        font-size: 15px;
+        color: var(--text-primary);
+      }
+      &.commission {
+        color: var(--success);
+      }
+    }
+    .success-text {
+      color: var(--success);
+      font-weight: 600;
     }
     .dialog-actions {
       padding: 16px 0 0 0 !important;
@@ -152,19 +249,33 @@ import { MembershipPlanState } from '../../presentation/state/membership-plan.st
       .form-grid {
         grid-template-columns: 1fr;
       }
-      .goal-field {
-        grid-column: span 1;
-      }
     }
   `]
 })
 export class ConvertDialogComponent implements OnInit {
   convertForm!: FormGroup;
   plans: MembershipPlan[] = [];
+  employees: Employee[] = [];
+  selectedPlanPrice = 0;
+  selectedPlanName = '';
+
+  fitnessGoalOptions: string[] = [
+    'Weight Loss',
+    'Muscle Gain',
+    'Body Transformation',
+    'General Fitness',
+    'CrossFit',
+    'MMA',
+    'Boxing',
+    'Personal Training',
+    'Rehabilitation',
+    'Other'
+  ];
 
   constructor(
     private fb: FormBuilder,
     private planState: MembershipPlanState,
+    private employeeState: EmployeeState,
     private dialogRef: MatDialogRef<ConvertDialogComponent>,
     @Inject(MAT_DIALOG_DATA) public data: Lead
   ) {}
@@ -173,6 +284,20 @@ export class ConvertDialogComponent implements OnInit {
     this.planState.plans$.subscribe(plans => {
       this.plans = plans;
       this.initFormAndListeners();
+    });
+    this.employeeState.employees$.subscribe(employees => {
+      this.employees = employees.filter(e => e.accountStatus === 'Active');
+      
+      // Auto-prefill convertedBy if assignedStaff/assignedEmployeeName matches
+      if (this.convertForm && this.employees.length > 0) {
+        const matchingEmp = this.employees.find(e => 
+          e.fullName.toLowerCase() === this.data.assignedStaff?.toLowerCase() ||
+          e.id === this.data.assignedEmployee
+        );
+        if (matchingEmp) {
+          this.convertForm.patchValue({ convertedBy: matchingEmp.fullName });
+        }
+      }
     });
   }
 
@@ -189,6 +314,18 @@ export class ConvertDialogComponent implements OnInit {
     }
 
     const today = new Date();
+
+    let initialGoals: string[] = [];
+    if (this.data.fitnessGoal) {
+      if (Array.isArray(this.data.fitnessGoal)) {
+        initialGoals = this.data.fitnessGoal;
+      } else {
+        initialGoals = this.data.fitnessGoal.split(',').map(s => s.trim()).filter(Boolean);
+      }
+    }
+    if (initialGoals.length === 0) {
+      initialGoals = ['General Fitness'];
+    }
     
     this.convertForm = this.fb.group({
       planId: [matchedPlanId, [Validators.required]],
@@ -199,22 +336,29 @@ export class ConvertDialogComponent implements OnInit {
       age: [25, [Validators.required, Validators.min(10)]],
       height: [175, [Validators.required, Validators.min(50)]],
       weight: [70, [Validators.required, Validators.min(20)]],
-      fitnessGoal: ['General Fitness', [Validators.required]]
+      fitnessGoal: [initialGoals, [Validators.required]],
+      convertedBy: ['', [Validators.required]],
+      commissionPercent: [10, [Validators.required]],
+      paymentStatus: ['paid', [Validators.required]],
+      paymentMethod: ['UPI', [Validators.required]]
     });
 
-    this.convertForm.get('planId')?.valueChanges.subscribe(() => this.updateEndDate());
-    this.convertForm.get('startDate')?.valueChanges.subscribe(() => this.updateEndDate());
-
-    this.updateEndDate();
+    this.convertForm.get('planId')?.valueChanges.subscribe(() => this.updatePlanDetails());
+    this.convertForm.get('startDate')?.valueChanges.subscribe(() => this.updatePlanDetails());
+    
+    this.updatePlanDetails();
   }
 
-  updateEndDate(): void {
+  updatePlanDetails(): void {
     if (!this.convertForm) return;
     const startDateVal = this.convertForm.get('startDate')?.value;
     const planIdVal = this.convertForm.get('planId')?.value;
     if (startDateVal && planIdVal) {
       const selectedPlan = this.plans.find(p => p.id === planIdVal);
       if (selectedPlan) {
+        this.selectedPlanPrice = selectedPlan.price;
+        this.selectedPlanName = selectedPlan.name;
+        
         const start = new Date(startDateVal);
         const end = new Date(start.setMonth(start.getMonth() + selectedPlan.durationMonths));
         this.convertForm.patchValue({
@@ -246,11 +390,23 @@ export class ConvertDialogComponent implements OnInit {
         age: formValue.age,
         height: formValue.height,
         weight: formValue.weight,
-        fitnessGoal: formValue.fitnessGoal,
-        avatarUrl: `https://images.unsplash.com/photo-1534438327276-14e5300c3a48?w=150` // placeholder avatar
+        fitnessGoal: Array.isArray(formValue.fitnessGoal) ? formValue.fitnessGoal.join(', ') : formValue.fitnessGoal,
+        avatarUrl: `https://images.unsplash.com/photo-1534438327276-14e5300c3a48?w=150`
       };
 
-      this.dialogRef.close(memberDetails);
+      const conversionDetails = {
+        convertedBy: formValue.convertedBy,
+        revenueGenerated: this.selectedPlanPrice,
+        commissionPercent: formValue.commissionPercent,
+        paymentStatus: formValue.paymentStatus,
+        paymentMethod: formValue.paymentMethod,
+        paidAmount: formValue.paymentStatus === 'paid' ? this.selectedPlanPrice : 0
+      };
+
+      this.dialogRef.close({
+        memberDetails,
+        conversionDetails
+      });
     }
   }
 

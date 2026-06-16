@@ -3,7 +3,7 @@
   <div class="page-header-nav">
     <a routerLink="/leads" class="back-link">
       <mat-icon>arrow_back</mat-icon>
-      <span>Back to Leads</span>
+      <span>Back to Leads CRM</span>
     </a>
   </div>
 
@@ -30,7 +30,7 @@
         </button>
         <button mat-stroked-button (click)="openEditDialog()" class="edit-btn">
           <mat-icon>edit</mat-icon>
-          <span>Edit Details</span>
+          <span>Edit Lead Details</span>
         </button>
         <button mat-icon-button color="warn" (click)="confirmDelete()" matTooltip="Delete Lead">
           <mat-icon>delete</mat-icon>
@@ -45,7 +45,11 @@
       <mat-icon class="alert-icon">check_circle</mat-icon>
       <div class="alert-text">
         <h3>Converted to Active Member</h3>
-        <p>This lead has been successfully converted. A member profile exists for <strong>{{ convertedMember.name }}</strong>.</p>
+        <p>This lead has been successfully converted. Member record: <strong>{{ convertedMember.name }}</strong>.</p>
+        <p class="conversion-financials" *ngIf="lead.revenueGenerated">
+          Revenue Generated: <strong>₹{{ lead.revenueGenerated }}</strong> | 
+          Commission Earned ({{ lead.commissionPercent }}%): <strong class="success-text">₹{{ lead.commissionEarned }}</strong>
+        </p>
       </div>
       <button mat-raised-button color="primary" [routerLink]="['/members', convertedMember.id]" class="view-profile-btn">
         <mat-icon>visibility</mat-icon>
@@ -58,12 +62,27 @@
   <div class="details-grid-layout">
     <!-- Left Column: Details Overview -->
     <mat-card class="details-card mat-card">
-      <h3 class="card-section-title"><mat-icon>info</mat-icon> Lead Information</h3>
+      <h3 class="card-section-title"><mat-icon>info</mat-icon> CRM Lead Profile</h3>
       
-      <div class="info-list">
         <div class="info-item">
-          <span class="info-label">Lead ID</span>
-          <span class="info-value font-mono">{{ lead.id }}</span>
+          <span class="info-label">Lead Temperature</span>
+          <span class="info-value">
+            <span class="temp-badge" [ngClass]="(lead.leadTemperature || 'Cold').toLowerCase()">
+              <ng-container [ngSwitch]="lead.leadTemperature">
+                <span *ngSwitchCase="'Hot'">🔥 Hot Lead</span>
+                <span *ngSwitchCase="'Warm'">🟡 Warm Lead</span>
+                <span *ngSwitchCase="'Cold'">🔵 Cold Lead</span>
+                <span *ngSwitchDefault>🔵 Cold Lead</span>
+              </ng-container>
+            </span>
+          </span>
+        </div>
+
+        <mat-divider></mat-divider>
+
+        <div class="info-item">
+          <span class="info-label">Fitness Goal</span>
+          <span class="info-value font-italic">{{ getFitnessGoalsDisplay(lead.fitnessGoal) }}</span>
         </div>
 
         <mat-divider></mat-divider>
@@ -73,9 +92,25 @@
           <span class="info-value">{{ lead.leadSource }}</span>
         </div>
 
+        <mat-divider *ngIf="lead.leadSource === 'Referral' && lead.referralSource"></mat-divider>
+        <div class="info-item" *ngIf="lead.leadSource === 'Referral' && lead.referralSource">
+          <span class="info-label">Referral Details</span>
+          <span class="info-value highlight-value">{{ lead.referralSource }}</span>
+        </div>
+
         <mat-divider></mat-divider>
 
         <div class="info-item">
+          <span class="info-label">Trial Status</span>
+          <span class="info-value">
+            <span class="trial-badge" [ngClass]="(lead.trialStatus || 'Not Scheduled').toLowerCase().replace(' ', '-')">
+              {{ lead.trialStatus || 'Not Scheduled' }}
+            </span>
+          </span>
+        </div>
+
+        <mat-divider *ngIf="lead.trialStatus && lead.trialStatus !== 'Not Scheduled'"></mat-divider>
+        <div class="info-item" *ngIf="lead.trialStatus && lead.trialStatus !== 'Not Scheduled'">
           <span class="info-label">Trial Date</span>
           <span class="info-value">{{ lead.trialDate | date:'fullDate' }}</span>
         </div>
@@ -83,29 +118,54 @@
         <mat-divider></mat-divider>
 
         <div class="info-item">
-          <span class="info-label">Follow Up Date</span>
-          <span class="info-value">{{ lead.followUpDate | date:'fullDate' }}</span>
+          <span class="info-label">Last Follow Up</span>
+          <span class="info-value">{{ lead.lastFollowUp ? (lead.lastFollowUp | date:'fullDate') : 'None' }}</span>
         </div>
 
         <mat-divider></mat-divider>
 
         <div class="info-item">
-          <span class="info-label">Interested Plan</span>
-          <span class="info-value">{{ lead.interestedPlan }}</span>
+          <span class="info-label">Next Follow Up Date</span>
+          <span class="info-value">{{ lead.nextFollowUp || lead.followUpDate | date:'fullDate' }}</span>
         </div>
 
         <mat-divider></mat-divider>
 
         <div class="info-item">
-          <span class="info-label">Assigned Staff</span>
-          <span class="info-value highlight-value">{{ lead.assignedStaff || 'Unassigned' }}</span>
+          <span class="info-label">Follow Up Status</span>
+          <span class="info-value">
+            <span class="followup-status-badge" [ngClass]="(lead.followUpStatus || 'Pending').toLowerCase()">
+              {{ lead.followUpStatus || 'Pending' }}
+            </span>
+          </span>
         </div>
-      </div>
+
+        <mat-divider></mat-divider>
+
+        <div class="info-item">
+          <span class="info-label">Preferred Plan</span>
+          <span class="info-value">{{ lead.preferredPlan || lead.interestedPlan }}</span>
+        </div>
+
+        <mat-divider></mat-divider>
+
+        <div class="info-item">
+          <span class="info-label">Lead Owner (Employee)</span>
+          <span class="info-value highlight-value">{{ lead.assignedEmployeeName || lead.assignedStaff || 'Unassigned' }}</span>
+        </div>
+
+        <ng-container *ngIf="lead.status === 'Lost' && lead.reasonLost">
+          <mat-divider></mat-divider>
+          <div class="info-item">
+            <span class="info-label text-danger">Reason Lost</span>
+            <span class="info-value text-danger font-bold">{{ lead.reasonLost }}</span>
+          </div>
+        </ng-container>
     </mat-card>
 
-    <!-- Right Column: Notes & History -->
+    <!-- Right Column: Notes & Timeline -->
     <mat-card class="details-card mat-card">
-      <h3 class="card-section-title"><mat-icon>notes</mat-icon> Notes & Requirements</h3>
+      <h3 class="card-section-title"><mat-icon>notes</mat-icon> Notes & CRM Requirements</h3>
       <div class="notes-content">
         <p *ngIf="lead.notes; else noNotes">{{ lead.notes }}</p>
         <ng-template #noNotes>
@@ -116,34 +176,62 @@
         </ng-template>
       </div>
 
+      <!-- Follow Up Notes Section -->
+      <div class="follow-up-notes-section mt-lg" *ngIf="lead.followUpNotes">
+        <h3 class="card-section-title"><mat-icon>comment</mat-icon> Follow-Up Notes</h3>
+        <div class="notes-content">
+          <p>{{ lead.followUpNotes }}</p>
+        </div>
+      </div>
+
+      <!-- Conversion Tracker If Converted -->
+      <div class="timeline-log mt-lg" *ngIf="lead.status === 'Converted'">
+        <h3 class="card-section-title"><mat-icon>payments</mat-icon> Sales Conversion Record</h3>
+        <div class="info-list compact">
+          <div class="info-item">
+            <span class="info-label">Converted By:</span>
+            <span class="info-value">{{ lead.convertedBy || 'Sales Executive' }}</span>
+          </div>
+          <div class="info-item">
+            <span class="info-label">Revenue Generated:</span>
+            <strong class="info-value">₹{{ lead.revenueGenerated | number }}</strong>
+          </div>
+          <div class="info-item">
+            <span class="info-label">Commission Earned:</span>
+            <span class="info-value success-text font-bold">₹{{ lead.commissionEarned | number }} ({{ lead.commissionPercent }}%)</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Action Timeline -->
       <div class="timeline-log mt-lg">
-        <h3 class="card-section-title"><mat-icon>history</mat-icon> Action Timeline</h3>
+        <h3 class="card-section-title"><mat-icon>history</mat-icon> CRM Sales Pipeline Timeline</h3>
         <div class="timeline-wrapper">
           <div class="timeline-step active">
             <span class="timeline-dot"></span>
             <div class="timeline-details">
               <span class="timeline-title">Lead Created</span>
-              <span class="timeline-time">First inquiry logged</span>
+              <span class="timeline-time">First inquiry logged ({{ lead.createdAt || lead.trialDate | date:'shortDate' }})</span>
             </div>
           </div>
           <div class="timeline-step" [ngClass]="{ active: lead.status !== 'New' }">
             <span class="timeline-dot"></span>
             <div class="timeline-details">
               <span class="timeline-title">Contacted</span>
-              <span class="timeline-time">Follow up call / email sent</span>
+              <span class="timeline-time">First communication recorded</span>
             </div>
           </div>
-          <div class="timeline-step" [ngClass]="{ active: lead.status === 'Trial Scheduled' || lead.status === 'Converted' }">
+          <div class="timeline-step" [ngClass]="{ active: lead.status === 'Trial Scheduled' || lead.status === 'Trial Attended' || lead.status === 'Negotiation' || lead.status === 'Converted' }">
             <span class="timeline-dot"></span>
             <div class="timeline-details">
-              <span class="timeline-title">Trial Scheduled</span>
-              <span class="timeline-time">Registered trial session: {{ lead.trialDate | date:'shortDate' }}</span>
+              <span class="timeline-title">Trial Session Scheduled</span>
+              <span class="timeline-time">Scheduled session: {{ lead.trialDate | date:'shortDate' }}</span>
             </div>
           </div>
           <div class="timeline-step" [ngClass]="{ active: lead.status === 'Converted', lost: lead.status === 'Lost' }">
             <span class="timeline-dot"></span>
             <div class="timeline-details">
-              <span class="timeline-title">{{ lead.status === 'Lost' ? 'Lost' : 'Converted' }}</span>
+              <span class="timeline-title">{{ lead.status === 'Lost' ? 'Lost' : 'Converted to Member' }}</span>
               <span class="timeline-time">Outcome finalized</span>
             </div>
           </div>

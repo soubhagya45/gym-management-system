@@ -14,10 +14,10 @@ import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
 
 import { LeadState } from '../../presentation/state/lead.state';
 import { MembershipPlanState } from '../../presentation/state/membership-plan.state';
-import { TrainerState } from '../../presentation/state/trainer.state';
+import { EmployeeState } from '../../presentation/state/employee.state';
 
 import { MembershipPlan } from '../../core/models/membership-plan.entity';
-import { Trainer } from '../../core/models/trainer.entity';
+import { Employee } from '../../core/models/employee.entity';
 
 @Component({
   selector: 'app-add-lead',
@@ -42,13 +42,37 @@ import { Trainer } from '../../core/models/trainer.entity';
 export class AddLeadComponent implements OnInit {
   leadForm!: FormGroup;
   plans: MembershipPlan[] = [];
-  trainers: Trainer[] = [];
+  employees: Employee[] = [];
+
+  fitnessGoalOptions: string[] = [
+    'Weight Loss',
+    'Muscle Gain',
+    'Body Transformation',
+    'General Fitness',
+    'CrossFit',
+    'MMA',
+    'Boxing',
+    'Personal Training',
+    'Rehabilitation',
+    'Other'
+  ];
+
+  lostReasonOptions: string[] = [
+    'Too Expensive',
+    'Joined Another Gym',
+    'Location Too Far',
+    'No Time',
+    'Not Interested',
+    'Medical Reasons',
+    'Moved Location',
+    'Other'
+  ];
 
   constructor(
     private fb: FormBuilder,
     private leadState: LeadState,
     private planState: MembershipPlanState,
-    private trainerState: TrainerState,
+    private employeeState: EmployeeState,
     private snackBar: MatSnackBar,
     private router: Router
   ) {}
@@ -57,10 +81,17 @@ export class AddLeadComponent implements OnInit {
     this.planState.plans$.subscribe(plans => {
       this.plans = plans;
       if (plans.length > 0 && !this.leadForm.get('interestedPlan')?.value) {
-        this.leadForm.patchValue({ interestedPlan: plans[0].name });
+        const defaultPlan = plans[0];
+        this.leadForm.patchValue({ 
+          interestedPlan: defaultPlan.name,
+          preferredPlan: defaultPlan.name
+        });
       }
     });
-    this.trainerState.trainers$.subscribe(trainers => this.trainers = trainers);
+
+    this.employeeState.employees$.subscribe(employees => {
+      this.employees = employees.filter(e => e.accountStatus === 'Active');
+    });
 
     const today = new Date();
     const followUpDefault = new Date(Date.now() + 2 * 24 * 60 * 60 * 1000);
@@ -73,19 +104,61 @@ export class AddLeadComponent implements OnInit {
       leadSource: ['Website', [Validators.required]],
       followUpDate: [followUpDefault, [Validators.required]],
       interestedPlan: ['', [Validators.required]],
+      preferredPlan: ['', [Validators.required]],
       notes: [''],
-      assignedStaff: [''],
-      status: ['New', [Validators.required]]
+      assignedEmployee: [''],
+      status: ['New', [Validators.required]],
+      
+      // CRM Refined Fields
+      leadTemperature: ['Hot', [Validators.required]],
+      fitnessGoal: [['General Fitness'], [Validators.required]],
+      referralSource: [''],
+      trialStatus: ['Not Scheduled', [Validators.required]],
+      lastFollowUp: [''],
+      followUpStatus: ['Pending', [Validators.required]],
+      followUpNotes: [''],
+      reasonLost: ['']
+    });
+
+    // Sync interestedPlan and preferredPlan
+    this.leadForm.get('interestedPlan')?.valueChanges.subscribe(planName => {
+      this.leadForm.patchValue({ preferredPlan: planName }, { emitEvent: false });
+    });
+
+    this.leadForm.get('preferredPlan')?.valueChanges.subscribe(planName => {
+      this.leadForm.patchValue({ interestedPlan: planName }, { emitEvent: false });
+    });
+
+    // Handle conditional validation for Lost Reason
+    this.leadForm.get('status')?.valueChanges.subscribe(status => {
+      const reasonCtrl = this.leadForm.get('reasonLost');
+      if (status === 'Lost') {
+        reasonCtrl?.setValidators([Validators.required]);
+      } else {
+        reasonCtrl?.clearValidators();
+        reasonCtrl?.setValue('');
+      }
+      reasonCtrl?.updateValueAndValidity();
     });
   }
 
   onSubmit(): void {
     if (this.leadForm.valid) {
       const formValue = this.leadForm.value;
+      const assignedEmp = this.employees.find(e => e.id === formValue.assignedEmployee);
+      
       const formattedLead = {
         ...formValue,
         trialDate: this.formatDate(formValue.trialDate),
-        followUpDate: this.formatDate(formValue.followUpDate)
+        followUpDate: this.formatDate(formValue.followUpDate),
+        nextFollowUp: this.formatDate(formValue.followUpDate),
+        lastFollowUp: formValue.lastFollowUp ? this.formatDate(formValue.lastFollowUp) : '',
+        assignedStaff: assignedEmp ? assignedEmp.fullName : '',
+        assignedEmployeeName: assignedEmp ? assignedEmp.fullName : '',
+        leadOwner: assignedEmp ? assignedEmp.id : '',
+        assignedDate: new Date().toISOString().split('T')[0],
+        createdAt: new Date().toISOString().split('T')[0],
+        reasonLost: formValue.status === 'Lost' ? formValue.reasonLost : ''
       };
 
       this.leadState.addLead(formattedLead).subscribe(() => {
@@ -98,7 +171,8 @@ export class AddLeadComponent implements OnInit {
     }
   }
 
-  private formatDate(date: Date): string {
+  private formatDate(date: any): string {
+    if (!date) return '';
     const d = new Date(date);
     let month = '' + (d.getMonth() + 1);
     let day = '' + d.getDate();

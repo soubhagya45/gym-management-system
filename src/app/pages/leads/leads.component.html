@@ -2,207 +2,773 @@
   <!-- Page Header -->
   <div class="page-header">
     <div class="title-area">
-      <h1>Leads Directory</h1>
-      <p>Track prospective trial members, scheduled follow ups, and conversion outcomes.</p>
+      <h1>Gym Sales CRM</h1>
+      <p>Manage sales lead pipelines, track salesperson commissions, monitor conversion rates, and generate sales reports.</p>
     </div>
     <div class="actions-area">
       <button mat-raised-button color="primary" (click)="openAddLeadDialog()">
         <mat-icon>person_add</mat-icon>
-        <span>Add Trial Lead</span>
+        <span>Add CRM Lead</span>
       </button>
     </div>
   </div>
 
-  <!-- Summary Stats Panel -->
-  <div class="stats-panel-grid">
-    <!-- Total Leads -->
-    <mat-card class="stat-card-box interactive total-card">
-      <div class="stat-icon-wrapper primary">
-        <mat-icon>groups</mat-icon>
-      </div>
-      <div class="stat-info">
-        <span class="value">{{ stats.total }}</span>
-        <span class="label">Total Leads</span>
-      </div>
-    </mat-card>
-
-    <!-- New Leads -->
-    <mat-card class="stat-card-box interactive new-card">
-      <div class="stat-icon-wrapper success">
-        <mat-icon>person_add_alt_1</mat-icon>
-      </div>
-      <div class="stat-info">
-        <span class="value">{{ stats.newLeads }}</span>
-        <span class="label">New Leads</span>
-      </div>
-    </mat-card>
-
-    <!-- Converted Leads -->
-    <mat-card class="stat-card-box interactive converted-card">
-      <div class="stat-icon-wrapper warning">
-        <mat-icon>how_to_reg</mat-icon>
-      </div>
-      <div class="stat-info">
-        <span class="value">{{ stats.converted }}</span>
-        <span class="label">Converted Leads</span>
-      </div>
-    </mat-card>
-
-    <!-- Conversion Rate -->
-    <mat-card class="stat-card-box interactive rate-card">
-      <div class="stat-icon-wrapper danger">
-        <mat-icon>insights</mat-icon>
-      </div>
-      <div class="stat-info">
-        <span class="value">{{ stats.conversionRate }}%</span>
-        <span class="label">Conversion Rate</span>
-      </div>
-    </mat-card>
-  </div>
-
-  <!-- Filters Panel -->
-  <div class="mat-card filters-panel">
-    <div class="filters-grid">
-      <!-- Search Input -->
-      <mat-form-field appearance="outline" class="search-field">
-        <mat-label>Search leads...</mat-label>
-        <input matInput [(ngModel)]="searchQuery" (ngModelChange)="applyFilters()" placeholder="Search by name, phone, email, plan, staff...">
-        <mat-icon matPrefix>search</mat-icon>
-        <button *ngIf="searchQuery" matSuffix mat-icon-button aria-label="Clear" (click)="searchQuery=''; applyFilters()">
-          <mat-icon>close</mat-icon>
-        </button>
-      </mat-form-field>
-
-      <!-- Status Filter -->
-      <mat-form-field appearance="outline">
-        <mat-label>Filter by Status</mat-label>
-        <mat-select [(ngModel)]="selectedStatus" (selectionChange)="applyFilters()">
-          <mat-option value="all">All Statuses</mat-option>
-          <mat-option value="New">New</mat-option>
-          <mat-option value="Contacted">Contacted</mat-option>
-          <mat-option value="Trial Scheduled">Trial Scheduled</mat-option>
-          <mat-option value="Follow Up">Follow Up</mat-option>
-          <mat-option value="Converted">Converted</mat-option>
-          <mat-option value="Lost">Lost</mat-option>
-        </mat-select>
-      </mat-form-field>
-
-      <!-- Source Filter -->
-      <mat-form-field appearance="outline">
-        <mat-label>Filter by Source</mat-label>
-        <mat-select [(ngModel)]="selectedSource" (selectionChange)="applyFilters()">
-          <mat-option value="all">All Sources</mat-option>
-          <mat-option value="Walk-in">Walk-in</mat-option>
-          <mat-option value="Instagram">Instagram</mat-option>
-          <mat-option value="Facebook">Facebook</mat-option>
-          <mat-option value="Referral">Referral</mat-option>
-          <mat-option value="Website">Website</mat-option>
-        </mat-select>
-      </mat-form-field>
-
-      <!-- Reset button -->
-      <button mat-button class="reset-btn" (click)="resetFilters()" [disabled]="!searchQuery && selectedStatus === 'all' && selectedSource === 'all'">
-        <mat-icon>filter_list_off</mat-icon>
-        <span>Reset Filters</span>
-      </button>
-    </div>
-  </div>
-
-  <!-- Data Table Panel -->
-  <div class="table-container-card mat-card">
-    <div class="table-scroll-wrapper">
-      <table mat-table [dataSource]="dataSource" matSort class="w-100">
+  <!-- Tab Group for Sales CRM -->
+  <mat-tab-group class="crm-tabs" animationDuration="150ms">
+    
+    <!-- 1. SALES CRM DASHBOARD -->
+    <mat-tab label="Sales CRM Dashboard">
+      <div class="tab-content dashboard-tab">
         
-        <!-- Name Column -->
-        <ng-container matColumnDef="name">
-          <th mat-header-cell *matHeaderCellDef mat-sort-header> Lead Name </th>
-          <td mat-cell *matCellDef="let element" class="name-cell">
-            <div class="name-info-container">
-              <a [routerLink]="['/leads', element.id]" (click)="$event.stopPropagation()" class="lead-link-name">{{ element.name }}</a>
-              <span class="lead-email-subtext">{{ element.email }}</span>
+        <!-- Top KPI Cards Grid -->
+        <div class="stats-panel-grid">
+          <!-- Total Leads -->
+          <mat-card class="stat-card-box interactive total-card">
+            <div class="stat-icon-wrapper primary">
+              <mat-icon>groups</mat-icon>
             </div>
-          </td>
-        </ng-container>
-
-        <!-- Phone Column -->
-        <ng-container matColumnDef="phone">
-          <th mat-header-cell *matHeaderCellDef mat-sort-header class="hide-xs"> Phone Number </th>
-          <td mat-cell *matCellDef="let element" class="hide-xs"> {{ element.phone }} </td>
-        </ng-container>
-
-        <!-- Trial Date Column -->
-        <ng-container matColumnDef="trialDate">
-          <th mat-header-cell *matHeaderCellDef mat-sort-header class="hide-sm"> Trial Date </th>
-          <td mat-cell *matCellDef="let element" class="hide-sm"> {{ element.trialDate | date:'mediumDate' }} </td>
-        </ng-container>
-
-        <!-- Source Column -->
-        <ng-container matColumnDef="leadSource">
-          <th mat-header-cell *matHeaderCellDef mat-sort-header class="hide-md"> Lead Source </th>
-          <td mat-cell *matCellDef="let element" class="hide-md"> {{ element.leadSource }} </td>
-        </ng-container>
-
-        <!-- Interested Plan Column -->
-        <ng-container matColumnDef="interestedPlan">
-          <th mat-header-cell *matHeaderCellDef mat-sort-header class="hide-md"> Plan of Interest </th>
-          <td mat-cell *matCellDef="let element" class="hide-md"> {{ element.interestedPlan }} </td>
-        </ng-container>
-
-        <!-- Assigned Staff Column -->
-        <ng-container matColumnDef="assignedStaff">
-          <th mat-header-cell *matHeaderCellDef mat-sort-header class="hide-sm"> Assigned Staff </th>
-          <td mat-cell *matCellDef="let element" class="text-secondary hide-sm"> {{ element.assignedStaff || 'Unassigned' }} </td>
-        </ng-container>
-
-        <!-- Status Column -->
-        <ng-container matColumnDef="status">
-          <th mat-header-cell *matHeaderCellDef mat-sort-header style="width: 140px"> Status </th>
-          <td mat-cell *matCellDef="let element">
-            <span class="status-badge" [ngClass]="getStatusClass(element.status)">
-              {{ element.status }}
-            </span>
-          </td>
-        </ng-container>
-
-        <!-- Actions Column -->
-        <ng-container matColumnDef="actions">
-          <th mat-header-cell *matHeaderCellDef style="width: 180px; text-align: center"> Actions </th>
-          <td mat-cell *matCellDef="let element" style="text-align: center">
-            <div class="actions-wrapper">
-              <button mat-icon-button color="accent" [routerLink]="['/leads', element.id]" (click)="$event.stopPropagation()" matTooltip="View Details">
-                <mat-icon>visibility</mat-icon>
-              </button>
-              <button mat-icon-button color="accent" (click)="openWhatsAppDialog(element); $event.stopPropagation()" matTooltip="Send WhatsApp Reminder">
-                <mat-icon>chat</mat-icon>
-              </button>
-              <button mat-icon-button color="primary" (click)="openConvertDialog(element); $event.stopPropagation()" *ngIf="element.status !== 'Converted'" matTooltip="Convert to Member">
-                <mat-icon>how_to_reg</mat-icon>
-              </button>
-              <button mat-icon-button color="accent" (click)="openEditLeadDialog(element); $event.stopPropagation()" matTooltip="Edit Lead">
-                <mat-icon>edit</mat-icon>
-              </button>
-              <button mat-icon-button color="warn" (click)="confirmDeleteLead(element); $event.stopPropagation()" matTooltip="Delete Lead">
-                <mat-icon>delete</mat-icon>
-              </button>
+            <div class="stat-info">
+              <span class="value">{{ stats.total }}</span>
+              <span class="label">Total Leads</span>
             </div>
-          </td>
-        </ng-container>
+          </mat-card>
 
-        <!-- Row Declarations -->
-        <tr mat-header-row *matHeaderRowDef="displayedColumns"></tr>
-        <tr mat-row *matRowDef="let row; columns: displayedColumns;" (click)="viewLead(row)" class="clickable-row"></tr>
-      </table>
+          <!-- New Leads Today -->
+          <mat-card class="stat-card-box interactive new-card">
+            <div class="stat-icon-wrapper success">
+              <mat-icon>person_add_alt_1</mat-icon>
+            </div>
+            <div class="stat-info">
+              <span class="value">{{ stats.newLeadsToday }}</span>
+              <span class="label">New Today</span>
+            </div>
+          </mat-card>
 
-      <!-- Empty state -->
-      <div class="empty-table-state" *ngIf="dataSource.filteredData.length === 0">
-        <mat-icon>search_off</mat-icon>
-        <h3>No matching trial leads found</h3>
-        <p>Try adjusting your search query or switching your status/source filters.</p>
-        <button mat-flat-button color="primary" (click)="resetFilters()">Clear All Filters</button>
+          <!-- Follow Ups Due Today -->
+          <mat-card class="stat-card-box interactive follow-card">
+            <div class="stat-icon-wrapper warning">
+              <mat-icon>phone_in_talk</mat-icon>
+            </div>
+            <div class="stat-info">
+              <span class="value">{{ stats.followUpsDueToday }}</span>
+              <span class="label">Follow Ups Due</span>
+            </div>
+          </mat-card>
+
+          <!-- Trial Scheduled -->
+          <mat-card class="stat-card-box interactive trial-sch-card">
+            <div class="stat-icon-wrapper info">
+              <mat-icon>calendar_month</mat-icon>
+            </div>
+            <div class="stat-info">
+              <span class="value">{{ stats.trialScheduled }}</span>
+              <span class="label">Trial Scheduled</span>
+            </div>
+          </mat-card>
+
+          <!-- Trial Attended -->
+          <mat-card class="stat-card-box interactive trial-att-card">
+            <div class="stat-icon-wrapper teal-icon">
+              <mat-icon>check_circle</mat-icon>
+            </div>
+            <div class="stat-info">
+              <span class="value">{{ stats.trialAttended }}</span>
+              <span class="label">Trial Attended</span>
+            </div>
+          </mat-card>
+
+          <!-- Converted Leads -->
+          <mat-card class="stat-card-box interactive converted-card">
+            <div class="stat-icon-wrapper success">
+              <mat-icon>how_to_reg</mat-icon>
+            </div>
+            <div class="stat-info">
+              <span class="value">{{ stats.converted }}</span>
+              <span class="label">Converted Leads</span>
+            </div>
+          </mat-card>
+
+          <!-- Lost Leads -->
+          <mat-card class="stat-card-box interactive lost-card">
+            <div class="stat-icon-wrapper danger">
+              <mat-icon>person_off</mat-icon>
+            </div>
+            <div class="stat-info">
+              <span class="value">{{ stats.lost }}</span>
+              <span class="label">Lost Leads</span>
+            </div>
+          </mat-card>
+
+          <!-- Conversion Rate % -->
+          <mat-card class="stat-card-box interactive rate-card">
+            <div class="stat-icon-wrapper primary">
+              <mat-icon>insights</mat-icon>
+            </div>
+            <div class="stat-info">
+              <span class="value">{{ stats.conversionRate }}%</span>
+              <span class="label">Conversion Rate</span>
+            </div>
+          </mat-card>
+
+          <!-- Revenue Generated From Leads -->
+          <mat-card class="stat-card-box interactive revenue-card">
+            <div class="stat-icon-wrapper warning">
+              <mat-icon>payments</mat-icon>
+            </div>
+            <div class="stat-info">
+              <span class="value">₹{{ stats.revenueGenerated | number }}</span>
+              <span class="label">Revenue Closed</span>
+            </div>
+          </mat-card>
+
+          <!-- Estimated Pipeline Value -->
+          <mat-card class="stat-card-box interactive pipeline-card">
+            <div class="stat-icon-wrapper info">
+              <mat-icon>monetization_on</mat-icon>
+            </div>
+            <div class="stat-info">
+              <span class="value">₹{{ stats.estPipelineValue | number }}</span>
+              <span class="label">Pipeline Value</span>
+            </div>
+          </mat-card>
+        </div>
+
+        <!-- Middle Grid: Follow Up & Leaderboard Section -->
+        <div class="dashboard-grid">
+          <!-- Follow Up Management Widget -->
+          <mat-card class="grid-card mat-card">
+            <div class="card-header">
+              <h3><mat-icon>schedule</mat-icon> Follow Up Management</h3>
+            </div>
+            <div class="follow-up-panels">
+              <!-- Missed/Overdue Follow Ups (Red) -->
+              <div class="follow-panel overdue-panel">
+                <h4 class="panel-header text-danger">
+                  <span class="dot red-dot"></span> Overdue Follow Ups ({{ missedFollowUps.length }})
+                </h4>
+                <div class="follow-list-container" *ngIf="missedFollowUps.length > 0; else noMissed">
+                  <div class="follow-lead-item" *ngFor="let lead of missedFollowUps" (click)="viewLead(lead)">
+                    <div class="lead-basic">
+                      <strong>{{ lead.name }}</strong>
+                      <span>{{ lead.phone }}</span>
+                    </div>
+                    <div class="lead-date-owner">
+                      <span class="overdue-days">Overdue: {{ lead.nextFollowUp || lead.followUpDate | date:'shortDate' }}</span>
+                      <span class="owner">{{ lead.assignedEmployeeName || lead.assignedStaff || 'Unassigned' }}</span>
+                    </div>
+                  </div>
+                </div>
+                <ng-template #noMissed>
+                  <p class="empty-panel-text">No overdue follow ups! All caught up.</p>
+                </ng-template>
+              </div>
+
+              <!-- Due Today (Orange) -->
+              <div class="follow-panel due-today-panel">
+                <h4 class="panel-header text-warning">
+                  <span class="dot orange-dot"></span> Due Today ({{ dueTodayFollowUps.length }})
+                </h4>
+                <div class="follow-list-container" *ngIf="dueTodayFollowUps.length > 0; else noDueToday">
+                  <div class="follow-lead-item" *ngFor="let lead of dueTodayFollowUps" (click)="viewLead(lead)">
+                    <div class="lead-basic">
+                      <strong>{{ lead.name }}</strong>
+                      <span>{{ lead.phone }}</span>
+                    </div>
+                    <div class="lead-date-owner">
+                      <span class="due-tag">Today</span>
+                      <span class="owner">{{ lead.assignedEmployeeName || lead.assignedStaff || 'Unassigned' }}</span>
+                    </div>
+                  </div>
+                </div>
+                <ng-template #noDueToday>
+                  <p class="empty-panel-text">No follow ups due today.</p>
+                </ng-template>
+              </div>
+
+              <!-- Upcoming Follow Ups (Green) -->
+              <div class="follow-panel upcoming-panel">
+                <h4 class="panel-header text-success">
+                  <span class="dot green-dot"></span> Upcoming ({{ upcomingFollowUps.length }})
+                </h4>
+                <div class="follow-list-container" *ngIf="upcomingFollowUps.length > 0; else noUpcoming">
+                  <div class="follow-lead-item" *ngFor="let lead of upcomingFollowUps" (click)="viewLead(lead)">
+                    <div class="lead-basic">
+                      <strong>{{ lead.name }}</strong>
+                      <span>{{ lead.phone }}</span>
+                    </div>
+                    <div class="lead-date-owner">
+                      <span class="upcoming-date">{{ lead.nextFollowUp || lead.followUpDate | date:'shortDate' }}</span>
+                      <span class="owner">{{ lead.assignedEmployeeName || lead.assignedStaff || 'Unassigned' }}</span>
+                    </div>
+                  </div>
+                </div>
+                <ng-template #noUpcoming>
+                  <p class="empty-panel-text">No upcoming follow ups scheduled.</p>
+                </ng-template>
+              </div>
+            </div>
+          </mat-card>
+
+          <!-- Sales Performance Leaderboard -->
+          <mat-card class="grid-card mat-card">
+            <div class="card-header">
+              <h3><mat-icon>leaderboard</mat-icon> Sales Performance Leaderboard</h3>
+            </div>
+            
+            <!-- Highlight Badges -->
+            <div class="leaderboard-highlights" *ngIf="topPerformer || highestRevenueGenerator">
+              <!-- Top Performer card -->
+              <div class="award-card performer-award" *ngIf="topPerformer">
+                <mat-icon class="award-icon">emoji_events</mat-icon>
+                <div class="award-details">
+                  <span class="award-label">Top Performer</span>
+                  <span class="award-name">{{ topPerformer.name }}</span>
+                  <span class="award-sub">{{ topPerformer.converted }} Conversions</span>
+                </div>
+              </div>
+
+              <!-- Highest Revenue Generator card -->
+              <div class="award-card revenue-award" *ngIf="highestRevenueGenerator">
+                <mat-icon class="award-icon">monetization_on</mat-icon>
+                <div class="award-details">
+                  <span class="award-label">Highest Revenue</span>
+                  <span class="award-name">{{ highestRevenueGenerator.name }}</span>
+                  <span class="award-sub">₹{{ highestRevenueGenerator.revenue | number }} Generated</span>
+                </div>
+              </div>
+
+              <!-- Highest Conversion Rate card -->
+              <div class="award-card rate-award" *ngIf="highestConversionRate">
+                <mat-icon class="award-icon">trending_up</mat-icon>
+                <div class="award-details">
+                  <span class="award-label">Highest Conv. Rate</span>
+                  <span class="award-name">{{ highestConversionRate.name }}</span>
+                  <span class="award-sub">{{ highestConversionRate.conversionRate }}% Rate</span>
+                </div>
+              </div>
+            </div>
+
+            <!-- Leaderboard Table -->
+            <div class="leaderboard-table-container">
+              <table class="leaderboard-table">
+                <thead>
+                  <tr>
+                    <th>Employee</th>
+                    <th>Role</th>
+                    <th class="text-center">Assigned</th>
+                    <th class="text-center">Converted</th>
+                    <th class="text-center">Conv. %</th>
+                    <th class="text-right">Revenue Closed</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr *ngFor="let salesperson of leaderboard; let i = index">
+                    <td class="name-cell">
+                      <span class="rank-badge" [ngClass]="{
+                        'rank-1': i === 0,
+                        'rank-2': i === 1,
+                        'rank-3': i === 2
+                      }">{{ i + 1 }}</span>
+                      <strong>{{ salesperson.name }}</strong>
+                    </td>
+                    <td><span class="role-badge">{{ salesperson.role }}</span></td>
+                    <td class="text-center font-bold text-secondary">{{ salesperson.assigned }}</td>
+                    <td class="text-center font-bold text-success">{{ salesperson.converted }}</td>
+                    <td class="text-center">
+                      <span class="conv-pct" [ngClass]="{
+                        'high': salesperson.conversionRate >= 60,
+                        'medium': salesperson.conversionRate >= 30 && salesperson.conversionRate < 60,
+                        'low': salesperson.conversionRate < 30
+                      }">{{ salesperson.conversionRate }}%</span>
+                    </td>
+                    <td class="text-right font-bold text-accent">₹{{ salesperson.revenue | number }}</td>
+                  </tr>
+                  <tr *ngIf="leaderboard.length === 0">
+                    <td colspan="6" class="text-center text-muted">No sales employees found in system.</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </mat-card>
+        </div>
+
+        <!-- Bottom Grid: Charts, Source and Lost Analytics -->
+        <div class="dashboard-grid three-cols">
+          <!-- Charts Section -->
+          <mat-card class="grid-card mat-card">
+            <div class="card-header">
+              <h3><mat-icon>bar_chart</mat-icon> Sales CRM Analytics</h3>
+            </div>
+            
+            <div class="charts-container">
+              <!-- Chart 1: Revenue Curve -->
+              <div class="chart-box">
+                <h4>Monthly Revenue From Leads</h4>
+                <div class="svg-container">
+                  <svg viewBox="0 0 500 150" class="svg-line-chart">
+                    <defs>
+                      <linearGradient id="chartGradient" x1="0" y1="0" x2="0" y2="1">
+                        <stop offset="0%" stop-color="var(--accent-hover)" stop-opacity="0.3"></stop>
+                        <stop offset="100%" stop-color="var(--accent-hover)" stop-opacity="0.0"></stop>
+                      </linearGradient>
+                    </defs>
+                    
+                    <!-- Grid Lines -->
+                    <line x1="20" y1="20" x2="480" y2="20" stroke="rgba(255,255,255,0.05)" stroke-width="1"></line>
+                    <line x1="20" y1="65" x2="480" y2="65" stroke="rgba(255,255,255,0.05)" stroke-width="1"></line>
+                    <line x1="20" y1="110" x2="480" y2="110" stroke="rgba(255,255,255,0.05)" stroke-width="1"></line>
+                    <line x1="20" y1="130" x2="480" y2="130" stroke="rgba(255,255,255,0.1)" stroke-width="1"></line>
+ 
+                    <!-- Filled Path -->
+                    <path [attr.d]="getRevenueSVGFillPoints()" fill="url(#chartGradient)"></path>
+ 
+                    <!-- Stroke Path -->
+                    <polyline
+                      fill="none"
+                      stroke="var(--accent-color)"
+                      stroke-width="3"
+                      stroke-linecap="round"
+                      stroke-linejoin="round"
+                      [attr.points]="getRevenueSVGPoints()">
+                    </polyline>
+                  </svg>
+                </div>
+                
+                <!-- X Axis Labels -->
+                <div class="chart-labels">
+                  <div class="label-item" *ngFor="let m of revenueChartMonths; let i = index">
+                    <span>{{ m }}</span>
+                    <strong>₹{{ revenueChartValues[i] | number:'1.0-0' }}</strong>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </mat-card>
+ 
+          <!-- Source Analytics Widget -->
+          <mat-card class="grid-card mat-card">
+            <div class="card-header">
+              <h3><mat-icon>ads_click</mat-icon> Lead Source Analytics</h3>
+            </div>
+            
+            <div class="sources-table-container">
+              <table class="leaderboard-table">
+                <thead>
+                  <tr>
+                    <th>Source</th>
+                    <th class="text-center">Total</th>
+                    <th class="text-center">Conv.</th>
+                    <th class="text-center">Conv. %</th>
+                    <th class="text-right">Revenue</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr *ngFor="let src of sourceAnalytics">
+                    <td class="name-cell">
+                      <mat-icon class="source-icon" [ngClass]="src.source.toLowerCase().replace(' ', '-')">
+                        {{ src.source === 'Website' ? 'language' : (src.source === 'Walk-In' ? 'directions_walk' : (src.source === 'Referral' ? 'group' : 'campaign')) }}
+                      </mat-icon>
+                      <strong class="source-text-truncate" [matTooltip]="src.source">{{ src.source }}</strong>
+                    </td>
+                    <td class="text-center text-primary font-bold">{{ src.leads }}</td>
+                    <td class="text-center text-success font-bold">{{ src.conversions }}</td>
+                    <td class="text-center">
+                      <span class="conv-pct" [ngClass]="{
+                        'high': src.conversionRate >= 50,
+                        'medium': src.conversionRate >= 20 && src.conversionRate < 50,
+                        'low': src.conversionRate < 20
+                      }">{{ src.conversionRate }}%</span>
+                    </td>
+                    <td class="text-right font-bold text-accent">₹{{ src.revenue | number }}</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </mat-card>
+
+          <!-- Lost Leads Analysis Widget -->
+          <mat-card class="grid-card mat-card">
+            <div class="card-header">
+              <h3><mat-icon>person_off</mat-icon> Lost Leads Analysis</h3>
+            </div>
+            
+            <div class="lost-reasons-container">
+              <div class="lost-reason-item" *ngFor="let item of lostReasonsAnalytics">
+                <div class="reason-meta">
+                  <span class="reason-name">{{ item.reason }}</span>
+                  <span class="reason-count">{{ item.count }} leads ({{ item.percentage }}%)</span>
+                </div>
+                <div class="reason-bar-wrapper">
+                  <div class="reason-bar-fill" [style.width.%]="item.percentage" [ngClass]="{
+                    'high-loss': item.percentage >= 40,
+                    'med-loss': item.percentage >= 15 && item.percentage < 40,
+                    'low-loss': item.percentage < 15
+                  }"></div>
+                </div>
+              </div>
+              <div class="empty-loss-state" *ngIf="lostReasonsAnalytics.length === 0 || stats.lost === 0">
+                <mat-icon>check_circle_outline</mat-icon>
+                <p>No lost leads recorded. Keep it up!</p>
+              </div>
+            </div>
+          </mat-card>
+        </div>
       </div>
-    </div>
+    </mat-tab>
 
-    <!-- Paginator -->
-    <mat-paginator [pageSizeOptions]="[5, 10, 20]" showFirstLastButtons aria-label="Select page of trial leads"></mat-paginator>
-  </div>
+    <!-- 2. VISUAL PIPELINE -->
+    <mat-tab label="Visual Pipeline">
+      <div class="tab-content pipeline-tab">
+        <p class="pipeline-desc">Drag and drop leads between sales stages. Dropping a lead in "Converted" will trigger member registration.</p>
+        
+        <div class="pipeline-board-container" cdkDropListGroup>
+          <div class="pipeline-column" *ngFor="let column of pipelineColumns">
+            <div class="column-header">
+              <div class="title-details">
+                <h4>{{ column.name }}</h4>
+                <span class="column-badge">{{ column.leads.length }}</span>
+              </div>
+            </div>
+
+            <!-- Drop list area -->
+            <div
+              cdkDropList
+              [cdkDropListData]="column.leads"
+              (cdkDropListDropped)="onPipelineCardDrop($event, column.status)"
+              class="column-card-list">
+              
+              <div
+                *ngFor="let lead of column.leads"
+                cdkDrag
+                [cdkDragData]="lead"
+                class="lead-pipeline-card interactive"
+                (click)="viewLead(lead)">
+                
+                <div class="card-header">
+                  <span class="temp-badge small" [ngClass]="(lead.leadTemperature || 'Cold').toLowerCase()">
+                    <ng-container [ngSwitch]="lead.leadTemperature">
+                      <span *ngSwitchCase="'Hot'">🔥 Hot</span>
+                      <span *ngSwitchCase="'Warm'">🟡 Warm</span>
+                      <span *ngSwitchCase="'Cold'">🔵 Cold</span>
+                      <span *ngSwitchDefault>🔵 Cold</span>
+                    </ng-container>
+                  </span>
+                  <span class="card-plan text-accent font-bold">{{ lead.preferredPlan || lead.interestedPlan }}</span>
+                </div>
+
+                <div class="card-title">{{ lead.name }}</div>
+
+                <div class="card-meta">
+                  <span class="meta-item"><mat-icon>phone</mat-icon> {{ lead.phone }}</span>
+                  <span class="meta-item"><mat-icon>person</mat-icon> {{ lead.assignedEmployeeName || lead.assignedStaff || 'Unassigned' }}</span>
+                </div>
+
+                <div class="card-footer" *ngIf="lead.nextFollowUp">
+                  <span class="followup-alert" [ngClass]="getFollowUpClass(lead.nextFollowUp)">
+                    <mat-icon>schedule</mat-icon>
+                    <span>Follow Up: {{ lead.nextFollowUp | date:'shortDate' }}</span>
+                  </span>
+                </div>
+              </div>
+              
+              <div class="empty-column-state" *ngIf="column.leads.length === 0">
+                <mat-icon>drag_indicator</mat-icon>
+                <span>Drag leads here</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </mat-tab>
+
+    <!-- 3. LEADS DIRECTORY -->
+    <mat-tab label="Leads Directory">
+      <div class="tab-content directory-tab">
+        
+        <!-- Filters Panel -->
+        <div class="mat-card filters-panel">
+          <div class="filters-grid">
+            <!-- Search Input -->
+            <mat-form-field appearance="outline" class="search-field">
+              <mat-label>Search leads...</mat-label>
+              <input matInput [(ngModel)]="searchQuery" (ngModelChange)="applyFilters()" placeholder="Search by name, phone, email, plan, owner...">
+              <mat-icon matPrefix>search</mat-icon>
+              <button *ngIf="searchQuery" matSuffix mat-icon-button aria-label="Clear" (click)="searchQuery=''; applyFilters()">
+                <mat-icon>close</mat-icon>
+              </button>
+            </mat-form-field>
+
+            <!-- Status Filter -->
+            <mat-form-field appearance="outline">
+              <mat-label>Filter by Stage</mat-label>
+              <mat-select [(ngModel)]="selectedStatus" (selectionChange)="applyFilters()">
+                <mat-option value="all">All Stages</mat-option>
+                <mat-option value="New">New</mat-option>
+                <mat-option value="Contacted">Contacted</mat-option>
+                <mat-option value="Follow Up">Follow Up</mat-option>
+                <mat-option value="Trial Scheduled">Trial Scheduled</mat-option>
+                <mat-option value="Trial Attended">Trial Attended</mat-option>
+                <mat-option value="Negotiation">Negotiation</mat-option>
+                <mat-option value="Converted">Converted</mat-option>
+                <mat-option value="Lost">Lost</mat-option>
+              </mat-select>
+            </mat-form-field>
+
+            <!-- Source Filter -->
+            <mat-form-field appearance="outline">
+              <mat-label>Filter by Source</mat-label>
+              <mat-select [(ngModel)]="selectedSource" (selectionChange)="applyFilters()">
+                <mat-option value="all">All Sources</mat-option>
+                <mat-option value="Website">Website</mat-option>
+                <mat-option value="Walk-in">Walk-in</mat-option>
+                <mat-option value="Instagram">Instagram</mat-option>
+                <mat-option value="Facebook">Facebook</mat-option>
+                <mat-option value="WhatsApp">WhatsApp</mat-option>
+                <mat-option value="Referral">Referral</mat-option>
+                <mat-option value="Google Ads">Google Ads</mat-option>
+                <mat-option value="Other">Other</mat-option>
+              </mat-select>
+            </mat-form-field>
+
+            <!-- Reset button -->
+            <button mat-button class="reset-btn" (click)="resetFilters()" [disabled]="!searchQuery && selectedStatus === 'all' && selectedSource === 'all'">
+              <mat-icon>filter_list_off</mat-icon>
+              <span>Reset Filters</span>
+            </button>
+          </div>
+        </div>
+
+        <!-- Data Table Panel -->
+        <div class="table-container-card mat-card">
+          <div class="table-scroll-wrapper">
+            <table mat-table [dataSource]="dataSource" matSort class="w-100">
+              
+              <!-- Name Column -->
+              <ng-container matColumnDef="name">
+                <th mat-header-cell *matHeaderCellDef mat-sort-header> Lead Name </th>
+                <td mat-cell *matCellDef="let element" class="name-cell">
+                  <div class="name-info-container">
+                    <a [routerLink]="['/leads', element.id]" (click)="$event.stopPropagation()" class="lead-link-name" [matTooltip]="element.name">{{ element.name }}</a>
+                    <span class="lead-email-subtext" [matTooltip]="element.email">{{ element.email }}</span>
+                  </div>
+                </td>
+              </ng-container>
+
+              <!-- Phone Column -->
+              <ng-container matColumnDef="phone">
+                <th mat-header-cell *matHeaderCellDef mat-sort-header class="hide-xs"> Phone Number </th>
+                <td mat-cell *matCellDef="let element" class="hide-xs"> {{ element.phone }} </td>
+              </ng-container>
+
+              <!-- Trial Date Column -->
+              <ng-container matColumnDef="trialDate">
+                <th mat-header-cell *matHeaderCellDef mat-sort-header class="hide-sm"> Trial Date </th>
+                <td mat-cell *matCellDef="let element" class="hide-sm"> {{ element.trialDate | date:'mediumDate' }} </td>
+              </ng-container>
+
+              <!-- Source Column -->
+              <ng-container matColumnDef="leadSource">
+                <th mat-header-cell *matHeaderCellDef mat-sort-header class="hide-md"> Source </th>
+                <td mat-cell *matCellDef="let element" class="hide-md"> {{ element.leadSource }} </td>
+              </ng-container>
+
+              <!-- Plan Column -->
+              <ng-container matColumnDef="interestedPlan">
+                <th mat-header-cell *matHeaderCellDef mat-sort-header class="hide-md"> Preferred Plan </th>
+                <td mat-cell *matCellDef="let element" class="hide-md">
+                  <div class="truncate-cell" [matTooltip]="element.preferredPlan || element.interestedPlan">
+                    {{ element.preferredPlan || element.interestedPlan }}
+                  </div>
+                </td>
+              </ng-container>
+
+              <!-- Assigned Staff Column -->
+              <ng-container matColumnDef="assignedStaff">
+                <th mat-header-cell *matHeaderCellDef mat-sort-header class="hide-sm"> Sales Owner </th>
+                <td mat-cell *matCellDef="let element" class="text-secondary hide-sm"> 
+                  <div class="truncate-cell" [matTooltip]="element.assignedEmployeeName || element.assignedStaff || 'Unassigned'">
+                    {{ element.assignedEmployeeName || element.assignedStaff || 'Unassigned' }} 
+                  </div>
+                </td>
+              </ng-container>
+
+              <!-- Lead Temperature Column -->
+              <ng-container matColumnDef="leadTemperature">
+                <th mat-header-cell *matHeaderCellDef mat-sort-header class="text-center hide-sm"> Temp </th>
+                <td mat-cell *matCellDef="let element" class="text-center hide-sm">
+                  <span class="temp-badge small" [ngClass]="(element.leadTemperature || 'Cold').toLowerCase()">
+                    <ng-container [ngSwitch]="element.leadTemperature">
+                      <span *ngSwitchCase="'Hot'">🔥 Hot</span>
+                      <span *ngSwitchCase="'Warm'">🟡 Warm</span>
+                      <span *ngSwitchCase="'Cold'">🔵 Cold</span>
+                      <span *ngSwitchDefault>🔵 Cold</span>
+                    </ng-container>
+                  </span>
+                </td>
+              </ng-container>
+
+              <!-- Trial Status Column -->
+              <ng-container matColumnDef="trialStatus">
+                <th mat-header-cell *matHeaderCellDef mat-sort-header class="text-center hide-md"> Trial </th>
+                <td mat-cell *matCellDef="let element" class="text-center hide-md">
+                  <span class="trial-badge small" [ngClass]="(element.trialStatus || 'Not Scheduled').toLowerCase().replace(' ', '-')">
+                    {{ element.trialStatus || 'Not Scheduled' }}
+                  </span>
+                </td>
+              </ng-container>
+
+              <!-- Status Column -->
+              <ng-container matColumnDef="status">
+                <th mat-header-cell *matHeaderCellDef mat-sort-header> Stage </th>
+                <td mat-cell *matCellDef="let element">
+                  <span class="status-badge" [ngClass]="getStatusClass(element.status)">
+                    {{ element.status }}
+                  </span>
+                </td>
+              </ng-container>
+
+              <!-- Actions Column -->
+              <ng-container matColumnDef="actions">
+                <th mat-header-cell *matHeaderCellDef> Actions </th>
+                <td mat-cell *matCellDef="let element">
+                  <div class="actions-wrapper">
+                    <button mat-icon-button color="accent" [routerLink]="['/leads', element.id]" (click)="$event.stopPropagation()" matTooltip="View Details">
+                      <mat-icon>visibility</mat-icon>
+                    </button>
+                    <button mat-icon-button color="accent" (click)="openWhatsAppDialog(element); $event.stopPropagation()" matTooltip="Send WhatsApp Follow-up">
+                      <mat-icon>chat</mat-icon>
+                    </button>
+                    <button mat-icon-button color="primary" (click)="openConvertDialog(element); $event.stopPropagation()" *ngIf="element.status !== 'Converted'; else convertPlaceholder" matTooltip="Convert to Member">
+                      <mat-icon>how_to_reg</mat-icon>
+                    </button>
+                    <ng-template #convertPlaceholder>
+                      <div class="action-button-placeholder"></div>
+                    </ng-template>
+                    <button mat-icon-button color="accent" (click)="openEditLeadDialog(element); $event.stopPropagation()" matTooltip="Edit Lead">
+                      <mat-icon>edit</mat-icon>
+                    </button>
+                    <button mat-icon-button color="warn" (click)="confirmDeleteLead(element); $event.stopPropagation()" matTooltip="Delete Lead">
+                      <mat-icon>delete</mat-icon>
+                    </button>
+                  </div>
+                </td>
+              </ng-container>
+
+              <!-- Row Declarations -->
+              <tr mat-header-row *matHeaderRowDef="displayedColumns"></tr>
+              <tr mat-row *matRowDef="let row; columns: displayedColumns;" (click)="viewLead(row)" class="clickable-row"></tr>
+            </table>
+
+            <!-- Empty state -->
+            <div class="empty-table-state" *ngIf="dataSource.filteredData.length === 0">
+              <mat-icon>search_off</mat-icon>
+              <h3>No matching leads found</h3>
+              <p>Try adjusting your search query or stage filters.</p>
+              <button mat-flat-button color="primary" (click)="resetFilters()">Clear All Filters</button>
+            </div>
+          </div>
+
+          <!-- Paginator -->
+          <mat-paginator [pageSizeOptions]="[10, 20, 50]" showFirstLastButtons aria-label="Select page of leads"></mat-paginator>
+        </div>
+      </div>
+    </mat-tab>
+
+    <!-- 4. SALES REPORTS -->
+    <mat-tab label="Sales Reports">
+      <div class="tab-content reports-tab">
+        <div class="reports-layout">
+          <!-- Reports selection menu -->
+          <div class="reports-menu">
+            <mat-card class="menu-card mat-card">
+              <h3>CRM Reports</h3>
+              <div class="menu-list">
+                <button
+                  mat-button
+                  [class.active]="activeReportType === 'conversion'"
+                  (click)="selectReport('conversion')">
+                  <mat-icon>how_to_reg</mat-icon>
+                  <span>Lead Conversion Report</span>
+                </button>
+                <button
+                  mat-button
+                  [class.active]="activeReportType === 'performance'"
+                  (click)="selectReport('performance')">
+                  <mat-icon>star</mat-icon>
+                  <span>Sales Performance Report</span>
+                </button>
+                <button
+                  mat-button
+                  [class.active]="activeReportType === 'revenue'"
+                  (click)="selectReport('revenue')">
+                  <mat-icon>payments</mat-icon>
+                  <span>Revenue By Salesperson</span>
+                </button>
+                <button
+                  mat-button
+                  [class.active]="activeReportType === 'sources'"
+                  (click)="selectReport('sources')">
+                  <mat-icon>ads_click</mat-icon>
+                  <span>Source Effectiveness</span>
+                </button>
+                <button
+                  mat-button
+                  [class.active]="activeReportType === 'followups'"
+                  (click)="selectReport('followups')">
+                  <mat-icon>schedule</mat-icon>
+                  <span>Follow Up Performance</span>
+                </button>
+              </div>
+            </mat-card>
+          </div>
+
+          <!-- Reports Display Area -->
+          <div class="reports-display">
+            <mat-card class="display-card mat-card">
+              <div class="display-header">
+                <div>
+                  <h3>
+                    {{ 
+                      activeReportType === 'conversion' ? 'Lead Conversion Report' :
+                      activeReportType === 'performance' ? 'Sales Performance Report' :
+                      activeReportType === 'revenue' ? 'Revenue By Salesperson Report' :
+                      activeReportType === 'sources' ? 'Source Effectiveness Report' : 'Follow Up Performance Report'
+                    }}
+                  </h3>
+                  <p class="subtitle">Real-time analytical output of gym lead activity database.</p>
+                </div>
+                <button mat-raised-button color="accent" (click)="downloadCSV()" [disabled]="reportData.length === 0">
+                  <mat-icon>download</mat-icon>
+                  <span>Export CSV</span>
+                </button>
+              </div>
+
+              <!-- Report Table -->
+              <div class="report-table-scroll-wrapper">
+                <table class="leaderboard-table report-table">
+                  <thead>
+                    <tr>
+                      <th *ngFor="let header of reportHeaders">{{ header }}</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr *ngFor="let row of reportData">
+                      <td *ngFor="let cell of row | keyvalue">
+                        {{ cell.value }}
+                      </td>
+                    </tr>
+                    <tr *ngIf="reportData.length === 0">
+                      <td [attr.colspan]="reportHeaders.length" class="text-center text-muted">
+                        No report data calculated.
+                      </td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+            </mat-card>
+          </div>
+        </div>
+      </div>
+    </mat-tab>
+  </mat-tab-group>
 </div>

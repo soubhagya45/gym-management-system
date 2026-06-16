@@ -8,8 +8,8 @@
           <span>Back to Leads</span>
         </a>
       </div>
-      <h1>Register New Lead</h1>
-      <p>Enter contact details and gym preferences to create a new trial profile.</p>
+      <h1>Register New CRM Lead</h1>
+      <p>Enter contact details, fitness goals, salesperson assignments, and preferred membership plans to onboard a sales prospect.</p>
     </div>
   </div>
 
@@ -29,7 +29,7 @@
 
           <mat-form-field appearance="outline">
             <mat-label>Phone Number</mat-label>
-            <input matInput formControlName="phone" placeholder="+1 (555) 000-0000">
+            <input matInput formControlName="phone" placeholder="+91 XXXXX XXXXX">
             <mat-error *ngIf="leadForm.get('phone')?.hasError('required')">Phone is required</mat-error>
           </mat-form-field>
 
@@ -39,21 +39,100 @@
             <mat-error *ngIf="leadForm.get('email')?.hasError('required')">Email is required</mat-error>
             <mat-error *ngIf="leadForm.get('email')?.hasError('email')">Invalid email address</mat-error>
           </mat-form-field>
+
+          <mat-form-field appearance="outline">
+            <mat-label>Fitness Goal(s)</mat-label>
+            <mat-select formControlName="fitnessGoal" multiple>
+              <mat-option *ngFor="let goal of fitnessGoalOptions" [value]="goal">{{ goal }}</mat-option>
+            </mat-select>
+            <mat-error *ngIf="leadForm.get('fitnessGoal')?.hasError('required')">Fitness Goal is required</mat-error>
+          </mat-form-field>
         </div>
 
-        <!-- Section 2: Trial Details & Settings -->
+        <!-- Section 2: CRM Sales & Assignment -->
         <div class="form-section">
-          <h3 class="section-title"><mat-icon>settings_accessibility</mat-icon> Trial Details</h3>
+          <h3 class="section-title"><mat-icon>assignment_ind</mat-icon> Sales Assignment</h3>
+
+          <mat-form-field appearance="outline">
+            <mat-label>Lead Owner (Salesperson)</mat-label>
+            <mat-select formControlName="assignedEmployee">
+              <mat-option value="">Unassigned</mat-option>
+              <mat-option *ngFor="let emp of employees" [value]="emp.id">
+                {{ emp.fullName }} ({{ emp.role === 'staff' ? 'Sales Executive' : emp.role | titlecase }})
+              </mat-option>
+            </mat-select>
+          </mat-form-field>
+
+          <div class="dates-row">
+            <mat-form-field appearance="outline">
+              <mat-label>Lead Temperature</mat-label>
+              <mat-select formControlName="leadTemperature">
+                <mat-option value="Hot">🔥 Hot Lead</mat-option>
+                <mat-option value="Warm">🟡 Warm Lead</mat-option>
+                <mat-option value="Cold">🔵 Cold Lead</mat-option>
+              </mat-select>
+            </mat-form-field>
+
+            <mat-form-field appearance="outline">
+              <mat-label>Trial Status</mat-label>
+              <mat-select formControlName="trialStatus">
+                <mat-option value="Not Scheduled">Not Scheduled</mat-option>
+                <mat-option value="Scheduled">Scheduled</mat-option>
+                <mat-option value="Attended">Attended</mat-option>
+                <mat-option value="No Show">No Show</mat-option>
+                <mat-option value="Converted After Trial">Converted After Trial</mat-option>
+              </mat-select>
+            </mat-form-field>
+          </div>
+
+          <div class="meta-row">
+            <mat-form-field appearance="outline">
+              <mat-label>Lead Stage</mat-label>
+              <mat-select formControlName="status">
+                <mat-option value="New">New</mat-option>
+                <mat-option value="Contacted">Contacted</mat-option>
+                <mat-option value="Follow Up">Follow Up</mat-option>
+                <mat-option value="Trial Scheduled">Trial Scheduled</mat-option>
+                <mat-option value="Trial Attended">Trial Attended</mat-option>
+                <mat-option value="Negotiation">Negotiation</mat-option>
+                <mat-option value="Converted">Converted</mat-option>
+                <mat-option value="Lost">Lost</mat-option>
+              </mat-select>
+            </mat-form-field>
+
+            <mat-form-field appearance="outline" *ngIf="leadForm.get('status')?.value === 'Lost'">
+              <mat-label>Reason Lost</mat-label>
+              <mat-select formControlName="reasonLost">
+                <mat-option *ngFor="let reason of lostReasonOptions" [value]="reason">{{ reason }}</mat-option>
+              </mat-select>
+              <mat-error *ngIf="leadForm.get('reasonLost')?.hasError('required')">Reason lost is required</mat-error>
+            </mat-form-field>
+          </div>
+        </div>
+
+        <!-- Section 3: Gym Preferences & Follow-ups -->
+        <div class="form-section">
+          <h3 class="section-title"><mat-icon>fitbit</mat-icon> Preferences</h3>
 
           <mat-form-field appearance="outline">
             <mat-label>Lead Source</mat-label>
             <mat-select formControlName="leadSource">
-              <mat-option value="Walk-in">Walk-in</mat-option>
+              <mat-option value="Walk-In">Walk-In</mat-option>
+              <mat-option value="Website">Website</mat-option>
               <mat-option value="Instagram">Instagram</mat-option>
               <mat-option value="Facebook">Facebook</mat-option>
+              <mat-option value="Google Ads">Google Ads</mat-option>
+              <mat-option value="WhatsApp">WhatsApp</mat-option>
               <mat-option value="Referral">Referral</mat-option>
-              <mat-option value="Website">Website</mat-option>
+              <mat-option value="Existing Member Referral">Existing Member Referral</mat-option>
+              <mat-option value="Trainer Referral">Trainer Referral</mat-option>
+              <mat-option value="Other">Other</mat-option>
             </mat-select>
+          </mat-form-field>
+
+          <mat-form-field appearance="outline" *ngIf="['Referral', 'Existing Member Referral', 'Trainer Referral'].includes(leadForm.get('leadSource')?.value)">
+            <mat-label>Referral Source Details</mat-label>
+            <input matInput formControlName="referralSource" placeholder="e.g. Referred by Member: Amit Sharma">
           </mat-form-field>
 
           <div class="dates-row">
@@ -65,58 +144,61 @@
             </mat-form-field>
 
             <mat-form-field appearance="outline">
-              <mat-label>Follow Up Date</mat-label>
+              <mat-label>Last Follow Up Date</mat-label>
+              <input matInput [matDatepicker]="lastPicker" formControlName="lastFollowUp">
+              <mat-datepicker-toggle matSuffix [for]="lastPicker"></mat-datepicker-toggle>
+              <mat-datepicker #lastPicker></mat-datepicker>
+            </mat-form-field>
+          </div>
+
+          <div class="dates-row">
+            <mat-form-field appearance="outline">
+              <mat-label>Next Follow Up Date</mat-label>
               <input matInput [matDatepicker]="followUpPicker" formControlName="followUpDate">
               <mat-datepicker-toggle matSuffix [for]="followUpPicker"></mat-datepicker-toggle>
               <mat-datepicker #followUpPicker></mat-datepicker>
             </mat-form-field>
-          </div>
-
-          <div class="meta-row">
-            <mat-form-field appearance="outline">
-              <mat-label>Interested Plan</mat-label>
-              <mat-select formControlName="interestedPlan">
-                <mat-option *ngFor="let plan of plans" [value]="plan.name">{{ plan.name }}</mat-option>
-              </mat-select>
-            </mat-form-field>
 
             <mat-form-field appearance="outline">
-              <mat-label>Assigned Staff</mat-label>
-              <mat-select formControlName="assignedStaff">
-                <mat-option value="">Unassigned</mat-option>
-                <mat-option *ngFor="let trainer of trainers" [value]="trainer.name">{{ trainer.name }}</mat-option>
+              <mat-label>Follow Up Status</mat-label>
+              <mat-select formControlName="followUpStatus">
+                <mat-option value="Pending">Pending</mat-option>
+                <mat-option value="Completed">Completed</mat-option>
               </mat-select>
             </mat-form-field>
           </div>
 
           <mat-form-field appearance="outline">
-            <mat-label>Lead Status</mat-label>
-            <mat-select formControlName="status">
-              <mat-option value="New">New</mat-option>
-              <mat-option value="Contacted">Contacted</mat-option>
-              <mat-option value="Trial Scheduled">Trial Scheduled</mat-option>
-              <mat-option value="Follow Up">Follow Up</mat-option>
-              <mat-option value="Converted">Converted</mat-option>
-              <mat-option value="Lost">Lost</mat-option>
+            <mat-label>Preferred Membership Plan</mat-label>
+            <mat-select formControlName="preferredPlan">
+              <mat-option *ngFor="let plan of plans" [value]="plan.name">
+                {{ plan.name }} (₹{{ plan.price }})
+              </mat-option>
             </mat-select>
           </mat-form-field>
         </div>
 
-        <!-- Section 3: Notes (Full Width) -->
+        <!-- Section 4: Notes & Follow-Up Notes (Full Width) -->
         <div class="form-section full-width">
           <h3 class="section-title"><mat-icon>notes</mat-icon> Additional Notes</h3>
-          <mat-form-field appearance="outline">
-            <mat-label>Notes & Requirements</mat-label>
-            <textarea matInput formControlName="notes" rows="4" placeholder="Enter fitness level, goals, preferred schedules, or check-in restrictions..."></textarea>
-          </mat-form-field>
+          <div class="notes-grid" style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px;">
+            <mat-form-field appearance="outline">
+              <mat-label>Follow-Up Notes</mat-label>
+              <textarea matInput formControlName="followUpNotes" rows="4" placeholder="Enter notes from the last call/follow-up..."></textarea>
+            </mat-form-field>
+            <mat-form-field appearance="outline">
+              <mat-label>General Lead Notes</mat-label>
+              <textarea matInput formControlName="notes" rows="4" placeholder="Enter fitness history, schedule constraints, general requirements..."></textarea>
+            </mat-form-field>
+          </div>
         </div>
       </div>
 
       <div class="form-actions">
         <button mat-button type="button" routerLink="/leads" class="cancel-btn">Cancel</button>
         <button mat-raised-button color="primary" type="submit" [disabled]="leadForm.invalid" class="submit-btn">
-          <mat-icon>person_add</mat-icon>
-          <span>Save Lead</span>
+          <mat-icon>check_circle</mat-icon>
+          <span>Save Lead Profile</span>
         </button>
       </div>
     </form>
