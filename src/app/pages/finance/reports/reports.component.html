@@ -48,6 +48,10 @@
         <mat-option value="membership_revenue">Membership Revenue Report</mat-option>
         <mat-option value="outstanding_dues">Outstanding Dues Report</mat-option>
         <mat-option value="expense_report">Expense Report</mat-option>
+        <mat-option value="pt_revenue">PT Revenue Report</mat-option>
+        <mat-option value="trainer_performance">Trainer Performance Report</mat-option>
+        <mat-option value="pt_sessions">PT Sessions Audit Report</mat-option>
+        <mat-option value="membership_vs_pt">Membership vs PT Revenue Summary</mat-option>
       </mat-select>
     </mat-form-field>
 
@@ -243,6 +247,60 @@
         <td mat-cell *matCellDef="let element" class="text-right bold-text" [class.negative]="element.balance < 0">
           ₹{{ element.balance | number:'1.2-2' }}
         </td>
+      </ng-container>
+
+      <!-- Trainer Name Column -->
+      <ng-container matColumnDef="trainerName">
+        <th mat-header-cell *matHeaderCellDef>Trainer</th>
+        <td mat-cell *matCellDef="let element">{{ element.trainerName || '—' }}</td>
+      </ng-container>
+
+      <!-- Completed Sessions Column -->
+      <ng-container matColumnDef="completedSessions">
+        <th mat-header-cell *matHeaderCellDef>Completed Sessions</th>
+        <td mat-cell *matCellDef="let element">{{ element.completedSessions }}</td>
+      </ng-container>
+
+      <!-- Utilization Column -->
+      <ng-container matColumnDef="utilization">
+        <th mat-header-cell *matHeaderCellDef>Utilization</th>
+        <td mat-cell *matCellDef="let element">{{ element.utilization }}%</td>
+      </ng-container>
+
+      <!-- Rating Column -->
+      <ng-container matColumnDef="rating">
+        <th mat-header-cell *matHeaderCellDef>Rating</th>
+        <td mat-cell *matCellDef="let element">{{ element.rating | number:'1.1-1' }} / 5.0</td>
+      </ng-container>
+
+      <!-- Time Column -->
+      <ng-container matColumnDef="time">
+        <th mat-header-cell *matHeaderCellDef>Time</th>
+        <td mat-cell *matCellDef="let element">{{ element.time }}</td>
+      </ng-container>
+
+      <!-- Notes Column -->
+      <ng-container matColumnDef="notes">
+        <th mat-header-cell *matHeaderCellDef>Notes</th>
+        <td mat-cell *matCellDef="let element">{{ element.notes || '—' }}</td>
+      </ng-container>
+
+      <!-- Membership Revenue Column -->
+      <ng-container matColumnDef="membershipRev">
+        <th mat-header-cell *matHeaderCellDef class="text-right">Membership Rev</th>
+        <td mat-cell *matCellDef="let element" class="text-right credit-cell">₹{{ element.membershipRev | number:'1.2-2' }}</td>
+      </ng-container>
+
+      <!-- PT Revenue Column -->
+      <ng-container matColumnDef="ptRev">
+        <th mat-header-cell *matHeaderCellDef class="text-right">PT Revenue</th>
+        <td mat-cell *matCellDef="let element" class="text-right credit-cell">₹{{ element.ptRev | number:'1.2-2' }}</td>
+      </ng-container>
+
+      <!-- PT Amount / Revenue Column -->
+      <ng-container matColumnDef="ptAmount">
+        <th mat-header-cell *matHeaderCellDef>Amount</th>
+        <td mat-cell *matCellDef="let element" class="credit-cell">₹{{ element.ptAmount | number:'1.2-2' }}</td>
       </ng-container>
 
       <tr mat-header-row *matHeaderRowDef="displayedColumns"></tr>

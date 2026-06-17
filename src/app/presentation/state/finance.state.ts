@@ -90,7 +90,10 @@ export class FinanceState {
             invoiceDate: payment.date || new Date().toISOString().split('T')[0],
             status: payment.status === 'overdue' ? 'pending' : (payment.status === 'paid' ? 'paid' : 'pending'),
             collectedBy: payment.collectedBy || 'Sophia Chen',
-            createdBy: payment.collectedBy || 'Sophia Chen'
+            createdBy: payment.collectedBy || 'Sophia Chen',
+            type: payment.type || 'membership',
+            trainerId: payment.trainerId,
+            trainerName: payment.trainerName
           };
 
           this.financeRepository.addInvoice(gymId, newInvoice).subscribe();
@@ -135,7 +138,10 @@ export class FinanceState {
               amount: payment.paidAmount,
               paymentMethod: payment.paymentMethod || 'UPI',
               date: payment.date || new Date().toISOString().split('T')[0],
-              collectedBy: payment.collectedBy || 'Sophia Chen'
+              collectedBy: payment.collectedBy || 'Sophia Chen',
+              type: payment.type || 'membership',
+              trainerId: payment.trainerId,
+              trainerName: payment.trainerName
             };
 
             this.financeRepository.addCollection(gymId, newCollection).subscribe();

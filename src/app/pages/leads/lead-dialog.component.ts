@@ -12,8 +12,12 @@ import { MatIconModule } from '@angular/material/icon';
 import { Lead } from '../../core/models/lead.entity';
 import { MembershipPlan } from '../../core/models/membership-plan.entity';
 import { Employee } from '../../core/models/employee.entity';
+import { PTPlan } from '../../core/models/pt-plan.entity';
+import { Trainer } from '../../core/models/trainer.entity';
 import { MembershipPlanState } from '../../presentation/state/membership-plan.state';
 import { EmployeeState } from '../../presentation/state/employee.state';
+import { PTState } from '../../presentation/state/pt.state';
+import { TrainerState } from '../../presentation/state/trainer.state';
 
 @Component({
   selector: 'app-lead-dialog',
@@ -44,14 +48,14 @@ import { EmployeeState } from '../../presentation/state/employee.state';
             <input matInput formControlName="name" placeholder="John Doe">
             <mat-error *ngIf="leadForm.get('name')?.hasError('required')">Name is required</mat-error>
           </mat-form-field>
-
+ 
           <!-- Phone -->
           <mat-form-field appearance="outline">
             <mat-label>Phone Number</mat-label>
             <input matInput formControlName="phone" placeholder="+91 XXXXX XXXXX">
             <mat-error *ngIf="leadForm.get('phone')?.hasError('required')">Phone is required</mat-error>
           </mat-form-field>
-
+ 
           <!-- Email -->
           <mat-form-field appearance="outline">
             <mat-label>Email Address</mat-label>
@@ -59,7 +63,7 @@ import { EmployeeState } from '../../presentation/state/employee.state';
             <mat-error *ngIf="leadForm.get('email')?.hasError('required')">Email is required</mat-error>
             <mat-error *ngIf="leadForm.get('email')?.hasError('email')">Invalid email address</mat-error>
           </mat-form-field>
-
+ 
           <!-- Fitness Goal -->
           <mat-form-field appearance="outline">
             <mat-label>Fitness Goal(s)</mat-label>
@@ -68,7 +72,7 @@ import { EmployeeState } from '../../presentation/state/employee.state';
             </mat-select>
             <mat-error *ngIf="leadForm.get('fitnessGoal')?.hasError('required')">Fitness goal is required</mat-error>
           </mat-form-field>
-
+ 
           <!-- Lead Source -->
           <mat-form-field appearance="outline">
             <mat-label>Lead Source</mat-label>
@@ -86,13 +90,13 @@ import { EmployeeState } from '../../presentation/state/employee.state';
             </mat-select>
             <mat-error *ngIf="leadForm.get('leadSource')?.hasError('required')">Lead source is required</mat-error>
           </mat-form-field>
-
+ 
           <!-- Referral details -->
           <mat-form-field appearance="outline" *ngIf="['Referral', 'Existing Member Referral', 'Trainer Referral'].includes(leadForm.get('leadSource')?.value)">
             <mat-label>Referral Details</mat-label>
             <input matInput formControlName="referralSource" placeholder="Referred by who?">
           </mat-form-field>
-
+ 
           <!-- Trial Date -->
           <mat-form-field appearance="outline">
             <mat-label>Trial Date</mat-label>
@@ -101,7 +105,7 @@ import { EmployeeState } from '../../presentation/state/employee.state';
             <mat-datepicker #trialPicker></mat-datepicker>
             <mat-error *ngIf="leadForm.get('trialDate')?.hasError('required')">Trial date is required</mat-error>
           </mat-form-field>
-
+ 
           <!-- Trial Status -->
           <mat-form-field appearance="outline">
             <mat-label>Trial Status</mat-label>
@@ -113,7 +117,7 @@ import { EmployeeState } from '../../presentation/state/employee.state';
               <mat-option value="Converted After Trial">Converted After Trial</mat-option>
             </mat-select>
           </mat-form-field>
-
+ 
           <!-- Last Follow Up Date -->
           <mat-form-field appearance="outline">
             <mat-label>Last Follow Up Date</mat-label>
@@ -121,7 +125,7 @@ import { EmployeeState } from '../../presentation/state/employee.state';
             <mat-datepicker-toggle matSuffix [for]="lastPicker"></mat-datepicker-toggle>
             <mat-datepicker #lastPicker></mat-datepicker>
           </mat-form-field>
-
+ 
           <!-- Next Follow Up Date -->
           <mat-form-field appearance="outline">
             <mat-label>Next Follow Up Date</mat-label>
@@ -130,7 +134,7 @@ import { EmployeeState } from '../../presentation/state/employee.state';
             <mat-datepicker #followUpPicker></mat-datepicker>
             <mat-error *ngIf="leadForm.get('followUpDate')?.hasError('required')">Follow up date is required</mat-error>
           </mat-form-field>
-
+ 
           <!-- Follow Up Status -->
           <mat-form-field appearance="outline">
             <mat-label>Follow Up Status</mat-label>
@@ -139,7 +143,7 @@ import { EmployeeState } from '../../presentation/state/employee.state';
               <mat-option value="Completed">Completed</mat-option>
             </mat-select>
           </mat-form-field>
-
+ 
           <!-- Lead Temperature -->
           <mat-form-field appearance="outline">
             <mat-label>Lead Temperature</mat-label>
@@ -149,7 +153,7 @@ import { EmployeeState } from '../../presentation/state/employee.state';
               <mat-option value="Cold">🔵 Cold Lead</mat-option>
             </mat-select>
           </mat-form-field>
-
+ 
           <!-- Interested Plan -->
           <mat-form-field appearance="outline">
             <mat-label>Interested Membership Plan</mat-label>
@@ -159,6 +163,45 @@ import { EmployeeState } from '../../presentation/state/employee.state';
             <mat-error *ngIf="leadForm.get('interestedPlan')?.hasError('required')">Interested plan is required</mat-error>
           </mat-form-field>
 
+          <!-- Interested In PT Selector -->
+          <mat-form-field appearance="outline">
+            <mat-label>Interested In PT?</mat-label>
+            <mat-select formControlName="interestedInPT">
+              <mat-option value="No">No</mat-option>
+              <mat-option value="Yes">Yes</mat-option>
+            </mat-select>
+          </mat-form-field>
+
+          <ng-container *ngIf="leadForm.get('interestedInPT')?.value === 'Yes'">
+            <mat-form-field appearance="outline">
+              <mat-label>PT Plan Package</mat-label>
+              <mat-select formControlName="ptPlanId">
+                <mat-option *ngFor="let ptPlan of ptPlans" [value]="ptPlan.id">
+                  {{ ptPlan.name }} ({{ ptPlan.numberOfSessions }} Sessions - ₹{{ ptPlan.price }})
+                </mat-option>
+              </mat-select>
+              <mat-error *ngIf="leadForm.get('ptPlanId')?.hasError('required')">PT Plan package is required</mat-error>
+            </mat-form-field>
+
+            <mat-form-field appearance="outline">
+              <mat-label>Preferred Trainer (Optional)</mat-label>
+              <mat-select formControlName="preferredTrainerId">
+                <mat-option value="">Unassigned</mat-option>
+                <mat-option *ngFor="let trainer of trainers" [value]="trainer.id">
+                  {{ trainer.name }} ({{ trainer.specialty }})
+                </mat-option>
+              </mat-select>
+            </mat-form-field>
+
+            <mat-form-field appearance="outline">
+              <mat-label>PT Goal</mat-label>
+              <mat-select formControlName="ptGoal">
+                <mat-option *ngFor="let ptGoal of ptGoalOptions" [value]="ptGoal">{{ ptGoal }}</mat-option>
+              </mat-select>
+              <mat-error *ngIf="leadForm.get('ptGoal')?.hasError('required')">PT Goal is required</mat-error>
+            </mat-form-field>
+          </ng-container>
+ 
           <!-- Assigned Staff (Employee) -->
           <mat-form-field appearance="outline">
             <mat-label>Lead Owner (Employee)</mat-label>
@@ -169,7 +212,7 @@ import { EmployeeState } from '../../presentation/state/employee.state';
               </mat-option>
             </mat-select>
           </mat-form-field>
-
+ 
           <!-- Status -->
           <mat-form-field appearance="outline">
             <mat-label>Lead Stage</mat-label>
@@ -185,7 +228,7 @@ import { EmployeeState } from '../../presentation/state/employee.state';
             </mat-select>
             <mat-error *ngIf="leadForm.get('status')?.hasError('required')">Status is required</mat-error>
           </mat-form-field>
-
+ 
           <!-- Reason Lost -->
           <mat-form-field appearance="outline" *ngIf="leadForm.get('status')?.value === 'Lost'">
             <mat-label>Reason Lost</mat-label>
@@ -194,13 +237,13 @@ import { EmployeeState } from '../../presentation/state/employee.state';
             </mat-select>
             <mat-error *ngIf="leadForm.get('reasonLost')?.hasError('required')">Reason lost is required</mat-error>
           </mat-form-field>
-
+ 
           <!-- Follow-Up Notes -->
           <mat-form-field appearance="outline" class="notes-field">
             <mat-label>Follow-Up Notes</mat-label>
             <textarea matInput formControlName="followUpNotes" rows="2" placeholder="Add details from latest follow-up conversation..."></textarea>
           </mat-form-field>
-
+ 
           <!-- Notes -->
           <mat-form-field appearance="outline" class="notes-field">
             <mat-label>General Notes & CRM Requirements</mat-label>
@@ -259,7 +302,9 @@ export class LeadDialogComponent implements OnInit {
   isEdit = false;
   plans: MembershipPlan[] = [];
   employees: Employee[] = [];
-
+  ptPlans: PTPlan[] = [];
+  trainers: Trainer[] = [];
+ 
   fitnessGoalOptions: string[] = [
     'Weight Loss',
     'Muscle Gain',
@@ -273,6 +318,15 @@ export class LeadDialogComponent implements OnInit {
     'Other'
   ];
 
+  ptGoalOptions: string[] = [
+    'Weight Loss',
+    'Muscle Gain',
+    'Competition Prep',
+    'Strength Training',
+    'General Fitness',
+    'Rehabilitation'
+  ];
+ 
   lostReasonOptions: string[] = [
     'Too Expensive',
     'Joined Another Gym',
@@ -283,25 +337,29 @@ export class LeadDialogComponent implements OnInit {
     'Moved Location',
     'Other'
   ];
-
+ 
   constructor(
     private fb: FormBuilder,
     private planState: MembershipPlanState,
     private employeeState: EmployeeState,
+    private ptState: PTState,
+    private trainerState: TrainerState,
     private dialogRef: MatDialogRef<LeadDialogComponent>,
     @Inject(MAT_DIALOG_DATA) public data: Lead | null
   ) { }
-
+ 
   ngOnInit(): void {
     this.isEdit = !!this.data;
-
+ 
     this.planState.plans$.subscribe(plans => this.plans = plans);
     this.employeeState.employees$.subscribe(employees => this.employees = employees.filter(e => e.accountStatus === 'Active'));
-
+    this.ptState.ptPlans$.subscribe(plans => this.ptPlans = plans.filter(p => p.isActive));
+    this.trainerState.trainers$.subscribe(trainers => this.trainers = trainers.filter(t => t.status === 'active'));
+ 
     const trialVal = this.data ? new Date(this.data.trialDate) : new Date();
     const followVal = this.data ? new Date(this.data.followUpDate) : new Date(Date.now() + 2 * 24 * 60 * 60 * 1000);
     const lastFollowVal = this.data && this.data.lastFollowUp ? new Date(this.data.lastFollowUp) : '';
-
+ 
     let initialGoals: string[] = [];
     if (this.data?.fitnessGoal) {
       if (Array.isArray(this.data.fitnessGoal)) {
@@ -313,7 +371,7 @@ export class LeadDialogComponent implements OnInit {
     if (initialGoals.length === 0) {
       initialGoals = ['General Fitness'];
     }
-
+ 
     this.leadForm = this.fb.group({
       name: [this.data?.name || '', [Validators.required]],
       phone: [this.data?.phone || '', [Validators.required]],
@@ -334,9 +392,33 @@ export class LeadDialogComponent implements OnInit {
       followUpStatus: [this.data?.followUpStatus || 'Pending', [Validators.required]],
       followUpNotes: [this.data?.followUpNotes || ''],
       reasonLost: [this.data?.reasonLost || ''],
-      notes: [this.data?.notes || '']
+      notes: [this.data?.notes || ''],
+
+      // PT Preferences
+      interestedInPT: [this.data?.interestedInPT || 'No', [Validators.required]],
+      ptPlanId: [this.data?.ptPlanId || ''],
+      preferredTrainerId: [this.data?.preferredTrainerId || ''],
+      ptGoal: [this.data?.ptGoal || '']
     });
 
+    // PT Fields conditional validation
+    this.leadForm.get('interestedInPT')?.valueChanges.subscribe(interested => {
+      const ptPlanCtrl = this.leadForm.get('ptPlanId');
+      const ptGoalCtrl = this.leadForm.get('ptGoal');
+      if (interested === 'Yes') {
+        ptPlanCtrl?.setValidators([Validators.required]);
+        ptGoalCtrl?.setValidators([Validators.required]);
+      } else {
+        ptPlanCtrl?.clearValidators();
+        ptPlanCtrl?.setValue('');
+        ptGoalCtrl?.clearValidators();
+        ptGoalCtrl?.setValue('');
+        this.leadForm.get('preferredTrainerId')?.setValue('');
+      }
+      ptPlanCtrl?.updateValueAndValidity();
+      ptGoalCtrl?.updateValueAndValidity();
+    });
+ 
     // Handle conditional validation for Lost Reason
     this.leadForm.get('status')?.valueChanges.subscribe(status => {
       const reasonCtrl = this.leadForm.get('reasonLost');
@@ -348,23 +430,30 @@ export class LeadDialogComponent implements OnInit {
       }
       reasonCtrl?.updateValueAndValidity();
     });
-
-    // Run once at start to bind initially if status = Lost
+ 
+    // Run once at start to bind initially if status = Lost or interestedInPT = Yes
     if (this.data?.status === 'Lost') {
       this.leadForm.get('reasonLost')?.setValidators([Validators.required]);
       this.leadForm.get('reasonLost')?.updateValueAndValidity();
     }
-  }
 
+    if (this.data?.interestedInPT === 'Yes') {
+      this.leadForm.get('ptPlanId')?.setValidators([Validators.required]);
+      this.leadForm.get('ptGoal')?.setValidators([Validators.required]);
+      this.leadForm.get('ptPlanId')?.updateValueAndValidity();
+      this.leadForm.get('ptGoal')?.updateValueAndValidity();
+    }
+  }
+ 
   onCancel(): void {
     this.dialogRef.close();
   }
-
+ 
   onSubmit(): void {
     if (this.leadForm.valid) {
       const formValue = this.leadForm.value;
       const assignedEmp = this.employees.find(e => e.id === formValue.assignedEmployee);
-
+ 
       const formattedLead = {
         ...formValue,
         trialDate: this.formatDate(formValue.trialDate),
@@ -376,7 +465,7 @@ export class LeadDialogComponent implements OnInit {
         leadOwner: assignedEmp ? assignedEmp.id : '',
         reasonLost: formValue.status === 'Lost' ? formValue.reasonLost : ''
       };
-
+ 
       if (this.isEdit && this.data) {
         this.dialogRef.close({
           ...this.data,
@@ -387,17 +476,17 @@ export class LeadDialogComponent implements OnInit {
       }
     }
   }
-
+ 
   private formatDate(date: any): string {
     if (!date) return '';
     const d = new Date(date);
     let month = '' + (d.getMonth() + 1);
     let day = '' + d.getDate();
     const year = d.getFullYear();
-
+ 
     if (month.length < 2) month = '0' + month;
     if (day.length < 2) day = '0' + day;
-
+ 
     return [year, month, day].join('-');
   }
 }

@@ -38,4 +38,14 @@ export interface Lead {
   commissionPercent?: number;// Commission percentage on revenue (e.g. 10)
   commissionEarned?: number; // Calculated commission amount in ₹
   createdAt?: string;        // ISO Date when lead was created
+
+  // PT Preferences
+  interestedInPT?: 'Yes' | 'No';
+  ptPlanId?: string;
+  preferredTrainerId?: string;
+  ptGoal?: string;
+  gender?: string;
+  age?: number;
+  height?: number;
+  weight?: number;
 }

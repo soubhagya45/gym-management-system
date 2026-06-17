@@ -84,6 +84,36 @@
     </div>
   </div>
 
+  <!-- Chart: Membership vs PT Revenue Split -->
+  <div class="mat-card chart-card glass-panel" *ngIf="membershipVsPtSplit$ | async as split">
+    <div class="chart-header">
+      <h3>Membership vs PT Split</h3>
+      <p class="subtitle">Comparison of core subscription vs personal training collections</p>
+    </div>
+    <div class="split-comparison-container">
+      <div class="split-total-summary">
+        <div class="summary-metric">
+          <span class="label">Membership Revenue</span>
+          <strong class="value primary-color">₹{{ split.membershipRevenue | number:'1.0-0' }}</strong>
+          <span class="percentage">({{ split.membershipPercentage }}%)</span>
+        </div>
+        <div class="summary-metric">
+          <span class="label">PT Revenue</span>
+          <strong class="value warning-color">₹{{ split.ptRevenue | number:'1.0-0' }}</strong>
+          <span class="percentage">({{ split.ptPercentage }}%)</span>
+        </div>
+      </div>
+      <div class="split-progress-bar">
+        <div class="split-fill primary" [style.width.%]="split.membershipPercentage" matTooltip="Membership: {{ split.membershipPercentage }}%"></div>
+        <div class="split-fill warning" [style.width.%]="split.ptPercentage" matTooltip="PT: {{ split.ptPercentage }}%"></div>
+      </div>
+      <div class="split-legend">
+        <div class="legend-item"><span class="legend-dot primary"></span> Membership</div>
+        <div class="legend-item"><span class="legend-dot warning"></span> Personal Training (PT)</div>
+      </div>
+    </div>
+  </div>
+
   <!-- Chart 3: Top Revenue Plans -->
   <div class="mat-card chart-card glass-panel" *ngIf="planChart$ | async as plans">
     <div class="chart-header">

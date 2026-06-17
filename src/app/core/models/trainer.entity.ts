@@ -9,4 +9,11 @@ export interface Trainer {
   status: 'active' | 'on leave';
   email: string;
   phone: string;
+
+  // PT Metrics
+  activePTClients?: number;
+  totalPTRevenue?: number;
+  sessionsCompletedThisMonth?: number;
+  monthlyRating?: number;
+  utilizationPercent?: number;
 }

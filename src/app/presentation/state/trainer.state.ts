@@ -1,10 +1,11 @@
 import { Injectable } from '@angular/core';
-import { BehaviorSubject, Observable, of } from 'rxjs';
+import { BehaviorSubject, Observable, of, combineLatest } from 'rxjs';
 import { map } from 'rxjs/operators';
 import { Trainer } from '../../core/models/trainer.entity';
 import { Employee } from '../../core/models/employee.entity';
 import { UserRole } from '../../core/enums/roles.enum';
 import { EmployeeState } from './employee.state';
+import { PTState } from './pt.state';
 
 @Injectable({
   providedIn: 'root'
@@ -13,12 +14,55 @@ export class TrainerState {
   private trainersSubject = new BehaviorSubject<Trainer[]>([]);
   trainers$ = this.trainersSubject.asObservable();
 
-  constructor(private employeeState: EmployeeState) {
-    this.employeeState.employees$.pipe(
-      map(employees => employees
-        .filter(e => e.role === UserRole.Trainer)
-        .map(e => this.mapEmployeeToTrainer(e))
-      )
+  constructor(
+    private employeeState: EmployeeState,
+    private ptState: PTState
+  ) {
+    combineLatest([
+      this.employeeState.employees$,
+      this.ptState.memberPTPlans$,
+      this.ptState.ptSessions$,
+      this.ptState.trainerRevenue$
+    ]).pipe(
+      map(([employees, ptPlans, sessions, revenues]) => {
+        return employees
+          .filter(e => e.role === UserRole.Trainer)
+          .map(e => {
+            const trainer = this.mapEmployeeToTrainer(e);
+            
+            // Calculate activePTClients
+            const activeClients = ptPlans.filter(p => p.trainerId === e.id && p.status === 'active').length;
+            
+            // Calculate totalPTRevenue
+            const totalRevenue = revenues
+              .filter(r => r.trainerId === e.id)
+              .reduce((sum, r) => sum + r.amount, 0);
+              
+            // Calculate sessionsCompletedThisMonth
+            const currentMonthStr = new Date().toISOString().substring(0, 7); // "YYYY-MM"
+            const completedSessions = sessions.filter(s => 
+              s.trainerId === e.id && 
+              s.status === 'completed' && 
+              s.date.startsWith(currentMonthStr)
+            ).length;
+            
+            // Calculate utilizationPercent
+            // Let's assume a full load is 40 sessions completed per month.
+            const utilizationPercent = Math.min(100, Math.round((completedSessions / 40) * 100));
+            
+            // Monthly Rating - default or computed
+            const monthlyRating = 4.8;
+
+            return {
+              ...trainer,
+              activePTClients: activeClients,
+              totalPTRevenue: totalRevenue,
+              sessionsCompletedThisMonth: completedSessions,
+              utilizationPercent: utilizationPercent,
+              monthlyRating: monthlyRating
+            };
+          });
+      })
     ).subscribe(trainers => {
       this.trainersSubject.next(trainers);
     });

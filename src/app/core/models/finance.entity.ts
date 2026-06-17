@@ -39,6 +39,11 @@ export interface Invoice {
   createdBy?: string;
   approvedBy?: string;
   attachmentUrl?: string;
+  
+  // PT Additions
+  type?: 'membership' | 'pt';
+  trainerId?: string;
+  trainerName?: string;
 }
 
 export interface Collection {
@@ -52,6 +57,11 @@ export interface Collection {
   paymentMethod: string;
   date: string;
   collectedBy: string;
+
+  // PT Additions
+  type?: 'membership' | 'pt';
+  trainerId?: string;
+  trainerName?: string;
 }
 
 export interface CashFlowSummary {

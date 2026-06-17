@@ -71,6 +71,12 @@ const routes: Routes = [
         data: { permission: 'view:attendance' }
       },
       {
+        path: 'pt-sessions',
+        loadComponent: () => import('./pages/pt-sessions/pt-sessions.component').then(m => m.PtSessionsComponent),
+        canActivate: [authGuard, permissionGuard],
+        data: { permission: 'view:pt-sessions' }
+      },
+      {
         path: 'employees',
         loadComponent: () => import('./pages/employees/employees.component').then(m => m.EmployeesComponent),
         canActivate: [authGuard, permissionGuard],
@@ -133,6 +139,12 @@ const routes: Routes = [
       {
         path: 'trainers',
         loadComponent: () => import('./pages/trainers/trainers.component').then(m => m.TrainersComponent),
+        canActivate: [authGuard, permissionGuard],
+        data: { permission: 'view:trainers' }
+      },
+      {
+        path: 'trainers/:id',
+        loadComponent: () => import('./pages/trainers/trainer-details.component').then(m => m.TrainerDetailsComponent),
         canActivate: [authGuard, permissionGuard],
         data: { permission: 'view:trainers' }
       },

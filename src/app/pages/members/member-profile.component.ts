@@ -16,13 +16,18 @@ import { AttendanceState } from '../../presentation/state/attendance.state';
 import { PaymentState } from '../../presentation/state/payment.state';
 import { BodyProgressState } from '../../presentation/state/body-progress.state';
 import { FinanceState } from '../../presentation/state/finance.state';
+import { PTState } from '../../presentation/state/pt.state';
 import { Member } from '../../core/models/member.entity';
 import { Attendance } from '../../core/models/attendance.entity';
 import { Payment } from '../../core/models/payment.entity';
 import { BodyProgressEntry } from '../../core/models/body-progress.entity';
 import { Invoice } from '../../core/models/finance.entity';
+import { MemberPTPlan } from '../../core/models/member-pt-plan.entity';
+import { PTSession } from '../../core/models/pt-session.entity';
+import { TrainerAssignment } from '../../core/models/trainer-assignment.entity';
 import { MemberDialogComponent } from './member-dialog.component';
 import { LogBodyProgressDialogComponent } from './log-body-progress-dialog.component';
+import { PTActionDialogComponent } from './pt-action-dialog.component';
 
 @Component({
   selector: 'app-member-profile',
@@ -52,11 +57,20 @@ export class MemberProfileComponent implements OnInit {
   invoices: Invoice[] = [];
   progressEntries: BodyProgressEntry[] = [];
   
+  // PT properties
+  ptWallet: MemberPTPlan | undefined;
+  ptSessions: PTSession[] = [];
+  trainerAssignments: TrainerAssignment[] = [];
+
   attendanceColumns = ['date', 'timeIn', 'status'];
   paymentColumns = ['id', 'planName', 'date', 'amount', 'status'];
   invoiceColumns = ['invoiceNumber', 'invoiceDate', 'finalAmount', 'paymentMethod', 'status'];
   progressColumns = ['date', 'weight', 'bodyFat', 'bmi', 'notes', 'actions'];
   
+  // PT columns
+  ptSessionColumns = ['date', 'time', 'trainerName', 'status', 'attendanceStatus', 'notes'];
+  assignmentColumns = ['assignedDate', 'trainerName', 'status', 'ptGoal', 'notes'];
+
   weightHistory: { label: string; value: number }[] = [];
   fatHistory: { label: string; value: number }[] = [];
   selectedPhotoTab: 'front' | 'side' | 'back' = 'front';
@@ -68,6 +82,7 @@ export class MemberProfileComponent implements OnInit {
     private paymentState: PaymentState,
     private progressState: BodyProgressState,
     private financeState: FinanceState,
+    private ptState: PTState,
     private dialog: MatDialog,
     private snackBar: MatSnackBar
   ) {}
@@ -87,6 +102,21 @@ export class MemberProfileComponent implements OnInit {
     // 2. Fetch Member Profile details
     this.memberState.members$.subscribe(members => {
       this.member = members.find(m => m.id === this.memberId);
+    });
+
+    // Fetch PT Wallet
+    this.ptState.memberPTPlans$.subscribe(wallets => {
+      this.ptWallet = wallets.find(w => w.memberId === this.memberId);
+    });
+
+    // Fetch PT Sessions
+    this.ptState.ptSessions$.subscribe(sessions => {
+      this.ptSessions = sessions.filter(s => s.memberId === this.memberId);
+    });
+
+    // Fetch Trainer Assignments
+    this.ptState.trainerAssignments$.subscribe(assignments => {
+      this.trainerAssignments = assignments.filter(a => a.memberId === this.memberId);
     });
 
     // 3. Fetch Attendance History for Member
@@ -350,5 +380,88 @@ export class MemberProfileComponent implements OnInit {
         }
       });
     }
+  }
+
+  openPTActionDialog(action: 'purchase' | 'change_trainer' | 'upgrade' | 'add_sessions'): void {
+    if (!this.member) return;
+
+    const dialogRef = this.dialog.open(PTActionDialogComponent, {
+      width: '600px',
+      data: {
+        action,
+        member: this.member,
+        currentWallet: this.ptWallet
+      },
+      panelClass: 'glass-dialog'
+    });
+
+    dialogRef.afterClosed().subscribe(result => {
+      if (!result) return;
+
+      if (action === 'purchase') {
+        const todayStr = new Date().toISOString().split('T')[0];
+        const duration = result.plan.duration || 1;
+        const end = new Date();
+        end.setMonth(end.getMonth() + duration);
+        const endStr = end.toISOString().split('T')[0];
+
+        this.ptState.addMemberPTPlan({
+          memberId: this.memberId,
+          memberName: this.member!.name,
+          trainerId: result.trainer.id,
+          trainerName: result.trainer.fullName,
+          planId: result.plan.id,
+          planName: result.plan.name,
+          price: result.plan.price,
+          totalSessions: result.plan.numberOfSessions,
+          completedSessions: 0,
+          remainingSessions: result.plan.numberOfSessions,
+          expiredSessions: 0,
+          ptGoal: result.ptGoal || 'General Fitness',
+          startDate: todayStr,
+          endDate: endStr,
+          status: 'active',
+          history: [{
+            action: 'assign',
+            date: todayStr,
+            trainerId: result.trainer.id,
+            trainerName: result.trainer.fullName,
+            planId: result.plan.id,
+            planName: result.plan.name,
+            notes: 'PT Package Purchased manually from profile'
+          }]
+        }, result.paymentStatus, result.paymentMethod).subscribe(() => {
+          this.snackBar.open('PT package purchased successfully!', 'Close', { duration: 3000 });
+        });
+      } else if (action === 'change_trainer') {
+        this.ptState.transferTrainer(
+          this.ptWallet!.id,
+          result.trainer.id,
+          result.trainer.fullName,
+          result.notes
+        ).subscribe(() => {
+          this.snackBar.open(`Successfully transferred trainer to ${result.trainer.fullName}`, 'Close', { duration: 3000 });
+        });
+      } else if (action === 'upgrade') {
+        this.ptState.upgradePTPlan(
+          this.ptWallet!.id,
+          result.plan.id,
+          result.plan.name,
+          result.priceDifference,
+          result.paymentMethod
+        ).subscribe(() => {
+          this.snackBar.open(`PT package upgraded to ${result.plan.name} successfully!`, 'Close', { duration: 3000 });
+        });
+      } else if (action === 'add_sessions') {
+        this.ptState.addExtraSessions(
+          this.ptWallet!.id,
+          result.additionalSessions,
+          result.price,
+          result.paymentMethod
+        ).subscribe(() => {
+          this.snackBar.open(`Added ${result.additionalSessions} extra sessions to wallet.`, 'Close', { duration: 3000 });
+        });
+      }
+    });
   }
 }

@@ -18,7 +18,8 @@ import {
   IWhatsAppRepository,
   IBodyProgressRepository,
   IFinanceRepository,
-  IEmployeeRepository
+  IEmployeeRepository,
+  IPersonalTrainingRepository
 } from '../../../core/interfaces/repository.interfaces';
 
 
@@ -37,6 +38,12 @@ import { WhatsAppReminder } from '../../../core/models/whatsapp-reminder.entity'
 import { BodyProgressEntry } from '../../../core/models/body-progress.entity';
 import { Expense, Invoice, Collection } from '../../../core/models/finance.entity';
 import { Employee, EmployeeAttendance, EmployeePayroll, EmployeePerformance } from '../../../core/models/employee.entity';
+import { PTPlan } from '../../../core/models/pt-plan.entity';
+import { PTSession } from '../../../core/models/pt-session.entity';
+import { TrainerAssignment } from '../../../core/models/trainer-assignment.entity';
+import { SessionHistory } from '../../../core/models/session-history.entity';
+import { TrainerRevenue } from '../../../core/models/trainer-revenue.entity';
+import { MemberPTPlan } from '../../../core/models/member-pt-plan.entity';
 
 
 // --- Static In-Memory Database State ---
@@ -1912,6 +1919,314 @@ export class MockEmployeeRepository implements IEmployeeRepository {
     };
     dbEmployeePerformance.push(newPerformance);
     return of(newPerformance).pipe(delay(200));
+  }
+}
+
+// --- Personal Training DB Seed Data ---
+const dbPTPlans: PTPlan[] = [
+  { id: 'pt-1', gymId: 'gym-a', branchId: 'br-1', name: 'PT Monthly', price: 6000, numberOfSessions: 12, duration: 1, description: '12 sessions of customized personal coaching per month.', isActive: true },
+  { id: 'pt-2', gymId: 'gym-a', branchId: 'br-1', name: 'PT Quarterly', price: 15000, numberOfSessions: 36, duration: 3, description: '36 sessions of comprehensive strength and conditioning.', isActive: true },
+  { id: 'pt-3', gymId: 'gym-a', branchId: 'br-1', name: 'PT Annual', price: 50000, numberOfSessions: 144, duration: 12, description: '144 sessions of complete transformation package.', isActive: true }
+];
+
+const dbPTSessions: PTSession[] = [
+  {
+    id: 'pts-1',
+    gymId: 'gym-a',
+    branchId: 'br-1',
+    memberId: 'mem-1',
+    memberName: 'Amit Sharma',
+    trainerId: 'trainer-1',
+    trainerName: 'Rahul Dev',
+    date: '2026-06-15',
+    time: '10:00 AM',
+    status: 'completed',
+    notes: 'Focus on chest and triceps. Good intensity.',
+    attendanceStatus: 'present'
+  },
+  {
+    id: 'pts-2',
+    gymId: 'gym-a',
+    branchId: 'br-1',
+    memberId: 'mem-1',
+    memberName: 'Amit Sharma',
+    trainerId: 'trainer-1',
+    trainerName: 'Rahul Dev',
+    date: '2026-06-17',
+    time: '09:00 AM',
+    status: 'scheduled',
+    notes: 'Leg day - squats and lunges focus.',
+    attendanceStatus: 'pending'
+  }
+];
+
+const dbTrainerAssignments: TrainerAssignment[] = [
+  {
+    id: 'ta-1',
+    gymId: 'gym-a',
+    branchId: 'br-1',
+    memberId: 'mem-1',
+    memberName: 'Amit Sharma',
+    trainerId: 'trainer-1',
+    trainerName: 'Rahul Dev',
+    assignedDate: '2026-04-10',
+    status: 'active',
+    ptGoal: 'Muscle Gain'
+  }
+];
+
+const dbSessionHistory: SessionHistory[] = [
+  {
+    id: 'sh-1',
+    gymId: 'gym-a',
+    branchId: 'br-1',
+    sessionId: 'pts-1',
+    memberId: 'mem-1',
+    trainerId: 'trainer-1',
+    action: 'schedule',
+    timestamp: '2026-06-14T10:00:00.000Z',
+    performedBy: 'Rahul Dev',
+    notes: 'Session scheduled'
+  },
+  {
+    id: 'sh-2',
+    gymId: 'gym-a',
+    branchId: 'br-1',
+    sessionId: 'pts-1',
+    memberId: 'mem-1',
+    trainerId: 'trainer-1',
+    action: 'complete',
+    timestamp: '2026-06-15T11:00:00.000Z',
+    performedBy: 'Rahul Dev',
+    notes: 'Session marked complete'
+  }
+];
+
+const dbTrainerRevenue: TrainerRevenue[] = [
+  {
+    id: 'tr-1',
+    gymId: 'gym-a',
+    branchId: 'br-1',
+    trainerId: 'trainer-1',
+    trainerName: 'Rahul Dev',
+    memberId: 'mem-1',
+    memberName: 'Amit Sharma',
+    amount: 15000,
+    date: '2026-04-10',
+    invoiceId: 'inv-2',
+    ptPlanName: 'PT Quarterly'
+  }
+];
+
+const dbMemberPTPlans: MemberPTPlan[] = [
+  {
+    id: 'mpt-1',
+    gymId: 'gym-a',
+    branchId: 'br-1',
+    memberId: 'mem-1',
+    memberName: 'Amit Sharma',
+    trainerId: 'trainer-1',
+    trainerName: 'Rahul Dev',
+    planId: 'pt-2',
+    planName: 'PT Quarterly',
+    price: 15000,
+    totalSessions: 36,
+    completedSessions: 10,
+    remainingSessions: 26,
+    expiredSessions: 0,
+    ptGoal: 'Muscle Gain',
+    startDate: '2026-04-10',
+    endDate: '2026-07-10',
+    status: 'active',
+    history: [
+      { action: 'assign', date: '2026-04-10', trainerId: 'trainer-1', trainerName: 'Rahul Dev', planId: 'pt-2', planName: 'PT Quarterly', notes: 'Initial assignment' }
+    ]
+  }
+];
+
+@Injectable({ providedIn: 'root' })
+export class MockPersonalTrainingRepository implements IPersonalTrainingRepository {
+  getPTPlans(gymId: string): Observable<PTPlan[]> {
+    return of(dbPTPlans.filter(p => p.gymId === gymId)).pipe(delay(200));
+  }
+
+  addPTPlan(gymId: string, plan: Omit<PTPlan, 'id'>): Observable<PTPlan> {
+    const newPlan: PTPlan = {
+      ...plan,
+      id: 'pt-' + Math.random().toString(36).substring(2, 9),
+      gymId
+    };
+    dbPTPlans.push(newPlan);
+    return of(newPlan).pipe(delay(200));
+  }
+
+  updatePTPlan(gymId: string, plan: PTPlan): Observable<void> {
+    const idx = dbPTPlans.findIndex(p => p.gymId === gymId && p.id === plan.id);
+    if (idx !== -1) {
+      dbPTPlans[idx] = plan;
+    }
+    return of(undefined).pipe(delay(200));
+  }
+
+  deletePTPlan(gymId: string, id: string): Observable<void> {
+    const idx = dbPTPlans.findIndex(p => p.gymId === gymId && p.id === id);
+    if (idx !== -1) {
+      dbPTPlans.splice(idx, 1);
+    }
+    return of(undefined).pipe(delay(200));
+  }
+
+  getPTSessions(gymId: string): Observable<PTSession[]> {
+    return of(dbPTSessions.filter(s => s.gymId === gymId)).pipe(delay(200));
+  }
+
+  addPTSession(gymId: string, session: Omit<PTSession, 'id'>): Observable<PTSession> {
+    const newSession: PTSession = {
+      ...session,
+      id: 'pts-' + Math.random().toString(36).substring(2, 9),
+      gymId
+    };
+    dbPTSessions.push(newSession);
+    
+    const hist: SessionHistory = {
+      id: 'sh-' + Math.random().toString(36).substring(2, 9),
+      gymId,
+      branchId: session.branchId,
+      sessionId: newSession.id,
+      memberId: session.memberId,
+      trainerId: session.trainerId,
+      action: 'schedule',
+      timestamp: new Date().toISOString(),
+      performedBy: session.trainerName,
+      notes: 'Session scheduled'
+    };
+    dbSessionHistory.push(hist);
+
+    return of(newSession).pipe(delay(200));
+  }
+
+  updatePTSession(gymId: string, session: PTSession): Observable<void> {
+    const idx = dbPTSessions.findIndex(s => s.gymId === gymId && s.id === session.id);
+    if (idx !== -1) {
+      const oldSession = dbPTSessions[idx];
+      dbPTSessions[idx] = session;
+
+      let action: SessionHistory['action'] = 'add_notes';
+      let note = 'Session notes updated';
+      if (oldSession.status !== session.status) {
+        if (session.status === 'completed') {
+          action = 'complete';
+          note = 'Session marked complete';
+
+          const mPlan = dbMemberPTPlans.find(mp => mp.gymId === gymId && mp.memberId === session.memberId && mp.status === 'active');
+          if (mPlan) {
+            mPlan.completedSessions++;
+            mPlan.remainingSessions = Math.max(0, mPlan.totalSessions - mPlan.completedSessions);
+            if (mPlan.remainingSessions === 0) {
+              mPlan.status = 'completed';
+            }
+          }
+        } else if (session.status === 'cancelled') {
+          action = 'cancel';
+          note = 'Session cancelled';
+        } else if (session.status === 'rescheduled') {
+          action = 'reschedule';
+          note = `Rescheduled to ${session.date} at ${session.time}`;
+        }
+      }
+
+      const hist: SessionHistory = {
+        id: 'sh-' + Math.random().toString(36).substring(2, 9),
+        gymId,
+        branchId: session.branchId,
+        sessionId: session.id,
+        memberId: session.memberId,
+        trainerId: session.trainerId,
+        action,
+        timestamp: new Date().toISOString(),
+        performedBy: session.trainerName,
+        notes: note
+      };
+      dbSessionHistory.push(hist);
+    }
+    return of(undefined).pipe(delay(200));
+  }
+
+  deletePTSession(gymId: string, id: string): Observable<void> {
+    const idx = dbPTSessions.findIndex(s => s.gymId === gymId && s.id === id);
+    if (idx !== -1) {
+      dbPTSessions.splice(idx, 1);
+    }
+    return of(undefined).pipe(delay(200));
+  }
+
+  getTrainerAssignments(gymId: string): Observable<TrainerAssignment[]> {
+    return of(dbTrainerAssignments.filter(a => a.gymId === gymId)).pipe(delay(200));
+  }
+
+  addTrainerAssignment(gymId: string, assignment: Omit<TrainerAssignment, 'id'>): Observable<TrainerAssignment> {
+    const newAssignment: TrainerAssignment = {
+      ...assignment,
+      id: 'ta-' + Math.random().toString(36).substring(2, 9),
+      gymId
+    };
+    dbTrainerAssignments.push(newAssignment);
+    return of(newAssignment).pipe(delay(200));
+  }
+
+  getSessionHistory(gymId: string): Observable<SessionHistory[]> {
+    return of(dbSessionHistory.filter(h => h.gymId === gymId)).pipe(delay(200));
+  }
+
+  addSessionHistory(gymId: string, history: Omit<SessionHistory, 'id'>): Observable<SessionHistory> {
+    const newHistory: SessionHistory = {
+      ...history,
+      id: 'sh-' + Math.random().toString(36).substring(2, 9),
+      gymId
+    };
+    dbSessionHistory.push(newHistory);
+    return of(newHistory).pipe(delay(200));
+  }
+
+  getTrainerRevenue(gymId: string): Observable<TrainerRevenue[]> {
+    return of(dbTrainerRevenue.filter(r => r.gymId === gymId)).pipe(delay(200));
+  }
+
+  addTrainerRevenue(gymId: string, revenue: Omit<TrainerRevenue, 'id'>): Observable<TrainerRevenue> {
+    const newRev: TrainerRevenue = {
+      ...revenue,
+      id: 'tr-' + Math.random().toString(36).substring(2, 9),
+      gymId
+    };
+    dbTrainerRevenue.push(newRev);
+    return of(newRev).pipe(delay(200));
+  }
+
+  getMemberPTPlans(gymId: string): Observable<MemberPTPlan[]> {
+    return of(dbMemberPTPlans.filter(p => p.gymId === gymId)).pipe(delay(200));
+  }
+
+  getMemberPTPlanById(gymId: string, id: string): Observable<MemberPTPlan | null> {
+    const plan = dbMemberPTPlans.find(p => p.gymId === gymId && p.id === id);
+    return of(plan || null).pipe(delay(200));
+  }
+
+  addMemberPTPlan(gymId: string, memberPlan: Omit<MemberPTPlan, 'id'>): Observable<MemberPTPlan> {
+    const newMP: MemberPTPlan = {
+      ...memberPlan,
+      id: 'mpt-' + Math.random().toString(36).substring(2, 9),
+      gymId
+    };
+    dbMemberPTPlans.push(newMP);
+    return of(newMP).pipe(delay(200));
+  }
+
+  updateMemberPTPlan(gymId: string, memberPlan: MemberPTPlan): Observable<void> {
+    const idx = dbMemberPTPlans.findIndex(p => p.gymId === gymId && p.id === memberPlan.id);
+    if (idx !== -1) {
+      dbMemberPTPlans[idx] = memberPlan;
+    }
+    return of(undefined).pipe(delay(200));
   }
 }
 

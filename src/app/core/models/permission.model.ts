@@ -28,7 +28,9 @@ export type Permission =
   | 'view:finance'
   | 'manage:finance'
   | 'view:employees'
-  | 'manage:employees';
+  | 'manage:employees'
+  | 'view:pt-sessions'
+  | 'manage:pt-sessions';
 
 
 /**
@@ -53,7 +55,9 @@ export const ROLE_PERMISSIONS: Record<UserRole, Permission[]> = {
     'view:finance',
     'manage:finance',
     'view:employees',
-    'manage:employees'
+    'manage:employees',
+    'view:pt-sessions',
+    'manage:pt-sessions'
   ],
 
   [UserRole.Owner]: [
@@ -72,7 +76,9 @@ export const ROLE_PERMISSIONS: Record<UserRole, Permission[]> = {
     'view:finance',
     'manage:finance',
     'view:employees',
-    'manage:employees'
+    'manage:employees',
+    'view:pt-sessions',
+    'manage:pt-sessions'
   ],
 
   [UserRole.Manager]: [
@@ -84,7 +90,9 @@ export const ROLE_PERMISSIONS: Record<UserRole, Permission[]> = {
     'view:body-progress',
     'view:finance',
     'view:employees',
-    'manage:employees'
+    'manage:employees',
+    'view:pt-sessions',
+    'manage:pt-sessions'
   ],
 
   [UserRole.Receptionist]: [
@@ -92,7 +100,9 @@ export const ROLE_PERMISSIONS: Record<UserRole, Permission[]> = {
     'view:leads', 'manage:leads',
     'view:payments', 'manage:payments',
     'view:attendance', 'manage:attendance',
-    'view:finance'
+    'view:finance',
+    'view:pt-sessions',
+    'manage:pt-sessions'
   ],
 
   [UserRole.Accountant]: [
@@ -101,16 +111,20 @@ export const ROLE_PERMISSIONS: Record<UserRole, Permission[]> = {
   ],
 
   [UserRole.Trainer]: [
+    'view:dashboard',
     'view:members',
     'view:attendance', 'manage:attendance',
-    'view:body-progress'
+    'view:body-progress',
+    'view:pt-sessions',
+    'manage:pt-sessions'
   ],
 
   [UserRole.Staff]: [
     'view:members',
     'view:leads',
     'view:attendance',
-    'view:body-progress'
+    'view:body-progress',
+    'view:pt-sessions'
   ]
 };
 
@@ -135,7 +149,8 @@ export const ROUTE_PERMISSION_MAP: Record<string, Permission> = {
   '/finance/reports': 'view:finance',
   '/finance/cash-flow': 'view:finance',
   '/finance/revenue-analytics': 'view:finance',
-  '/employees':     'view:employees'
+  '/employees':     'view:employees',
+  '/pt-sessions':   'view:pt-sessions'
 };
 
 
@@ -154,11 +169,12 @@ export interface NavItem {
 
 /** Full ordered nav manifest — filtered at runtime per user role. */
 export const ALL_NAV_ITEMS: NavItem[] = [
-  { label: 'Dashboard',        route: '/dashboard',     icon: 'dashboard',       permission: 'view:dashboard',     roles: [UserRole.SuperAdmin, UserRole.Owner, UserRole.Manager] },
+  { label: 'Dashboard',        route: '/dashboard',     icon: 'dashboard',       permission: 'view:dashboard',     roles: [UserRole.SuperAdmin, UserRole.Owner, UserRole.Manager, UserRole.Trainer] },
   { label: 'Members',          route: '/members',        icon: 'people',          permission: 'view:members',       roles: [UserRole.SuperAdmin, UserRole.Owner, UserRole.Manager, UserRole.Receptionist, UserRole.Staff, UserRole.Trainer] },
   { label: 'Leads',            route: '/leads',          icon: 'leaderboard',     permission: 'view:leads',         roles: [UserRole.SuperAdmin, UserRole.Owner, UserRole.Manager, UserRole.Receptionist, UserRole.Staff] },
   { label: 'Employees',        route: '/employees',      icon: 'badge',           permission: 'view:employees',     roles: [UserRole.SuperAdmin, UserRole.Owner, UserRole.Manager] },
   { label: 'Attendance',       route: '/attendance',     icon: 'event_available', permission: 'view:attendance',    roles: [UserRole.SuperAdmin, UserRole.Owner, UserRole.Manager, UserRole.Receptionist, UserRole.Trainer, UserRole.Staff] },
+  { label: 'PT Sessions',      route: '/pt-sessions',    icon: 'event_note',      permission: 'view:pt-sessions',   roles: [UserRole.SuperAdmin, UserRole.Owner, UserRole.Manager, UserRole.Receptionist, UserRole.Trainer, UserRole.Staff] },
   { label: 'Payments',         route: '/payments',       icon: 'payments',        permission: 'view:payments',      roles: [UserRole.SuperAdmin, UserRole.Owner, UserRole.Manager, UserRole.Receptionist, UserRole.Accountant, UserRole.Staff] },
   {
     label: 'Finance',

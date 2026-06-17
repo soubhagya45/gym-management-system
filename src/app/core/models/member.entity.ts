@@ -19,4 +19,16 @@ export interface Member {
   fitnessGoal: string;
   startingWeight?: number;
   goalWeight?: number;
+
+  // PT Additions
+  ptPlanId?: string;
+  ptPlanName?: string;
+  trainerId?: string;
+  trainerName?: string;
+  ptGoal?: string;
+  ptStartDate?: string;
+  ptEndDate?: string;
+  ptSessionsTotal?: number;
+  ptSessionsCompleted?: number;
+  ptSessionsRemaining?: number;
 }

@@ -1,17 +1,193 @@
 <div class="dashboard-wrapper">
-  <!-- Page Header -->
-  <div class="page-header">
-    <div class="title-area">
-      <h1>Admin Dashboard</h1>
-      <p>Real-time metrics and operations for Apex Fit.</p>
+  <!-- Check if User is a Trainer -->
+  <ng-container *ngIf="isTrainer$ | async; else adminDashboard">
+    <!-- Page Header -->
+    <div class="page-header" *ngIf="currentUser$ | async as user">
+      <div class="title-area">
+        <h1>Trainer Dashboard</h1>
+        <p>Welcome back, {{ user.name }}. Here is your schedule and client progress details.</p>
+      </div>
+      <div class="actions-area">
+        <a mat-raised-button color="primary" routerLink="/pt-sessions">
+          <mat-icon>event_note</mat-icon>
+          <span>Manage Sessions</span>
+        </a>
+      </div>
     </div>
-    <div class="actions-area">
-      <button mat-raised-button color="primary" routerLink="/members">
-        <mat-icon>person_add</mat-icon>
-        <span>Add Member</span>
-      </button>
+
+    <!-- Trainer Stats Grid -->
+    <div class="stats-grid" *ngIf="trainerStats$ | async as stats">
+      <!-- Active PT Clients -->
+      <div class="mat-card interactive primary-glow stat-card" routerLink="/members">
+        <div class="stat-header">
+          <div class="stat-icon-wrapper primary">
+            <mat-icon>people</mat-icon>
+          </div>
+        </div>
+        <div class="stat-body">
+          <h3 class="stat-value">{{ stats.activeClients }}</h3>
+          <p class="stat-label">Active PT Clients</p>
+        </div>
+        <div class="stat-footer">
+          <span class="footer-text">Assigned active members</span>
+        </div>
+      </div>
+
+      <!-- Scheduled Today -->
+      <div class="mat-card interactive info-glow stat-card" routerLink="/pt-sessions">
+        <div class="stat-header">
+          <div class="stat-icon-wrapper info">
+            <mat-icon>today</mat-icon>
+          </div>
+          <span class="stat-badge info" *ngIf="stats.scheduledToday > 0">Action Due</span>
+        </div>
+        <div class="stat-body">
+          <h3 class="stat-value">{{ stats.scheduledToday }}</h3>
+          <p class="stat-label">Sessions Scheduled Today</p>
+        </div>
+        <div class="stat-footer">
+          <span class="footer-text">Today's personal schedule</span>
+        </div>
+      </div>
+
+      <!-- Completed This Month -->
+      <div class="mat-card interactive success-glow stat-card">
+        <div class="stat-header">
+          <div class="stat-icon-wrapper success">
+            <mat-icon>check_circle</mat-icon>
+          </div>
+        </div>
+        <div class="stat-body">
+          <h3 class="stat-value">{{ stats.completedThisMonth }}</h3>
+          <p class="stat-label">Completed (Month)</p>
+        </div>
+        <div class="stat-footer">
+          <span class="footer-text">Sessions completed this month</span>
+        </div>
+      </div>
+
+      <!-- Completion Rate -->
+      <div class="mat-card interactive purple-glow stat-card">
+        <div class="stat-header">
+          <div class="stat-icon-wrapper purple">
+            <mat-icon>speed</mat-icon>
+          </div>
+          <span class="stat-badge info">{{ stats.completionRate }}%</span>
+        </div>
+        <div class="stat-body">
+          <h3 class="stat-value">{{ stats.completionRate }}%</h3>
+          <p class="stat-label">Completion Rate</p>
+        </div>
+        <div class="stat-footer">
+          <span class="footer-text">Overall session conversion ratio</span>
+        </div>
+      </div>
     </div>
-  </div>
+
+    <!-- Trainer Detail Rows -->
+    <div class="widgets-row-two">
+      <!-- Today's PT Sessions -->
+      <div class="mat-card details-card">
+        <div class="details-header flex-header">
+          <div>
+            <h3>Today's Session Schedule</h3>
+            <span class="chart-sub">Your appointments scheduled for today</span>
+          </div>
+        </div>
+        
+        <div class="attendance-table-container scrollable-widget">
+          <table mat-table [dataSource]="(trainerSessionsToday$ | async) || []" class="mat-elevation-z0 w-100">
+            <ng-container matColumnDef="time">
+              <th mat-header-cell *matHeaderCellDef> Time </th>
+              <td mat-cell *matCellDef="let element"> {{ element.time }} </td>
+            </ng-container>
+
+            <ng-container matColumnDef="memberName">
+              <th mat-header-cell *matHeaderCellDef> Client Name </th>
+              <td mat-cell *matCellDef="let element" class="font-semibold"> 
+                <a [routerLink]="['/members', element.memberId]" class="profile-link">
+                  {{ element.memberName }}
+                </a>
+              </td>
+            </ng-container>
+
+            <ng-container matColumnDef="status">
+              <th mat-header-cell *matHeaderCellDef> Status </th>
+              <td mat-cell *matCellDef="let element">
+                <span class="status-badge" [ngClass]="element.status">{{ element.status | titlecase }}</span>
+              </td>
+            </ng-container>
+
+            <tr mat-header-row *matHeaderRowDef="['time', 'memberName', 'status']"></tr>
+            <tr mat-row *matRowDef="let row; columns: ['time', 'memberName', 'status'];"></tr>
+          </table>
+          
+          <div class="empty-pane-state" *ngIf="!(trainerSessionsToday$ | async)?.length">
+            <mat-icon>event_busy</mat-icon>
+            <p>No PT sessions scheduled for you today.</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- Assigned Clients list -->
+      <div class="mat-card details-card">
+        <div class="details-header">
+          <div>
+            <h3>Assigned PT Clients</h3>
+            <span class="chart-sub">Clients actively training under you</span>
+          </div>
+        </div>
+        
+        <div class="attendance-table-container scrollable-widget">
+          <table mat-table [dataSource]="(trainerClients$ | async) || []" class="mat-elevation-z0 w-100">
+            <ng-container matColumnDef="name">
+              <th mat-header-cell *matHeaderCellDef> Client </th>
+              <td mat-cell *matCellDef="let element" class="font-semibold">
+                <a [routerLink]="['/members', element.memberId]" class="profile-link">
+                  {{ element.memberName }}
+                </a>
+              </td>
+            </ng-container>
+
+            <ng-container matColumnDef="progress">
+              <th mat-header-cell *matHeaderCellDef> Progress </th>
+              <td mat-cell *matCellDef="let element">
+                {{ element.completedSessions }} / {{ element.totalSessions }} sessions
+              </td>
+            </ng-container>
+
+            <ng-container matColumnDef="status">
+              <th mat-header-cell *matHeaderCellDef> Goal </th>
+              <td mat-cell *matCellDef="let element"> {{ element.ptGoal }} </td>
+            </ng-container>
+
+            <tr mat-header-row *matHeaderRowDef="['name', 'progress', 'status']"></tr>
+            <tr mat-row *matRowDef="let row; columns: ['name', 'progress', 'status'];"></tr>
+          </table>
+          
+          <div class="empty-pane-state" *ngIf="!(trainerClients$ | async)?.length">
+            <mat-icon>people_outline</mat-icon>
+            <p>No active clients assigned.</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </ng-container>
+
+  <ng-template #adminDashboard>
+    <!-- Page Header -->
+    <div class="page-header">
+      <div class="title-area">
+        <h1>Admin Dashboard</h1>
+        <p>Real-time metrics and operations for Apex Fit.</p>
+      </div>
+      <div class="actions-area">
+        <button mat-raised-button color="primary" routerLink="/members">
+          <mat-icon>person_add</mat-icon>
+          <span>Add Member</span>
+        </button>
+      </div>
+    </div>
 
   <!-- SaaS Subscription Banner Panel -->
   <div class="saas-subscription-panel glass-panel" *ngIf="subscriptionStatus$ | async as sub">
@@ -187,6 +363,44 @@
           <div class="progress-fill success" style="width: 100%"></div>
         </div>
         <span class="footer-text">Settle ledger payments</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- PT Business Performance KPI Row -->
+  <div class="pt-kpi-banner glass-panel" style="margin-top: 24px;" *ngIf="ptKPIs$ | async as pt">
+    <div class="pt-kpi-header">
+      <mat-icon class="pt-icon">fitness_center</mat-icon>
+      <div class="pt-title-group">
+        <h3>Personal Training (PT) Business Unit</h3>
+        <p>Key indicators tracking client load, trainer utilization, package sales, and monthly revenues.</p>
+      </div>
+    </div>
+    
+    <div class="pt-kpi-cards-grid">
+      <div class="pt-kpi-card">
+        <span class="label">PT Clients</span>
+        <strong class="value">{{ pt.totalClients }} <small>active</small></strong>
+      </div>
+      <div class="pt-kpi-card">
+        <span class="label">Active Trainers</span>
+        <strong class="value">{{ pt.activeTrainers }}</strong>
+      </div>
+      <div class="pt-kpi-card">
+        <span class="label">PT Revenue (Month)</span>
+        <strong class="value">₹{{ pt.monthlyRevenue | number:'1.0-0' }}</strong>
+      </div>
+      <div class="pt-kpi-card">
+        <span class="label">Scheduled Today</span>
+        <strong class="value">{{ pt.scheduledToday }} sessions</strong>
+      </div>
+      <div class="pt-kpi-card">
+        <span class="label">Top Trainer</span>
+        <strong class="value">{{ pt.topTrainerName }}</strong>
+      </div>
+      <div class="pt-kpi-card">
+        <span class="label">Top Package</span>
+        <strong class="value">{{ pt.topPlanName }}</strong>
       </div>
     </div>
   </div>
@@ -540,4 +754,5 @@
       </button>
     </div>
   </div>
+  </ng-template>
 </div>

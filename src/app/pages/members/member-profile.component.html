@@ -172,6 +172,175 @@
             </div>
           </mat-tab>
 
+          <!-- Tab 1b: Personal Training (PT) Details -->
+          <mat-tab>
+            <ng-template mat-tab-label>
+              <mat-icon class="tab-icon">fitness_center</mat-icon>
+              <span>Personal Training (PT)</span>
+            </ng-template>
+            
+            <div class="tab-content pt-tab">
+              <!-- If PT wallet exists -->
+              <div *ngIf="ptWallet; else noPTWallet">
+                <div class="plan-hero-panel pt-hero">
+                  <div class="hero-left">
+                    <span class="label">Current PT Package</span>
+                    <h3>{{ ptWallet.planName }}</h3>
+                    <p class="pt-trainer-assigned">Trainer: <strong>{{ ptWallet.trainerName }}</strong></p>
+                  </div>
+                  <div class="hero-right">
+                    <span class="days-indicator">{{ ptWallet.remainingSessions }} Sessions Left</span>
+                  </div>
+                </div>
+
+                <div class="plan-timeline-grid">
+                  <div class="timeline-item">
+                    <mat-icon>calendar_today</mat-icon>
+                    <div class="item-details">
+                      <label>PT Start Date</label>
+                      <span>{{ ptWallet.startDate | date:'longDate' }}</span>
+                    </div>
+                  </div>
+                  <div class="timeline-item">
+                    <mat-icon>event</mat-icon>
+                    <div class="item-details">
+                      <label>PT End Date</label>
+                      <span>{{ ptWallet.endDate | date:'longDate' }}</span>
+                    </div>
+                  </div>
+                  <div class="timeline-item">
+                    <mat-icon>track_changes</mat-icon>
+                    <div class="item-details">
+                      <label>PT Fitness Goal</label>
+                      <span>{{ ptWallet.ptGoal || 'General Fitness' }}</span>
+                    </div>
+                  </div>
+                </div>
+
+                <mat-divider></mat-divider>
+
+                <!-- Session completion progress -->
+                <div class="progress-section">
+                  <div class="progress-labels">
+                    <span>Session Completion Progress</span>
+                    <span>{{ ptWallet.completedSessions }} / {{ ptWallet.totalSessions }} Sessions Completed</span>
+                  </div>
+                  <mat-progress-bar mode="determinate" 
+                                    [value]="(ptWallet.completedSessions / ptWallet.totalSessions) * 100" 
+                                    color="accent" 
+                                    class="premium-progress pt-progress">
+                  </mat-progress-bar>
+                </div>
+
+                <div class="pt-actions-row">
+                  <button mat-raised-button color="primary" (click)="openPTActionDialog('change_trainer')">
+                    <mat-icon>swap_horiz</mat-icon> Change Trainer
+                  </button>
+                  <button mat-raised-button color="accent" (click)="openPTActionDialog('upgrade')">
+                    <mat-icon>upgrade</mat-icon> Upgrade Package
+                  </button>
+                  <button mat-raised-button color="warn" (click)="openPTActionDialog('add_sessions')">
+                    <mat-icon>add</mat-icon> Buy Extra Sessions
+                  </button>
+                </div>
+
+                <mat-divider></mat-divider>
+
+                <!-- PT Assignments History -->
+                <div class="history-sub-section">
+                  <h4 class="sub-section-title">Trainer Assignment History</h4>
+                  <div class="table-scroll-wrapper" *ngIf="trainerAssignments.length > 0; else noAssignments">
+                    <table mat-table [dataSource]="trainerAssignments" class="w-100">
+                      <ng-container matColumnDef="assignedDate">
+                        <th mat-header-cell *matHeaderCellDef> Assigned Date </th>
+                        <td mat-cell *matCellDef="let element"> {{ element.assignedDate | date:'mediumDate' }} </td>
+                      </ng-container>
+                      <ng-container matColumnDef="trainerName">
+                        <th mat-header-cell *matHeaderCellDef> Trainer Name </th>
+                        <td mat-cell *matCellDef="let element"> {{ element.trainerName }} </td>
+                      </ng-container>
+                      <ng-container matColumnDef="status">
+                        <th mat-header-cell *matHeaderCellDef> Status </th>
+                        <td mat-cell *matCellDef="let element">
+                          <span class="status-badge" [ngClass]="element.status">{{ element.status | titlecase }}</span>
+                        </td>
+                      </ng-container>
+                      <ng-container matColumnDef="ptGoal">
+                        <th mat-header-cell *matHeaderCellDef> PT Goal </th>
+                        <td mat-cell *matCellDef="let element"> {{ element.ptGoal }} </td>
+                      </ng-container>
+                      <ng-container matColumnDef="notes">
+                        <th mat-header-cell *matHeaderCellDef> Notes </th>
+                        <td mat-cell *matCellDef="let element"> {{ element.notes || '-' }} </td>
+                      </ng-container>
+                      <tr mat-header-row *matHeaderRowDef="assignmentColumns"></tr>
+                      <tr mat-row *matRowDef="let row; columns: assignmentColumns;"></tr>
+                    </table>
+                  </div>
+                  <ng-template #noAssignments>
+                    <p class="no-records-msg">No trainer assignment history records.</p>
+                  </ng-template>
+                </div>
+
+                <mat-divider></mat-divider>
+
+                <!-- PT Sessions Log -->
+                <div class="history-sub-section">
+                  <h4 class="sub-section-title">Personal Training Sessions Log</h4>
+                  <div class="table-scroll-wrapper" *ngIf="ptSessions.length > 0; else noPTSessions">
+                    <table mat-table [dataSource]="ptSessions" class="w-100">
+                      <ng-container matColumnDef="date">
+                        <th mat-header-cell *matHeaderCellDef> Date </th>
+                        <td mat-cell *matCellDef="let element"> {{ element.date | date:'longDate' }} </td>
+                      </ng-container>
+                      <ng-container matColumnDef="time">
+                        <th mat-header-cell *matHeaderCellDef> Time </th>
+                        <td mat-cell *matCellDef="let element"> {{ element.time }} </td>
+                      </ng-container>
+                      <ng-container matColumnDef="trainerName">
+                        <th mat-header-cell *matHeaderCellDef> Trainer </th>
+                        <td mat-cell *matCellDef="let element"> {{ element.trainerName }} </td>
+                      </ng-container>
+                      <ng-container matColumnDef="status">
+                        <th mat-header-cell *matHeaderCellDef> Session Status </th>
+                        <td mat-cell *matCellDef="let element">
+                          <span class="status-badge" [ngClass]="element.status">{{ element.status | titlecase }}</span>
+                        </td>
+                      </ng-container>
+                      <ng-container matColumnDef="attendanceStatus">
+                        <th mat-header-cell *matHeaderCellDef> Attendance Status </th>
+                        <td mat-cell *matCellDef="let element">
+                          <span class="status-badge" [ngClass]="element.attendanceStatus">{{ element.attendanceStatus | titlecase }}</span>
+                        </td>
+                      </ng-container>
+                      <ng-container matColumnDef="notes">
+                        <th mat-header-cell *matHeaderCellDef> Notes </th>
+                        <td mat-cell *matCellDef="let element"> {{ element.notes || '-' }} </td>
+                      </ng-container>
+                      <tr mat-header-row *matHeaderRowDef="ptSessionColumns"></tr>
+                      <tr mat-row *matRowDef="let row; columns: ptSessionColumns;"></tr>
+                    </table>
+                  </div>
+                  <ng-template #noPTSessions>
+                    <p class="no-records-msg">No scheduled or completed sessions found.</p>
+                  </ng-template>
+                </div>
+              </div>
+
+              <!-- If PT wallet does not exist -->
+              <ng-template #noPTWallet>
+                <div class="empty-tab-state">
+                  <mat-icon>fitness_center</mat-icon>
+                  <h4>No Active Personal Training Plan</h4>
+                  <p>This member is not enrolled in any personal training packages.</p>
+                  <button mat-raised-button color="primary" class="buy-pt-btn" (click)="openPTActionDialog('purchase')">
+                    <mat-icon>shopping_cart</mat-icon> Purchase PT Package
+                  </button>
+                </div>
+              </ng-template>
+            </div>
+          </mat-tab>
+
           <!-- Tab 2: Attendance History -->
           <mat-tab>
             <ng-template mat-tab-label>

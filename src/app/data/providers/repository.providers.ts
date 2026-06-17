@@ -27,7 +27,9 @@ import {
   IFinanceRepository,
   FINANCE_REPOSITORY_TOKEN,
   IEmployeeRepository,
-  EMPLOYEE_REPOSITORY_TOKEN
+  EMPLOYEE_REPOSITORY_TOKEN,
+  IPersonalTrainingRepository,
+  PERSONAL_TRAINING_REPOSITORY_TOKEN
 } from '../../core/interfaces/repository.interfaces';
 import { IOnboardingRepository, ONBOARDING_REPOSITORY_TOKEN } from '../../core/interfaces/onboarding-repository.interface';
 import { MockOnboardingRepository } from '../repositories/mock/mock-onboarding.repository';
@@ -54,7 +56,8 @@ import {
   MockWhatsAppRepository,
   MockBodyProgressRepository,
   MockFinanceRepository,
-  MockEmployeeRepository
+  MockEmployeeRepository,
+  MockPersonalTrainingRepository
 } from '../repositories/mock/mock-repositories';
 
 
@@ -71,7 +74,8 @@ import {
   FirebaseWhatsAppRepository,
   FirebaseBodyProgressRepository,
   FirebaseFinanceRepository,
-  FirebaseEmployeeRepository
+  FirebaseEmployeeRepository,
+  FirebasePersonalTrainingRepository
 } from '../repositories/firebase/firebase-repositories';
 
 
@@ -241,6 +245,14 @@ export function employeeRepositoryFactory(configService: AppConfigService, injec
   }
 }
 
+export function personalTrainingRepositoryFactory(configService: AppConfigService, injector: Injector): IPersonalTrainingRepository {
+  switch (configService.provider) {
+    case ProviderType.Firebase: return injector.get(FirebasePersonalTrainingRepository);
+    // Fallback to Mock for other providers as REST/Supabase aren't explicitly requested for PT
+    default: return injector.get(MockPersonalTrainingRepository);
+  }
+}
+
 export function onboardingRepositoryFactory(configService: AppConfigService, injector: Injector): IOnboardingRepository {
   switch (configService.provider) {
     case ProviderType.Firebase: return injector.get(FirebaseOnboardingRepository);
@@ -325,6 +337,11 @@ export const REPOSITORY_PROVIDERS = [
   {
     provide: EMPLOYEE_REPOSITORY_TOKEN,
     useFactory: employeeRepositoryFactory,
+    deps: [AppConfigService, Injector]
+  },
+  {
+    provide: PERSONAL_TRAINING_REPOSITORY_TOKEN,
+    useFactory: personalTrainingRepositoryFactory,
     deps: [AppConfigService, Injector]
   },
   {

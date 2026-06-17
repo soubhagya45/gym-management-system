@@ -17,11 +17,14 @@ import { Observable, combineLatest } from 'rxjs';
 import { map, take } from 'rxjs/operators';
 import { Router } from '@angular/router';
 
+import { RouterModule } from '@angular/router';
+
 @Component({
   selector: 'app-trainers',
   standalone: true,
   imports: [
     CommonModule,
+    RouterModule,
     MatCardModule,
     MatIconModule,
     MatButtonModule,

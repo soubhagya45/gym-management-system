@@ -15,6 +15,8 @@ import { PaymentState } from '../../../presentation/state/payment.state';
 import { FinanceState } from '../../../presentation/state/finance.state';
 import { MemberState } from '../../../presentation/state/member.state';
 import { MembershipPlanState } from '../../../presentation/state/membership-plan.state';
+import { PTState } from '../../../presentation/state/pt.state';
+import { TrainerState } from '../../../presentation/state/trainer.state';
 
 type ReportType =
   | 'daily_collection'
@@ -22,7 +24,11 @@ type ReportType =
   | 'membership_revenue'
   | 'outstanding_dues'
   | 'expense_report'
-  | 'profit_loss';
+  | 'profit_loss'
+  | 'pt_revenue'
+  | 'trainer_performance'
+  | 'pt_sessions'
+  | 'membership_vs_pt';
 
 @Component({
   selector: 'app-reports',
@@ -55,6 +61,8 @@ export class ReportsComponent implements OnInit {
     private financeState: FinanceState,
     private memberState: MemberState,
     private planState: MembershipPlanState,
+    private ptState: PTState,
+    private trainerState: TrainerState,
     private snackBar: MatSnackBar
   ) {}
 
@@ -68,8 +76,12 @@ export class ReportsComponent implements OnInit {
       this.paymentState.payments$,
       this.financeState.expenses$,
       this.memberState.members$,
-      this.planState.plans$
-    ]).pipe(take(1)).subscribe(([payments, expenses, members, plans]) => {
+      this.planState.plans$,
+      this.ptState.ptSessions$,
+      this.ptState.memberPTPlans$,
+      this.ptState.trainerRevenue$,
+      this.trainerState.trainers$
+    ]).pipe(take(1)).subscribe(([payments, expenses, members, plans, sessions, ptPlans, revenues, trainers]) => {
       const today = new Date().toISOString().split('T')[0];
 
       switch (this.selectedReportType) {
@@ -194,9 +206,15 @@ export class ReportsComponent implements OnInit {
           this.displayedColumns = ['category', 'description', 'credit', 'debit', 'balance'];
 
           // Calculate totals
-          const totalInflow = payments
-            .filter(p => p.status === 'paid')
+          const membershipInflow = payments
+            .filter(p => p.status === 'paid' && p.type !== 'pt' && !p.planName.toLowerCase().includes('pt'))
             .reduce((sum, p) => sum + p.paidAmount, 0);
+
+          const ptInflow = payments
+            .filter(p => p.status === 'paid' && (p.type === 'pt' || p.planName.toLowerCase().includes('pt')))
+            .reduce((sum, p) => sum + p.paidAmount, 0);
+
+          const totalInflow = membershipInflow + ptInflow;
 
           const rentExp = expenses.filter(e => e.category === 'Rent').reduce((sum, e) => sum + e.amount, 0);
           const salaryExp = expenses.filter(e => e.category === 'Salaries').reduce((sum, e) => sum + e.amount, 0);
@@ -208,7 +226,8 @@ export class ReportsComponent implements OnInit {
           const netBalance = totalInflow - totalOutflow;
 
           this.dataSource.data = [
-            { category: 'Revenue', description: 'Membership Fees Collection', credit: totalInflow, debit: 0, balance: totalInflow },
+            { category: 'Revenue', description: 'Membership Fees Collection', credit: membershipInflow, debit: 0, balance: membershipInflow },
+            { category: 'Revenue', description: 'Personal Training Fees Collection', credit: ptInflow, debit: 0, balance: totalInflow },
             { category: 'Expense', description: 'Rent & Landlord Charges', credit: 0, debit: rentExp, balance: totalInflow - rentExp },
             { category: 'Expense', description: 'Salaries & Staff Commissions', credit: 0, debit: salaryExp, balance: totalInflow - rentExp - salaryExp },
             { category: 'Expense', description: 'Utility Bills (Electricity & Water)', credit: 0, debit: utilExp, balance: totalInflow - rentExp - salaryExp - utilExp },
@@ -216,6 +235,73 @@ export class ReportsComponent implements OnInit {
             { category: 'Expense', description: 'Marketing & Miscellaneous Bills', credit: 0, debit: miscExp, balance: netBalance },
             { category: 'Summary', description: 'Net Operating Profit', credit: totalInflow, debit: totalOutflow, balance: netBalance }
           ];
+          break;
+
+        case 'pt_revenue':
+          this.reportTitle = 'Personal Training (PT) Revenue Report';
+          this.reportSubtitle = 'Billing and payment collections specifically for Personal Training packages';
+          this.displayedColumns = ['date', 'memberName', 'trainerName', 'planName', 'ptAmount', 'status'];
+
+          this.dataSource.data = payments
+            .filter(p => p.type === 'pt' || p.planName.toLowerCase().includes('pt'))
+            .map(p => ({
+              date: p.date,
+              memberName: p.memberName,
+              trainerName: p.trainerName || 'N/A',
+              planName: p.planName,
+              ptAmount: p.paidAmount || p.amount,
+              status: p.status
+            }))
+            .sort((a, b) => b.date.localeCompare(a.date));
+          break;
+
+        case 'trainer_performance':
+          this.reportTitle = 'Trainer Performance Report';
+          this.reportSubtitle = 'Key metrics reflecting client load, ratings, and training sessions completed';
+          this.displayedColumns = ['trainerName', 'completedSessions', 'utilization', 'rating'];
+
+          this.dataSource.data = trainers.map(t => ({
+            trainerName: t.name,
+            completedSessions: t.sessionsCompletedThisMonth || 0,
+            utilization: t.utilizationPercent || 0,
+            rating: t.monthlyRating || t.rating || 4.8
+          })).sort((a, b) => b.completedSessions - a.completedSessions);
+          break;
+
+        case 'pt_sessions':
+          this.reportTitle = 'PT Sessions Audit Report';
+          this.reportSubtitle = 'Detailed logs of personal training scheduling, attendance, and cancellations';
+          this.displayedColumns = ['date', 'time', 'memberName', 'trainerName', 'status', 'notes'];
+
+          this.dataSource.data = [...sessions]
+            .sort((a, b) => b.date.localeCompare(a.date) || b.time.localeCompare(a.time));
+          break;
+
+        case 'membership_vs_pt':
+          this.reportTitle = 'Membership vs PT Revenue Comparison';
+          this.reportSubtitle = 'Comparative monthly statement of general membership sales against personal training collections';
+          this.displayedColumns = ['month', 'membershipRev', 'ptRev', 'total'];
+
+          const compareMap: Record<string, any> = {};
+          payments.filter(p => p.status === 'paid').forEach(p => {
+            const pDate = new Date(p.date);
+            const monthKey = pDate.toLocaleString('en-US', { month: 'long', year: 'numeric' });
+
+            if (!compareMap[monthKey]) {
+              compareMap[monthKey] = { month: monthKey, membershipRev: 0, ptRev: 0, total: 0, sortKey: pDate.getTime() };
+            }
+
+            const isPt = p.type === 'pt' || p.planName.toLowerCase().includes('pt');
+            if (isPt) {
+              compareMap[monthKey].ptRev += p.paidAmount;
+            } else {
+              compareMap[monthKey].membershipRev += p.paidAmount;
+            }
+            compareMap[monthKey].total += p.paidAmount;
+          });
+
+          this.dataSource.data = Object.values(compareMap)
+            .sort((a: any, b: any) => b.sortKey - a.sortKey);
           break;
       }
     });

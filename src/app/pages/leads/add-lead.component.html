@@ -176,6 +176,44 @@
               </mat-option>
             </mat-select>
           </mat-form-field>
+
+          <mat-form-field appearance="outline">
+            <mat-label>Interested In PT?</mat-label>
+            <mat-select formControlName="interestedInPT">
+              <mat-option value="No">No</mat-option>
+              <mat-option value="Yes">Yes</mat-option>
+            </mat-select>
+          </mat-form-field>
+
+          <ng-container *ngIf="leadForm.get('interestedInPT')?.value === 'Yes'">
+            <mat-form-field appearance="outline">
+              <mat-label>PT Plan Package</mat-label>
+              <mat-select formControlName="ptPlanId">
+                <mat-option *ngFor="let ptPlan of ptPlans" [value]="ptPlan.id">
+                  {{ ptPlan.name }} ({{ ptPlan.numberOfSessions }} Sessions - ₹{{ ptPlan.price }})
+                </mat-option>
+              </mat-select>
+              <mat-error *ngIf="leadForm.get('ptPlanId')?.hasError('required')">PT Plan package is required</mat-error>
+            </mat-form-field>
+
+            <mat-form-field appearance="outline">
+              <mat-label>Preferred Trainer (Optional)</mat-label>
+              <mat-select formControlName="preferredTrainerId">
+                <mat-option value="">Unassigned</mat-option>
+                <mat-option *ngFor="let trainer of trainers" [value]="trainer.id">
+                  {{ trainer.name }} ({{ trainer.specialty }})
+                </mat-option>
+              </mat-select>
+            </mat-form-field>
+
+            <mat-form-field appearance="outline">
+              <mat-label>PT Goal</mat-label>
+              <mat-select formControlName="ptGoal">
+                <mat-option *ngFor="let ptGoal of ptGoalOptions" [value]="ptGoal">{{ ptGoal }}</mat-option>
+              </mat-select>
+              <mat-error *ngIf="leadForm.get('ptGoal')?.hasError('required')">PT Goal is required</mat-error>
+            </mat-form-field>
+          </ng-container>
         </div>
 
         <!-- Section 4: Notes & Follow-Up Notes (Full Width) -->

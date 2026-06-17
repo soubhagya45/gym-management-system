@@ -15,6 +15,12 @@ import { WhatsAppReminder } from '../models/whatsapp-reminder.entity';
 import { BodyProgressEntry } from '../models/body-progress.entity';
 import { Expense, Invoice, Collection } from '../models/finance.entity';
 import { Employee, EmployeeAttendance, EmployeePayroll, EmployeePerformance } from '../models/employee.entity';
+import { PTPlan } from '../models/pt-plan.entity';
+import { PTSession } from '../models/pt-session.entity';
+import { TrainerAssignment } from '../models/trainer-assignment.entity';
+import { SessionHistory } from '../models/session-history.entity';
+import { TrainerRevenue } from '../models/trainer-revenue.entity';
+import { MemberPTPlan } from '../models/member-pt-plan.entity';
 
 // --- Interface Definitions ---
 
@@ -140,6 +146,32 @@ export interface IEmployeeRepository {
   addPerformance(gymId: string, performance: Omit<EmployeePerformance, 'id'>): Observable<EmployeePerformance>;
 }
 
+export interface IPersonalTrainingRepository {
+  getPTPlans(gymId: string): Observable<PTPlan[]>;
+  addPTPlan(gymId: string, plan: Omit<PTPlan, 'id'>): Observable<PTPlan>;
+  updatePTPlan(gymId: string, plan: PTPlan): Observable<void>;
+  deletePTPlan(gymId: string, id: string): Observable<void>;
+
+  getPTSessions(gymId: string): Observable<PTSession[]>;
+  addPTSession(gymId: string, session: Omit<PTSession, 'id'>): Observable<PTSession>;
+  updatePTSession(gymId: string, session: PTSession): Observable<void>;
+  deletePTSession(gymId: string, id: string): Observable<void>;
+
+  getTrainerAssignments(gymId: string): Observable<TrainerAssignment[]>;
+  addTrainerAssignment(gymId: string, assignment: Omit<TrainerAssignment, 'id'>): Observable<TrainerAssignment>;
+
+  getSessionHistory(gymId: string): Observable<SessionHistory[]>;
+  addSessionHistory(gymId: string, history: Omit<SessionHistory, 'id'>): Observable<SessionHistory>;
+
+  getTrainerRevenue(gymId: string): Observable<TrainerRevenue[]>;
+  addTrainerRevenue(gymId: string, revenue: Omit<TrainerRevenue, 'id'>): Observable<TrainerRevenue>;
+
+  getMemberPTPlans(gymId: string): Observable<MemberPTPlan[]>;
+  getMemberPTPlanById(gymId: string, id: string): Observable<MemberPTPlan | null>;
+  addMemberPTPlan(gymId: string, memberPlan: Omit<MemberPTPlan, 'id'>): Observable<MemberPTPlan>;
+  updateMemberPTPlan(gymId: string, memberPlan: MemberPTPlan): Observable<void>;
+}
+
 
 // --- Angular InjectionTokens ---
 
@@ -156,4 +188,5 @@ export const WHATSAPP_REPOSITORY_TOKEN = new InjectionToken<IWhatsAppRepository>
 export const BODY_PROGRESS_REPOSITORY_TOKEN = new InjectionToken<IBodyProgressRepository>('BODY_PROGRESS_REPOSITORY_TOKEN');
 export const FINANCE_REPOSITORY_TOKEN = new InjectionToken<IFinanceRepository>('FINANCE_REPOSITORY_TOKEN');
 export const EMPLOYEE_REPOSITORY_TOKEN = new InjectionToken<IEmployeeRepository>('EMPLOYEE_REPOSITORY_TOKEN');
+export const PERSONAL_TRAINING_REPOSITORY_TOKEN = new InjectionToken<IPersonalTrainingRepository>('PERSONAL_TRAINING_REPOSITORY_TOKEN');
 

@@ -1,6 +1,6 @@
 import { Injectable, Inject } from '@angular/core';
-import { BehaviorSubject, Observable, of } from 'rxjs';
-import { switchMap, tap, take } from 'rxjs/operators';
+import { BehaviorSubject, Observable, of, combineLatest } from 'rxjs';
+import { switchMap, tap, take, map } from 'rxjs/operators';
 import {
   ILeadRepository,
   LEAD_REPOSITORY_TOKEN,
@@ -12,6 +12,7 @@ import { TenantContextService } from '../../domain/tenancy/tenant-context.servic
 import { MemberState } from './member.state';
 import { Member } from '../../core/models/member.entity';
 import { PaymentState } from './payment.state';
+import { PTState } from './pt.state';
 
 @Injectable({
   providedIn: 'root'
@@ -25,7 +26,8 @@ export class LeadState {
     @Inject(ACTIVITY_LOG_REPOSITORY_TOKEN) private logRepository: IActivityLogRepository,
     private tenantContext: TenantContextService,
     private memberState: MemberState,
-    private paymentState: PaymentState
+    private paymentState: PaymentState,
+    private ptState: PTState
   ) {
     this.tenantContext.activeGymId$.pipe(
       switchMap(gymId => {
@@ -120,6 +122,15 @@ export class LeadState {
       paymentStatus: 'paid' | 'pending';
       paymentMethod: string;
       paidAmount: number;
+      interestedInPT?: 'Yes' | 'No';
+      ptPlanId?: string;
+      preferredTrainerId?: string;
+      ptGoal?: string;
+      ptPlanPrice?: number;
+      ptPlanName?: string;
+      trainerName?: string;
+      ptPlanDuration?: number;
+      ptSessionsTotal?: number;
     }
   ): Observable<void> {
     const gymId = this.tenantContext.getTenantId();
@@ -142,7 +153,46 @@ export class LeadState {
             nextFollowUp: undefined // Clear follow-ups
           };
 
-          return this.leadRepository.updateLead(gymId, updatedLead).pipe(
+          let ptAssign$: Observable<any> = of(null);
+          if (conversionDetails.interestedInPT === 'Yes' && conversionDetails.ptPlanId) {
+            const todayStr = new Date().toISOString().split('T')[0];
+            const end = new Date();
+            const duration = conversionDetails.ptPlanDuration || 1;
+            end.setMonth(end.getMonth() + duration);
+            const endStr = end.toISOString().split('T')[0];
+
+            ptAssign$ = this.ptState.addMemberPTPlan({
+              memberId: newMember.id,
+              memberName: newMember.name,
+              trainerId: conversionDetails.preferredTrainerId || 'unassigned',
+              trainerName: conversionDetails.trainerName || 'Unassigned Trainer',
+              planId: conversionDetails.ptPlanId,
+              planName: conversionDetails.ptPlanName || '',
+              price: conversionDetails.ptPlanPrice || 0,
+              totalSessions: conversionDetails.ptSessionsTotal || 0,
+              completedSessions: 0,
+              remainingSessions: conversionDetails.ptSessionsTotal || 0,
+              expiredSessions: 0,
+              ptGoal: conversionDetails.ptGoal || 'General Fitness',
+              startDate: todayStr,
+              endDate: endStr,
+              status: 'active',
+              history: [{
+                action: 'assign',
+                date: todayStr,
+                trainerId: conversionDetails.preferredTrainerId,
+                trainerName: conversionDetails.trainerName,
+                planId: conversionDetails.ptPlanId,
+                planName: conversionDetails.ptPlanName,
+                notes: 'Initial assignment upon CRM Lead Conversion'
+              }]
+            }, conversionDetails.paymentStatus, conversionDetails.paymentMethod);
+          }
+
+          return combineLatest([
+            this.leadRepository.updateLead(gymId, updatedLead),
+            ptAssign$
+          ]).pipe(
             tap(() => {
               this.loadLeads();
               this.logRepository.addLog(
@@ -164,7 +214,8 @@ export class LeadState {
                   });
                 }, 500);
               }
-            })
+            }),
+            map(() => undefined)
           );
         }
         return of(undefined);

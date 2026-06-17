@@ -29,14 +29,16 @@
 
     <!-- Trainer Grid -->
     <div class="trainers-grid" [class.blurred-content]="!(canManageTrainers$ | async)">
-      <div class="mat-card trainer-card interactive primary-glow" *ngFor="let trainer of trainers$ | async">
+      <div class="mat-card trainer-card interactive primary-glow cursor-pointer" 
+           *ngFor="let trainer of trainers$ | async"
+           [routerLink]="['/trainers', trainer.id]">
         
         <!-- Top Badges Row -->
         <div class="card-top-row">
           <!-- Rating -->
           <div class="rating-badge">
             <mat-icon class="star-icon">star</mat-icon>
-            <span>{{ trainer.rating }}</span>
+            <span>{{ trainer.monthlyRating || trainer.rating }}</span>
           </div>
           <!-- Status Badge -->
           <span class="status-badge" [ngClass]="trainer.status === 'active' ? 'present' : 'inactive'">
@@ -58,9 +60,24 @@
         <!-- Client load and Contact info -->
         <div class="trainer-details-body">
           <div class="metric-row">
-            <span class="metric-label">Active Clients:</span>
-            <span class="metric-value"><strong>{{ trainer.membersCount }}</strong> members</span>
+            <span class="metric-label">Active PT Clients:</span>
+            <span class="metric-value"><strong>{{ trainer.activePTClients || 0 }}</strong> members</span>
           </div>
+          <div class="metric-row">
+            <span class="metric-label">PT Revenue (Total):</span>
+            <span class="metric-value"><strong>₹{{ trainer.totalPTRevenue || 0 }}</strong></span>
+          </div>
+          <div class="metric-row">
+            <span class="metric-label">Sessions Completed (Month):</span>
+            <span class="metric-value"><strong>{{ trainer.sessionsCompletedThisMonth || 0 }}</strong></span>
+          </div>
+          <div class="metric-row">
+            <span class="metric-label">Utilization Rate:</span>
+            <span class="metric-value"><strong>{{ trainer.utilizationPercent || 0 }}%</strong></span>
+          </div>
+          
+          <mat-divider style="margin: 12px 0; border-color: rgba(255,255,255,0.05);"></mat-divider>
+          
           <div class="contact-links">
             <div class="contact-item">
               <mat-icon class="contact-icon">email</mat-icon>
@@ -75,11 +92,11 @@
 
         <!-- Actions -->
         <div class="card-footer-actions">
-          <button mat-stroked-button color="accent" class="edit-btn" (click)="openEditTrainerDialog(trainer)">
+          <button mat-stroked-button color="accent" class="edit-btn" (click)="openEditTrainerDialog(trainer); $event.stopPropagation()">
             <mat-icon>edit</mat-icon>
             <span>Edit Profile</span>
           </button>
-          <button mat-icon-button color="warn" class="delete-btn" (click)="confirmDeleteTrainer(trainer)">
+          <button mat-icon-button color="warn" class="delete-btn" (click)="confirmDeleteTrainer(trainer); $event.stopPropagation()">
             <mat-icon>delete</mat-icon>
           </button>
         </div>

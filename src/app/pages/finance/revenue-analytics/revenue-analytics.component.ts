@@ -40,6 +40,12 @@ export class RevenueAnalyticsComponent implements OnInit {
   planChart$: Observable<any> | undefined;
   trainerChart$: Observable<any> | undefined;
   branchChart$: Observable<any> | undefined;
+  membershipVsPtSplit$: Observable<{
+    membershipRevenue: number;
+    ptRevenue: number;
+    membershipPercentage: number;
+    ptPercentage: number;
+  }> | undefined;
 
   constructor(
     private paymentState: PaymentState,
@@ -92,16 +98,16 @@ export class RevenueAnalyticsComponent implements OnInit {
           percentage: totalRevenue > 0 ? Math.round((branchMap[name] / totalRevenue) * 100) : 0
         })).sort((a, b) => b.amount - a.amount);
 
-        // 3. Trainer Revenue
+        // 3. Trainer Revenue (Attributed directly using trainerName/trainerId)
         const trainerMap: Record<string, number> = {};
         trainers.forEach(t => trainerMap[t.name] = 0);
         paidPayments.forEach(p => {
-          if (trainers.length > 0) {
-            const idx = p.memberId.charCodeAt(p.memberId.length - 1) % trainers.length;
-            const trainerName = trainers[idx].name;
-            trainerMap[trainerName] = (trainerMap[trainerName] || 0) + p.paidAmount;
-          } else {
-            trainerMap['No Assigned Trainer'] = (trainerMap['No Assigned Trainer'] || 0) + p.paidAmount;
+          if (p.trainerName) {
+            trainerMap[p.trainerName] = (trainerMap[p.trainerName] || 0) + p.paidAmount;
+          } else if (p.type === 'pt') {
+            const tr = trainers.find(t => t.id === p.trainerId);
+            const name = tr ? tr.name : 'Unknown Trainer';
+            trainerMap[name] = (trainerMap[name] || 0) + p.paidAmount;
           }
         });
         const trainerRevenue = Object.keys(trainerMap).map(name => ({
@@ -141,6 +147,29 @@ export class RevenueAnalyticsComponent implements OnInit {
           trainerRevenue,
           monthlyRevenue,
           totalRevenue
+        };
+      })
+    );
+
+    // Compute Membership vs PT Revenue Split
+    this.membershipVsPtSplit$ = this.paymentState.payments$.pipe(
+      map(payments => {
+        const paidPayments = payments.filter(p => p.status === 'paid');
+        const membershipRevenue = paidPayments
+          .filter(p => p.type !== 'pt' && !p.planName.toLowerCase().includes('pt'))
+          .reduce((sum, p) => sum + p.paidAmount, 0);
+
+        const ptRevenue = paidPayments
+          .filter(p => p.type === 'pt' || p.planName.toLowerCase().includes('pt'))
+          .reduce((sum, p) => sum + p.paidAmount, 0);
+
+        const total = membershipRevenue + ptRevenue || 1;
+
+        return {
+          membershipRevenue,
+          ptRevenue,
+          membershipPercentage: Math.round((membershipRevenue / total) * 100),
+          ptPercentage: Math.round((ptRevenue / total) * 100)
         };
       })
     );

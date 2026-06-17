@@ -32,8 +32,16 @@ import {
   IWhatsAppRepository,
   IBodyProgressRepository,
   IFinanceRepository,
-  IEmployeeRepository
+  IEmployeeRepository,
+  IPersonalTrainingRepository
 } from '../../../core/interfaces/repository.interfaces';
+
+import { PTPlan } from '../../../core/models/pt-plan.entity';
+import { PTSession } from '../../../core/models/pt-session.entity';
+import { TrainerAssignment } from '../../../core/models/trainer-assignment.entity';
+import { SessionHistory } from '../../../core/models/session-history.entity';
+import { TrainerRevenue } from '../../../core/models/trainer-revenue.entity';
+import { MemberPTPlan } from '../../../core/models/member-pt-plan.entity';
 
 import { initializeApp, deleteApp } from 'firebase/app';
 import {
@@ -1241,6 +1249,299 @@ export class FirebaseEmployeeRepository implements IEmployeeRepository {
     return from(setDoc(doc(db, 'employee_performance', id), newPerformance)).pipe(
       map(() => newPerformance),
       catchError(err => throwError(() => new Error(err.message || 'Failed to add performance review.')))
+    );
+  }
+}
+
+@Injectable({ providedIn: 'root' })
+export class FirebasePersonalTrainingRepository implements IPersonalTrainingRepository {
+  constructor(private firebaseService: FirebaseService) { }
+
+  getPTPlans(gymId: string): Observable<PTPlan[]> {
+    const db = this.firebaseService.getDb();
+    const q = query(collection(db, 'ptPlans'), where('gymId', '==', gymId));
+    return from(getDocs(q)).pipe(
+      map(snap => snap.docs.map(d => d.data() as PTPlan)),
+      catchError(err => throwError(() => new Error(err.message || 'Failed to get PT plans.')))
+    );
+  }
+
+  addPTPlan(gymId: string, plan: Omit<PTPlan, 'id'>): Observable<PTPlan> {
+    const db = this.firebaseService.getDb();
+    const id = 'pt_' + Math.random().toString(36).substring(2, 9);
+    const newPlan: PTPlan = {
+      ...plan,
+      id,
+      gymId
+    };
+    return from(setDoc(doc(db, 'ptPlans', id), newPlan)).pipe(
+      map(() => newPlan),
+      catchError(err => throwError(() => new Error(err.message || 'Failed to add PT plan.')))
+    );
+  }
+
+  updatePTPlan(gymId: string, plan: PTPlan): Observable<void> {
+    const db = this.firebaseService.getDb();
+    return from(setDoc(doc(db, 'ptPlans', plan.id), plan)).pipe(
+      map(() => undefined),
+      catchError(err => throwError(() => new Error(err.message || 'Failed to update PT plan.')))
+    );
+  }
+
+  deletePTPlan(gymId: string, id: string): Observable<void> {
+    const db = this.firebaseService.getDb();
+    return from(deleteDoc(doc(db, 'ptPlans', id))).pipe(
+      map(() => undefined),
+      catchError(err => throwError(() => new Error(err.message || 'Failed to delete PT plan.')))
+    );
+  }
+
+  getPTSessions(gymId: string): Observable<PTSession[]> {
+    const db = this.firebaseService.getDb();
+    const q = query(collection(db, 'ptSessions'), where('gymId', '==', gymId));
+    return from(getDocs(q)).pipe(
+      map(snap => snap.docs.map(d => d.data() as PTSession)),
+      catchError(err => throwError(() => new Error(err.message || 'Failed to get PT sessions.')))
+    );
+  }
+
+  addPTSession(gymId: string, session: Omit<PTSession, 'id'>): Observable<PTSession> {
+    const db = this.firebaseService.getDb();
+    const id = 'pts_' + Math.random().toString(36).substring(2, 9);
+    const newSession: PTSession = {
+      ...session,
+      id,
+      gymId
+    };
+
+    const histId = 'sh_' + Math.random().toString(36).substring(2, 9);
+    const hist: SessionHistory = {
+      id: histId,
+      gymId,
+      branchId: session.branchId,
+      sessionId: id,
+      memberId: session.memberId,
+      trainerId: session.trainerId,
+      action: 'schedule',
+      timestamp: new Date().toISOString(),
+      performedBy: session.trainerName,
+      notes: 'Session scheduled'
+    };
+
+    return forkJoin([
+      from(setDoc(doc(db, 'ptSessions', id), newSession)),
+      from(setDoc(doc(db, 'sessionHistory', histId), hist))
+    ]).pipe(
+      map(() => newSession),
+      catchError(err => throwError(() => new Error(err.message || 'Failed to add PT session.')))
+    );
+  }
+
+  updatePTSession(gymId: string, session: PTSession): Observable<void> {
+    const db = this.firebaseService.getDb();
+    const sessionRef = doc(db, 'ptSessions', session.id);
+
+    return from(getDoc(sessionRef)).pipe(
+      switchMap(snap => {
+        if (!snap.exists()) {
+          return throwError(() => new Error('Session not found.'));
+        }
+        const oldSession = snap.data() as PTSession;
+        
+        let action: SessionHistory['action'] = 'add_notes';
+        let note = 'Session notes updated';
+        let walletUpdate: Observable<any> = of(undefined);
+
+
+        if (oldSession.status !== session.status) {
+          if (session.status === 'completed') {
+            action = 'complete';
+            note = 'Session marked complete';
+
+            const walletQ = query(
+              collection(db, 'memberPTPlans'),
+              where('gymId', '==', gymId),
+              where('memberId', '==', session.memberId),
+              where('status', '==', 'active')
+            );
+            walletUpdate = from(getDocs(walletQ)).pipe(
+              switchMap(walletSnap => {
+                if (!walletSnap.empty) {
+                  const wDoc = walletSnap.docs[0];
+                  const wData = wDoc.data() as MemberPTPlan;
+                  const updatedCompleted = wData.completedSessions + 1;
+                  const updatedRemaining = Math.max(0, wData.totalSessions - updatedCompleted);
+                  const updatedStatus = updatedRemaining === 0 ? 'completed' : 'active';
+                  
+                  return from(updateDoc(doc(db, 'memberPTPlans', wDoc.id), {
+                    completedSessions: updatedCompleted,
+                    remainingSessions: updatedRemaining,
+                    status: updatedStatus
+                  })).pipe(
+                    switchMap(() => {
+                      const memberRef = doc(db, 'members', session.memberId);
+                      return from(updateDoc(memberRef, {
+                        ptSessionsCompleted: updatedCompleted,
+                        ptSessionsRemaining: updatedRemaining
+                      }));
+                    })
+                  );
+                }
+                return of(undefined);
+              })
+            );
+          } else if (session.status === 'cancelled') {
+            action = 'cancel';
+            note = 'Session cancelled';
+          } else if (session.status === 'rescheduled') {
+            action = 'reschedule';
+            note = `Rescheduled to ${session.date} at ${session.time}`;
+          }
+        }
+
+        const histId = 'sh_' + Math.random().toString(36).substring(2, 9);
+        const hist: SessionHistory = {
+          id: histId,
+          gymId,
+          branchId: session.branchId,
+          sessionId: session.id,
+          memberId: session.memberId,
+          trainerId: session.trainerId,
+          action,
+          timestamp: new Date().toISOString(),
+          performedBy: session.trainerName,
+          notes: note
+        };
+
+        return forkJoin([
+          from(setDoc(sessionRef, session)),
+          from(setDoc(doc(db, 'sessionHistory', histId), hist)),
+          walletUpdate
+        ]).pipe(map(() => undefined));
+      }),
+      catchError(err => throwError(() => new Error(err.message || 'Failed to update PT session.')))
+    );
+  }
+
+  deletePTSession(gymId: string, id: string): Observable<void> {
+    const db = this.firebaseService.getDb();
+    return from(deleteDoc(doc(db, 'ptSessions', id))).pipe(
+      map(() => undefined),
+      catchError(err => throwError(() => new Error(err.message || 'Failed to delete PT session.')))
+    );
+  }
+
+  getTrainerAssignments(gymId: string): Observable<TrainerAssignment[]> {
+    const db = this.firebaseService.getDb();
+    const q = query(collection(db, 'trainerAssignments'), where('gymId', '==', gymId));
+    return from(getDocs(q)).pipe(
+      map(snap => snap.docs.map(d => d.data() as TrainerAssignment)),
+      catchError(err => throwError(() => new Error(err.message || 'Failed to get trainer assignments.')))
+    );
+  }
+
+  addTrainerAssignment(gymId: string, assignment: Omit<TrainerAssignment, 'id'>): Observable<TrainerAssignment> {
+    const db = this.firebaseService.getDb();
+    const id = 'ta_' + Math.random().toString(36).substring(2, 9);
+    const newAssignment: TrainerAssignment = {
+      ...assignment,
+      id,
+      gymId
+    };
+    return from(setDoc(doc(db, 'trainerAssignments', id), newAssignment)).pipe(
+      map(() => newAssignment),
+      catchError(err => throwError(() => new Error(err.message || 'Failed to add trainer assignment.')))
+    );
+  }
+
+  getSessionHistory(gymId: string): Observable<SessionHistory[]> {
+    const db = this.firebaseService.getDb();
+    const q = query(collection(db, 'sessionHistory'), where('gymId', '==', gymId));
+    return from(getDocs(q)).pipe(
+      map(snap => snap.docs.map(d => d.data() as SessionHistory)),
+      catchError(err => throwError(() => new Error(err.message || 'Failed to get session history.')))
+    );
+  }
+
+  addSessionHistory(gymId: string, history: Omit<SessionHistory, 'id'>): Observable<SessionHistory> {
+    const db = this.firebaseService.getDb();
+    const id = 'sh_' + Math.random().toString(36).substring(2, 9);
+    const newHistory: SessionHistory = {
+      ...history,
+      id,
+      gymId
+    };
+    return from(setDoc(doc(db, 'sessionHistory', id), newHistory)).pipe(
+      map(() => newHistory),
+      catchError(err => throwError(() => new Error(err.message || 'Failed to add session history.')))
+    );
+  }
+
+  getTrainerRevenue(gymId: string): Observable<TrainerRevenue[]> {
+    const db = this.firebaseService.getDb();
+    const q = query(collection(db, 'trainerRevenue'), where('gymId', '==', gymId));
+    return from(getDocs(q)).pipe(
+      map(snap => snap.docs.map(d => d.data() as TrainerRevenue)),
+      catchError(err => throwError(() => new Error(err.message || 'Failed to get trainer revenue.')))
+    );
+  }
+
+  addTrainerRevenue(gymId: string, revenue: Omit<TrainerRevenue, 'id'>): Observable<TrainerRevenue> {
+    const db = this.firebaseService.getDb();
+    const id = 'tr_' + Math.random().toString(36).substring(2, 9);
+    const newRev: TrainerRevenue = {
+      ...revenue,
+      id,
+      gymId
+    };
+    return from(setDoc(doc(db, 'trainerRevenue', id), newRev)).pipe(
+      map(() => newRev),
+      catchError(err => throwError(() => new Error(err.message || 'Failed to add trainer revenue.')))
+    );
+  }
+
+  getMemberPTPlans(gymId: string): Observable<MemberPTPlan[]> {
+    const db = this.firebaseService.getDb();
+    const q = query(collection(db, 'memberPTPlans'), where('gymId', '==', gymId));
+    return from(getDocs(q)).pipe(
+      map(snap => snap.docs.map(d => d.data() as MemberPTPlan)),
+      catchError(err => throwError(() => new Error(err.message || 'Failed to get member PT plans.')))
+    );
+  }
+
+  getMemberPTPlanById(gymId: string, id: string): Observable<MemberPTPlan | null> {
+    const db = this.firebaseService.getDb();
+    return from(getDoc(doc(db, 'memberPTPlans', id))).pipe(
+      map(snap => {
+        if (snap.exists()) {
+          const m = snap.data() as MemberPTPlan;
+          return m.gymId === gymId ? m : null;
+        }
+        return null;
+      }),
+      catchError(err => throwError(() => new Error(err.message || 'Failed to get member PT plan.')))
+    );
+  }
+
+  addMemberPTPlan(gymId: string, memberPlan: Omit<MemberPTPlan, 'id'>): Observable<MemberPTPlan> {
+    const db = this.firebaseService.getDb();
+    const id = 'mpt_' + Math.random().toString(36).substring(2, 9);
+    const newMP: MemberPTPlan = {
+      ...memberPlan,
+      id,
+      gymId
+    };
+    return from(setDoc(doc(db, 'memberPTPlans', id), newMP)).pipe(
+      map(() => newMP),
+      catchError(err => throwError(() => new Error(err.message || 'Failed to add member PT plan.')))
+    );
+  }
+
+  updateMemberPTPlan(gymId: string, memberPlan: MemberPTPlan): Observable<void> {
+    const db = this.firebaseService.getDb();
+    return from(setDoc(doc(db, 'memberPTPlans', memberPlan.id), memberPlan)).pipe(
+      map(() => undefined),
+      catchError(err => throwError(() => new Error(err.message || 'Failed to update member PT plan.')))
     );
   }
 }

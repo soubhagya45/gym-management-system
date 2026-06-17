@@ -1170,3 +1170,74 @@
     font-weight: 700;
   }
 }
+
+/* Personal Training (PT) Tab Styling */
+.pt-tab {
+  .pt-hero {
+    background: linear-gradient(135deg, #ec4899 0%, #8b5cf6 100%) !important;
+    box-shadow: 0 4px 15px rgba(236, 72, 153, 0.25) !important;
+    
+    .pt-trainer-assigned {
+      font-size: 14px;
+      margin: 8px 0 0 0;
+      opacity: 0.95;
+      
+      strong {
+        font-weight: 700;
+        background: rgba(255, 255, 255, 0.15);
+        padding: 2px 8px;
+        border-radius: 4px;
+      }
+    }
+  }
+
+  .pt-actions-row {
+    display: flex;
+    gap: 12px;
+    flex-wrap: wrap;
+    margin-top: 8px;
+    margin-bottom: 8px;
+
+    button {
+      height: 40px !important;
+      font-weight: 600 !important;
+      border-radius: 8px !important;
+      
+      mat-icon {
+        margin-right: 6px;
+      }
+    }
+  }
+
+  .history-sub-section {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+    margin-top: 16px;
+
+    .sub-section-title {
+      font-size: 15px;
+      font-weight: 700;
+      color: var(--text-primary);
+      margin: 0;
+    }
+
+    .no-records-msg {
+      font-size: 13px;
+      color: var(--text-muted);
+      margin: 0;
+    }
+  }
+
+  .pt-progress {
+    ::ng-deep .mdc-linear-progress__bar-inner {
+      border-color: #ec4899 !important;
+    }
+  }
+  
+  .buy-pt-btn {
+    margin-top: 16px !important;
+    font-weight: 600 !important;
+    border-radius: 8px !important;
+  }
+}

@@ -12,4 +12,9 @@ export interface Payment {
   planName: string;
   paymentMethod?: string;
   collectedBy?: string;
+
+  // PT Additions
+  type?: 'membership' | 'pt';
+  trainerId?: string;
+  trainerName?: string;
 }

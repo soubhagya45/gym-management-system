@@ -15,9 +15,13 @@ import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
 import { LeadState } from '../../presentation/state/lead.state';
 import { MembershipPlanState } from '../../presentation/state/membership-plan.state';
 import { EmployeeState } from '../../presentation/state/employee.state';
+import { PTState } from '../../presentation/state/pt.state';
+import { TrainerState } from '../../presentation/state/trainer.state';
 
 import { MembershipPlan } from '../../core/models/membership-plan.entity';
 import { Employee } from '../../core/models/employee.entity';
+import { PTPlan } from '../../core/models/pt-plan.entity';
+import { Trainer } from '../../core/models/trainer.entity';
 
 @Component({
   selector: 'app-add-lead',
@@ -43,6 +47,8 @@ export class AddLeadComponent implements OnInit {
   leadForm!: FormGroup;
   plans: MembershipPlan[] = [];
   employees: Employee[] = [];
+  ptPlans: PTPlan[] = [];
+  trainers: Trainer[] = [];
 
   fitnessGoalOptions: string[] = [
     'Weight Loss',
@@ -55,6 +61,15 @@ export class AddLeadComponent implements OnInit {
     'Personal Training',
     'Rehabilitation',
     'Other'
+  ];
+
+  ptGoalOptions: string[] = [
+    'Weight Loss',
+    'Muscle Gain',
+    'Competition Prep',
+    'Strength Training',
+    'General Fitness',
+    'Rehabilitation'
   ];
 
   lostReasonOptions: string[] = [
@@ -73,6 +88,8 @@ export class AddLeadComponent implements OnInit {
     private leadState: LeadState,
     private planState: MembershipPlanState,
     private employeeState: EmployeeState,
+    private ptState: PTState,
+    private trainerState: TrainerState,
     private snackBar: MatSnackBar,
     private router: Router
   ) {}
@@ -91,6 +108,14 @@ export class AddLeadComponent implements OnInit {
 
     this.employeeState.employees$.subscribe(employees => {
       this.employees = employees.filter(e => e.accountStatus === 'Active');
+    });
+
+    this.ptState.ptPlans$.subscribe(plans => {
+      this.ptPlans = plans.filter(p => p.isActive);
+    });
+
+    this.trainerState.trainers$.subscribe(trainers => {
+      this.trainers = trainers.filter(t => t.status === 'active');
     });
 
     const today = new Date();
@@ -117,7 +142,31 @@ export class AddLeadComponent implements OnInit {
       lastFollowUp: [''],
       followUpStatus: ['Pending', [Validators.required]],
       followUpNotes: [''],
-      reasonLost: ['']
+      reasonLost: [''],
+
+      // PT Preferences
+      interestedInPT: ['No', [Validators.required]],
+      ptPlanId: [''],
+      preferredTrainerId: [''],
+      ptGoal: ['']
+    });
+
+    // PT Fields conditional validation
+    this.leadForm.get('interestedInPT')?.valueChanges.subscribe(interested => {
+      const ptPlanCtrl = this.leadForm.get('ptPlanId');
+      const ptGoalCtrl = this.leadForm.get('ptGoal');
+      if (interested === 'Yes') {
+        ptPlanCtrl?.setValidators([Validators.required]);
+        ptGoalCtrl?.setValidators([Validators.required]);
+      } else {
+        ptPlanCtrl?.clearValidators();
+        ptPlanCtrl?.setValue('');
+        ptGoalCtrl?.clearValidators();
+        ptGoalCtrl?.setValue('');
+        this.leadForm.get('preferredTrainerId')?.setValue('');
+      }
+      ptPlanCtrl?.updateValueAndValidity();
+      ptGoalCtrl?.updateValueAndValidity();
     });
 
     // Sync interestedPlan and preferredPlan

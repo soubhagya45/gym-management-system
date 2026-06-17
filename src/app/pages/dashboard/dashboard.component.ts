@@ -27,6 +27,9 @@ import { WhatsAppState } from '../../presentation/state/whatsapp.state';
 
 import { GymState } from '../../presentation/state/gym.state';
 import { TrainerState } from '../../presentation/state/trainer.state';
+import { AuthState } from '../../presentation/state/auth.state';
+import { PTState } from '../../presentation/state/pt.state';
+import { UserRole } from '../../core/enums/roles.enum';
 import { SubscriptionService } from '../../domain/subscription/subscription.service';
 import { SubscriptionStatus } from '../../core/models/subscription.model';
 import { RenewDialogComponent } from '../payments/renew-dialog.component';
@@ -64,6 +67,14 @@ export class DashboardComponent implements OnInit {
   leadFollowUps$: Observable<Lead[]> | undefined;
   planDistribution$: Observable<any[]> | undefined;
 
+  // Trainer Dashboard Observables
+  currentUser$: Observable<any> | undefined;
+  isTrainer$: Observable<boolean> | undefined;
+  trainerStats$: Observable<any> | undefined;
+  trainerSessionsToday$: Observable<any[]> | undefined;
+  trainerClients$: Observable<any[]> | undefined;
+  ptKPIs$: Observable<any> | undefined;
+
   // New Widgets Observables
   paymentsDueToday$: Observable<Payment[]> | undefined;
   overduePaymentsList$: Observable<Payment[]> | undefined;
@@ -94,6 +105,8 @@ export class DashboardComponent implements OnInit {
     private whatsappState: WhatsAppState,
     private gymState: GymState,
     private trainerState: TrainerState,
+    private authState: AuthState,
+    private ptState: PTState,
     private subscriptionService: SubscriptionService,
     private dialog: MatDialog,
     private snackBar: MatSnackBar
@@ -105,6 +118,146 @@ export class DashboardComponent implements OnInit {
 
   ngOnInit(): void {
     const todayStr = new Date().toISOString().split('T')[0];
+
+    // Check if user is a Trainer
+    this.currentUser$ = this.authState.currentUser$;
+    this.isTrainer$ = this.authState.currentUser$.pipe(
+      map(user => user?.role === UserRole.Trainer)
+    );
+
+    // Trainer Specific Stats & Data
+    this.trainerStats$ = combineLatest([
+      this.authState.currentUser$,
+      this.ptState.memberPTPlans$,
+      this.ptState.ptSessions$,
+      this.ptState.trainerRevenue$
+    ]).pipe(
+      map(([user, wallets, sessions, revenues]) => {
+        if (!user || user.role !== UserRole.Trainer) return null;
+        
+        const trainerId = user.id;
+        const activeClients = wallets.filter(w => w.trainerId === trainerId && w.status === 'active').length;
+        
+        // Sessions Today
+        const todaySessions = sessions.filter(s => s.trainerId === trainerId && s.date === todayStr);
+        const scheduledToday = todaySessions.filter(s => s.status === 'scheduled' || s.status === 'rescheduled').length;
+        
+        // Sessions Completed This Month
+        const currentMonthStr = new Date().toISOString().substring(0, 7);
+        const completedThisMonth = sessions.filter(s => 
+          s.trainerId === trainerId && 
+          s.status === 'completed' && 
+          s.date.startsWith(currentMonthStr)
+        ).length;
+        
+        // Trainer Revenue
+        const trainerRevenue = revenues
+          .filter(r => r.trainerId === trainerId)
+          .reduce((sum, r) => sum + r.amount, 0);
+          
+        // Completion Rate
+        const trainerSessions = sessions.filter(s => s.trainerId === trainerId);
+        const total = trainerSessions.length;
+        const completed = trainerSessions.filter(s => s.status === 'completed').length;
+        const completionRate = total > 0 ? Math.round((completed / total) * 100) : 0;
+        
+        return {
+          activeClients,
+          scheduledToday,
+          completedThisMonth,
+          trainerRevenue,
+          completionRate
+        };
+      })
+    );
+
+    this.trainerSessionsToday$ = combineLatest([
+      this.authState.currentUser$,
+      this.ptState.ptSessions$
+    ]).pipe(
+      map(([user, sessions]) => {
+        if (!user || user.role !== UserRole.Trainer) return [];
+        return sessions.filter(s => s.trainerId === user.id && s.date === todayStr);
+      })
+    );
+
+    this.trainerClients$ = combineLatest([
+      this.authState.currentUser$,
+      this.ptState.memberPTPlans$
+    ]).pipe(
+      map(([user, wallets]) => {
+        if (!user || user.role !== UserRole.Trainer) return [];
+        return wallets.filter(w => w.trainerId === user.id && w.status === 'active');
+      })
+    );
+
+    // General Owner/Manager PT KPIs
+    this.ptKPIs$ = combineLatest([
+      this.ptState.memberPTPlans$,
+      this.ptState.ptSessions$,
+      this.ptState.trainerRevenue$,
+      this.trainerState.trainers$
+    ]).pipe(
+      map(([wallets, sessions, revenues, trainers]) => {
+        const totalClients = wallets.filter(w => w.status === 'active').length;
+        const activeTrainers = trainers.filter(t => t.status === 'active').length;
+        
+        // Monthly PT Revenue
+        const currentMonthStr = new Date().toISOString().substring(0, 7);
+        const monthlyRevenue = revenues
+          .filter(r => r.date.startsWith(currentMonthStr))
+          .reduce((sum, r) => sum + r.amount, 0);
+          
+        // Session completion stats
+        const scheduledToday = sessions.filter(s => s.date === todayStr && (s.status === 'scheduled' || s.status === 'rescheduled')).length;
+        const completedToday = sessions.filter(s => s.date === todayStr && s.status === 'completed').length;
+        
+        // Top Trainer (highest session count this month)
+        const trainerCompletedCounts: Record<string, { name: string, count: number }> = {};
+        sessions.forEach(s => {
+          if (s.status === 'completed' && s.date.startsWith(currentMonthStr)) {
+            if (!trainerCompletedCounts[s.trainerId]) {
+              trainerCompletedCounts[s.trainerId] = { name: s.trainerName, count: 0 };
+            }
+            trainerCompletedCounts[s.trainerId].count++;
+          }
+        });
+        let topTrainerName = 'None';
+        let maxSessions = 0;
+        Object.values(trainerCompletedCounts).forEach(tc => {
+          if (tc.count > maxSessions) {
+            maxSessions = tc.count;
+            topTrainerName = tc.name;
+          }
+        });
+
+        // Top PT Package
+        const planCounts: Record<string, number> = {};
+        wallets.forEach(w => {
+          if (w.status === 'active') {
+            planCounts[w.planName] = (planCounts[w.planName] || 0) + 1;
+          }
+        });
+        let topPlanName = 'None';
+        let maxPlans = 0;
+        Object.entries(planCounts).forEach(([name, count]) => {
+          if (count > maxPlans) {
+            maxPlans = count;
+            topPlanName = name;
+          }
+        });
+
+        return {
+          totalClients,
+          activeTrainers,
+          monthlyRevenue,
+          scheduledToday,
+          completedToday,
+          topTrainerName,
+          topPlanName
+        };
+      })
+    );
 
     // Load active subscription status
     this.subscriptionStatus$ = combineLatest([
