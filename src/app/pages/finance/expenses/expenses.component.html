@@ -3,7 +3,21 @@
     <h1>Expense Management</h1>
     <p>Track business expenses, overheads, capital expenditures, and operations costs.</p>
   </div>
-  <div class="actions-area">
+  <div class="actions-area" style="display: flex; gap: 12px;">
+    <button mat-stroked-button [matMenuTriggerFor]="exportMenu">
+      <mat-icon>download</mat-icon>
+      <span>Export Report</span>
+    </button>
+    <mat-menu #exportMenu="matMenu">
+      <button mat-menu-item (click)="exportData('csv')">
+        <mat-icon>insert_drive_file</mat-icon>
+        <span>Export as CSV</span>
+      </button>
+      <button mat-menu-item (click)="exportData('excel')">
+        <mat-icon>table_chart</mat-icon>
+        <span>Export as Excel (XML)</span>
+      </button>
+    </mat-menu>
     <button mat-flat-button color="primary" (click)="openAddExpenseDialog()">
       <mat-icon>add_circle</mat-icon>
       Record Expense

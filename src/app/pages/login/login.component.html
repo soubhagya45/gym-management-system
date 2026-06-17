@@ -70,9 +70,12 @@
                   <mat-icon>{{ hidePassword ? 'visibility_off' : 'visibility' }}</mat-icon>
                 </button>
               </div>
-              <span class="error-msg" *ngIf="loginForm.get('password')?.touched && loginForm.get('password')?.hasError('required')">
-                Access key is required.
-              </span>
+              <div style="display: flex; justify-content: space-between; margin-top: 4px; align-items: center;">
+                <span class="error-msg" style="margin: 0;" *ngIf="loginForm.get('password')?.touched && loginForm.get('password')?.hasError('required')">
+                  Access key is required.
+                </span>
+                <a href="javascript:void(0)" (click)="forgotPassword()" class="forgot-password-link" style="color: #818cf8; font-size: 11px; text-decoration: none; font-weight: 600; letter-spacing: 0.5px; text-transform: uppercase;">Forgot Password?</a>
+              </div>
             </div>
 
             <!-- General Error Message Display -->

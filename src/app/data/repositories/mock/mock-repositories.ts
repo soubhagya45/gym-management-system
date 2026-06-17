@@ -249,7 +249,7 @@ const dbMockAccounts: Record<string, UserProfile> = {
     name: 'Kavita Patel',
     email: 'receptionist@apexfit.com',
     avatarUrl: 'https://api.dicebear.com/7.x/initials/svg?seed=Kavita%20Patel',
-    role: UserRole.Receptionist,
+    role: UserRole.Staff,
     gymId: 'gym-a'
   }),
   'accountant@apexfit.com': buildUser({
@@ -257,7 +257,7 @@ const dbMockAccounts: Record<string, UserProfile> = {
     name: 'Vikram Mehta',
     email: 'accountant@apexfit.com',
     avatarUrl: 'https://api.dicebear.com/7.x/initials/svg?seed=Vikram%20Mehta',
-    role: UserRole.Accountant,
+    role: UserRole.Staff,
     gymId: 'gym-a'
   })
 };
@@ -835,7 +835,7 @@ const dbEmployees: Employee[] = [
     gender: 'Female',
     dob: '1995-08-20',
     address: '88 Indiranagar, Bangalore',
-    role: UserRole.Receptionist,
+    role: UserRole.Staff,
     department: 'Front Desk',
     joinDate: '2026-02-15',
     salary: 25000,
@@ -854,7 +854,7 @@ const dbEmployees: Employee[] = [
     gender: 'Male',
     dob: '1990-12-10',
     address: '12 Whitefield, Bangalore',
-    role: UserRole.Accountant,
+    role: UserRole.Staff,
     department: 'Finance',
     joinDate: '2026-03-01',
     salary: 45000,
@@ -995,8 +995,8 @@ const dbEmployees: Employee[] = [
 
 const dbEmployeeAttendance: EmployeeAttendance[] = [
   { id: 'att-emp-1', gymId: 'gym-a', employeeId: 'usr-manager-1', employeeName: 'Rahul Sharma', role: UserRole.Manager, date: '2026-06-12', status: 'Present', checkInTime: '09:00 AM', checkOutTime: '05:30 PM' },
-  { id: 'att-emp-2', gymId: 'gym-a', employeeId: 'usr-receptionist-1', employeeName: 'Kavita Patel', role: UserRole.Receptionist, date: '2026-06-12', status: 'Present', checkInTime: '08:00 AM', checkOutTime: '04:00 PM' },
-  { id: 'att-emp-3', gymId: 'gym-a', employeeId: 'usr-accountant-1', employeeName: 'Vikram Mehta', role: UserRole.Accountant, date: '2026-06-12', status: 'Present', checkInTime: '09:15 AM', checkOutTime: '05:00 PM' },
+  { id: 'att-emp-2', gymId: 'gym-a', employeeId: 'usr-receptionist-1', employeeName: 'Kavita Patel', role: UserRole.Staff, date: '2026-06-12', status: 'Present', checkInTime: '08:00 AM', checkOutTime: '04:00 PM' },
+  { id: 'att-emp-3', gymId: 'gym-a', employeeId: 'usr-accountant-1', employeeName: 'Vikram Mehta', role: UserRole.Staff, date: '2026-06-12', status: 'Present', checkInTime: '09:15 AM', checkOutTime: '05:00 PM' },
   { id: 'att-emp-4', gymId: 'gym-a', employeeId: 'trainer-1', employeeName: 'Rahul Dev', role: UserRole.Trainer, date: '2026-06-12', status: 'Present', checkInTime: '06:00 AM', checkOutTime: '02:00 PM' },
   { id: 'att-emp-5', gymId: 'gym-a', employeeId: 'trainer-2', employeeName: 'Kavita Sharma', role: UserRole.Trainer, date: '2026-06-12', status: 'Present', checkInTime: '08:30 AM', checkOutTime: '04:30 PM' },
   { id: 'att-emp-6', gymId: 'gym-a', employeeId: 'trainer-3', employeeName: 'Vikram Malhotra', role: UserRole.Trainer, date: '2026-06-12', status: 'Leave', notes: 'Personal work' },
@@ -1005,14 +1005,14 @@ const dbEmployeeAttendance: EmployeeAttendance[] = [
 
 const dbEmployeePayroll: EmployeePayroll[] = [
   { id: 'pay-emp-1', gymId: 'gym-a', employeeId: 'usr-manager-1', employeeName: 'Rahul Sharma', role: UserRole.Manager, monthYear: 'May 2026', baseSalary: 65000, bonus: 5000, deductions: 2000, netPaid: 68000, paymentDate: '2026-06-05', status: 'Paid' },
-  { id: 'pay-emp-2', gymId: 'gym-a', employeeId: 'usr-receptionist-1', employeeName: 'Kavita Patel', role: UserRole.Receptionist, monthYear: 'May 2026', baseSalary: 25000, bonus: 1000, deductions: 500, netPaid: 25500, paymentDate: '2026-06-05', status: 'Paid' },
-  { id: 'pay-emp-3', gymId: 'gym-a', employeeId: 'usr-accountant-1', employeeName: 'Vikram Mehta', role: UserRole.Accountant, monthYear: 'May 2026', baseSalary: 45000, bonus: 2000, deductions: 1000, netPaid: 46000, paymentDate: '2026-06-05', status: 'Paid' },
+  { id: 'pay-emp-2', gymId: 'gym-a', employeeId: 'usr-receptionist-1', employeeName: 'Kavita Patel', role: UserRole.Staff, monthYear: 'May 2026', baseSalary: 25000, bonus: 1000, deductions: 500, netPaid: 25500, paymentDate: '2026-06-05', status: 'Paid' },
+  { id: 'pay-emp-3', gymId: 'gym-a', employeeId: 'usr-accountant-1', employeeName: 'Vikram Mehta', role: UserRole.Staff, monthYear: 'May 2026', baseSalary: 45000, bonus: 2000, deductions: 1000, netPaid: 46000, paymentDate: '2026-06-05', status: 'Paid' },
   { id: 'pay-emp-4', gymId: 'gym-a', employeeId: 'trainer-1', employeeName: 'Rahul Dev', role: UserRole.Trainer, monthYear: 'May 2026', baseSalary: 35000, bonus: 3000, deductions: 1000, netPaid: 37000, paymentDate: '2026-06-05', status: 'Paid' },
   { id: 'pay-emp-5', gymId: 'gym-a', employeeId: 'trainer-2', employeeName: 'Kavita Sharma', role: UserRole.Trainer, monthYear: 'May 2026', baseSalary: 32000, bonus: 4000, deductions: 500, netPaid: 35500, paymentDate: '2026-06-05', status: 'Paid' },
   
   { id: 'pay-emp-6', gymId: 'gym-a', employeeId: 'usr-manager-1', employeeName: 'Rahul Sharma', role: UserRole.Manager, monthYear: 'June 2026', baseSalary: 65000, bonus: 0, deductions: 0, netPaid: 65000, status: 'Pending' },
-  { id: 'pay-emp-7', gymId: 'gym-a', employeeId: 'usr-receptionist-1', employeeName: 'Kavita Patel', role: UserRole.Receptionist, monthYear: 'June 2026', baseSalary: 25000, bonus: 0, deductions: 0, netPaid: 25000, status: 'Pending' },
-  { id: 'pay-emp-8', gymId: 'gym-a', employeeId: 'usr-accountant-1', employeeName: 'Vikram Mehta', role: UserRole.Accountant, monthYear: 'June 2026', baseSalary: 45000, bonus: 0, deductions: 0, netPaid: 45000, status: 'Pending' }
+  { id: 'pay-emp-7', gymId: 'gym-a', employeeId: 'usr-receptionist-1', employeeName: 'Kavita Patel', role: UserRole.Staff, monthYear: 'June 2026', baseSalary: 25000, bonus: 0, deductions: 0, netPaid: 25000, status: 'Pending' },
+  { id: 'pay-emp-8', gymId: 'gym-a', employeeId: 'usr-accountant-1', employeeName: 'Vikram Mehta', role: UserRole.Staff, monthYear: 'June 2026', baseSalary: 45000, bonus: 0, deductions: 0, netPaid: 45000, status: 'Pending' }
 ];
 
 const dbEmployeePerformance: EmployeePerformance[] = [

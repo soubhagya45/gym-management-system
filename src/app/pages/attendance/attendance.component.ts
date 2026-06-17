@@ -13,7 +13,9 @@ import { AttendanceState } from '../../presentation/state/attendance.state';
 import { Member } from '../../core/models/member.entity';
 import { Attendance } from '../../core/models/attendance.entity';
 import { Observable, combineLatest } from 'rxjs';
-import { map } from 'rxjs/operators';
+import { map, take } from 'rxjs/operators';
+import { ExportService } from '../../domain/export/export.service';
+import { MatMenuModule } from '@angular/material/menu';
 
 interface RosterItem {
   memberId: string;
@@ -37,7 +39,8 @@ interface RosterItem {
     MatTableModule,
     MatFormFieldModule,
     MatInputModule,
-    MatSnackBarModule
+    MatSnackBarModule,
+    MatMenuModule
   ],
   templateUrl: './attendance.component.html',
   styleUrls: ['./attendance.component.scss']
@@ -62,7 +65,8 @@ export class AttendanceComponent implements OnInit {
   constructor(
     private memberState: MemberState,
     private attendanceState: AttendanceState,
-    private snackBar: MatSnackBar
+    private snackBar: MatSnackBar,
+    private exportService: ExportService
   ) {
     const options: Intl.DateTimeFormatOptions = { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' };
     this.todayString = new Date().toLocaleDateString('en-US', options);
@@ -138,6 +142,37 @@ export class AttendanceComponent implements OnInit {
       this.snackBar.open(`${item.name} marked absent.`, 'Dismiss', {
         duration: 2000
       });
+    });
+  }
+
+  exportData(format: 'csv' | 'excel'): void {
+    if (!this.filteredRoster$) return;
+
+    this.filteredRoster$.pipe(take(1)).subscribe(roster => {
+      if (roster.length === 0) {
+        this.snackBar.open('No roster data to export.', 'Close', { duration: 3000 });
+        return;
+      }
+
+      this.snackBar.open(`Roster report generated! Downloading ${format.toUpperCase()}...`, 'Dismiss', {
+        duration: 3000
+      });
+
+      const exportData = roster.map(r => ({
+        MemberID: r.memberId,
+        Name: r.name,
+        Email: r.email,
+        PlanName: r.planName,
+        CheckInTime: r.timeIn || '—',
+        Status: r.status.toUpperCase()
+      }));
+
+      const filename = `attendance_roster_${new Date().toISOString().split('T')[0]}`;
+      if (format === 'csv') {
+        this.exportService.exportToCsv(filename, exportData);
+      } else {
+        this.exportService.exportToExcel(filename, exportData);
+      }
     });
   }
 }

@@ -1,6 +1,7 @@
 export interface Lead {
   id: string;
   gymId: string; // Multi-tenant foreign key
+  branchId?: string;
   name: string;
   phone: string;
   email: string;

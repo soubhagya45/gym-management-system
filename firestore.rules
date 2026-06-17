@@ -1,0 +1,208 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // Helper functions
+    function getUserData() {
+      return get(/databases/$(database)/documents/users/$(request.auth.uid)).data;
+    }
+
+    function isSuperAdmin() {
+      return request.auth != null && getUserData().role == 'super_admin';
+    }
+
+    function hasGymAccess(resourceData) {
+      return request.auth != null && (
+        isSuperAdmin() || 
+        (getUserData().gymId == resourceData.gymId && (
+          getUserData().role == 'gym_owner' || 
+          getUserData().branchId == resourceData.branchId
+        ))
+      );
+    }
+
+    function canWriteGymData(resourceData) {
+      return request.auth != null && (
+        isSuperAdmin() || 
+        (getUserData().gymId == resourceData.gymId && (
+          getUserData().role == 'gym_owner' || 
+          getUserData().branchId == resourceData.branchId
+        ))
+      );
+    }
+
+    // Gyms rules
+    match /gyms/{gymId} {
+      allow create: if request.auth != null;
+      allow read: if request.auth != null && (isSuperAdmin() || (getUserData().gymId == gymId && getUserData().role == 'gym_owner'));
+      allow write: if request.auth != null && (isSuperAdmin() || (getUserData().gymId == gymId && getUserData().role == 'gym_owner'));
+    }
+
+    // Branches rules
+    match /branches/{branchId} {
+      allow read: if request.auth != null && (
+        isSuperAdmin() || 
+        (getUserData().gymId == resource.data.gymId && (
+          getUserData().role == 'gym_owner' || 
+          getUserData().branchId == branchId
+        ))
+      );
+      allow write: if request.auth != null && (
+        isSuperAdmin() || 
+        (getUserData().role == 'gym_owner' && request.resource.data.gymId == getUserData().gymId)
+      );
+    }
+
+    // Users rules
+    match /users/{userId} {
+      allow read: if request.auth != null && (
+        isSuperAdmin() || 
+        request.auth.uid == userId || 
+        getUserData().gymId == resource.data.gymId
+      );
+      allow create: if request.auth != null;
+      allow update: if request.auth != null && (
+        request.auth.uid == userId || 
+        isSuperAdmin() || 
+        (getUserData().role == 'gym_owner' && resource.data.gymId == getUserData().gymId)
+      ) && (
+        isSuperAdmin() || 
+        !request.resource.data.diff(resource.data).affectedKeys().hasAny(['role', 'gymId', 'branchId'])
+      );
+      allow delete: if isSuperAdmin() || (request.auth != null && getUserData().role == 'gym_owner' && resource.data.gymId == getUserData().gymId);
+    }
+
+    // Audit logs rules
+    match /auditLogs/{logId} {
+      allow create: if request.auth != null;
+      allow read: if request.auth != null && (isSuperAdmin() || getUserData().role == 'gym_owner');
+      allow write: if isSuperAdmin();
+    }
+
+    // Tenant-isolated collections rules
+    match /members/{id} {
+      allow read: if hasGymAccess(resource.data);
+      allow write: if canWriteGymData(request.resource.data);
+      allow delete: if request.auth != null && (isSuperAdmin() || (getUserData().role == 'gym_owner' && resource.data.gymId == getUserData().gymId));
+    }
+
+    match /payments/{id} {
+      allow read: if hasGymAccess(resource.data);
+      allow write: if canWriteGymData(request.resource.data);
+    }
+
+    match /leads/{id} {
+      allow read: if hasGymAccess(resource.data);
+      allow write: if canWriteGymData(request.resource.data);
+      allow delete: if request.auth != null && (isSuperAdmin() || (getUserData().role == 'gym_owner' && resource.data.gymId == getUserData().gymId));
+    }
+
+    match /trainers/{id} {
+      allow read: if hasGymAccess(resource.data);
+      allow write: if canWriteGymData(request.resource.data);
+      allow delete: if request.auth != null && (isSuperAdmin() || (getUserData().role == 'gym_owner' && resource.data.gymId == getUserData().gymId));
+    }
+
+    match /attendance/{id} {
+      allow read: if hasGymAccess(resource.data);
+      allow write: if canWriteGymData(request.resource.data);
+    }
+
+    match /expenses/{id} {
+      allow read: if hasGymAccess(resource.data);
+      allow write: if canWriteGymData(request.resource.data);
+      allow delete: if request.auth != null && (isSuperAdmin() || (getUserData().role == 'gym_owner' && resource.data.gymId == getUserData().gymId));
+    }
+
+    match /invoices/{id} {
+      allow read: if hasGymAccess(resource.data);
+      allow write: if canWriteGymData(request.resource.data);
+    }
+
+    match /collections/{id} {
+      allow read: if hasGymAccess(resource.data);
+      allow write: if canWriteGymData(request.resource.data);
+    }
+
+    match /employees/{id} {
+      allow read: if hasGymAccess(resource.data);
+      allow write: if canWriteGymData(request.resource.data);
+      allow delete: if request.auth != null && (isSuperAdmin() || (getUserData().role == 'gym_owner' && resource.data.gymId == getUserData().gymId));
+    }
+
+    match /employee_attendance/{id} {
+      allow read: if hasGymAccess(resource.data);
+      allow write: if canWriteGymData(request.resource.data);
+    }
+
+    match /employee_payroll/{id} {
+      allow read: if hasGymAccess(resource.data);
+      allow write: if canWriteGymData(request.resource.data);
+    }
+
+    match /employee_performance/{id} {
+      allow read: if hasGymAccess(resource.data);
+      allow write: if canWriteGymData(request.resource.data);
+    }
+
+    match /ptPlans/{id} {
+      allow read: if hasGymAccess(resource.data);
+      allow write: if canWriteGymData(request.resource.data);
+      allow delete: if request.auth != null && (isSuperAdmin() || (getUserData().role == 'gym_owner' && resource.data.gymId == getUserData().gymId));
+    }
+
+    match /ptSessions/{id} {
+      allow read: if hasGymAccess(resource.data);
+      allow write: if canWriteGymData(request.resource.data);
+      allow delete: if request.auth != null && (isSuperAdmin() || (getUserData().role == 'gym_owner' && resource.data.gymId == getUserData().gymId));
+    }
+
+    match /trainerAssignments/{id} {
+      allow read: if hasGymAccess(resource.data);
+      allow write: if canWriteGymData(request.resource.data);
+    }
+
+    match /sessionHistory/{id} {
+      allow read: if hasGymAccess(resource.data);
+      allow write: if canWriteGymData(request.resource.data);
+    }
+
+    match /trainerRevenue/{id} {
+      allow read: if hasGymAccess(resource.data);
+      allow write: if canWriteGymData(request.resource.data);
+    }
+
+    match /memberPTPlans/{id} {
+      allow read: if hasGymAccess(resource.data);
+      allow write: if canWriteGymData(request.resource.data);
+    }
+
+    match /membership_plans/{id} {
+      allow read: if request.auth != null && (isSuperAdmin() || getUserData().gymId == resource.data.gymId);
+      allow write: if request.auth != null && (isSuperAdmin() || (getUserData().role == 'gym_owner' && request.resource.data.gymId == getUserData().gymId));
+      allow delete: if request.auth != null && (isSuperAdmin() || (getUserData().role == 'gym_owner' && resource.data.gymId == getUserData().gymId));
+    }
+
+    match /activity_logs/{id} {
+      allow read: if request.auth != null && (isSuperAdmin() || getUserData().gymId == resource.data.gymId);
+      allow write: if request.auth != null && (isSuperAdmin() || getUserData().gymId == request.resource.data.gymId);
+    }
+
+    match /whatsapp_templates/{id} {
+      allow read: if request.auth != null && (isSuperAdmin() || getUserData().gymId == resource.data.gymId);
+      allow write: if request.auth != null && (isSuperAdmin() || (getUserData().role == 'gym_owner' && request.resource.data.gymId == getUserData().gymId));
+    }
+
+    match /whatsapp_reminders/{id} {
+      allow read: if request.auth != null && (isSuperAdmin() || getUserData().gymId == resource.data.gymId);
+      allow write: if request.auth != null && (isSuperAdmin() || (getUserData().role == 'gym_owner' && request.resource.data.gymId == getUserData().gymId));
+      allow delete: if request.auth != null && (isSuperAdmin() || (getUserData().role == 'gym_owner' && resource.data.gymId == getUserData().gymId));
+    }
+
+    match /body_progress/{id} {
+      allow read: if request.auth != null && (isSuperAdmin() || getUserData().gymId == resource.data.gymId);
+      allow write: if request.auth != null && (isSuperAdmin() || getUserData().gymId == request.resource.data.gymId);
+      allow delete: if request.auth != null && (isSuperAdmin() || (getUserData().role == 'gym_owner' && resource.data.gymId == getUserData().gymId));
+    }
+  }
+}

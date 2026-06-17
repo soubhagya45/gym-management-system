@@ -10,10 +10,20 @@
       <p>Manage gym subscriptions, billing balances, and profile states.</p>
     </div>
     <div class="actions-area" style="display: flex; gap: 12px;">
-      <button mat-stroked-button (click)="exportMembersReport()">
+      <button mat-stroked-button [matMenuTriggerFor]="exportMenu">
         <mat-icon>download</mat-icon>
         <span>Export Directory</span>
       </button>
+      <mat-menu #exportMenu="matMenu">
+        <button mat-menu-item (click)="exportData('csv')">
+          <mat-icon>insert_drive_file</mat-icon>
+          <span>Export as CSV</span>
+        </button>
+        <button mat-menu-item (click)="exportData('excel')">
+          <mat-icon>table_chart</mat-icon>
+          <span>Export as Excel (XML)</span>
+        </button>
+      </mat-menu>
       <button mat-raised-button color="primary" (click)="openAddMemberDialog()">
         <mat-icon>person_add</mat-icon>
         <span>Register New Member</span>

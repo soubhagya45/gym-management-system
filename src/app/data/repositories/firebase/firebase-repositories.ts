@@ -1,4 +1,4 @@
-import { Injectable } from '@angular/core';
+import { Injectable, Injector } from '@angular/core';
 import { Observable, from, of, throwError, forkJoin } from 'rxjs';
 import { map, switchMap, catchError } from 'rxjs/operators';
 import { FirebaseService } from './firebase.service';
@@ -18,6 +18,9 @@ import { BodyProgressEntry } from '../../../core/models/body-progress.entity';
 import { Expense, Invoice, Collection } from '../../../core/models/finance.entity';
 import { Employee, EmployeeAttendance, EmployeePayroll, EmployeePerformance } from '../../../core/models/employee.entity';
 import { SubscriptionPlan } from '../../../core/enums/subscription-plans.enum';
+import { AuthState } from '../../../presentation/state/auth.state';
+import { TenantContextService } from '../../../domain/tenancy/tenant-context.service';
+import { AuditLoggerService } from '../../../services/audit-logger.service';
 
 import {
   IAuthRepository,
@@ -66,9 +69,53 @@ import {
   where
 } from 'firebase/firestore';
 
+function getBranchFilteredQuery(injector: Injector, firebaseService: FirebaseService, collectionName: string, gymId: string) {
+  const db = firebaseService.getDb();
+  const authState = injector.get(AuthState);
+  const tenantContext = injector.get(TenantContextService);
+  const user = authState.currentUserValue;
+  const colRef = collection(db, collectionName);
+
+  if (!user) {
+    return query(colRef, where('gymId', '==', gymId));
+  }
+
+  if (user.role === UserRole.SuperAdmin) {
+    return query(colRef, where('gymId', '==', gymId));
+  }
+
+  if (user.role === UserRole.Owner) {
+    const activeBranchId = tenantContext.getBranchId();
+    if (activeBranchId) {
+      return query(colRef, where('gymId', '==', gymId), where('branchId', '==', activeBranchId));
+    }
+    return query(colRef, where('gymId', '==', gymId));
+  }
+
+  const userBranchId = user.branchId || tenantContext.getBranchId();
+  if (userBranchId) {
+    return query(colRef, where('gymId', '==', gymId), where('branchId', '==', userBranchId));
+  }
+
+  return query(colRef, where('gymId', '==', gymId));
+}
+
+function logAudit(injector: Injector, action: string, entityType: string, entityId: string) {
+  try {
+    const auditLogger = injector.get(AuditLoggerService);
+    auditLogger.log(action, entityType, entityId);
+  } catch (e) {
+    console.error('Audit log failed:', e);
+  }
+}
+
+
 @Injectable({ providedIn: 'root' })
 export class FirebaseAuthRepository implements IAuthRepository {
-  constructor(private firebaseService: FirebaseService) { }
+  constructor(
+    private firebaseService: FirebaseService,
+    private injector: Injector
+  ) { }
 
   login(email: string, password: string): Observable<UserProfile> {
     const auth = this.firebaseService.getAuth();
@@ -80,7 +127,30 @@ export class FirebaseAuthRepository implements IAuthRepository {
         return from(getDoc(docRef)).pipe(
           switchMap(userSnap => {
             if (userSnap.exists()) {
-              return of(userSnap.data() as UserProfile);
+              const profile = userSnap.data() as UserProfile;
+              
+              // Enforce temporary employee password expiration (24h)
+              if (profile.isFirstLogin && (profile as any).tempPasswordExpiresAt) {
+                const expiresAt = new Date((profile as any).tempPasswordExpiresAt).getTime();
+                if (Date.now() > expiresAt) {
+                  return throwError(() => new Error('Temporary employee password has expired. Please request a new password reset or contact the Gym Owner.'));
+                }
+              }
+
+              // Audit logging trigger
+              const logId = 'audit_' + Math.random().toString(36).substring(2, 9);
+              setDoc(doc(db, 'auditLogs', logId), {
+                id: logId,
+                userId: uid,
+                role: profile.role,
+                action: 'User Login',
+                entityType: 'user',
+                entityId: uid,
+                timestamp: new Date().toISOString(),
+                gymId: profile.gymId || ''
+              }).catch(err => console.error('Login audit log failed:', err));
+
+              return of(profile);
             }
             // Check for invited user placeholder
             const q = query(collection(db, 'users'), where('email', '==', email.toLowerCase().trim()));
@@ -117,7 +187,28 @@ export class FirebaseAuthRepository implements IAuthRepository {
   }
 
   logout(): Observable<void> {
-    return from(signOut(this.firebaseService.getAuth()));
+    const auth = this.firebaseService.getAuth();
+    const db = this.firebaseService.getDb();
+    try {
+      const authState = this.injector.get(AuthState);
+      const user = authState.currentUserValue;
+      if (user) {
+        const logId = 'audit_' + Math.random().toString(36).substring(2, 9);
+        setDoc(doc(db, 'auditLogs', logId), {
+          id: logId,
+          userId: user.id,
+          role: user.role,
+          action: 'User Logout',
+          entityType: 'user',
+          entityId: user.id,
+          timestamp: new Date().toISOString(),
+          gymId: user.gymId || ''
+        }).catch(err => console.error('Logout audit log failed:', err));
+      }
+    } catch (e) {
+      console.error(e);
+    }
+    return from(signOut(auth));
   }
 
   register(
@@ -138,7 +229,18 @@ export class FirebaseAuthRepository implements IAuthRepository {
       switchMap(cred => {
         const uid = cred.user.uid;
         const gymId = 'gym_' + Math.random().toString(36).substring(2, 9);
+        const defaultBranchId = 'branch_' + Math.random().toString(36).substring(2, 9);
         const today = new Date().toISOString().split('T')[0];
+
+        const defaultBranch = {
+          id: defaultBranchId,
+          gymId,
+          name: 'Main Branch',
+          code: 'MAIN',
+          address: address || 'Not Specified',
+          manager: ownerName,
+          phone: phone
+        };
 
         const newGym: Gym = {
           gymId,
@@ -155,16 +257,7 @@ export class FirebaseAuthRepository implements IAuthRepository {
           openingTime: openingTime || '06:00',
           closingTime: closingTime || '22:00',
           subscriptionStatus: 'trialing',
-          branches: [
-            {
-              id: 'branch_' + Math.random().toString(36).substring(2, 9),
-              name: 'Main Branch',
-              code: 'MAIN',
-              address: address || 'Not Specified',
-              manager: ownerName,
-              phone: phone
-            }
-          ],
+          branches: [defaultBranch],
           membershipSettings: {
             monthlyPrice: 1500,
             quarterlyPrice: 4000,
@@ -200,6 +293,7 @@ export class FirebaseAuthRepository implements IAuthRepository {
           avatarUrl: `https://api.dicebear.com/7.x/initials/svg?seed=${encodeURIComponent(ownerName)}`,
           role: UserRole.Owner,
           gymId,
+          branchId: defaultBranchId,
           isFirstLogin: false,
           permissions: [],
           lastLogin: new Date().toISOString(),
@@ -209,6 +303,7 @@ export class FirebaseAuthRepository implements IAuthRepository {
         const ownerEmployee: Employee = {
           id: uid,
           gymId,
+          branchId: defaultBranchId,
           fullName: ownerName,
           phone: phone,
           email,
@@ -229,9 +324,24 @@ export class FirebaseAuthRepository implements IAuthRepository {
         return forkJoin([
           from(setDoc(doc(db, 'gyms', gymId), newGym)),
           from(setDoc(doc(db, 'users', uid), userDoc)),
-          from(setDoc(doc(db, 'employees', uid), ownerEmployee))
+          from(setDoc(doc(db, 'employees', uid), ownerEmployee)),
+          from(setDoc(doc(db, 'branches', defaultBranchId), defaultBranch))
         ]).pipe(
-          map(() => userDoc)
+          map(() => {
+            const logId = 'audit_' + Math.random().toString(36).substring(2, 9);
+            setDoc(doc(db, 'auditLogs', logId), {
+              id: logId,
+              userId: uid,
+              role: UserRole.Owner,
+              action: 'Employee Creation',
+              entityType: 'employee',
+              entityId: uid,
+              timestamp: new Date().toISOString(),
+              gymId: gymId
+            }).catch(err => console.error('Registration audit log failed:', err));
+
+            return userDoc;
+          })
         );
       }),
       catchError(err => throwError(() => new Error(err.message || 'Registration failed.')))
@@ -302,7 +412,10 @@ export class FirebaseAuthRepository implements IAuthRepository {
 
 @Injectable({ providedIn: 'root' })
 export class FirebaseGymRepository implements IGymRepository {
-  constructor(private firebaseService: FirebaseService) { }
+  constructor(
+    private firebaseService: FirebaseService,
+    private injector: Injector
+  ) { }
 
   getGyms(): Observable<Gym[]> {
     const db = this.firebaseService.getDb();
@@ -336,7 +449,18 @@ export class FirebaseGymRepository implements IGymRepository {
 
   updateGym(gym: Gym): Observable<void> {
     const db = this.firebaseService.getDb();
-    return from(setDoc(doc(db, 'gyms', gym.gymId), gym)).pipe(
+    const ops: Observable<any>[] = [
+      from(setDoc(doc(db, 'gyms', gym.gymId), gym))
+    ];
+    if (gym.branches && gym.branches.length > 0) {
+      gym.branches.forEach(b => {
+        ops.push(from(setDoc(doc(db, 'branches', b.id), {
+          ...b,
+          gymId: gym.gymId
+        })));
+      });
+    }
+    return forkJoin(ops).pipe(
       map(() => undefined),
       catchError(err => throwError(() => new Error(err.message || 'Failed to update gym.')))
     );
@@ -345,12 +469,13 @@ export class FirebaseGymRepository implements IGymRepository {
 
 @Injectable({ providedIn: 'root' })
 export class FirebaseMemberRepository implements IMemberRepository {
-  constructor(private firebaseService: FirebaseService) { }
+  constructor(
+    private firebaseService: FirebaseService,
+    private injector: Injector
+  ) { }
 
   getMembers(gymId: string): Observable<Member[]> {
-    const db = this.firebaseService.getDb();
-    const q = query(collection(db, 'members'), where('gymId', '==', gymId));
-    return from(getDocs(q)).pipe(
+    return from(getDocs(getBranchFilteredQuery(this.injector, this.firebaseService, 'members', gymId))).pipe(
       map(snap => snap.docs.map(d => d.data() as Member)),
       catchError(err => throwError(() => new Error(err.message || 'Failed to get members.')))
     );
@@ -373,6 +498,8 @@ export class FirebaseMemberRepository implements IMemberRepository {
   addMember(gymId: string, member: Omit<Member, 'id' | 'attendanceCount' | 'balance'>): Observable<Member> {
     const db = this.firebaseService.getDb();
     const id = 'mem_' + Math.random().toString(36).substring(2, 9);
+    const tenantContext = this.injector.get(TenantContextService);
+    const branchId = member.branchId || tenantContext.getBranchId() || '';
 
     const planRef = doc(db, 'membership_plans', member.planId);
     return from(getDoc(planRef)).pipe(
@@ -382,11 +509,15 @@ export class FirebaseMemberRepository implements IMemberRepository {
           ...member,
           id,
           gymId,
+          branchId,
           attendanceCount: 0,
           balance: member.status === 'inactive' ? 0 : price
         };
         return from(setDoc(doc(db, 'members', id), newMember)).pipe(
-          map(() => newMember)
+          map(() => {
+            logAudit(this.injector, 'Member Creation', 'member', id);
+            return newMember;
+          })
         );
       }),
       catchError(err => throwError(() => new Error(err.message || 'Failed to add member.')))
@@ -396,7 +527,10 @@ export class FirebaseMemberRepository implements IMemberRepository {
   updateMember(gymId: string, member: Member): Observable<void> {
     const db = this.firebaseService.getDb();
     return from(setDoc(doc(db, 'members', member.id), member)).pipe(
-      map(() => undefined),
+      map(() => {
+        logAudit(this.injector, 'Member Update', 'member', member.id);
+        return undefined;
+      }),
       catchError(err => throwError(() => new Error(err.message || 'Failed to update member.')))
     );
   }
@@ -404,7 +538,10 @@ export class FirebaseMemberRepository implements IMemberRepository {
   deleteMember(gymId: string, id: string): Observable<void> {
     const db = this.firebaseService.getDb();
     return from(deleteDoc(doc(db, 'members', id))).pipe(
-      map(() => undefined),
+      map(() => {
+        logAudit(this.injector, 'Member Deletion', 'member', id);
+        return undefined;
+      }),
       catchError(err => throwError(() => new Error(err.message || 'Failed to delete member.')))
     );
   }
@@ -412,12 +549,13 @@ export class FirebaseMemberRepository implements IMemberRepository {
 
 @Injectable({ providedIn: 'root' })
 export class FirebasePaymentRepository implements IPaymentRepository {
-  constructor(private firebaseService: FirebaseService) { }
+  constructor(
+    private firebaseService: FirebaseService,
+    private injector: Injector
+  ) { }
 
   getPayments(gymId: string): Observable<Payment[]> {
-    const db = this.firebaseService.getDb();
-    const q = query(collection(db, 'payments'), where('gymId', '==', gymId));
-    return from(getDocs(q)).pipe(
+    return from(getDocs(getBranchFilteredQuery(this.injector, this.firebaseService, 'payments', gymId))).pipe(
       map(snap => snap.docs.map(d => d.data() as Payment)),
       catchError(err => throwError(() => new Error(err.message || 'Failed to get payments.')))
     );
@@ -426,16 +564,22 @@ export class FirebasePaymentRepository implements IPaymentRepository {
   addPayment(gymId: string, payment: Omit<Payment, 'id'>): Observable<Payment> {
     const db = this.firebaseService.getDb();
     const id = 'pay_' + Math.random().toString(36).substring(2, 9);
+    const tenantContext = this.injector.get(TenantContextService);
+    const branchId = (payment as any).branchId || tenantContext.getBranchId() || '';
     const newPayment: Payment = {
       ...payment,
       id,
-      gymId
-    };
+      gymId,
+      branchId
+    } as Payment;
 
     const memberRef = doc(db, 'members', payment.memberId);
     return from(setDoc(doc(db, 'payments', id), newPayment)).pipe(
       switchMap(() => from(updateDoc(memberRef, { balance: payment.dueAmount }))),
-      map(() => newPayment),
+      map(() => {
+        logAudit(this.injector, 'Payment Entry', 'payment', id);
+        return newPayment;
+      }),
       catchError(err => throwError(() => new Error(err.message || 'Failed to add payment.')))
     );
   }
@@ -475,12 +619,13 @@ export class FirebasePaymentRepository implements IPaymentRepository {
 
 @Injectable({ providedIn: 'root' })
 export class FirebaseLeadRepository implements ILeadRepository {
-  constructor(private firebaseService: FirebaseService) { }
+  constructor(
+    private firebaseService: FirebaseService,
+    private injector: Injector
+  ) { }
 
   getLeads(gymId: string): Observable<Lead[]> {
-    const db = this.firebaseService.getDb();
-    const q = query(collection(db, 'leads'), where('gymId', '==', gymId));
-    return from(getDocs(q)).pipe(
+    return from(getDocs(getBranchFilteredQuery(this.injector, this.firebaseService, 'leads', gymId))).pipe(
       map(snap => snap.docs.map(d => d.data() as Lead)),
       catchError(err => throwError(() => new Error(err.message || 'Failed to get leads.')))
     );
@@ -489,21 +634,37 @@ export class FirebaseLeadRepository implements ILeadRepository {
   addLead(gymId: string, lead: Omit<Lead, 'id'>): Observable<Lead> {
     const db = this.firebaseService.getDb();
     const id = 'lead_' + Math.random().toString(36).substring(2, 9);
+    const tenantContext = this.injector.get(TenantContextService);
+    const branchId = lead.branchId || tenantContext.getBranchId() || '';
     const newLead: Lead = {
       ...lead,
       id,
-      gymId
+      gymId,
+      branchId
     };
     return from(setDoc(doc(db, 'leads', id), newLead)).pipe(
-      map(() => newLead),
+      map(() => {
+        logAudit(this.injector, 'Lead Creation', 'lead', id);
+        return newLead;
+      }),
       catchError(err => throwError(() => new Error(err.message || 'Failed to add lead.')))
     );
   }
 
   updateLead(gymId: string, lead: Lead): Observable<void> {
     const db = this.firebaseService.getDb();
-    return from(setDoc(doc(db, 'leads', lead.id), lead)).pipe(
-      map(() => undefined),
+    return from(getDoc(doc(db, 'leads', lead.id))).pipe(
+      switchMap(snap => {
+        const oldLead = snap.exists() ? snap.data() as Lead : null;
+        return from(setDoc(doc(db, 'leads', lead.id), lead)).pipe(
+          map(() => {
+            if (lead.status === 'Converted' && (!oldLead || oldLead.status !== 'Converted')) {
+              logAudit(this.injector, 'Lead Conversion', 'lead', lead.id);
+            }
+            return undefined;
+          })
+        );
+      }),
       catchError(err => throwError(() => new Error(err.message || 'Failed to update lead.')))
     );
   }
@@ -519,12 +680,13 @@ export class FirebaseLeadRepository implements ILeadRepository {
 
 @Injectable({ providedIn: 'root' })
 export class FirebaseTrainerRepository implements ITrainerRepository {
-  constructor(private firebaseService: FirebaseService) { }
+  constructor(
+    private firebaseService: FirebaseService,
+    private injector: Injector
+  ) { }
 
   getTrainers(gymId: string): Observable<Trainer[]> {
-    const db = this.firebaseService.getDb();
-    const q = query(collection(db, 'trainers'), where('gymId', '==', gymId));
-    return from(getDocs(q)).pipe(
+    return from(getDocs(getBranchFilteredQuery(this.injector, this.firebaseService, 'trainers', gymId))).pipe(
       map(snap => snap.docs.map(d => d.data() as Trainer)),
       catchError(err => throwError(() => new Error(err.message || 'Failed to get trainers.')))
     );
@@ -533,14 +695,20 @@ export class FirebaseTrainerRepository implements ITrainerRepository {
   addTrainer(gymId: string, trainer: Omit<Trainer, 'id' | 'membersCount'>): Observable<Trainer> {
     const db = this.firebaseService.getDb();
     const id = 'trainer_' + Math.random().toString(36).substring(2, 9);
+    const tenantContext = this.injector.get(TenantContextService);
+    const branchId = trainer.branchId || tenantContext.getBranchId() || '';
     const newTrainer: Trainer = {
       ...trainer,
       id,
       gymId,
+      branchId,
       membersCount: 0
     };
     return from(setDoc(doc(db, 'trainers', id), newTrainer)).pipe(
-      map(() => newTrainer),
+      map(() => {
+        logAudit(this.injector, 'Trainer Change', 'trainer', id);
+        return newTrainer;
+      }),
       catchError(err => throwError(() => new Error(err.message || 'Failed to add trainer.')))
     );
   }
@@ -548,7 +716,10 @@ export class FirebaseTrainerRepository implements ITrainerRepository {
   updateTrainer(gymId: string, trainer: Trainer): Observable<void> {
     const db = this.firebaseService.getDb();
     return from(setDoc(doc(db, 'trainers', trainer.id), trainer)).pipe(
-      map(() => undefined),
+      map(() => {
+        logAudit(this.injector, 'Trainer Change', 'trainer', trainer.id);
+        return undefined;
+      }),
       catchError(err => throwError(() => new Error(err.message || 'Failed to update trainer.')))
     );
   }
@@ -564,12 +735,13 @@ export class FirebaseTrainerRepository implements ITrainerRepository {
 
 @Injectable({ providedIn: 'root' })
 export class FirebaseAttendanceRepository implements IAttendanceRepository {
-  constructor(private firebaseService: FirebaseService) { }
+  constructor(
+    private firebaseService: FirebaseService,
+    private injector: Injector
+  ) { }
 
   getAttendance(gymId: string): Observable<Attendance[]> {
-    const db = this.firebaseService.getDb();
-    const q = query(collection(db, 'attendance'), where('gymId', '==', gymId));
-    return from(getDocs(q)).pipe(
+    return from(getDocs(getBranchFilteredQuery(this.injector, this.firebaseService, 'attendance', gymId))).pipe(
       map(snap => snap.docs.map(d => d.data() as Attendance)),
       catchError(err => throwError(() => new Error(err.message || 'Failed to get attendance records.')))
     );
@@ -603,10 +775,14 @@ export class FirebaseAttendanceRepository implements IAttendanceRepository {
           return from(getDoc(memberRef)).pipe(
             switchMap(memberSnap => {
               const memberName = memberSnap.exists() ? (memberSnap.data() as Member).name : 'Unknown';
+              const memberBranchId = memberSnap.exists() ? (memberSnap.data() as Member).branchId : '';
+              const tenantContext = this.injector.get(TenantContextService);
+              const branchId = memberBranchId || tenantContext.getBranchId() || '';
               const id = 'att_' + Math.random().toString(36).substring(2, 9);
               const newAttendance: Attendance = {
                 id,
                 gymId,
+                branchId,
                 memberId,
                 memberName,
                 date,
@@ -859,12 +1035,13 @@ export class FirebaseBodyProgressRepository implements IBodyProgressRepository {
 
 @Injectable({ providedIn: 'root' })
 export class FirebaseFinanceRepository implements IFinanceRepository {
-  constructor(private firebaseService: FirebaseService) { }
+  constructor(
+    private firebaseService: FirebaseService,
+    private injector: Injector
+  ) { }
 
   getExpenses(gymId: string): Observable<Expense[]> {
-    const db = this.firebaseService.getDb();
-    const q = query(collection(db, 'expenses'), where('gymId', '==', gymId));
-    return from(getDocs(q)).pipe(
+    return from(getDocs(getBranchFilteredQuery(this.injector, this.firebaseService, 'expenses', gymId))).pipe(
       map(snap => snap.docs.map(d => d.data() as Expense)),
       catchError(err => throwError(() => new Error(err.message || 'Failed to get expenses.')))
     );
@@ -873,13 +1050,19 @@ export class FirebaseFinanceRepository implements IFinanceRepository {
   addExpense(gymId: string, expense: Omit<Expense, 'id'>): Observable<Expense> {
     const db = this.firebaseService.getDb();
     const id = 'exp_' + Math.random().toString(36).substring(2, 9);
+    const tenantContext = this.injector.get(TenantContextService);
+    const branchId = (expense as any).branchId || tenantContext.getBranchId() || '';
     const newExpense: Expense = {
       ...expense,
       id,
-      gymId
-    };
+      gymId,
+      branchId
+    } as Expense;
     return from(setDoc(doc(db, 'expenses', id), newExpense)).pipe(
-      map(() => newExpense),
+      map(() => {
+        logAudit(this.injector, 'Expense Entry', 'expense', id);
+        return newExpense;
+      }),
       catchError(err => throwError(() => new Error(err.message || 'Failed to add expense.')))
     );
   }
@@ -901,9 +1084,7 @@ export class FirebaseFinanceRepository implements IFinanceRepository {
   }
 
   getInvoices(gymId: string): Observable<Invoice[]> {
-    const db = this.firebaseService.getDb();
-    const q = query(collection(db, 'invoices'), where('gymId', '==', gymId));
-    return from(getDocs(q)).pipe(
+    return from(getDocs(getBranchFilteredQuery(this.injector, this.firebaseService, 'invoices', gymId))).pipe(
       map(snap => snap.docs.map(d => d.data() as Invoice)),
       catchError(err => throwError(() => new Error(err.message || 'Failed to get invoices.')))
     );
@@ -912,13 +1093,19 @@ export class FirebaseFinanceRepository implements IFinanceRepository {
   addInvoice(gymId: string, invoice: Omit<Invoice, 'id'>): Observable<Invoice> {
     const db = this.firebaseService.getDb();
     const id = 'inv_' + Math.random().toString(36).substring(2, 9);
+    const tenantContext = this.injector.get(TenantContextService);
+    const branchId = (invoice as any).branchId || tenantContext.getBranchId() || '';
     const newInvoice: Invoice = {
       ...invoice,
       id,
-      gymId
-    };
+      gymId,
+      branchId
+    } as Invoice;
     return from(setDoc(doc(db, 'invoices', id), newInvoice)).pipe(
-      map(() => newInvoice),
+      map(() => {
+        logAudit(this.injector, 'Invoice Creation', 'invoice', id);
+        return newInvoice;
+      }),
       catchError(err => throwError(() => new Error(err.message || 'Failed to add invoice.')))
     );
   }
@@ -932,9 +1119,7 @@ export class FirebaseFinanceRepository implements IFinanceRepository {
   }
 
   getCollections(gymId: string): Observable<Collection[]> {
-    const db = this.firebaseService.getDb();
-    const q = query(collection(db, 'collections'), where('gymId', '==', gymId));
-    return from(getDocs(q)).pipe(
+    return from(getDocs(getBranchFilteredQuery(this.injector, this.firebaseService, 'collections', gymId))).pipe(
       map(snap => snap.docs.map(d => d.data() as Collection)),
       catchError(err => throwError(() => new Error(err.message || 'Failed to get collections.')))
     );
@@ -943,11 +1128,14 @@ export class FirebaseFinanceRepository implements IFinanceRepository {
   addCollection(gymId: string, collection: Omit<Collection, 'id'>): Observable<Collection> {
     const db = this.firebaseService.getDb();
     const id = 'col_' + Math.random().toString(36).substring(2, 9);
+    const tenantContext = this.injector.get(TenantContextService);
+    const branchId = (collection as any).branchId || tenantContext.getBranchId() || '';
     const newCollection: Collection = {
       ...collection,
       id,
-      gymId
-    };
+      gymId,
+      branchId
+    } as Collection;
     return from(setDoc(doc(db, 'collections', id), newCollection)).pipe(
       map(() => newCollection),
       catchError(err => throwError(() => new Error(err.message || 'Failed to add collection.')))
@@ -957,12 +1145,13 @@ export class FirebaseFinanceRepository implements IFinanceRepository {
 
 @Injectable({ providedIn: 'root' })
 export class FirebaseEmployeeRepository implements IEmployeeRepository {
-  constructor(private firebaseService: FirebaseService) { }
+  constructor(
+    private firebaseService: FirebaseService,
+    private injector: Injector
+  ) { }
 
   getEmployees(gymId: string): Observable<Employee[]> {
-    const db = this.firebaseService.getDb();
-    const q = query(collection(db, 'employees'), where('gymId', '==', gymId));
-    return from(getDocs(q)).pipe(
+    return from(getDocs(getBranchFilteredQuery(this.injector, this.firebaseService, 'employees', gymId))).pipe(
       map(snap => snap.docs.map(d => d.data() as Employee)),
       catchError(err => throwError(() => new Error(err.message || 'Failed to get employees.')))
     );
@@ -1045,12 +1234,15 @@ export class FirebaseEmployeeRepository implements IEmployeeRepository {
             return from(createUserWithEmailAndPassword(tempAuth, cleanEmail, generatedPassword)).pipe(
               switchMap(cred => {
                 const uid = cred.user.uid;
+                const tenantContext = this.injector.get(TenantContextService);
+                const branchId = employee.branchId || tenantContext.getBranchId() || '';
                 
                 // Construct Employee details
                 const newEmp: Employee = {
                   ...employee,
                   id: uid,
                   gymId,
+                  branchId,
                   password: generatedPassword // Temporarily attached for the success dialog display
                 };
 
@@ -1070,7 +1262,9 @@ export class FirebaseEmployeeRepository implements IEmployeeRepository {
                   avatarUrl: newEmp.photoUrl || `https://api.dicebear.com/7.x/initials/svg?seed=${encodeURIComponent(newEmp.fullName)}`,
                   role: newEmp.role,
                   gymId,
+                  branchId,
                   isFirstLogin: true,
+                  tempPasswordExpiresAt: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString(),
                   permissions: [],
                   lastLogin: new Date().toISOString(),
                   sessionExpiresAt: new Date(Date.now() + 8 * 60 * 60 * 1000).toISOString()
@@ -1083,15 +1277,19 @@ export class FirebaseEmployeeRepository implements IEmployeeRepository {
                   }
                 });
 
-                // 4. Save to Firestore (employees and users collections)
+                // 4. Save to Firestore (employees and users collections) and trigger password reset email
                 return forkJoin([
                   from(setDoc(doc(db, 'employees', uid), cleanEmp)),
-                  from(setDoc(doc(db, 'users', uid), cleanUserProfile))
+                  from(setDoc(doc(db, 'users', uid), cleanUserProfile)),
+                  from(sendPasswordResetEmail(this.firebaseService.getAuth(), cleanEmail))
                 ]).pipe(
                   // Complete transaction by signing out and deleting temp app context
                   switchMap(() => from(signOut(tempAuth)).pipe(
                     switchMap(() => from(deleteApp(tempApp))),
-                    map(() => newEmp)
+                    map(() => {
+                      logAudit(this.injector, 'Employee Creation', 'employee', uid);
+                      return newEmp;
+                    })
                   )),
                   catchError(firestoreErr => {
                     // Rollback Firebase Auth user if DB write fails
@@ -1147,26 +1345,37 @@ export class FirebaseEmployeeRepository implements IEmployeeRepository {
       }
     });
 
-    const ops = [
-      from(setDoc(empRef, cleanEmp)),
-      from(getDoc(userRef)).pipe(
-        switchMap(snap => {
-          if (snap.exists()) {
-            const updatedUser = {
-              ...snap.data(),
-              name: employee.fullName,
-              role: employee.role,
-              avatarUrl: employee.photoUrl || snap.data()['avatarUrl']
-            };
-            return from(setDoc(userRef, updatedUser));
-          }
-          return of(undefined);
-        })
-      )
-    ];
+    return from(getDoc(empRef)).pipe(
+      switchMap(oldEmpSnap => {
+        const oldEmp = oldEmpSnap.exists() ? oldEmpSnap.data() as Employee : null;
+        const ops = [
+          from(setDoc(empRef, cleanEmp)),
+          from(getDoc(userRef)).pipe(
+            switchMap(snap => {
+              if (snap.exists()) {
+                const updatedUser = {
+                  ...snap.data(),
+                  name: employee.fullName,
+                  role: employee.role,
+                  branchId: employee.branchId,
+                  avatarUrl: employee.photoUrl || snap.data()['avatarUrl']
+                };
+                return from(setDoc(userRef, updatedUser));
+              }
+              return of(undefined);
+            })
+          )
+        ];
 
-    return forkJoin(ops).pipe(
-      map(() => undefined),
+        return forkJoin(ops).pipe(
+          map(() => {
+            if (oldEmp && oldEmp.role !== employee.role) {
+              logAudit(this.injector, 'Role Change', 'employee', employee.id);
+            }
+            return undefined;
+          })
+        );
+      }),
       catchError(err => throwError(() => new Error(err.message || 'Failed to update employee.')))
     );
   }
@@ -1184,9 +1393,7 @@ export class FirebaseEmployeeRepository implements IEmployeeRepository {
   }
 
   getAttendance(gymId: string): Observable<EmployeeAttendance[]> {
-    const db = this.firebaseService.getDb();
-    const q = query(collection(db, 'employee_attendance'), where('gymId', '==', gymId));
-    return from(getDocs(q)).pipe(
+    return from(getDocs(getBranchFilteredQuery(this.injector, this.firebaseService, 'employee_attendance', gymId))).pipe(
       map(snap => snap.docs.map(d => d.data() as EmployeeAttendance)),
       catchError(err => throwError(() => new Error(err.message || 'Failed to get employee attendance.')))
     );
@@ -1195,10 +1402,13 @@ export class FirebaseEmployeeRepository implements IEmployeeRepository {
   markAttendance(gymId: string, record: Omit<EmployeeAttendance, 'id'>): Observable<EmployeeAttendance> {
     const db = this.firebaseService.getDb();
     const id = 'att_emp_' + Math.random().toString(36).substring(2, 9);
+    const tenantContext = this.injector.get(TenantContextService);
+    const branchId = record.branchId || tenantContext.getBranchId() || '';
     const newRecord: EmployeeAttendance = {
       ...record,
       id,
-      gymId
+      gymId,
+      branchId
     };
     return from(setDoc(doc(db, 'employee_attendance', id), newRecord)).pipe(
       map(() => newRecord),
@@ -1207,9 +1417,7 @@ export class FirebaseEmployeeRepository implements IEmployeeRepository {
   }
 
   getPayroll(gymId: string): Observable<EmployeePayroll[]> {
-    const db = this.firebaseService.getDb();
-    const q = query(collection(db, 'employee_payroll'), where('gymId', '==', gymId));
-    return from(getDocs(q)).pipe(
+    return from(getDocs(getBranchFilteredQuery(this.injector, this.firebaseService, 'employee_payroll', gymId))).pipe(
       map(snap => snap.docs.map(d => d.data() as EmployeePayroll)),
       catchError(err => throwError(() => new Error(err.message || 'Failed to get employee payroll.')))
     );
@@ -1218,10 +1426,13 @@ export class FirebaseEmployeeRepository implements IEmployeeRepository {
   addPayroll(gymId: string, payroll: Omit<EmployeePayroll, 'id'>): Observable<EmployeePayroll> {
     const db = this.firebaseService.getDb();
     const id = 'pay_emp_' + Math.random().toString(36).substring(2, 9);
+    const tenantContext = this.injector.get(TenantContextService);
+    const branchId = payroll.branchId || tenantContext.getBranchId() || '';
     const newPayroll: EmployeePayroll = {
       ...payroll,
       id,
-      gymId
+      gymId,
+      branchId
     };
     return from(setDoc(doc(db, 'employee_payroll', id), newPayroll)).pipe(
       map(() => newPayroll),
@@ -1230,9 +1441,7 @@ export class FirebaseEmployeeRepository implements IEmployeeRepository {
   }
 
   getPerformance(gymId: string): Observable<EmployeePerformance[]> {
-    const db = this.firebaseService.getDb();
-    const q = query(collection(db, 'employee_performance'), where('gymId', '==', gymId));
-    return from(getDocs(q)).pipe(
+    return from(getDocs(getBranchFilteredQuery(this.injector, this.firebaseService, 'employee_performance', gymId))).pipe(
       map(snap => snap.docs.map(d => d.data() as EmployeePerformance)),
       catchError(err => throwError(() => new Error(err.message || 'Failed to get performance reviews.')))
     );
@@ -1241,10 +1450,13 @@ export class FirebaseEmployeeRepository implements IEmployeeRepository {
   addPerformance(gymId: string, performance: Omit<EmployeePerformance, 'id'>): Observable<EmployeePerformance> {
     const db = this.firebaseService.getDb();
     const id = 'perf_' + Math.random().toString(36).substring(2, 9);
+    const tenantContext = this.injector.get(TenantContextService);
+    const branchId = performance.branchId || tenantContext.getBranchId() || '';
     const newPerformance: EmployeePerformance = {
       ...performance,
       id,
-      gymId
+      gymId,
+      branchId
     };
     return from(setDoc(doc(db, 'employee_performance', id), newPerformance)).pipe(
       map(() => newPerformance),
@@ -1255,12 +1467,13 @@ export class FirebaseEmployeeRepository implements IEmployeeRepository {
 
 @Injectable({ providedIn: 'root' })
 export class FirebasePersonalTrainingRepository implements IPersonalTrainingRepository {
-  constructor(private firebaseService: FirebaseService) { }
+  constructor(
+    private firebaseService: FirebaseService,
+    private injector: Injector
+  ) { }
 
   getPTPlans(gymId: string): Observable<PTPlan[]> {
-    const db = this.firebaseService.getDb();
-    const q = query(collection(db, 'ptPlans'), where('gymId', '==', gymId));
-    return from(getDocs(q)).pipe(
+    return from(getDocs(getBranchFilteredQuery(this.injector, this.firebaseService, 'ptPlans', gymId))).pipe(
       map(snap => snap.docs.map(d => d.data() as PTPlan)),
       catchError(err => throwError(() => new Error(err.message || 'Failed to get PT plans.')))
     );
@@ -1269,11 +1482,14 @@ export class FirebasePersonalTrainingRepository implements IPersonalTrainingRepo
   addPTPlan(gymId: string, plan: Omit<PTPlan, 'id'>): Observable<PTPlan> {
     const db = this.firebaseService.getDb();
     const id = 'pt_' + Math.random().toString(36).substring(2, 9);
+    const tenantContext = this.injector.get(TenantContextService);
+    const branchId = (plan as any).branchId || tenantContext.getBranchId() || '';
     const newPlan: PTPlan = {
       ...plan,
       id,
-      gymId
-    };
+      gymId,
+      branchId
+    } as any;
     return from(setDoc(doc(db, 'ptPlans', id), newPlan)).pipe(
       map(() => newPlan),
       catchError(err => throwError(() => new Error(err.message || 'Failed to add PT plan.')))
@@ -1297,9 +1513,7 @@ export class FirebasePersonalTrainingRepository implements IPersonalTrainingRepo
   }
 
   getPTSessions(gymId: string): Observable<PTSession[]> {
-    const db = this.firebaseService.getDb();
-    const q = query(collection(db, 'ptSessions'), where('gymId', '==', gymId));
-    return from(getDocs(q)).pipe(
+    return from(getDocs(getBranchFilteredQuery(this.injector, this.firebaseService, 'ptSessions', gymId))).pipe(
       map(snap => snap.docs.map(d => d.data() as PTSession)),
       catchError(err => throwError(() => new Error(err.message || 'Failed to get PT sessions.')))
     );
@@ -1308,17 +1522,20 @@ export class FirebasePersonalTrainingRepository implements IPersonalTrainingRepo
   addPTSession(gymId: string, session: Omit<PTSession, 'id'>): Observable<PTSession> {
     const db = this.firebaseService.getDb();
     const id = 'pts_' + Math.random().toString(36).substring(2, 9);
+    const tenantContext = this.injector.get(TenantContextService);
+    const branchId = session.branchId || tenantContext.getBranchId() || '';
     const newSession: PTSession = {
       ...session,
       id,
-      gymId
+      gymId,
+      branchId
     };
 
     const histId = 'sh_' + Math.random().toString(36).substring(2, 9);
     const hist: SessionHistory = {
       id: histId,
       gymId,
-      branchId: session.branchId,
+      branchId,
       sessionId: id,
       memberId: session.memberId,
       trainerId: session.trainerId,
@@ -1432,9 +1649,7 @@ export class FirebasePersonalTrainingRepository implements IPersonalTrainingRepo
   }
 
   getTrainerAssignments(gymId: string): Observable<TrainerAssignment[]> {
-    const db = this.firebaseService.getDb();
-    const q = query(collection(db, 'trainerAssignments'), where('gymId', '==', gymId));
-    return from(getDocs(q)).pipe(
+    return from(getDocs(getBranchFilteredQuery(this.injector, this.firebaseService, 'trainerAssignments', gymId))).pipe(
       map(snap => snap.docs.map(d => d.data() as TrainerAssignment)),
       catchError(err => throwError(() => new Error(err.message || 'Failed to get trainer assignments.')))
     );
@@ -1443,11 +1658,14 @@ export class FirebasePersonalTrainingRepository implements IPersonalTrainingRepo
   addTrainerAssignment(gymId: string, assignment: Omit<TrainerAssignment, 'id'>): Observable<TrainerAssignment> {
     const db = this.firebaseService.getDb();
     const id = 'ta_' + Math.random().toString(36).substring(2, 9);
+    const tenantContext = this.injector.get(TenantContextService);
+    const branchId = (assignment as any).branchId || tenantContext.getBranchId() || '';
     const newAssignment: TrainerAssignment = {
       ...assignment,
       id,
-      gymId
-    };
+      gymId,
+      branchId
+    } as any;
     return from(setDoc(doc(db, 'trainerAssignments', id), newAssignment)).pipe(
       map(() => newAssignment),
       catchError(err => throwError(() => new Error(err.message || 'Failed to add trainer assignment.')))
@@ -1455,9 +1673,7 @@ export class FirebasePersonalTrainingRepository implements IPersonalTrainingRepo
   }
 
   getSessionHistory(gymId: string): Observable<SessionHistory[]> {
-    const db = this.firebaseService.getDb();
-    const q = query(collection(db, 'sessionHistory'), where('gymId', '==', gymId));
-    return from(getDocs(q)).pipe(
+    return from(getDocs(getBranchFilteredQuery(this.injector, this.firebaseService, 'sessionHistory', gymId))).pipe(
       map(snap => snap.docs.map(d => d.data() as SessionHistory)),
       catchError(err => throwError(() => new Error(err.message || 'Failed to get session history.')))
     );
@@ -1466,10 +1682,13 @@ export class FirebasePersonalTrainingRepository implements IPersonalTrainingRepo
   addSessionHistory(gymId: string, history: Omit<SessionHistory, 'id'>): Observable<SessionHistory> {
     const db = this.firebaseService.getDb();
     const id = 'sh_' + Math.random().toString(36).substring(2, 9);
+    const tenantContext = this.injector.get(TenantContextService);
+    const branchId = history.branchId || tenantContext.getBranchId() || '';
     const newHistory: SessionHistory = {
       ...history,
       id,
-      gymId
+      gymId,
+      branchId
     };
     return from(setDoc(doc(db, 'sessionHistory', id), newHistory)).pipe(
       map(() => newHistory),
@@ -1478,9 +1697,7 @@ export class FirebasePersonalTrainingRepository implements IPersonalTrainingRepo
   }
 
   getTrainerRevenue(gymId: string): Observable<TrainerRevenue[]> {
-    const db = this.firebaseService.getDb();
-    const q = query(collection(db, 'trainerRevenue'), where('gymId', '==', gymId));
-    return from(getDocs(q)).pipe(
+    return from(getDocs(getBranchFilteredQuery(this.injector, this.firebaseService, 'trainerRevenue', gymId))).pipe(
       map(snap => snap.docs.map(d => d.data() as TrainerRevenue)),
       catchError(err => throwError(() => new Error(err.message || 'Failed to get trainer revenue.')))
     );
@@ -1489,11 +1706,14 @@ export class FirebasePersonalTrainingRepository implements IPersonalTrainingRepo
   addTrainerRevenue(gymId: string, revenue: Omit<TrainerRevenue, 'id'>): Observable<TrainerRevenue> {
     const db = this.firebaseService.getDb();
     const id = 'tr_' + Math.random().toString(36).substring(2, 9);
+    const tenantContext = this.injector.get(TenantContextService);
+    const branchId = (revenue as any).branchId || tenantContext.getBranchId() || '';
     const newRev: TrainerRevenue = {
       ...revenue,
       id,
-      gymId
-    };
+      gymId,
+      branchId
+    } as any;
     return from(setDoc(doc(db, 'trainerRevenue', id), newRev)).pipe(
       map(() => newRev),
       catchError(err => throwError(() => new Error(err.message || 'Failed to add trainer revenue.')))
@@ -1501,9 +1721,7 @@ export class FirebasePersonalTrainingRepository implements IPersonalTrainingRepo
   }
 
   getMemberPTPlans(gymId: string): Observable<MemberPTPlan[]> {
-    const db = this.firebaseService.getDb();
-    const q = query(collection(db, 'memberPTPlans'), where('gymId', '==', gymId));
-    return from(getDocs(q)).pipe(
+    return from(getDocs(getBranchFilteredQuery(this.injector, this.firebaseService, 'memberPTPlans', gymId))).pipe(
       map(snap => snap.docs.map(d => d.data() as MemberPTPlan)),
       catchError(err => throwError(() => new Error(err.message || 'Failed to get member PT plans.')))
     );
@@ -1526,10 +1744,13 @@ export class FirebasePersonalTrainingRepository implements IPersonalTrainingRepo
   addMemberPTPlan(gymId: string, memberPlan: Omit<MemberPTPlan, 'id'>): Observable<MemberPTPlan> {
     const db = this.firebaseService.getDb();
     const id = 'mpt_' + Math.random().toString(36).substring(2, 9);
+    const tenantContext = this.injector.get(TenantContextService);
+    const branchId = (memberPlan as any).branchId || tenantContext.getBranchId() || '';
     const newMP: MemberPTPlan = {
       ...memberPlan,
       id,
-      gymId
+      gymId,
+      branchId
     };
     return from(setDoc(doc(db, 'memberPTPlans', id), newMP)).pipe(
       map(() => newMP),

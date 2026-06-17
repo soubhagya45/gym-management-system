@@ -58,6 +58,7 @@ export class EmployeesComponent implements OnInit {
   attendance$: Observable<EmployeeAttendance[]>;
   payroll$: Observable<EmployeePayroll[]>;
   performance$: Observable<EmployeePerformance[]>;
+  branches$: Observable<any[]>;
   
   filteredEmployees$: Observable<Employee[]>;
   managers$: Observable<Employee[]>;
@@ -84,10 +85,8 @@ export class EmployeesComponent implements OnInit {
   // Options
   roles = [
     { value: UserRole.Owner, label: 'Gym Owner' },
-    { value: UserRole.Manager, label: 'Manager' },
-    { value: UserRole.Receptionist, label: 'Receptionist' },
+    { value: UserRole.Manager, label: 'Branch Manager' },
     { value: UserRole.Trainer, label: 'Trainer' },
-    { value: UserRole.Accountant, label: 'Accountant' },
     { value: UserRole.Staff, label: 'Staff' }
   ];
 
@@ -101,15 +100,15 @@ export class EmployeesComponent implements OnInit {
 
   // Roles Matrix Permissions data
   rolesMatrix = [
-    { feature: 'View Dashboard', roles: { owner: true, manager: true, receptionist: false, trainer: false, accountant: false, staff: false } },
-    { feature: 'Manage Members', roles: { owner: true, manager: true, receptionist: true, trainer: false, accountant: false, staff: false } },
-    { feature: 'View Member Profiles', roles: { owner: true, manager: true, receptionist: true, trainer: true, accountant: false, staff: true } },
-    { feature: 'Manage Payments', roles: { owner: true, manager: true, receptionist: true, trainer: false, accountant: true, staff: false } },
-    { feature: 'Manage Settings', roles: { owner: true, manager: false, receptionist: false, trainer: false, accountant: false, staff: false } },
-    { feature: 'Manage Employees', roles: { owner: true, manager: true, receptionist: false, trainer: false, accountant: false, staff: false } },
-    { feature: 'Mark Attendance', roles: { owner: true, manager: true, receptionist: true, trainer: true, accountant: false, staff: false } },
-    { feature: 'Access Finance Reports', roles: { owner: true, manager: false, receptionist: false, trainer: false, accountant: true, staff: false } },
-    { feature: 'Send WhatsApp Reminders', roles: { owner: true, manager: false, receptionist: false, trainer: false, accountant: false, staff: false } }
+    { feature: 'View Dashboard', roles: { owner: true, manager: true, trainer: false, staff: false } },
+    { feature: 'Manage Members', roles: { owner: true, manager: true, trainer: false, staff: false } },
+    { feature: 'View Member Profiles', roles: { owner: true, manager: true, trainer: true, staff: true } },
+    { feature: 'Manage Payments', roles: { owner: true, manager: true, trainer: false, staff: false } },
+    { feature: 'Manage Settings', roles: { owner: true, manager: false, trainer: false, staff: false } },
+    { feature: 'Manage Employees', roles: { owner: true, manager: true, trainer: false, staff: false } },
+    { feature: 'Mark Attendance', roles: { owner: true, manager: true, trainer: true, staff: false } },
+    { feature: 'Access Finance Reports', roles: { owner: true, manager: false, trainer: false, staff: false } },
+    { feature: 'Send WhatsApp Reminders', roles: { owner: true, manager: false, trainer: false, staff: false } }
   ];
 
   isUploadingPhoto = false;
@@ -129,6 +128,10 @@ export class EmployeesComponent implements OnInit {
     this.attendance$ = this.employeeState.attendance$;
     this.payroll$ = this.employeeState.payroll$;
     this.performance$ = this.employeeState.performance$;
+    
+    this.branches$ = this.gymState.activeGym$.pipe(
+      map(gym => gym ? gym.branches || [] : [])
+    );
 
     // Filtered lists
     this.managers$ = this.employees$.pipe(
@@ -228,6 +231,7 @@ export class EmployeesComponent implements OnInit {
       dob: ['1995-01-01', Validators.required],
       address: ['', Validators.required],
       role: [UserRole.Staff, Validators.required],
+      branchId: ['', Validators.required],
       department: ['Operations', Validators.required],
       joinDate: [todayStr, Validators.required],
       salary: [20000, [Validators.required, Validators.min(0)]],
@@ -308,8 +312,6 @@ export class EmployeesComponent implements OnInit {
       
       // Auto-assign department based on role
       if (role === UserRole.Manager) deptCtrl?.setValue('Management');
-      else if (role === UserRole.Receptionist) deptCtrl?.setValue('Front Desk');
-      else if (role === UserRole.Accountant) deptCtrl?.setValue('Finance');
       else deptCtrl?.setValue('Operations');
     }
 
@@ -449,6 +451,7 @@ export class EmployeesComponent implements OnInit {
         reportingManagerName: repName || undefined,
         username: val.username,
         accountStatus: val.accountStatus,
+        branchId: val.branchId,
         specialty: val.role === UserRole.Trainer ? val.specialty : undefined,
         experienceYears: val.role === UserRole.Trainer ? val.experienceYears : undefined,
         assignedMembersCount: val.role === UserRole.Trainer ? 0 : undefined,

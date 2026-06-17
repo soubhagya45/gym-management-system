@@ -95,21 +95,6 @@ export const ROLE_PERMISSIONS: Record<UserRole, Permission[]> = {
     'manage:pt-sessions'
   ],
 
-  [UserRole.Receptionist]: [
-    'view:members', 'manage:members',
-    'view:leads', 'manage:leads',
-    'view:payments', 'manage:payments',
-    'view:attendance', 'manage:attendance',
-    'view:finance',
-    'view:pt-sessions',
-    'manage:pt-sessions'
-  ],
-
-  [UserRole.Accountant]: [
-    'view:payments', 'manage:payments',
-    'view:finance', 'manage:finance'
-  ],
-
   [UserRole.Trainer]: [
     'view:dashboard',
     'view:members',
@@ -120,11 +105,13 @@ export const ROLE_PERMISSIONS: Record<UserRole, Permission[]> = {
   ],
 
   [UserRole.Staff]: [
-    'view:members',
-    'view:leads',
-    'view:attendance',
+    'view:members', 'manage:members',
+    'view:leads', 'manage:leads',
+    'view:payments', 'manage:payments',
+    'view:attendance', 'manage:attendance',
     'view:body-progress',
-    'view:pt-sessions'
+    'view:pt-sessions',
+    'view:finance'
   ]
 };
 
@@ -170,18 +157,18 @@ export interface NavItem {
 /** Full ordered nav manifest — filtered at runtime per user role. */
 export const ALL_NAV_ITEMS: NavItem[] = [
   { label: 'Dashboard',        route: '/dashboard',     icon: 'dashboard',       permission: 'view:dashboard',     roles: [UserRole.SuperAdmin, UserRole.Owner, UserRole.Manager, UserRole.Trainer] },
-  { label: 'Members',          route: '/members',        icon: 'people',          permission: 'view:members',       roles: [UserRole.SuperAdmin, UserRole.Owner, UserRole.Manager, UserRole.Receptionist, UserRole.Staff, UserRole.Trainer] },
-  { label: 'Leads',            route: '/leads',          icon: 'leaderboard',     permission: 'view:leads',         roles: [UserRole.SuperAdmin, UserRole.Owner, UserRole.Manager, UserRole.Receptionist, UserRole.Staff] },
+  { label: 'Members',          route: '/members',        icon: 'people',          permission: 'view:members',       roles: [UserRole.SuperAdmin, UserRole.Owner, UserRole.Manager, UserRole.Staff, UserRole.Trainer] },
+  { label: 'Leads',            route: '/leads',          icon: 'leaderboard',     permission: 'view:leads',         roles: [UserRole.SuperAdmin, UserRole.Owner, UserRole.Manager, UserRole.Staff] },
   { label: 'Employees',        route: '/employees',      icon: 'badge',           permission: 'view:employees',     roles: [UserRole.SuperAdmin, UserRole.Owner, UserRole.Manager] },
-  { label: 'Attendance',       route: '/attendance',     icon: 'event_available', permission: 'view:attendance',    roles: [UserRole.SuperAdmin, UserRole.Owner, UserRole.Manager, UserRole.Receptionist, UserRole.Trainer, UserRole.Staff] },
-  { label: 'PT Sessions',      route: '/pt-sessions',    icon: 'event_note',      permission: 'view:pt-sessions',   roles: [UserRole.SuperAdmin, UserRole.Owner, UserRole.Manager, UserRole.Receptionist, UserRole.Trainer, UserRole.Staff] },
-  { label: 'Payments',         route: '/payments',       icon: 'payments',        permission: 'view:payments',      roles: [UserRole.SuperAdmin, UserRole.Owner, UserRole.Manager, UserRole.Receptionist, UserRole.Accountant, UserRole.Staff] },
+  { label: 'Attendance',       route: '/attendance',     icon: 'event_available', permission: 'view:attendance',    roles: [UserRole.SuperAdmin, UserRole.Owner, UserRole.Manager, UserRole.Trainer, UserRole.Staff] },
+  { label: 'PT Sessions',      route: '/pt-sessions',    icon: 'event_note',      permission: 'view:pt-sessions',   roles: [UserRole.SuperAdmin, UserRole.Owner, UserRole.Manager, UserRole.Trainer, UserRole.Staff] },
+  { label: 'Payments',         route: '/payments',       icon: 'payments',        permission: 'view:payments',      roles: [UserRole.SuperAdmin, UserRole.Owner, UserRole.Manager, UserRole.Staff] },
   {
     label: 'Finance',
     route: '/finance/dashboard',
     icon: 'account_balance_wallet',
     permission: 'view:finance',
-    roles: [UserRole.SuperAdmin, UserRole.Owner, UserRole.Accountant, UserRole.Receptionist]
+    roles: [UserRole.SuperAdmin, UserRole.Owner, UserRole.Manager, UserRole.Staff]
   },
   { label: 'Membership Plans', route: '/plans',          icon: 'fitness_center',  permission: 'view:plans',         roles: [UserRole.SuperAdmin, UserRole.Owner] },
   { label: 'Trainers',         route: '/trainers',       icon: 'sports',          permission: 'view:trainers',      roles: [UserRole.SuperAdmin, UserRole.Owner] },

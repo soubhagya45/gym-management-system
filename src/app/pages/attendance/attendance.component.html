@@ -1,9 +1,25 @@
 <div class="attendance-page-wrapper">
   <!-- Page Header -->
-  <div class="page-header">
+  <div class="page-header" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px;">
     <div class="title-area">
       <h1>Attendance Roster</h1>
-      <p>Today is: <strong>{{ todayString }}</strong></p>
+      <p style="margin: 0;">Today is: <strong>{{ todayString }}</strong></p>
+    </div>
+    <div class="actions-area">
+      <button mat-stroked-button [matMenuTriggerFor]="exportMenu">
+        <mat-icon>download</mat-icon>
+        <span>Export Roster</span>
+      </button>
+      <mat-menu #exportMenu="matMenu">
+        <button mat-menu-item (click)="exportData('csv')">
+          <mat-icon>insert_drive_file</mat-icon>
+          <span>Export as CSV</span>
+        </button>
+        <button mat-menu-item (click)="exportData('excel')">
+          <mat-icon>table_chart</mat-icon>
+          <span>Export as Excel (XML)</span>
+        </button>
+      </mat-menu>
     </div>
   </div>
 

@@ -1,0 +1,92 @@
+<div class="admin-utility-wrapper">
+  <div class="header-section">
+    <div class="title-row">
+      <mat-icon class="title-icon">admin_panel_settings</mat-icon>
+      <div>
+        <h1 class="page-title">Super Admin Control Room</h1>
+        <p class="page-subtitle">Elevate user system roles, verify cross-tenant registries, and oversee database security.</p>
+      </div>
+    </div>
+  </div>
+
+  <div class="control-grid">
+    <!-- Promotion Card -->
+    <mat-card class="glass-card promotion-card">
+      <mat-card-header>
+        <mat-card-title>Elevate Operator Permissions</mat-card-title>
+        <mat-card-subtitle>Promote an existing account to Super Admin status.</mat-card-subtitle>
+      </mat-card-header>
+      <mat-card-content>
+        <div class="promotion-form">
+          <mat-form-field appearance="outline" class="full-width">
+            <mat-label>Identity Node Email</mat-label>
+            <input matInput [(ngModel)]="emailToPromote" placeholder="operator@apexfit.com" type="email" [disabled]="isLoading">
+            <mat-icon matSuffix>alternate_email</mat-icon>
+          </mat-form-field>
+          
+          <button mat-raised-button color="warn" class="action-btn" (click)="promoteToSuperAdmin()" [disabled]="isLoading || !emailToPromote">
+            <mat-icon>security</mat-icon>
+            INITIALIZE ROLE ELEVATION
+          </button>
+        </div>
+      </mat-card-content>
+    </mat-card>
+
+    <!-- Users Table Card -->
+    <mat-card class="glass-card users-card">
+      <mat-card-header>
+        <mat-card-title>Cross-Tenant User Registries</mat-card-title>
+        <mat-card-subtitle>A read-only view of authenticated global identities across all gyms.</mat-card-subtitle>
+      </mat-card-header>
+      <mat-card-content>
+        <div class="table-container">
+          <table mat-table [dataSource]="users" class="cyber-table">
+            
+            <!-- Name Column -->
+            <ng-container matColumnDef="name">
+              <th mat-header-cell *matHeaderCellDef>Name</th>
+              <td mat-cell *matCellDef="let user" class="user-name-cell">
+                <img [src]="user.avatarUrl" class="avatar" alt="">
+                <span>{{user.name}}</span>
+              </td>
+            </ng-container>
+
+            <!-- Email Column -->
+            <ng-container matColumnDef="email">
+              <th mat-header-cell *matHeaderCellDef>Email</th>
+              <td mat-cell *matCellDef="let user">{{user.email}}</td>
+            </ng-container>
+
+            <!-- Role Column -->
+            <ng-container matColumnDef="role">
+              <th mat-header-cell *matHeaderCellDef>Role</th>
+              <td mat-cell *matCellDef="let user">
+                <span class="role-chip" [ngClass]="user.role">{{user.role}}</span>
+              </td>
+            </ng-container>
+
+            <!-- Gym ID Column -->
+            <ng-container matColumnDef="gymId">
+              <th mat-header-cell *matHeaderCellDef>Gym ID</th>
+              <td mat-cell *matCellDef="let user" class="mono-text">{{user.gymId || 'N/A'}}</td>
+            </ng-container>
+
+            <!-- Actions Column -->
+            <ng-container matColumnDef="actions">
+              <th mat-header-cell *matHeaderCellDef>Actions</th>
+              <td mat-cell *matCellDef="let user">
+                <button mat-icon-button color="warn" *ngIf="user.role === 'super_admin'" (click)="demoteUser(user)" [disabled]="isLoading" title="Demote Operator">
+                  <mat-icon>shield</mat-icon>
+                </button>
+                <span *ngIf="user.role !== 'super_admin'">-</span>
+              </td>
+            </ng-container>
+
+            <tr mat-header-row *matHeaderRowDef="displayedColumns"></tr>
+            <tr mat-row *matRowDef="let row; columns: displayedColumns;"></tr>
+          </table>
+        </div>
+      </mat-card-content>
+    </mat-card>
+  </div>
+</div>

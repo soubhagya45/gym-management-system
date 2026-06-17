@@ -15,6 +15,8 @@ import { RouterModule } from '@angular/router';
 import { Expense, ExpenseCategory } from '../../../core/models/finance.entity';
 import { FinanceState } from '../../../presentation/state/finance.state';
 import { ExpenseDialogComponent } from './expense-dialog.component';
+import { ExportService } from '../../../domain/export/export.service';
+import { MatMenuModule } from '@angular/material/menu';
 
 @Component({
   selector: 'app-expenses',
@@ -32,7 +34,8 @@ import { ExpenseDialogComponent } from './expense-dialog.component';
     MatSelectModule,
     MatDialogModule,
     MatSnackBarModule,
-    MatTooltipModule
+    MatTooltipModule,
+    MatMenuModule
   ],
   templateUrl: './expenses.component.html',
   styleUrls: ['./expenses.component.scss']
@@ -59,7 +62,8 @@ export class ExpensesComponent implements OnInit {
   constructor(
     private financeState: FinanceState,
     private dialog: MatDialog,
-    private snackBar: MatSnackBar
+    private snackBar: MatSnackBar,
+    private exportService: ExportService
   ) {}
 
   ngOnInit(): void {
@@ -144,5 +148,33 @@ export class ExpensesComponent implements OnInit {
       'Miscellaneous': 'muted'
     };
     return colors[cat] || 'muted';
+  }
+
+  exportData(format: 'csv' | 'excel'): void {
+    if (this.dataSource.data.length === 0) {
+      this.snackBar.open('No expense data to export.', 'Close', { duration: 3000 });
+      return;
+    }
+
+    this.snackBar.open(`Expense report generated! Downloading ${format.toUpperCase()}...`, 'Dismiss', {
+      duration: 3000
+    });
+
+    const exportData = this.dataSource.data.map(e => ({
+      ID: e.id,
+      Title: e.title,
+      Category: e.category,
+      Amount: e.amount,
+      Date: e.date,
+      CreatedBy: e.createdBy,
+      Notes: e.notes || ''
+    }));
+
+    const filename = `expenses_report_${new Date().toISOString().split('T')[0]}`;
+    if (format === 'csv') {
+      this.exportService.exportToCsv(filename, exportData);
+    } else {
+      this.exportService.exportToExcel(filename, exportData);
+    }
   }
 }

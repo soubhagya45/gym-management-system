@@ -211,6 +211,14 @@
               </mat-form-field>
 
               <mat-form-field appearance="outline">
+                <mat-label>Branch</mat-label>
+                <mat-select formControlName="branchId" required>
+                  <mat-option *ngFor="let branch of branches$ | async" [value]="branch.id">{{branch.name}}</mat-option>
+                </mat-select>
+                <mat-error *ngIf="employeeForm.get('branchId')?.hasError('required')">Branch selection is required</mat-error>
+              </mat-form-field>
+
+              <mat-form-field appearance="outline">
                 <mat-label>Join Date</mat-label>
                 <input matInput type="date" formControlName="joinDate" required>
               </mat-form-field>
@@ -228,7 +236,7 @@
                 </mat-select>
               </mat-form-field>
 
-              <mat-form-field appearance="outline" *ngIf="employeeForm.get('role')?.value !== 'owner'">
+              <mat-form-field appearance="outline" *ngIf="employeeForm.get('role')?.value !== 'gym_owner'">
                 <mat-label>Reporting Manager</mat-label>
                 <mat-select formControlName="reportingManagerId">
                   <mat-option value="">None / Top Level</mat-option>
@@ -310,9 +318,7 @@
                   <th class="feature-col">Modules & Permissions</th>
                   <th>Owner</th>
                   <th>Manager</th>
-                  <th>Receptionist</th>
                   <th>Trainer</th>
-                  <th>Accountant</th>
                   <th>Staff</th>
                 </tr>
               </thead>
@@ -321,9 +327,7 @@
                   <td class="feature-name">{{ row.feature }}</td>
                   <td class="cell-perm"><mat-icon class="perm-icon" [ngClass]="{'allowed': row.roles.owner}">{{ row.roles.owner ? 'check_circle' : 'cancel' }}</mat-icon></td>
                   <td class="cell-perm"><mat-icon class="perm-icon" [ngClass]="{'allowed': row.roles.manager}">{{ row.roles.manager ? 'check_circle' : 'cancel' }}</mat-icon></td>
-                  <td class="cell-perm"><mat-icon class="perm-icon" [ngClass]="{'allowed': row.roles.receptionist}">{{ row.roles.receptionist ? 'check_circle' : 'cancel' }}</mat-icon></td>
                   <td class="cell-perm"><mat-icon class="perm-icon" [ngClass]="{'allowed': row.roles.trainer}">{{ row.roles.trainer ? 'check_circle' : 'cancel' }}</mat-icon></td>
-                  <td class="cell-perm"><mat-icon class="perm-icon" [ngClass]="{'allowed': row.roles.accountant}">{{ row.roles.accountant ? 'check_circle' : 'cancel' }}</mat-icon></td>
                   <td class="cell-perm"><mat-icon class="perm-icon" [ngClass]="{'allowed': row.roles.staff}">{{ row.roles.staff ? 'check_circle' : 'cancel' }}</mat-icon></td>
                 </tr>
               </tbody>

@@ -1,6 +1,7 @@
 export interface Member {
   id: string;
   gymId: string; // Multi-tenant foreign key
+  branchId?: string;
   name: string;
   email: string;
   phone: string;

@@ -4,6 +4,9 @@ import { RouterModule, Routes } from '@angular/router';
 import { authGuard, loginGuard } from './guards/auth.guard';
 import { permissionGuard } from './guards/permission.guard';
 import { tenantGuard } from './guards/tenant.guard';
+import { roleGuard } from './guards/role.guard';
+import { branchGuard } from './guards/branch.guard';
+import { UserRole } from './core/enums/roles.enum';
 
 const routes: Routes = [
   {
@@ -73,98 +76,104 @@ const routes: Routes = [
       {
         path: 'pt-sessions',
         loadComponent: () => import('./pages/pt-sessions/pt-sessions.component').then(m => m.PtSessionsComponent),
-        canActivate: [authGuard, permissionGuard],
-        data: { permission: 'view:pt-sessions' }
+        canActivate: [authGuard, permissionGuard, roleGuard, branchGuard],
+        data: { permission: 'view:pt-sessions', expectedRoles: [UserRole.Trainer, UserRole.Owner, UserRole.Manager] }
       },
       {
         path: 'employees',
         loadComponent: () => import('./pages/employees/employees.component').then(m => m.EmployeesComponent),
-        canActivate: [authGuard, permissionGuard],
+        canActivate: [authGuard, permissionGuard, branchGuard],
         data: { permission: 'view:employees' }
       },
       {
         path: 'payments',
         loadComponent: () => import('./pages/payments/payments.component').then(m => m.PaymentsComponent),
-        canActivate: [authGuard, permissionGuard],
+        canActivate: [authGuard, permissionGuard, branchGuard],
         data: { permission: 'view:payments' }
       },
       {
         path: 'finance/dashboard',
         loadComponent: () => import('./pages/finance/dashboard/finance-dashboard.component').then(m => m.FinanceDashboardComponent),
-        canActivate: [authGuard, permissionGuard],
-        data: { permission: 'view:finance' }
+        canActivate: [authGuard, permissionGuard, roleGuard, branchGuard],
+        data: { permission: 'view:finance', expectedRoles: [UserRole.Owner, UserRole.Manager] }
       },
       {
         path: 'finance/invoices',
         loadComponent: () => import('./pages/finance/invoices/invoices.component').then(m => m.InvoicesComponent),
-        canActivate: [authGuard, permissionGuard],
-        data: { permission: 'view:finance' }
+        canActivate: [authGuard, permissionGuard, roleGuard, branchGuard],
+        data: { permission: 'view:finance', expectedRoles: [UserRole.Owner, UserRole.Manager] }
       },
       {
         path: 'finance/collections',
         loadComponent: () => import('./pages/finance/collections/collections.component').then(m => m.CollectionsComponent),
-        canActivate: [authGuard, permissionGuard],
-        data: { permission: 'view:finance' }
+        canActivate: [authGuard, permissionGuard, roleGuard, branchGuard],
+        data: { permission: 'view:finance', expectedRoles: [UserRole.Owner, UserRole.Manager] }
       },
       {
         path: 'finance/expenses',
         loadComponent: () => import('./pages/finance/expenses/expenses.component').then(m => m.ExpensesComponent),
-        canActivate: [authGuard, permissionGuard],
-        data: { permission: 'view:finance' }
+        canActivate: [authGuard, permissionGuard, roleGuard, branchGuard],
+        data: { permission: 'view:finance', expectedRoles: [UserRole.Owner, UserRole.Manager] }
       },
       {
         path: 'finance/reports',
         loadComponent: () => import('./pages/finance/reports/reports.component').then(m => m.ReportsComponent),
-        canActivate: [authGuard, permissionGuard],
-        data: { permission: 'view:finance' }
+        canActivate: [authGuard, permissionGuard, roleGuard, branchGuard],
+        data: { permission: 'view:finance', expectedRoles: [UserRole.Owner, UserRole.Manager] }
       },
       {
         path: 'finance/cash-flow',
         loadComponent: () => import('./pages/finance/cash-flow/cash-flow.component').then(m => m.CashFlowComponent),
-        canActivate: [authGuard, permissionGuard],
-        data: { permission: 'view:finance' }
+        canActivate: [authGuard, permissionGuard, roleGuard, branchGuard],
+        data: { permission: 'view:finance', expectedRoles: [UserRole.Owner, UserRole.Manager] }
       },
       {
         path: 'finance/revenue-analytics',
         loadComponent: () => import('./pages/finance/revenue-analytics/revenue-analytics.component').then(m => m.RevenueAnalyticsComponent),
-        canActivate: [authGuard, permissionGuard],
-        data: { permission: 'view:finance' }
+        canActivate: [authGuard, permissionGuard, roleGuard, branchGuard],
+        data: { permission: 'view:finance', expectedRoles: [UserRole.Owner, UserRole.Manager] }
       },
       {
         path: 'plans',
         loadComponent: () => import('./pages/membership-plans/membership-plans.component').then(m => m.MembershipPlansComponent),
-        canActivate: [authGuard, permissionGuard],
+        canActivate: [authGuard, permissionGuard, branchGuard],
         data: { permission: 'view:plans' }
       },
       {
         path: 'trainers',
         loadComponent: () => import('./pages/trainers/trainers.component').then(m => m.TrainersComponent),
-        canActivate: [authGuard, permissionGuard],
+        canActivate: [authGuard, permissionGuard, branchGuard],
         data: { permission: 'view:trainers' }
       },
       {
         path: 'trainers/:id',
         loadComponent: () => import('./pages/trainers/trainer-details.component').then(m => m.TrainerDetailsComponent),
-        canActivate: [authGuard, permissionGuard],
+        canActivate: [authGuard, permissionGuard, branchGuard],
         data: { permission: 'view:trainers' }
       },
       {
         path: 'settings',
         loadComponent: () => import('./pages/settings/settings.component').then(m => m.SettingsComponent),
-        canActivate: [authGuard, permissionGuard],
+        canActivate: [authGuard, permissionGuard, branchGuard],
         data: { permission: 'manage:settings' }
       },
       {
         path: 'whatsapp',
         loadComponent: () => import('./pages/whatsapp/whatsapp.component').then(m => m.WhatsAppComponent),
-        canActivate: [authGuard, permissionGuard],
+        canActivate: [authGuard, permissionGuard, branchGuard],
         data: { permission: 'view:whatsapp' }
       },
       {
         path: 'body-progress',
         loadComponent: () => import('./pages/body-progress/body-progress-dashboard.component').then(m => m.BodyProgressDashboardComponent),
-        canActivate: [authGuard, permissionGuard],
+        canActivate: [authGuard, permissionGuard, branchGuard],
         data: { permission: 'view:body-progress' }
+      },
+      {
+        path: 'admin',
+        loadComponent: () => import('./pages/admin-utility/admin-utility.component').then(m => m.AdminUtilityComponent),
+        canActivate: [authGuard, roleGuard],
+        data: { expectedRoles: [UserRole.SuperAdmin] }
       },
       {
         path: 'unauthorized',
@@ -173,7 +182,7 @@ const routes: Routes = [
       {
         path: 'profile',
         loadComponent: () => import('./pages/profile/user-profile.component').then(m => m.UserProfileComponent),
-        canActivate: [authGuard]
+        canActivate: [authGuard, branchGuard]
       },
       {
         path: '**',

@@ -17,4 +17,8 @@ export interface Payment {
   type?: 'membership' | 'pt';
   trainerId?: string;
   trainerName?: string;
+
+  // Razorpay Integration Security
+  transactionId?: string;
+  gatewayResponse?: any;
 }

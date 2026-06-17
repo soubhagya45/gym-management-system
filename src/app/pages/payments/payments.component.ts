@@ -29,6 +29,8 @@ import { Observable } from 'rxjs';
 import { map, take } from 'rxjs/operators';
 import { WhatsAppPreviewModalComponent } from '../whatsapp/whatsapp-preview-modal.component';
 import { GymState } from '../../presentation/state/gym.state';
+import { ExportService } from '../../domain/export/export.service';
+import { MatMenuModule } from '@angular/material/menu';
 
 interface PaymentStats {
   totalCollected: number;
@@ -53,7 +55,8 @@ interface PaymentStats {
     MatSnackBarModule,
     MatTooltipModule,
     MatTabsModule,
-    MatProgressBarModule
+    MatProgressBarModule,
+    MatMenuModule
   ],
   templateUrl: './payments.component.html',
   styleUrls: ['./payments.component.scss']
@@ -84,7 +87,8 @@ export class PaymentsComponent implements OnInit {
     private dialog: MatDialog,
     private snackBar: MatSnackBar,
     private route: ActivatedRoute,
-    private router: Router
+    private router: Router,
+    private exportService: ExportService
   ) {}
 
   ngOnInit(): void {
@@ -200,7 +204,7 @@ export class PaymentsComponent implements OnInit {
     });
   }
 
-  exportPaymentsReport() {
+  exportData(format: 'csv' | 'excel') {
     this.gymState.activeGymFeatures$.pipe(take(1)).subscribe(features => {
       if (!features || !features.canExportReports) {
         this.snackBar.open('Export Reports feature is locked on your current plan. Please upgrade to Pro or Enterprise.', 'Upgrade Plan', {
@@ -211,18 +215,27 @@ export class PaymentsComponent implements OnInit {
         return;
       }
 
-      this.snackBar.open('Ledger report generated! Downloading CSV...', 'Dismiss', {
+      this.snackBar.open(`Ledger report generated! Downloading ${format.toUpperCase()}...`, 'Dismiss', {
         duration: 3000
       });
-      const csvContent = "data:text/csv;charset=utf-8,ID,Member,Plan,TotalAmount,PaidAmount,DueAmount,InvoiceDate,Status\n" + 
-        this.dataSource.data.map(p => `"${p.id}","${p.memberName}","${p.planName}","${p.amount}","${p.paidAmount}","${p.dueAmount}","${p.date}","${p.status}"`).join("\n");
-      const encodedUri = encodeURI(csvContent);
-      const link = document.createElement("a");
-      link.setAttribute("href", encodedUri);
-      link.setAttribute("download", `payments_ledger_${new Date().toISOString().split('T')[0]}.csv`);
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
+
+      const exportData = this.dataSource.data.map(p => ({
+        ID: p.id,
+        Member: p.memberName,
+        Plan: p.planName,
+        TotalAmount: p.amount,
+        PaidAmount: p.paidAmount,
+        DueAmount: p.dueAmount,
+        InvoiceDate: p.date,
+        Status: p.status
+      }));
+
+      const filename = `payments_ledger_${new Date().toISOString().split('T')[0]}`;
+      if (format === 'csv') {
+        this.exportService.exportToCsv(filename, exportData);
+      } else {
+        this.exportService.exportToExcel(filename, exportData);
+      }
     });
   }
 

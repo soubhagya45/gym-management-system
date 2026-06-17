@@ -19,6 +19,8 @@ import { MatDividerModule } from '@angular/material/divider';
 import { DragDropModule, CdkDragDrop } from '@angular/cdk/drag-drop';
 import { combineLatest } from 'rxjs';
 import { take } from 'rxjs/operators';
+import { ExportService } from '../../domain/export/export.service';
+import { MatMenuModule } from '@angular/material/menu';
 
 import { LeadState } from '../../presentation/state/lead.state';
 import { EmployeeState } from '../../presentation/state/employee.state';
@@ -26,6 +28,7 @@ import { MembershipPlanState } from '../../presentation/state/membership-plan.st
 import { Lead } from '../../core/models/lead.entity';
 import { Employee } from '../../core/models/employee.entity';
 import { MembershipPlan } from '../../core/models/membership-plan.entity';
+import { UserRole } from '../../core/enums/roles.enum';
 import { LeadDialogComponent } from './lead-dialog.component';
 import { ConfirmDialogComponent } from '../members/confirm-dialog.component';
 import { ConvertDialogComponent } from './convert-dialog.component';
@@ -65,7 +68,8 @@ interface SalesCRMStats {
     MatCardModule,
     MatTabsModule,
     MatDividerModule,
-    DragDropModule
+    DragDropModule,
+    MatMenuModule
   ],
   templateUrl: './leads.component.html',
   styleUrls: ['./leads.component.scss']
@@ -130,7 +134,8 @@ export class LeadsComponent implements OnInit, AfterViewInit {
     private planState: MembershipPlanState,
     private dialog: MatDialog,
     private snackBar: MatSnackBar,
-    private router: Router
+    private router: Router,
+    private exportService: ExportService
   ) {}
 
   ngOnInit(): void {
@@ -256,7 +261,7 @@ export class LeadsComponent implements OnInit, AfterViewInit {
     this.upcomingFollowUps = leads.filter(l => l.status === 'Follow Up' && (l.nextFollowUp || l.followUpDate || '') > todayStr && l.followUpStatus === 'Pending');
 
     // 4. Build Sales Performance Leaderboard
-    const salesExecs = employees.filter(e => e.role === 'staff' || e.role === 'receptionist' || e.role === 'manager');
+    const salesExecs = employees.filter(e => e.role === UserRole.Staff || e.role === UserRole.Manager);
     const board = salesExecs.map(emp => {
       const empLeads = leads.filter(l => l.leadOwner === emp.id || l.assignedEmployee === emp.id || l.assignedStaff?.toLowerCase() === emp.fullName.toLowerCase());
       const empConverted = empLeads.filter(l => l.status === 'Converted');
@@ -267,7 +272,7 @@ export class LeadsComponent implements OnInit, AfterViewInit {
       return {
         id: emp.id,
         name: emp.fullName,
-        role: emp.role === 'staff' ? 'Sales Executive' : (emp.role === 'receptionist' ? 'Receptionist' : 'Manager'),
+        role: emp.role === UserRole.Staff ? 'Sales Executive' : 'Manager',
         assigned: empLeads.length,
         converted: empConverted.length,
         conversionRate: empConvRate,
@@ -547,35 +552,19 @@ export class LeadsComponent implements OnInit, AfterViewInit {
     }
   }
 
-  downloadCSV(): void {
+  exportData(format: 'csv' | 'excel'): void {
     if (this.reportData.length === 0) return;
-    
-    // Construct CSV file headers and rows
-    const headerRow = this.reportHeaders.join(',');
-    const rows = this.reportData.map(row => {
-      return Object.values(row).map(val => {
-        // Clean values containing commas
-        let cleanVal = String(val).replace(/"/g, '""');
-        if (cleanVal.includes(',') || cleanVal.includes('\n')) {
-          cleanVal = `"${cleanVal}"`;
-        }
-        return cleanVal;
-      }).join(',');
-    });
-    
-    const csvContent = 'data:text/csv;charset=utf-8,' + [headerRow, ...rows].join('\n');
-    const encodedUri = encodeURI(csvContent);
-    const link = document.createElement('a');
-    link.setAttribute('href', encodedUri);
-    link.setAttribute('download', `sales_crm_${this.activeReportType}_report_${new Date().toISOString().split('T')[0]}.csv`);
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
 
-    this.snackBar.open('CSV Report downloaded successfully!', 'Dismiss', {
-      duration: 3000,
-      panelClass: ['premium-snack']
+    this.snackBar.open(`Report generated! Downloading ${format.toUpperCase()}...`, 'Dismiss', {
+      duration: 3000
     });
+
+    const filename = `sales_crm_${this.activeReportType}_report_${new Date().toISOString().split('T')[0]}`;
+    if (format === 'csv') {
+      this.exportService.exportToCsv(filename, this.reportData);
+    } else {
+      this.exportService.exportToExcel(filename, this.reportData);
+    }
   }
 
   // --- SVG Charts Helpers ---

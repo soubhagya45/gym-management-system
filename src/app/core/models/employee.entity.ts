@@ -3,6 +3,7 @@ import { UserRole } from '../enums/roles.enum';
 export interface Employee {
   id: string;
   gymId: string;
+  branchId?: string;
   // Personal Details
   photoUrl?: string;
   fullName: string;
@@ -35,6 +36,7 @@ export interface Employee {
 export interface EmployeeAttendance {
   id: string;
   gymId: string;
+  branchId?: string;
   employeeId: string;
   employeeName: string;
   role: UserRole;
@@ -48,6 +50,7 @@ export interface EmployeeAttendance {
 export interface EmployeePayroll {
   id: string;
   gymId: string;
+  branchId?: string;
   employeeId: string;
   employeeName: string;
   role: UserRole;
@@ -63,6 +66,7 @@ export interface EmployeePayroll {
 export interface EmployeePerformance {
   id: string;
   gymId: string;
+  branchId?: string;
   employeeId: string;
   employeeName: string;
   rating: number; // 1-5 stars

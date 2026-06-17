@@ -58,8 +58,6 @@ export class LoginComponent implements OnInit, OnDestroy {
     UserRole.SuperAdmin,
     UserRole.Owner,
     UserRole.Manager,
-    UserRole.Receptionist,
-    UserRole.Accountant,
     UserRole.Trainer,
     UserRole.Staff
   ];
@@ -89,22 +87,6 @@ export class LoginComponent implements OnInit, OnDestroy {
       color: '#3b82f6', // Blue glow
       email: 'manager@apexfit.com',
       icon: 'assignment_ind'
-    },
-    [UserRole.Receptionist]: {
-      title: 'Front Desk Terminal',
-      desc: 'Check in members, log attendance, register new leads, and view payments.',
-      badge: 'Reception Auth',
-      color: '#06b6d4', // Cyan glow
-      email: 'receptionist@apexfit.com',
-      icon: 'contact_phone'
-    },
-    [UserRole.Accountant]: {
-      title: 'Financial Accountant',
-      desc: 'Log expenses, review invoices, manage collection records, and handle payroll.',
-      badge: 'Finance Auth',
-      color: '#14b8a6', // Teal glow
-      email: 'accountant@apexfit.com',
-      icon: 'account_balance'
     },
     [UserRole.Trainer]: {
       title: 'Pro Coach Terminal',
@@ -309,6 +291,26 @@ export class LoginComponent implements OnInit, OnDestroy {
         const role = this.pendingUser!.role;
         this.pendingUser = null;
         this.navigateToWorkspace(role);
+      }
+    });
+  }
+
+  forgotPassword(): void {
+    const email = this.loginForm.get('usernameOrEmail')?.value?.trim();
+    if (!email) {
+      this.snackBar.open('Please enter your email inside the Identity Node field first.', 'Close', { duration: 5000 });
+      return;
+    }
+    
+    this.isLoading = true;
+    this.authState.changePassword(email, '').subscribe({
+      next: () => {
+        this.isLoading = false;
+        this.snackBar.open(`Password reset link has been successfully transmitted to ${email}.`, 'Close', { duration: 5000 });
+      },
+      error: (err) => {
+        this.isLoading = false;
+        this.snackBar.open(err.message || 'Transmission failed. Verify your email.', 'Close', { duration: 5000 });
       }
     });
   }

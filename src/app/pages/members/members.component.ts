@@ -23,6 +23,8 @@ import { MemberDialogComponent } from './member-dialog.component';
 import { ConfirmDialogComponent } from './confirm-dialog.component';
 import { WhatsAppPreviewModalComponent } from '../whatsapp/whatsapp-preview-modal.component';
 import { take } from 'rxjs/operators';
+import { ExportService } from '../../domain/export/export.service';
+import { MatMenuModule } from '@angular/material/menu';
 
 
 @Component({
@@ -41,7 +43,8 @@ import { take } from 'rxjs/operators';
     MatIconModule,
     MatDialogModule,
     MatSnackBarModule,
-    MatTooltipModule
+    MatTooltipModule,
+    MatMenuModule
   ],
   templateUrl: './members.component.html',
   styleUrls: ['./members.component.scss']
@@ -68,7 +71,8 @@ export class MembersComponent implements OnInit, AfterViewInit {
     private dialog: MatDialog,
     private snackBar: MatSnackBar,
     private router: Router,
-    private route: ActivatedRoute
+    private route: ActivatedRoute,
+    private exportService: ExportService
   ) {}
 
   viewProfile(member: Member) {
@@ -257,7 +261,7 @@ export class MembersComponent implements OnInit, AfterViewInit {
     });
   }
 
-  exportMembersReport() {
+  exportData(format: 'csv' | 'excel') {
     this.gymState.activeGymFeatures$.pipe(take(1)).subscribe(features => {
       if (!features || !features.canExportReports) {
         this.snackBar.open('Export Reports feature is locked on your current plan. Please upgrade to Pro or Enterprise.', 'Upgrade Plan', {
@@ -268,18 +272,28 @@ export class MembersComponent implements OnInit, AfterViewInit {
         return;
       }
 
-      this.snackBar.open('Directory report generated! Downloading CSV...', 'Dismiss', {
+      this.snackBar.open(`Directory report generated! Downloading ${format.toUpperCase()}...`, 'Dismiss', {
         duration: 3000
       });
-      const csvContent = "data:text/csv;charset=utf-8,ID,Name,Phone,Email,Plan,JoinDate,Status\n" + 
-        this.dataSource.data.map(m => `"${m.id}","${m.name}","${m.phone}","${m.email}","${m.planName}","${m.startDate}","${m.status}"`).join("\n");
-      const encodedUri = encodeURI(csvContent);
-      const link = document.createElement("a");
-      link.setAttribute("href", encodedUri);
-      link.setAttribute("download", `members_report_${new Date().toISOString().split('T')[0]}.csv`);
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
+
+      const exportData = this.dataSource.data.map(m => ({
+        ID: m.id,
+        Name: m.name,
+        Phone: m.phone,
+        Email: m.email,
+        Plan: m.planName,
+        StartDate: m.startDate,
+        EndDate: m.endDate,
+        Status: m.status,
+        Balance: m.balance
+      }));
+
+      const filename = `members_report_${new Date().toISOString().split('T')[0]}`;
+      if (format === 'csv') {
+        this.exportService.exportToCsv(filename, exportData);
+      } else {
+        this.exportService.exportToExcel(filename, exportData);
+      }
     });
   }
 }

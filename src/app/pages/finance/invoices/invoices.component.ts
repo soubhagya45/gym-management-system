@@ -15,6 +15,8 @@ import { RouterModule } from '@angular/router';
 import { Invoice } from '../../../core/models/finance.entity';
 import { FinanceState } from '../../../presentation/state/finance.state';
 import { InvoiceViewDialogComponent } from './invoice-view-dialog.component';
+import { ExportService } from '../../../domain/export/export.service';
+import { MatMenuModule } from '@angular/material/menu';
 
 @Component({
   selector: 'app-invoices',
@@ -32,7 +34,8 @@ import { InvoiceViewDialogComponent } from './invoice-view-dialog.component';
     MatSelectModule,
     MatDialogModule,
     MatSnackBarModule,
-    MatTooltipModule
+    MatTooltipModule,
+    MatMenuModule
   ],
   templateUrl: './invoices.component.html',
   styleUrls: ['./invoices.component.scss']
@@ -56,7 +59,8 @@ export class InvoicesComponent implements OnInit {
   constructor(
     private financeState: FinanceState,
     private dialog: MatDialog,
-    private snackBar: MatSnackBar
+    private snackBar: MatSnackBar,
+    private exportService: ExportService
   ) {}
 
   ngOnInit(): void {
@@ -126,5 +130,37 @@ export class InvoicesComponent implements OnInit {
     this.snackBar.open(`Invoice ${invoice.invoiceNumber} dispatched to ${invoice.memberName}'s registered email & phone!`, 'Dismiss', {
       duration: 3500
     });
+  }
+
+  exportData(format: 'csv' | 'excel'): void {
+    if (this.dataSource.data.length === 0) {
+      this.snackBar.open('No invoice data to export.', 'Close', { duration: 3000 });
+      return;
+    }
+
+    this.snackBar.open(`Invoice ledger generated! Downloading ${format.toUpperCase()}...`, 'Dismiss', {
+      duration: 3000
+    });
+
+    const exportData = this.dataSource.data.map(i => ({
+      InvoiceNumber: i.invoiceNumber,
+      MemberName: i.memberName,
+      MemberId: i.memberId,
+      MembershipPlan: i.membershipPlan,
+      Amount: i.amount,
+      GST: i.gst || 0,
+      Discount: i.discount || 0,
+      FinalAmount: i.finalAmount,
+      PaymentMethod: i.paymentMethod,
+      InvoiceDate: i.invoiceDate,
+      Status: i.status
+    }));
+
+    const filename = `invoices_ledger_${new Date().toISOString().split('T')[0]}`;
+    if (format === 'csv') {
+      this.exportService.exportToCsv(filename, exportData);
+    } else {
+      this.exportService.exportToExcel(filename, exportData);
+    }
   }
 }

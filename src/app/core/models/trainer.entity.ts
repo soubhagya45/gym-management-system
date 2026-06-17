@@ -1,6 +1,7 @@
 export interface Trainer {
   id: string;
   gymId: string; // Multi-tenant foreign key
+  branchId?: string;
   name: string;
   specialty: string;
   rating: number;
