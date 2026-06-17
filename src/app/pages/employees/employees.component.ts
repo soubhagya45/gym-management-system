@@ -19,6 +19,7 @@ import { Observable, combineLatest, of } from 'rxjs';
 import { map, startWith, take } from 'rxjs/operators';
 import { EmployeeState } from '../../presentation/state/employee.state';
 import { GymState } from '../../presentation/state/gym.state';
+import { AuthState } from '../../presentation/state/auth.state';
 import { SubscriptionService } from '../../domain/subscription/subscription.service';
 import { Employee, EmployeeAttendance, EmployeePayroll, EmployeePerformance } from '../../core/models/employee.entity';
 import { UserRole } from '../../core/enums/roles.enum';
@@ -105,7 +106,8 @@ export class EmployeesComponent implements OnInit {
     { feature: 'View Member Profiles', roles: { owner: true, manager: true, trainer: true, staff: true } },
     { feature: 'Manage Payments', roles: { owner: true, manager: true, trainer: false, staff: false } },
     { feature: 'Manage Settings', roles: { owner: true, manager: false, trainer: false, staff: false } },
-    { feature: 'Manage Employees', roles: { owner: true, manager: true, trainer: false, staff: false } },
+    { feature: 'Manage Employees (Write)', roles: { owner: true, manager: false, trainer: false, staff: false } },
+    { feature: 'View Employees (Read)', roles: { owner: true, manager: true, trainer: false, staff: false } },
     { feature: 'Mark Attendance', roles: { owner: true, manager: true, trainer: true, staff: false } },
     { feature: 'Access Finance Reports', roles: { owner: true, manager: false, trainer: false, staff: false } },
     { feature: 'Send WhatsApp Reminders', roles: { owner: true, manager: false, trainer: false, staff: false } }
@@ -113,10 +115,16 @@ export class EmployeesComponent implements OnInit {
 
   isUploadingPhoto = false;
 
+  /** True only for super_admin and gym_owner — drives all write-action *ngIf guards. */
+  get canManageEmployees(): boolean {
+    return this.authState.hasPermission('manage:employees');
+  }
+
   constructor(
     private fb: FormBuilder,
     private employeeState: EmployeeState,
     private gymState: GymState,
+    private authState: AuthState,
     private subscriptionService: SubscriptionService,
     private snackBar: MatSnackBar,
     private dialog: MatDialog,

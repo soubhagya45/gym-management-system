@@ -1,0 +1,53 @@
+<div class="disabled-page-wrapper">
+  <!-- Animated background -->
+  <div class="bg-grid"></div>
+  <div class="glow-sphere-warn"></div>
+  <div class="glow-sphere-secondary"></div>
+
+  <div class="disabled-container animate-fade-in">
+    <div class="glass-card">
+
+      <!-- Icon Block -->
+      <div class="icon-ring">
+        <mat-icon class="lock-icon">lock</mat-icon>
+        <div class="pulse-ring pulse-ring-1"></div>
+        <div class="pulse-ring pulse-ring-2"></div>
+      </div>
+
+      <!-- Title -->
+      <h1 class="title">ACCOUNT_DISABLED</h1>
+      <p class="subtitle-code">STATUS // {{ status | uppercase }}</p>
+
+      <!-- Description -->
+      <div class="detail-block">
+        <p class="detail-text">
+          Your account access has been <strong>{{ status === 'Suspended' ? 'suspended' : 'deactivated' }}</strong> 
+          by the gym administrator. You cannot log in or access the system until your account is reactivated.
+        </p>
+        <div class="info-note">
+          <mat-icon class="note-icon">info</mat-icon>
+          <span>
+            {{ status === 'Suspended'
+              ? 'Contact your gym owner or branch manager to restore access.'
+              : 'This account has been marked inactive. Please reach out to your administrator.' }}
+          </span>
+        </div>
+      </div>
+
+      <!-- Actions -->
+      <div class="action-bar">
+        <button class="cyber-btn primary-btn" (click)="goToLogin()">
+          <span class="btn-glow"></span>
+          <span class="btn-content">
+            <mat-icon>arrow_back</mat-icon>
+            Return to Login
+          </span>
+        </button>
+      </div>
+
+      <p class="footer-note">
+        If you believe this is an error, contact your gym administrator with your registered email address.
+      </p>
+    </div>
+  </div>
+</div>

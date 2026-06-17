@@ -89,8 +89,7 @@ export const ROLE_PERMISSIONS: Record<UserRole, Permission[]> = {
     'view:attendance', 'manage:attendance',
     'view:body-progress',
     'view:finance',
-    'view:employees',
-    'manage:employees',
+    'view:employees',       // read-only; manage:employees intentionally excluded
     'view:pt-sessions',
     'manage:pt-sessions'
   ],

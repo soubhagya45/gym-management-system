@@ -1,5 +1,7 @@
 import { UserRole } from '../enums/roles.enum';
 
+export type AccountStatus = 'Active' | 'Suspended' | 'Inactive';
+
 export interface UserProfile {
   id: string;              // Stable unique identifier
   name: string;
@@ -14,4 +16,6 @@ export interface UserProfile {
   isFirstLogin?: boolean;   // Tracks if this is the user's first login
   tempPasswordExpiresAt?: string; // Expiration timestamp for temporary password
   token?: string;          // Bearer token for API authentication
+  /** Account lifecycle state — Active, Suspended, or Inactive. Enforced at login and on every navigation. */
+  accountStatus?: AccountStatus;
 }

@@ -60,15 +60,49 @@ service cloud.firestore {
         request.auth.uid == userId || 
         getUserData().gymId == resource.data.gymId
       );
-      allow create: if request.auth != null;
+      
+      allow create: if request.auth != null && 
+        request.resource.data.role != 'super_admin' && (
+          // Case 1: Public registration - user can only self-register as gym_owner
+          (request.auth.uid == userId && request.resource.data.role == 'gym_owner') ||
+          // Case 2: Employee creation by an owner or super admin
+          (request.auth.uid != userId && (
+            isSuperAdmin() || (
+              getUserData().role == 'gym_owner' && 
+              request.resource.data.gymId == getUserData().gymId &&
+              (request.resource.data.role == 'branch_manager' || 
+               request.resource.data.role == 'trainer' || 
+               request.resource.data.role == 'staff')
+            )
+          ))
+        );
+
       allow update: if request.auth != null && (
         request.auth.uid == userId || 
         isSuperAdmin() || 
         (getUserData().role == 'gym_owner' && resource.data.gymId == getUserData().gymId)
       ) && (
+        // Check if role is changing
+        request.resource.data.role == resource.data.role || (
+          // If role is changing, it is only allowed under strict authorization:
+          request.auth.uid != userId && 
+          request.resource.data.role != 'super_admin' && (
+            isSuperAdmin() || (
+              getUserData().role == 'gym_owner' && 
+              resource.data.gymId == getUserData().gymId &&
+              (request.resource.data.role == 'branch_manager' || 
+               request.resource.data.role == 'trainer' || 
+               request.resource.data.role == 'staff')
+            )
+          )
+        )
+      ) && (
+        // gymId, branchId, and accountStatus updates are restricted to super_admin or owner
         isSuperAdmin() || 
-        !request.resource.data.diff(resource.data).affectedKeys().hasAny(['role', 'gymId', 'branchId'])
+        (getUserData().role == 'gym_owner' && resource.data.gymId == getUserData().gymId) ||
+        !request.resource.data.diff(resource.data).affectedKeys().hasAny(['gymId', 'branchId', 'accountStatus'])
       );
+      
       allow delete: if isSuperAdmin() || (request.auth != null && getUserData().role == 'gym_owner' && resource.data.gymId == getUserData().gymId);
     }
 
@@ -125,24 +159,86 @@ service cloud.firestore {
     }
 
     match /employees/{id} {
-      allow read: if hasGymAccess(resource.data);
-      allow write: if canWriteGymData(request.resource.data);
-      allow delete: if request.auth != null && (isSuperAdmin() || (getUserData().role == 'gym_owner' && resource.data.gymId == getUserData().gymId));
+      // READ - role-scoped access
+      allow read: if request.auth != null && (
+        isSuperAdmin() ||
+        // Gym owner sees all employees in their gym
+        (getUserData().role == 'gym_owner' && getUserData().gymId == resource.data.gymId) ||
+        // Branch manager sees all employees in the same gym (read-only)
+        (getUserData().role == 'branch_manager' && getUserData().gymId == resource.data.gymId) ||
+        // Trainer and Staff can only read their own employee record
+        (request.auth.uid == id && getUserData().gymId == resource.data.gymId)
+      );
+
+      // CREATE - only super_admin or gym_owner
+      allow create: if request.auth != null && (
+        isSuperAdmin() ||
+        (getUserData().role == 'gym_owner' && request.resource.data.gymId == getUserData().gymId)
+      );
+
+      // UPDATE - only super_admin or gym_owner
+      // Explicitly prevents salary, role, department modification by anyone else
+      allow update: if request.auth != null && (
+        isSuperAdmin() ||
+        (
+          getUserData().role == 'gym_owner' &&
+          resource.data.gymId == getUserData().gymId &&
+          // Gym owner cannot escalate employee to gym_owner or super_admin
+          request.resource.data.role != 'super_admin' &&
+          request.resource.data.role != 'gym_owner' &&
+          // gymId must not be changed
+          request.resource.data.gymId == resource.data.gymId
+        )
+      );
+
+      // DELETE - only super_admin or gym_owner
+      allow delete: if request.auth != null && (
+        isSuperAdmin() ||
+        (getUserData().role == 'gym_owner' && resource.data.gymId == getUserData().gymId)
+      );
     }
 
     match /employee_attendance/{id} {
-      allow read: if hasGymAccess(resource.data);
-      allow write: if canWriteGymData(request.resource.data);
+      // Branch manager and above can view; trainer/staff see own records only
+      allow read: if request.auth != null && (
+        isSuperAdmin() ||
+        (getUserData().role == 'gym_owner' && getUserData().gymId == resource.data.gymId) ||
+        (getUserData().role == 'branch_manager' && getUserData().gymId == resource.data.gymId) ||
+        (resource.data.employeeId == request.auth.uid && getUserData().gymId == resource.data.gymId)
+      );
+      // Only owner and super_admin may write attendance records
+      allow write: if request.auth != null && (
+        isSuperAdmin() ||
+        (getUserData().role == 'gym_owner' && request.resource.data.gymId == getUserData().gymId)
+      );
     }
 
     match /employee_payroll/{id} {
-      allow read: if hasGymAccess(resource.data);
-      allow write: if canWriteGymData(request.resource.data);
+      // Salary data is confidential — only owner and super_admin may read
+      allow read: if request.auth != null && (
+        isSuperAdmin() ||
+        (getUserData().role == 'gym_owner' && getUserData().gymId == resource.data.gymId)
+      );
+      // Only owner and super_admin may write payroll records
+      allow write: if request.auth != null && (
+        isSuperAdmin() ||
+        (getUserData().role == 'gym_owner' && request.resource.data.gymId == getUserData().gymId)
+      );
     }
 
     match /employee_performance/{id} {
-      allow read: if hasGymAccess(resource.data);
-      allow write: if canWriteGymData(request.resource.data);
+      // Manager and above can view performance; employee sees own review only
+      allow read: if request.auth != null && (
+        isSuperAdmin() ||
+        (getUserData().role == 'gym_owner' && getUserData().gymId == resource.data.gymId) ||
+        (getUserData().role == 'branch_manager' && getUserData().gymId == resource.data.gymId) ||
+        (resource.data.employeeId == request.auth.uid && getUserData().gymId == resource.data.gymId)
+      );
+      // Only owner and super_admin may write performance reviews
+      allow write: if request.auth != null && (
+        isSuperAdmin() ||
+        (getUserData().role == 'gym_owner' && request.resource.data.gymId == getUserData().gymId)
+      );
     }
 
     match /ptPlans/{id} {

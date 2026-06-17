@@ -191,7 +191,13 @@ export class LoginComponent implements OnInit, OnDestroy {
       },
       error: (err) => {
         this.isLoading = false;
-        this.errorMessage = err.message || 'Access Denied. Verification failed.';
+        const msg: string = err.message || '';
+        if (msg.startsWith('ACCOUNT_DISABLED:')) {
+          // Account is suspended or inactive — redirect to dedicated blocked-account page
+          this.router.navigate(['/account-disabled']);
+          return;
+        }
+        this.errorMessage = msg || 'Access Denied. Verification failed.';
       }
     });
   }

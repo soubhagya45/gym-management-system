@@ -41,7 +41,7 @@
                   <mat-icon>clear_all</mat-icon>
                   <span>Clear Filters</span>
                 </button>
-                <button mat-flat-button color="primary" (click)="onTabChange(1)" class="add-btn">
+                <button *ngIf="canManageEmployees" mat-flat-button color="primary" (click)="onTabChange(1)" class="add-btn">
                   <mat-icon>person_add</mat-icon>
                   <span>Register Employee</span>
                 </button>
@@ -102,10 +102,10 @@
                 <mat-icon>info</mat-icon>
                 <span>Details</span>
               </button>
-              <button mat-icon-button color="primary" (click)="openResetPassword(emp)" matTooltip="Reset Credentials">
+              <button *ngIf="canManageEmployees" mat-icon-button color="primary" (click)="openResetPassword(emp)" matTooltip="Reset Credentials">
                 <mat-icon>vpn_key</mat-icon>
               </button>
-              <button mat-icon-button [color]="emp.accountStatus === 'Active' ? 'warn' : 'accent'" (click)="toggleEmployeeStatus(emp)" [matTooltip]="emp.accountStatus === 'Active' ? 'Suspend Account' : 'Activate Account'">
+              <button *ngIf="canManageEmployees" mat-icon-button [color]="emp.accountStatus === 'Active' ? 'warn' : 'accent'" (click)="toggleEmployeeStatus(emp)" [matTooltip]="emp.accountStatus === 'Active' ? 'Suspend Account' : 'Activate Account'">
                 <mat-icon>{{ emp.accountStatus === 'Active' ? 'block' : 'check_circle' }}</mat-icon>
               </button>
             </div>
@@ -114,8 +114,8 @@
       </div>
     </mat-tab>
     
-    <!-- Tab 2: Onboard New Employee -->
-    <mat-tab>
+    <!-- Tab 2: Onboard New Employee (owners and super_admin only) -->
+    <mat-tab [disabled]="!canManageEmployees">
       <ng-template mat-tab-label>
         <mat-icon class="tab-icon">person_add</mat-icon>
         <span>Register Employee</span>
@@ -346,9 +346,8 @@
       
       <div class="tab-content attendance-tab">
         <div class="split-layout">
-          <!-- Form Section -->
-          <mat-card class="action-form-card glassmorphic">
-            <h3>Mark Daily Attendance</h3>
+          <!-- Form Section (owners/admin only) -->
+          <mat-card *ngIf="canManageEmployees" class="action-form-card glassmorphic">
             <form [formGroup]="attendanceForm" (ngSubmit)="submitAttendance()" class="side-form">
               <mat-form-field appearance="outline">
                 <mat-label>Select Employee</mat-label>
@@ -492,9 +491,8 @@
         </div>
 
         <div class="split-layout">
-          <!-- Form Section -->
-          <mat-card class="action-form-card glassmorphic">
-            <h3>Process Staff Salary</h3>
+          <!-- Form Section (owners/admin only) -->
+          <mat-card *ngIf="canManageEmployees" class="action-form-card glassmorphic">
             <form [formGroup]="payrollForm" (ngSubmit)="submitPayroll()" class="side-form">
               <mat-form-field appearance="outline">
                 <mat-label>Select Employee</mat-label>
@@ -596,11 +594,11 @@
                   </td>
                 </ng-container>
 
-                <!-- Actions -->
+                <!-- Actions - owners/admin only -->
                 <ng-container matColumnDef="actions">
                   <th mat-header-cell *matHeaderCellDef> Payout Action </th>
                   <td mat-cell *matCellDef="let record">
-                    <button mat-stroked-button size="small" [color]="record.status === 'Paid' ? 'warn' : 'primary'" (click)="togglePayrollStatus(record)" class="mini-action-btn">
+                    <button *ngIf="canManageEmployees" mat-stroked-button size="small" [color]="record.status === 'Paid' ? 'warn' : 'primary'" (click)="togglePayrollStatus(record)" class="mini-action-btn">
                       {{ record.status === 'Paid' ? 'Mark Pending' : 'Confirm Payment' }}
                     </button>
                   </td>
@@ -624,9 +622,8 @@
       
       <div class="tab-content performance-tab">
         <div class="split-layout">
-          <!-- Form Section -->
-          <mat-card class="action-form-card glassmorphic">
-            <h3>Add Performance Review</h3>
+          <!-- Form Section (owners/admin only) -->
+          <mat-card *ngIf="canManageEmployees" class="action-form-card glassmorphic">
             <form [formGroup]="performanceForm" (ngSubmit)="submitPerformance()" class="side-form">
               <mat-form-field appearance="outline">
                 <mat-label>Select Employee</mat-label>

@@ -128,29 +128,86 @@ export class FirebaseAuthRepository implements IAuthRepository {
           switchMap(userSnap => {
             if (userSnap.exists()) {
               const profile = userSnap.data() as UserProfile;
-              
-              // Enforce temporary employee password expiration (24h)
-              if (profile.isFirstLogin && (profile as any).tempPasswordExpiresAt) {
-                const expiresAt = new Date((profile as any).tempPasswordExpiresAt).getTime();
-                if (Date.now() > expiresAt) {
-                  return throwError(() => new Error('Temporary employee password has expired. Please request a new password reset or contact the Gym Owner.'));
+
+              // ── ACCOUNT STATUS GATE ─────────────────────────────────────
+              // For non-owner roles: read accountStatus from the employees
+              // collection (authoritative source set by the gym owner).
+              // For owners/super_admin: read from the users document itself.
+              const checkStatus = (status: string | undefined, source: string): boolean => {
+                if (status === 'Suspended' || status === 'Inactive') {
+                  return false; // blocked
                 }
+                return true;
+              };
+
+              // First check users document status
+              if (!checkStatus((profile as any).accountStatus, 'users')) {
+                return from(signOut(auth)).pipe(
+                  switchMap(() => throwError(() => new Error(
+                    `ACCOUNT_DISABLED:${(profile as any).accountStatus}`
+                  )))
+                );
               }
 
-              // Audit logging trigger
-              const logId = 'audit_' + Math.random().toString(36).substring(2, 9);
-              setDoc(doc(db, 'auditLogs', logId), {
-                id: logId,
-                userId: uid,
-                role: profile.role,
-                action: 'User Login',
-                entityType: 'user',
-                entityId: uid,
-                timestamp: new Date().toISOString(),
-                gymId: profile.gymId || ''
-              }).catch(err => console.error('Login audit log failed:', err));
+              // For employee roles: cross-check with employees collection
+              const isEmployeeRole = [
+                'branch_manager', 'trainer', 'staff'
+              ].includes(profile.role as string);
 
-              return of(profile);
+              const continueWithProfile = (enrichedProfile: UserProfile) => {
+                // Enforce temporary employee password expiration (24h)
+                if (enrichedProfile.isFirstLogin && (enrichedProfile as any).tempPasswordExpiresAt) {
+                  const expiresAt = new Date((enrichedProfile as any).tempPasswordExpiresAt).getTime();
+                  if (Date.now() > expiresAt) {
+                    return throwError(() => new Error('Temporary employee password has expired. Please request a new password reset or contact the Gym Owner.'));
+                  }
+                }
+
+                // Audit logging trigger
+                const logId = 'audit_' + Math.random().toString(36).substring(2, 9);
+                setDoc(doc(db, 'auditLogs', logId), {
+                  id: logId,
+                  userId: uid,
+                  role: enrichedProfile.role,
+                  action: 'User Login',
+                  entityType: 'user',
+                  entityId: uid,
+                  timestamp: new Date().toISOString(),
+                  gymId: enrichedProfile.gymId || ''
+                }).catch(err => console.error('Login audit log failed:', err));
+
+                return of(enrichedProfile);
+              };
+
+              if (isEmployeeRole) {
+                // Check employee doc for authoritative status
+                const empRef = doc(db, 'employees', uid);
+                return from(getDoc(empRef)).pipe(
+                  switchMap(empSnap => {
+                    if (empSnap.exists()) {
+                      const empData = empSnap.data();
+                      const empStatus = empData['accountStatus'];
+                      if (empStatus === 'Suspended' || empStatus === 'Inactive') {
+                        return from(signOut(auth)).pipe(
+                          switchMap(() => throwError(() => new Error(
+                            `ACCOUNT_DISABLED:${empStatus}`
+                          )))
+                        );
+                      }
+                      // Enrich profile with employee-level accountStatus
+                      const enriched: UserProfile = {
+                        ...profile,
+                        accountStatus: empStatus || 'Active'
+                      };
+                      return continueWithProfile(enriched);
+                    }
+                    // No employee doc found — continue with users profile
+                    return continueWithProfile({ ...profile, accountStatus: (profile as any).accountStatus || 'Active' });
+                  })
+                );
+              }
+
+              return continueWithProfile({ ...profile, accountStatus: (profile as any).accountStatus || 'Active' });
             }
             // Check for invited user placeholder
             const q = query(collection(db, 'users'), where('email', '==', email.toLowerCase().trim()));
@@ -162,7 +219,8 @@ export class FirebaseAuthRepository implements IAuthRepository {
                   const newProfile: UserProfile = {
                     ...inviteData,
                     id: uid,
-                    isFirstLogin: true
+                    isFirstLogin: true,
+                    accountStatus: (inviteData as any).accountStatus || 'Active'
                   };
                   return from(deleteDoc(doc(db, 'users', inviteDoc.id))).pipe(
                     switchMap(() => from(setDoc(doc(db, 'users', uid), newProfile))),
@@ -1358,7 +1416,9 @@ export class FirebaseEmployeeRepository implements IEmployeeRepository {
                   name: employee.fullName,
                   role: employee.role,
                   branchId: employee.branchId,
-                  avatarUrl: employee.photoUrl || snap.data()['avatarUrl']
+                  avatarUrl: employee.photoUrl || snap.data()['avatarUrl'],
+                  // Sync account status to users collection — critical for session enforcement
+                  accountStatus: employee.accountStatus || 'Active'
                 };
                 return from(setDoc(userRef, updatedUser));
               }
@@ -1371,6 +1431,9 @@ export class FirebaseEmployeeRepository implements IEmployeeRepository {
           map(() => {
             if (oldEmp && oldEmp.role !== employee.role) {
               logAudit(this.injector, 'Role Change', 'employee', employee.id);
+            }
+            if (oldEmp && oldEmp.accountStatus !== employee.accountStatus) {
+              logAudit(this.injector, `Account Status Changed: ${employee.accountStatus}`, 'employee', employee.id);
             }
             return undefined;
           })

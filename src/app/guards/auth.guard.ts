@@ -7,18 +7,25 @@ import { UserRole } from '../core/enums/roles.enum';
 /**
  * authGuard — protects all authenticated routes.
  * Validates both login state AND session validity (not expired).
+ * Also enforces account status: Suspended/Inactive accounts are evicted immediately.
  */
 export const authGuard: CanActivateFn = (_route, state) => {
   const authState = inject(AuthState);
   const router    = inject(Router);
 
-  if (authState.isAuthenticated) {
-    return true;
+  if (!authState.isAuthenticated) {
+    router.navigate(['/login'], { queryParams: { returnUrl: state.url } });
+    return false;
   }
 
-  // Preserve attempted URL so loginGuard can redirect back after login
-  router.navigate(['/login'], { queryParams: { returnUrl: state.url } });
-  return false;
+  // Account status gate — evict suspended/inactive users on every navigation
+  if (!authState.isAccountActive) {
+    authState.logout();
+    router.navigate(['/account-disabled']);
+    return false;
+  }
+
+  return true;
 };
 
 /**

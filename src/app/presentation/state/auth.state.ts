@@ -42,6 +42,13 @@ export class AuthState {
     return this.currentUserValue !== null && this.sessionService.isSessionValid();
   }
 
+  /** True if the current account is Active (not Suspended or Inactive). */
+  get isAccountActive(): boolean {
+    const status = this.currentUserValue?.accountStatus;
+    // Treat missing status as Active for backward compatibility (gym owners pre-migration)
+    return !status || status === 'Active';
+  }
+
   /** Convenience: check a permission against the current user. */
   hasPermission(permission: Permission): boolean {
     return this.permissionService.hasPermission(this.currentUserValue, permission);

@@ -182,6 +182,10 @@ const routes: Routes = [
         data: { expectedRoles: [UserRole.SuperAdmin] }
       },
       {
+        path: 'account-disabled',
+        loadComponent: () => import('./pages/account-disabled/account-disabled.component').then(m => m.AccountDisabledComponent)
+      },
+      {
         path: 'unauthorized',
         loadComponent: () => import('./pages/unauthorized/unauthorized.component').then(m => m.UnauthorizedComponent)
       },
