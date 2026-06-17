@@ -16,4 +16,5 @@ export interface Trainer {
   sessionsCompletedThisMonth?: number;
   monthlyRating?: number;
   utilizationPercent?: number;
+  experienceYears?: number;
 }

@@ -98,7 +98,44 @@
           <div class="param-box">
             <mat-icon>track_changes</mat-icon>
             <span class="value font-sm">{{ member.fitnessGoal }}</span>
-            <span class="label">Primary Goal</span>
+            <span class="label">Goal</span>
+          </div>
+        </div>
+
+        <mat-divider></mat-divider>
+
+        <!-- BMI and Membership Status section (Left Column Requirements) -->
+        <div class="left-col-section">
+          <h3 class="section-title">Body Metrics & Health</h3>
+          <div class="metrics-quick-summary">
+            <div class="metric-row-item">
+              <span class="lbl">BMI Value:</span>
+              <span class="val font-bold text-accent">{{ getBMI() }}</span>
+            </div>
+            <div class="metric-row-item">
+              <span class="lbl">Category:</span>
+              <span class="val font-semibold">{{ getBMICategory() }}</span>
+            </div>
+          </div>
+        </div>
+
+        <mat-divider></mat-divider>
+
+        <div class="left-col-section">
+          <h3 class="section-title">Membership Status</h3>
+          <div class="membership-quick-card">
+            <div class="quick-row">
+              <span class="lbl">Current Plan:</span>
+              <span class="val font-semibold">{{ member.planName }}</span>
+            </div>
+            <div class="quick-row">
+              <span class="lbl">Expiration:</span>
+              <span class="val">{{ member.endDate | date:'mediumDate' }}</span>
+            </div>
+            <div class="quick-row">
+              <span class="lbl">Days Left:</span>
+              <span class="val text-accent font-semibold">{{ getDaysRemaining() }} days</span>
+            </div>
           </div>
         </div>
       </mat-card>
@@ -182,74 +219,111 @@
             <div class="tab-content pt-tab">
               <!-- If PT wallet exists -->
               <div *ngIf="ptWallet; else noPTWallet">
-                <div class="plan-hero-panel pt-hero">
-                  <div class="hero-left">
-                    <span class="label">Current PT Package</span>
-                    <h3>{{ ptWallet.planName }}</h3>
-                    <p class="pt-trainer-assigned">Trainer: <strong>{{ ptWallet.trainerName }}</strong></p>
+                
+                <!-- Redesigned Premium Glass Card for PT Plan -->
+                <div class="premium-pt-glass-card">
+                  <div class="pt-card-header">
+                    <div class="pt-title-area">
+                      <span class="premium-tag">Current PT Package</span>
+                      <h3>{{ ptWallet.planName }}</h3>
+                    </div>
+                    <div class="pt-status-area">
+                      <span class="status-badge" [ngClass]="ptWallet.status">{{ ptWallet.status | titlecase }}</span>
+                    </div>
                   </div>
-                  <div class="hero-right">
-                    <span class="days-indicator">{{ ptWallet.remainingSessions }} Sessions Left</span>
-                  </div>
-                </div>
 
-                <div class="plan-timeline-grid">
-                  <div class="timeline-item">
-                    <mat-icon>calendar_today</mat-icon>
-                    <div class="item-details">
-                      <label>PT Start Date</label>
-                      <span>{{ ptWallet.startDate | date:'longDate' }}</span>
+                  <div class="pt-card-details-grid">
+                    <div class="detail-cell">
+                      <label>Assigned Trainer</label>
+                      <span class="val">{{ ptWallet.trainerName || 'Not Assigned' }}</span>
+                    </div>
+                    <div class="detail-cell">
+                      <label>PT Goal</label>
+                      <span class="val">{{ ptWallet.ptGoal || 'General Fitness' }}</span>
+                    </div>
+                    <div class="detail-cell">
+                      <label>Start Date</label>
+                      <span class="val">{{ ptWallet.startDate | date:'longDate' }}</span>
+                    </div>
+                    <div class="detail-cell">
+                      <label>End Date</label>
+                      <span class="val">{{ ptWallet.endDate | date:'longDate' }}</span>
                     </div>
                   </div>
-                  <div class="timeline-item">
-                    <mat-icon>event</mat-icon>
-                    <div class="item-details">
-                      <label>PT End Date</label>
-                      <span>{{ ptWallet.endDate | date:'longDate' }}</span>
+
+                  <div class="pt-card-progress-section">
+                    <div class="progress-info-row">
+                      <span class="progress-lbl">Sessions:</span>
+                      <span class="progress-val font-semibold">{{ ptWallet.completedSessions }} / {{ ptWallet.totalSessions }} Completed</span>
+                    </div>
+
+                    <!-- Custom Visual Progress Bar matching specifications -->
+                    <div class="custom-progress-bar-container">
+                      <div class="custom-progress-bar-fill" [style.width.%]="(ptWallet.completedSessions / ptWallet.totalSessions) * 100"></div>
+                    </div>
+
+                    <div class="progress-footer-row">
+                      <span class="sessions-remaining-lbl">{{ ptWallet.remainingSessions }} Sessions Remaining</span>
                     </div>
                   </div>
-                  <div class="timeline-item">
-                    <mat-icon>track_changes</mat-icon>
-                    <div class="item-details">
-                      <label>PT Fitness Goal</label>
-                      <span>{{ ptWallet.ptGoal || 'General Fitness' }}</span>
-                    </div>
+
+                  <div class="pt-card-actions">
+                    <button mat-raised-button color="primary" class="action-btn" (click)="openPTActionDialog('change_trainer')">
+                      <mat-icon>swap_horiz</mat-icon> <span>Change Trainer</span>
+                    </button>
+                    <button mat-raised-button color="accent" class="action-btn" (click)="openPTActionDialog('upgrade')">
+                      <mat-icon>upgrade</mat-icon> <span>Upgrade Package</span>
+                    </button>
+                    <button mat-raised-button color="warn" class="action-btn" (click)="openPTActionDialog('add_sessions')">
+                      <mat-icon>add</mat-icon> <span>Buy Extra Sessions</span>
+                    </button>
                   </div>
                 </div>
 
                 <mat-divider></mat-divider>
 
-                <!-- Session completion progress -->
-                <div class="progress-section">
-                  <div class="progress-labels">
-                    <span>Session Completion Progress</span>
-                    <span>{{ ptWallet.completedSessions }} / {{ ptWallet.totalSessions }} Sessions Completed</span>
+                <!-- Trainer Information Profile Card -->
+                <div class="trainer-info-section" *ngIf="assignedTrainer">
+                  <h4 class="sub-section-title">Assigned Trainer Details</h4>
+                  
+                  <div class="trainer-profile-card" [routerLink]="['/trainers', assignedTrainer.id]">
+                    <div class="trainer-avatar-wrapper">
+                      <img [src]="assignedTrainer.avatarUrl" [alt]="assignedTrainer.name">
+                    </div>
+                    <div class="trainer-info-content">
+                      <div class="trainer-header">
+                        <h4>{{ assignedTrainer.name }}</h4>
+                        <span class="trainer-specialization-badge">{{ assignedTrainer.specialty }}</span>
+                      </div>
+                      <div class="trainer-details-grid">
+                        <div class="trainer-stat">
+                          <span class="lbl">Specialization</span>
+                          <span class="val">{{ assignedTrainer.specialty }}</span>
+                        </div>
+                        <div class="trainer-stat">
+                          <span class="lbl">Experience</span>
+                          <span class="val">{{ assignedTrainer.experienceYears || 3 }} Years</span>
+                        </div>
+                        <div class="trainer-stat">
+                          <span class="lbl">Active Clients</span>
+                          <span class="val">{{ assignedTrainer.activePTClients || 0 }} Clients</span>
+                        </div>
+                      </div>
+                    </div>
+                    <div class="trainer-card-arrow">
+                      <mat-icon>chevron_right</mat-icon>
+                    </div>
                   </div>
-                  <mat-progress-bar mode="determinate" 
-                                    [value]="(ptWallet.completedSessions / ptWallet.totalSessions) * 100" 
-                                    color="accent" 
-                                    class="premium-progress pt-progress">
-                  </mat-progress-bar>
                 </div>
 
-                <div class="pt-actions-row">
-                  <button mat-raised-button color="primary" (click)="openPTActionDialog('change_trainer')">
-                    <mat-icon>swap_horiz</mat-icon> Change Trainer
-                  </button>
-                  <button mat-raised-button color="accent" (click)="openPTActionDialog('upgrade')">
-                    <mat-icon>upgrade</mat-icon> Upgrade Package
-                  </button>
-                  <button mat-raised-button color="warn" (click)="openPTActionDialog('add_sessions')">
-                    <mat-icon>add</mat-icon> Buy Extra Sessions
-                  </button>
-                </div>
+                <mat-divider *ngIf="assignedTrainer"></mat-divider>
 
-                <mat-divider></mat-divider>
-
-                <!-- PT Assignments History -->
+                <!-- Trainer Assignments History (Desktop Table / Mobile Card View) -->
                 <div class="history-sub-section">
                   <h4 class="sub-section-title">Trainer Assignment History</h4>
-                  <div class="table-scroll-wrapper" *ngIf="trainerAssignments.length > 0; else noAssignments">
+                  
+                  <!-- Desktop view: Table layout -->
+                  <div class="desktop-only-table table-scroll-wrapper" *ngIf="trainerAssignments.length > 0; else noAssignments">
                     <table mat-table [dataSource]="trainerAssignments" class="w-100">
                       <ng-container matColumnDef="assignedDate">
                         <th mat-header-cell *matHeaderCellDef> Assigned Date </th>
@@ -277,6 +351,33 @@
                       <tr mat-row *matRowDef="let row; columns: assignmentColumns;"></tr>
                     </table>
                   </div>
+
+                  <!-- Mobile view: Card layout -->
+                  <div class="mobile-only-cards-list" *ngIf="trainerAssignments.length > 0">
+                    <div class="history-card" *ngFor="let element of trainerAssignments">
+                      <div class="card-row">
+                        <span class="lbl">Date</span>
+                        <span class="val font-semibold">{{ element.assignedDate | date:'mediumDate' }}</span>
+                      </div>
+                      <div class="card-row">
+                        <span class="lbl">Trainer</span>
+                        <span class="val font-bold text-accent">{{ element.trainerName }}</span>
+                      </div>
+                      <div class="card-row">
+                        <span class="lbl">Goal</span>
+                        <span class="val">{{ element.ptGoal }}</span>
+                      </div>
+                      <div class="card-row">
+                        <span class="lbl">Status</span>
+                        <span class="status-badge" [ngClass]="element.status">{{ element.status | titlecase }}</span>
+                      </div>
+                      <div class="card-row notes" *ngIf="element.notes">
+                        <span class="lbl">Notes</span>
+                        <span class="val notes-val">{{ element.notes }}</span>
+                      </div>
+                    </div>
+                  </div>
+
                   <ng-template #noAssignments>
                     <p class="no-records-msg">No trainer assignment history records.</p>
                   </ng-template>

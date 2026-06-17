@@ -25,6 +25,8 @@ import { Invoice } from '../../core/models/finance.entity';
 import { MemberPTPlan } from '../../core/models/member-pt-plan.entity';
 import { PTSession } from '../../core/models/pt-session.entity';
 import { TrainerAssignment } from '../../core/models/trainer-assignment.entity';
+import { TrainerState } from '../../presentation/state/trainer.state';
+import { Trainer } from '../../core/models/trainer.entity';
 import { MemberDialogComponent } from './member-dialog.component';
 import { LogBodyProgressDialogComponent } from './log-body-progress-dialog.component';
 import { PTActionDialogComponent } from './pt-action-dialog.component';
@@ -61,6 +63,8 @@ export class MemberProfileComponent implements OnInit {
   ptWallet: MemberPTPlan | undefined;
   ptSessions: PTSession[] = [];
   trainerAssignments: TrainerAssignment[] = [];
+  trainersList: Trainer[] = [];
+  assignedTrainer: Trainer | undefined;
 
   attendanceColumns = ['date', 'timeIn', 'status'];
   paymentColumns = ['id', 'planName', 'date', 'amount', 'status'];
@@ -83,6 +87,7 @@ export class MemberProfileComponent implements OnInit {
     private progressState: BodyProgressState,
     private financeState: FinanceState,
     private ptState: PTState,
+    private trainerState: TrainerState,
     private dialog: MatDialog,
     private snackBar: MatSnackBar
   ) {}
@@ -107,7 +112,15 @@ export class MemberProfileComponent implements OnInit {
     // Fetch PT Wallet
     this.ptState.memberPTPlans$.subscribe(wallets => {
       this.ptWallet = wallets.find(w => w.memberId === this.memberId);
+      this.fetchAssignedTrainer();
     });
+
+    // Fetch Trainers
+    this.trainerState.trainers$.subscribe(trainers => {
+      this.trainersList = trainers;
+      this.fetchAssignedTrainer();
+    });
+    this.trainerState.loadTrainers();
 
     // Fetch PT Sessions
     this.ptState.ptSessions$.subscribe(sessions => {
@@ -409,7 +422,7 @@ export class MemberProfileComponent implements OnInit {
           memberId: this.memberId,
           memberName: this.member!.name,
           trainerId: result.trainer.id,
-          trainerName: result.trainer.fullName,
+          trainerName: result.trainer.name,
           planId: result.plan.id,
           planName: result.plan.name,
           price: result.plan.price,
@@ -425,7 +438,7 @@ export class MemberProfileComponent implements OnInit {
             action: 'assign',
             date: todayStr,
             trainerId: result.trainer.id,
-            trainerName: result.trainer.fullName,
+            trainerName: result.trainer.name,
             planId: result.plan.id,
             planName: result.plan.name,
             notes: 'PT Package Purchased manually from profile'
@@ -437,10 +450,10 @@ export class MemberProfileComponent implements OnInit {
         this.ptState.transferTrainer(
           this.ptWallet!.id,
           result.trainer.id,
-          result.trainer.fullName,
+          result.trainer.name,
           result.notes
         ).subscribe(() => {
-          this.snackBar.open(`Successfully transferred trainer to ${result.trainer.fullName}`, 'Close', { duration: 3000 });
+          this.snackBar.open(`Successfully transferred trainer to ${result.trainer.name}`, 'Close', { duration: 3000 });
         });
       } else if (action === 'upgrade') {
         this.ptState.upgradePTPlan(
@@ -463,5 +476,13 @@ export class MemberProfileComponent implements OnInit {
         });
       }
     });
+  }
+
+  fetchAssignedTrainer(): void {
+    if (this.ptWallet && this.ptWallet.trainerId) {
+      this.assignedTrainer = this.trainersList.find(t => t.id === this.ptWallet!.trainerId);
+    } else {
+      this.assignedTrainer = undefined;
+    }
   }
 }

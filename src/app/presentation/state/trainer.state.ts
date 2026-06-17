@@ -79,7 +79,8 @@ export class TrainerState {
       avatarUrl: emp.photoUrl || `https://api.dicebear.com/7.x/initials/svg?seed=${encodeURIComponent(emp.fullName)}`,
       status: emp.accountStatus === 'Active' ? 'active' : 'on leave',
       email: emp.email,
-      phone: emp.phone
+      phone: emp.phone,
+      experienceYears: emp.experienceYears || 3
     };
   }
 
