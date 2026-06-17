@@ -11,7 +11,7 @@ export interface Lead {
   interestedPlan: string;
   notes?: string;
   assignedStaff?: string; // Kept for compatibility
-  status: 'New' | 'Contacted' | 'Follow Up' | 'Trial Scheduled' | 'Trial Attended' | 'Negotiation' | 'Converted' | 'Lost';
+  status: 'New' | 'Contacted' | 'Follow Up' | 'Trial Scheduled' | 'Trial Attended' | 'Trial Completed' | 'Negotiation' | 'Converted' | 'Lost';
 
   // CRM Detail Fields
   leadTemperature?: 'Hot' | 'Warm' | 'Cold'; // Categorized temperature of lead quality
@@ -49,4 +49,15 @@ export interface Lead {
   age?: number;
   height?: number;
   weight?: number;
+  followUpHistory?: FollowUpHistoryItem[];
 }
+
+export interface FollowUpHistoryItem {
+  id: string;
+  date: string;               // YYYY-MM-DD
+  employeeId: string;
+  employeeName: string;
+  notes: string;
+  nextFollowUpDate?: string;  // YYYY-MM-DD
+}
+

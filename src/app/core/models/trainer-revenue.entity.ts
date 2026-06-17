@@ -10,4 +10,6 @@ export interface TrainerRevenue {
   date: string; // YYYY-MM-DD
   invoiceId: string;
   ptPlanName: string;
+  salespersonId?: string;
+  salespersonName?: string;
 }

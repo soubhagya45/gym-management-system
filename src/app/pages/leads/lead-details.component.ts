@@ -17,6 +17,7 @@ import { Member } from '../../core/models/member.entity';
 import { LeadDialogComponent } from './lead-dialog.component';
 import { ConfirmDialogComponent } from '../members/confirm-dialog.component';
 import { ConvertDialogComponent } from './convert-dialog.component';
+import { LogFollowUpDialogComponent } from './log-followup-dialog.component';
 
 @Component({
   selector: 'app-lead-details',
@@ -164,5 +165,25 @@ export class LeadDetailsComponent implements OnInit {
       return goals.join(', ');
     }
     return goals;
+  }
+
+  openLogFollowUpDialog(): void {
+    if (!this.lead) return;
+
+    const dialogRef = this.dialog.open(LogFollowUpDialogComponent, {
+      width: '600px',
+      data: this.lead
+    });
+
+    dialogRef.afterClosed().subscribe(result => {
+      if (result) {
+        this.leadState.logFollowUp(this.leadId, result).subscribe(() => {
+          this.snackBar.open('Lead follow-up logged successfully!', 'Dismiss', {
+            duration: 3000,
+            panelClass: ['premium-snack']
+          });
+        });
+      }
+    });
   }
 }

@@ -1,0 +1,507 @@
+<div class="crm-sales-container">
+  <!-- Header -->
+  <div class="crm-header glass-panel">
+    <div class="crm-header-info">
+      <h1>CRM Sales Center</h1>
+      <p>Monitor revenue closed, track targets, attribute sales, and analyze salesperson performance.</p>
+    </div>
+    <div class="crm-header-actions">
+      <button mat-raised-button color="primary" routerLink="/leads/add">
+        <mat-icon>add</mat-icon>
+        <span>Add Lead</span>
+      </button>
+    </div>
+  </div>
+
+  <!-- Tabs Nav -->
+  <div class="tabs-nav-bar glass-panel">
+    <button class="nav-tab-btn" [class.active]="activeTab === 0" (click)="activeTab = 0">
+      <mat-icon>dashboard</mat-icon>
+      <span>Sales Performance</span>
+    </button>
+    <button class="nav-tab-btn" [class.active]="activeTab === 1" (click)="activeTab = 1">
+      <mat-icon>leaderboard</mat-icon>
+      <span>Sales Leaderboard</span>
+    </button>
+    <button class="nav-tab-btn" [class.active]="activeTab === 2" (click)="activeTab = 2">
+      <mat-icon>sports</mat-icon>
+      <span>Revenue Attribution</span>
+    </button>
+    <button class="nav-tab-btn" [class.active]="activeTab === 3" (click)="activeTab = 3">
+      <mat-icon>track_changes</mat-icon>
+      <span>Monthly Targets</span>
+    </button>
+    <button class="nav-tab-btn" [class.active]="activeTab === 4" (click)="activeTab = 4">
+      <mat-icon>groups</mat-icon>
+      <span>Employee Performance</span>
+    </button>
+  </div>
+
+  <!-- Tab 0: Sales Performance -->
+  <div class="tab-content" *ngIf="activeTab === 0">
+    <!-- KPI Row -->
+    <div class="kpi-grid">
+      <div class="kpi-card glass-panel border-teal">
+        <div class="kpi-icon-wrapper bg-teal-light">
+          <mat-icon class="text-teal">currency_rupee</mat-icon>
+        </div>
+        <div class="kpi-data">
+          <h3>Total Gym Revenue</h3>
+          <h2>₹{{ totalRevenue | number }}</h2>
+          <span>Closed conversion revenue</span>
+        </div>
+      </div>
+
+      <div class="kpi-card glass-panel border-indigo">
+        <div class="kpi-icon-wrapper bg-indigo-light">
+          <mat-icon class="text-indigo">credit_card</mat-icon>
+        </div>
+        <div class="kpi-data">
+          <h3>Membership Sales</h3>
+          <h2>₹{{ membershipRevenue | number }}</h2>
+          <span>Sub-total from conversions</span>
+        </div>
+      </div>
+
+      <div class="kpi-card glass-panel border-pink">
+        <div class="kpi-icon-wrapper bg-pink-light">
+          <mat-icon class="text-pink">sports_gymnastics</mat-icon>
+        </div>
+        <div class="kpi-data">
+          <h3>PT Revenue</h3>
+          <h2>₹{{ ptRevenue | number }}</h2>
+          <span>Personal Training conversions</span>
+        </div>
+      </div>
+
+      <div class="kpi-card glass-panel border-purple">
+        <div class="kpi-icon-wrapper bg-purple-light">
+          <mat-icon class="text-purple">track_changes</mat-icon>
+        </div>
+        <div class="kpi-data">
+          <h3>Monthly Target</h3>
+          <h2>₹{{ monthlyTarget | number }}</h2>
+          <span>Overall gym target</span>
+        </div>
+      </div>
+
+      <div class="kpi-card glass-panel border-orange">
+        <div class="kpi-icon-wrapper bg-orange-light">
+          <mat-icon class="text-orange">analytics</mat-icon>
+        </div>
+        <div class="kpi-data">
+          <h3>Target Completion</h3>
+          <h2>{{ targetAchievementPct }}%</h2>
+          <span>Overall achievement rate</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Monthly Revenue chart -->
+    <div class="dashboard-grid single-col">
+      <div class="glass-panel chart-card">
+        <div class="card-header">
+          <h3>Monthly Revenue From Leads</h3>
+          <p>Revenue trends compiled in the current calendar year</p>
+        </div>
+        <div class="charts-container margin-top-15">
+          <!-- SVG Line Chart -->
+          <div class="chart-box">
+            <div class="svg-container">
+              <svg viewBox="0 0 500 150" class="svg-line-chart">
+                <defs>
+                  <linearGradient id="chartGradientSales" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="0%" stop-color="#818cf8" stop-opacity="0.3"></stop>
+                    <stop offset="100%" stop-color="#818cf8" stop-opacity="0.0"></stop>
+                  </linearGradient>
+                </defs>
+                
+                <!-- Grid Lines -->
+                <line x1="20" y1="20" x2="480" y2="20" stroke="rgba(255,255,255,0.05)" stroke-width="1"></line>
+                <line x1="20" y1="65" x2="480" y2="65" stroke="rgba(255,255,255,0.05)" stroke-width="1"></line>
+                <line x1="20" y1="110" x2="480" y2="110" stroke="rgba(255,255,255,0.05)" stroke-width="1"></line>
+                <line x1="20" y1="130" x2="480" y2="130" stroke="rgba(255,255,255,0.1)" stroke-width="1"></line>
+
+                <!-- Filled Path -->
+                <path [attr.d]="getRevenueSVGFillPoints()" fill="url(#chartGradientSales)"></path>
+
+                <!-- Stroke Path -->
+                <polyline
+                  fill="none"
+                  stroke="#818cf8"
+                  stroke-width="3"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  [attr.points]="getRevenueSVGPoints()">
+                </polyline>
+              </svg>
+            </div>
+            
+            <!-- X Axis Labels -->
+            <div class="chart-labels">
+              <div class="label-item" *ngFor="let m of revenueChartMonths; let i = index">
+                <span>{{ m }}</span>
+                <strong>₹{{ revenueChartValues[i] | number:'1.0-0' }}</strong>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Tab 1: Sales Leaderboard -->
+  <div class="tab-content" *ngIf="activeTab === 1">
+    <!-- Highlight Badges -->
+    <div class="leaderboard-highlights" *ngIf="topPerformer || highestRevenueGenerator || highestConversionRate">
+      <!-- Top Performer card -->
+      <div class="award-card performer-award glass-panel" *ngIf="topPerformer">
+        <mat-icon class="award-icon text-orange">emoji_events</mat-icon>
+        <div class="award-details">
+          <span class="award-label">Top Performer</span>
+          <span class="award-name">{{ topPerformer.name }}</span>
+          <span class="award-sub">{{ topPerformer.converted }} Conversions</span>
+        </div>
+      </div>
+
+      <!-- Highest Revenue Generator card -->
+      <div class="award-card revenue-award glass-panel" *ngIf="highestRevenueGenerator">
+        <mat-icon class="award-icon text-green">monetization_on</mat-icon>
+        <div class="award-details">
+          <span class="award-label">Highest Revenue</span>
+          <span class="award-name">{{ highestRevenueGenerator.name }}</span>
+          <span class="award-sub">₹{{ highestRevenueGenerator.totalRevenue | number }} Generated</span>
+        </div>
+      </div>
+
+      <!-- Highest Conversion Rate card -->
+      <div class="award-card rate-award glass-panel" *ngIf="highestConversionRate">
+        <mat-icon class="award-icon text-blue">trending_up</mat-icon>
+        <div class="award-details">
+          <span class="award-label">Highest Conv. Rate</span>
+          <span class="award-name">{{ highestConversionRate.name }}</span>
+          <span class="award-sub">{{ highestConversionRate.conversionRate }}% Rate</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Leaderboard Table -->
+    <div class="glass-panel leaderboard-card margin-top-15">
+      <div class="card-header">
+        <h3>Sales Performance Leaderboard</h3>
+        <p>Rank and details of salesperson lead generations and conversions</p>
+      </div>
+
+      <div class="table-container">
+        <table mat-table [dataSource]="leaderboardData" matSort #leadSort="matSort">
+          <!-- Name -->
+          <ng-container matColumnDef="name">
+            <th mat-header-cell *matHeaderCellDef mat-sort-header> Employee Name </th>
+            <td mat-cell *matCellDef="let element" class="font-bold">
+              {{ element.name }}
+              <span class="role-badge">{{ getRoleLabel(element.role) }}</span>
+            </td>
+          </ng-container>
+
+          <!-- Assigned -->
+          <ng-container matColumnDef="assigned">
+            <th mat-header-cell *matHeaderCellDef mat-sort-header> Leads Assigned </th>
+            <td mat-cell *matCellDef="let element"> {{ element.assigned }} </td>
+          </ng-container>
+
+          <!-- Followups -->
+          <ng-container matColumnDef="followups">
+            <th mat-header-cell *matHeaderCellDef mat-sort-header> Total Follow-Ups </th>
+            <td mat-cell *matCellDef="let element"> {{ element.followups }} </td>
+          </ng-container>
+
+          <!-- Converted -->
+          <ng-container matColumnDef="converted">
+            <th mat-header-cell *matHeaderCellDef mat-sort-header> Conversions </th>
+            <td mat-cell *matCellDef="let element" class="success-text font-bold"> {{ element.converted }} </td>
+          </ng-container>
+
+          <!-- Membership Revenue -->
+          <ng-container matColumnDef="membershipRevenue">
+            <th mat-header-cell *matHeaderCellDef mat-sort-header> Membership Sales </th>
+            <td mat-cell *matCellDef="let element"> ₹{{ element.membershipRevenue | number }} </td>
+          </ng-container>
+
+          <!-- PT Revenue -->
+          <ng-container matColumnDef="ptRevenue">
+            <th mat-header-cell *matHeaderCellDef mat-sort-header> PT Sales </th>
+            <td mat-cell *matCellDef="let element"> ₹{{ element.ptRevenue | number }} </td>
+          </ng-container>
+
+          <!-- Total Revenue -->
+          <ng-container matColumnDef="totalRevenue">
+            <th mat-header-cell *matHeaderCellDef mat-sort-header> Total Revenue </th>
+            <td mat-cell *matCellDef="let element" class="highlight-text font-bold"> ₹{{ element.totalRevenue | number }} </td>
+          </ng-container>
+
+          <!-- Conversion Rate -->
+          <ng-container matColumnDef="conversionRate">
+            <th mat-header-cell *matHeaderCellDef mat-sort-header> Conversion Rate </th>
+            <td mat-cell *matCellDef="let element">
+              <div class="conv-rate-cell">
+                <span>{{ element.conversionRate }}%</span>
+                <div class="tiny-progress-bar">
+                  <div class="fill" [style.width.%]="element.conversionRate"></div>
+                </div>
+              </div>
+            </td>
+          </ng-container>
+
+          <tr mat-header-row *matHeaderRowDef="leaderboardColumns"></tr>
+          <tr mat-row *matRowDef="let row; columns: leaderboardColumns;"></tr>
+        </table>
+        
+        <div class="empty-table-state" *ngIf="leaderboardData.data.length === 0">
+          <mat-icon>sentiment_dissatisfied</mat-icon>
+          <p>No sales activity recorded for active employees.</p>
+        </div>
+
+        <mat-paginator #leadPaginator [pageSizeOptions]="[5, 10, 20]" showFirstLastButtons class="glass-paginator"></mat-paginator>
+      </div>
+    </div>
+  </div>
+
+  <!-- Tab 2: Revenue Attribution & Trainer Referrals -->
+  <div class="tab-content" *ngIf="activeTab === 2">
+    <!-- Reports Exports Panel -->
+    <div class="glass-panel attribution-exports-card margin-bottom-20">
+      <div class="card-header-exports">
+        <h3><mat-icon>download</mat-icon> Export Revenue Attribution Reports</h3>
+        <p>Generate detailed breakdown sheets of membership and PT sales assignments</p>
+      </div>
+      <div class="exports-grid margin-top-15">
+        <button mat-raised-button color="primary" (click)="exportReport('membership')">
+          <mat-icon>card_membership</mat-icon>
+          <span>Export Membership Conversions</span>
+        </button>
+        <button mat-raised-button color="primary" (click)="exportReport('pt')">
+          <mat-icon>fitness_center</mat-icon>
+          <span>Export Trainer PT Sales Log</span>
+        </button>
+        <button mat-raised-button color="primary" (click)="exportReport('referrals')">
+          <mat-icon>groups</mat-icon>
+          <span>Export Trainer Referrals Summary</span>
+        </button>
+      </div>
+    </div>
+
+    <div class="trainer-split-layout">
+      <!-- Referral Summary Card -->
+      <div class="glass-panel ref-summary-card">
+        <div class="card-header">
+          <h3>Trainer Referrals Revenue</h3>
+          <p>Revenues generated from trainer-referred lead acquisitions</p>
+        </div>
+
+        <div class="summary-list">
+          <div class="summary-item" *ngFor="let item of trainerReferralSummary">
+            <div class="summary-item-info">
+              <h4>{{ item.name }}</h4>
+              <span>{{ item.count }} PT referral packages sold</span>
+            </div>
+            <div class="summary-item-val font-bold text-green">
+              ₹{{ item.total | number }}
+            </div>
+          </div>
+          <div class="empty-summary-state" *ngIf="trainerReferralSummary.length === 0">
+            <mat-icon>trending_down</mat-icon>
+            <p>No referral package revenues generated yet.</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- PT Sales Log Table -->
+      <div class="glass-panel trainer-sales-card">
+        <div class="card-header">
+          <h3>Personal Training Sales Log</h3>
+          <p>Individual records of PT packages assigned and sold via conversions</p>
+        </div>
+
+        <div class="table-container">
+          <table mat-table [dataSource]="trainerSalesData" matSort #trainerSort="matSort">
+            <!-- Trainer -->
+            <ng-container matColumnDef="trainerName">
+              <th mat-header-cell *matHeaderCellDef mat-sort-header> Trainer Name </th>
+              <td mat-cell *matCellDef="let element" class="font-bold"> {{ element.trainerName }} </td>
+            </ng-container>
+
+            <!-- PT Plan -->
+            <ng-container matColumnDef="planName">
+              <th mat-header-cell *matHeaderCellDef mat-sort-header> PT Plan </th>
+              <td mat-cell *matCellDef="let element"> {{ element.planName }} </td>
+            </ng-container>
+
+            <!-- PT Amount -->
+            <ng-container matColumnDef="ptAmount">
+              <th mat-header-cell *matHeaderCellDef mat-sort-header> PT Amount </th>
+              <td mat-cell *matCellDef="let element" class="success-text font-bold"> ₹{{ element.ptAmount | number }} </td>
+            </ng-container>
+
+            <!-- Salesperson -->
+            <ng-container matColumnDef="salespersonName">
+              <th mat-header-cell *matHeaderCellDef mat-sort-header> Credited Salesperson </th>
+              <td mat-cell *matCellDef="let element"> {{ element.salespersonName }} </td>
+            </ng-container>
+
+            <!-- Date -->
+            <ng-container matColumnDef="date">
+              <th mat-header-cell *matHeaderCellDef mat-sort-header> Date Sold </th>
+              <td mat-cell *matCellDef="let element"> {{ element.date | date:'mediumDate' }} </td>
+            </ng-container>
+
+            <tr mat-header-row *matHeaderRowDef="trainerSalesColumns"></tr>
+            <tr mat-row *matRowDef="let row; columns: trainerSalesColumns;"></tr>
+          </table>
+
+          <div class="empty-table-state" *ngIf="trainerSalesData.data.length === 0">
+            <mat-icon>sports_kabaddi</mat-icon>
+            <p>No personal training sales recorded.</p>
+          </div>
+
+          <mat-paginator #trainerPaginator [pageSizeOptions]="[5, 10, 20]" showFirstLastButtons class="glass-paginator"></mat-paginator>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Tab 3: Monthly Targets -->
+  <div class="tab-content" *ngIf="activeTab === 3">
+    <div class="targets-setup-layout">
+      <!-- Gym monthly target setup -->
+      <div class="glass-panel target-settings-card">
+        <div class="card-header">
+          <h3>Set Monthly Gym Target</h3>
+          <p>Define the overall target revenue of the gym to calculate progress rates</p>
+        </div>
+        <div class="target-form-row margin-top-20">
+          <mat-form-field appearance="outline" class="target-input-field">
+            <mat-label>Gym Monthly Target (₹)</mat-label>
+            <input matInput type="number" [(ngModel)]="monthlyTarget" placeholder="e.g. 100000">
+            <mat-icon matPrefix>currency_rupee</mat-icon>
+          </mat-form-field>
+          <button mat-raised-button color="primary" class="target-save-btn" (click)="saveTargets()">
+            <mat-icon>save</mat-icon> Save Target
+          </button>
+        </div>
+      </div>
+
+      <!-- Employee target settings list -->
+      <div class="glass-panel employee-targets-card margin-top-20">
+        <div class="card-header">
+          <h3>Salesperson Target Configuration</h3>
+          <p>Specify monthly revenue targets for active sales representatives and track achievements</p>
+        </div>
+
+        <div class="employee-target-list margin-top-20">
+          <div class="employee-target-row glass-panel" *ngFor="let emp of employeeTargetList">
+            <div class="emp-meta">
+              <h4>{{ emp.name }}</h4>
+              <span>Actual: ₹{{ emp.actual | number }}</span>
+            </div>
+            
+            <div class="emp-target-input">
+              <mat-form-field appearance="outline" class="w-100">
+                <mat-label>Monthly Target (₹)</mat-label>
+                <input matInput type="number" [ngModel]="employeeTargets[emp.id]" (ngModelChange)="updateEmployeeTarget(emp.id, $event)" placeholder="e.g. 20000">
+                <mat-icon matPrefix>currency_rupee</mat-icon>
+              </mat-form-field>
+            </div>
+
+            <div class="emp-progress-bar-wrapper">
+              <div class="progress-info">
+                <span>{{ emp.pct }}% Achieved</span>
+                <span>₹{{ emp.actual | number }} / ₹{{ emp.target | number }}</span>
+              </div>
+              <div class="progress-track">
+                <div class="progress-fill" [style.width.%]="emp.pct > 100 ? 100 : emp.pct" [ngClass]="{'completed': emp.pct >= 100}"></div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="save-all-row margin-top-20">
+          <button mat-raised-button color="primary" class="w-100" (click)="saveTargets()">
+            <mat-icon>save</mat-icon> Save All Targets Configuration
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Tab 4: Employee Performance Deep Dive -->
+  <div class="tab-content" *ngIf="activeTab === 4">
+    <div class="glass-panel performance-deep-dive-card">
+      <div class="card-header">
+        <h3>Salesperson Productivity & Deal Analysis</h3>
+        <p>Comprehensive report analyzing employee engagement, conversions, and target achievements</p>
+      </div>
+
+      <div class="table-container">
+        <table mat-table [dataSource]="leaderboardData" matSort #perfSort="matSort">
+          <!-- Employee -->
+          <ng-container matColumnDef="name">
+            <th mat-header-cell *matHeaderCellDef> Employee Name </th>
+            <td mat-cell *matCellDef="let element" class="font-bold">
+              {{ element.name }}
+              <span class="role-badge">{{ getRoleLabel(element.role) }}</span>
+            </td>
+          </ng-container>
+
+          <!-- Assigned -->
+          <ng-container matColumnDef="assigned">
+            <th mat-header-cell *matHeaderCellDef class="text-center"> Assigned Leads </th>
+            <td mat-cell *matCellDef="let element" class="text-center text-primary font-bold"> {{ element.assigned }} </td>
+          </ng-container>
+
+          <!-- Follow Ups -->
+          <ng-container matColumnDef="followups">
+            <th mat-header-cell *matHeaderCellDef class="text-center"> Follow-Ups Logged </th>
+            <td mat-cell *matCellDef="let element" class="text-center"> {{ element.followups }} </td>
+          </ng-container>
+
+          <!-- Conversions -->
+          <ng-container matColumnDef="converted">
+            <th mat-header-cell *matHeaderCellDef class="text-center"> Conversions </th>
+            <td mat-cell *matCellDef="let element" class="text-center success-text font-bold"> {{ element.converted }} </td>
+          </ng-container>
+
+          <!-- Conversion Rate -->
+          <ng-container matColumnDef="conversionRate">
+            <th mat-header-cell *matHeaderCellDef class="text-center"> Conversion Rate </th>
+            <td mat-cell *matCellDef="let element" class="text-center">
+              <span class="conv-pct-badge" [ngClass]="{
+                'high': element.conversionRate >= 60,
+                'medium': element.conversionRate >= 30 && element.conversionRate < 60,
+                'low': element.conversionRate < 30
+              }">{{ element.conversionRate }}%</span>
+            </td>
+          </ng-container>
+
+          <!-- Avg Deal Size -->
+          <ng-container matColumnDef="membershipRevenue">
+            <th mat-header-cell *matHeaderCellDef class="text-right"> Average Deal Size </th>
+            <td mat-cell *matCellDef="let element" class="text-right font-bold text-accent">
+              ₹{{ (element.converted > 0 ? Math.round(element.totalRevenue / element.converted) : 0) | number }}
+            </td>
+          </ng-container>
+
+          <!-- Total Revenue Closed -->
+          <ng-container matColumnDef="totalRevenue">
+            <th mat-header-cell *matHeaderCellDef class="text-right"> Closed Revenue </th>
+            <td mat-cell *matCellDef="let element" class="text-right font-bold text-green">
+              ₹{{ element.totalRevenue | number }}
+            </td>
+          </ng-container>
+
+          <tr mat-header-row *matHeaderRowDef="['name', 'assigned', 'followups', 'converted', 'conversionRate', 'membershipRevenue', 'totalRevenue']"></tr>
+          <tr mat-row *matRowDef="let row; columns: ['name', 'assigned', 'followups', 'converted', 'conversionRate', 'membershipRevenue', 'totalRevenue'];"></tr>
+        </table>
+      </div>
+    </div>
+  </div>
+</div>

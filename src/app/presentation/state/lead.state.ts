@@ -140,16 +140,13 @@ export class LeadState {
       switchMap((newMember) => {
         const lead = this.leadsSubject.value.find(l => l.id === leadId);
         if (lead) {
-          const commissionPercent = 10; // Standard automatic commission of 10%
-          const commissionEarned = Math.round((conversionDetails.revenueGenerated * commissionPercent / 100) * 100) / 100;
-
           const updatedLead: Lead = {
             ...lead,
             status: 'Converted' as const,
             convertedBy: conversionDetails.convertedBy,
             revenueGenerated: conversionDetails.revenueGenerated,
-            commissionPercent: commissionPercent,
-            commissionEarned: commissionEarned,
+            commissionPercent: 0,
+            commissionEarned: 0,
             nextFollowUp: undefined // Clear follow-ups
           };
 
@@ -177,6 +174,8 @@ export class LeadState {
               startDate: todayStr,
               endDate: endStr,
               status: 'active',
+              salespersonId: lead.assignedEmployee || lead.leadOwner || '',
+              salespersonName: conversionDetails.convertedBy || lead.assignedEmployeeName || lead.assignedStaff || '',
               history: [{
                 action: 'assign',
                 date: todayStr,
@@ -219,6 +218,50 @@ export class LeadState {
           );
         }
         return of(undefined);
+      })
+    );
+  }
+
+  logFollowUp(
+    leadId: string,
+    item: {
+      date: string;
+      employeeId: string;
+      employeeName: string;
+      notes: string;
+      nextFollowUpDate?: string;
+    }
+  ): Observable<void> {
+    const gymId = this.tenantContext.getTenantId();
+    if (!gymId) throw new Error('No active tenant selected');
+
+    const leads = this.leadsSubject.value;
+    const lead = leads.find(l => l.id === leadId);
+    if (!lead) return of(undefined);
+
+    const followUpId = 'fup_' + Math.random().toString(36).substring(2, 9);
+    const newItem = {
+      ...item,
+      id: followUpId
+    };
+
+    const history = lead.followUpHistory || [];
+    const updatedLead: Lead = {
+      ...lead,
+      followUpHistory: [...history, newItem],
+      lastFollowUp: item.date,
+      nextFollowUp: item.nextFollowUpDate,
+      followUpDate: item.nextFollowUpDate || lead.followUpDate
+    };
+
+    return this.leadRepository.updateLead(gymId, updatedLead).pipe(
+      tap(() => {
+        this.loadLeads();
+        this.logRepository.addLog(
+          gymId,
+          `Logged follow-up interaction for lead: ${lead.name} by ${item.employeeName}`,
+          'plan-change'
+        ).subscribe();
       })
     );
   }

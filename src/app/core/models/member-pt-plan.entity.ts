@@ -17,6 +17,8 @@ export interface MemberPTPlan {
   startDate: string; // YYYY-MM-DD
   endDate: string; // YYYY-MM-DD
   status: 'active' | 'completed' | 'expired' | 'cancelled';
+  salespersonId?: string;
+  salespersonName?: string;
   history: {
     action: 'assign' | 'change_trainer' | 'upgrade_plan' | 'add_sessions' | 'transfer_trainer';
     date: string;

@@ -37,13 +37,13 @@ import { WhatsAppPreviewModalComponent } from '../whatsapp/whatsapp-preview-moda
 interface SalesCRMStats {
   total: number;
   newLeadsToday: number;
+  activeLeads: number;
   followUpsDueToday: number;
   trialScheduled: number;
   trialAttended: number;
   converted: number;
   lost: number;
   conversionRate: number;
-  revenueGenerated: number;
   estPipelineValue: number;
 }
 
@@ -86,24 +86,29 @@ export class LeadsComponent implements OnInit, AfterViewInit {
   stats: SalesCRMStats = {
     total: 0,
     newLeadsToday: 0,
+    activeLeads: 0,
     followUpsDueToday: 0,
     trialScheduled: 0,
     trialAttended: 0,
     converted: 0,
     lost: 0,
     conversionRate: 0,
-    revenueGenerated: 0,
     estPipelineValue: 0
   };
 
   // Pipeline Kanban Data
   pipelineColumns: { name: string; status: Lead['status']; leads: Lead[] }[] = [];
 
-  // Leaderboard statistics
-  leaderboard: any[] = [];
-  topPerformer: any = null;
-  highestRevenueGenerator: any = null;
-  highestConversionRate: any = null;
+  // SVG Funnel / Chart Data
+  funnelStages = [
+    { label: 'New', count: 0, pct: 100, color: '#3b82f6' },
+    { label: 'Contacted', count: 0, pct: 80, color: '#6366f1' },
+    { label: 'Follow Up', count: 0, pct: 70, color: '#8b5cf6' },
+    { label: 'Trial Scheduled', count: 0, pct: 60, color: '#a855f7' },
+    { label: 'Trial Attended', count: 0, pct: 50, color: '#d946ef' },
+    { label: 'Negotiation', count: 0, pct: 30, color: '#ec4899' },
+    { label: 'Converted', count: 0, pct: 20, color: '#10b981' }
+  ];
 
   // Follow Up widgets lists
   dueTodayFollowUps: Lead[] = [];
@@ -121,9 +126,7 @@ export class LeadsComponent implements OnInit, AfterViewInit {
   reportData: any[] = [];
   reportHeaders: string[] = [];
 
-  // SVG Chart Data Sources
-  revenueChartMonths = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun'];
-  revenueChartValues = [5000, 10000, 12000, 8000, 21500, 0];
+
 
   @ViewChild(MatPaginator) paginator!: MatPaginator;
   @ViewChild(MatSort) sort!: MatSort;
@@ -223,9 +226,9 @@ export class LeadsComponent implements OnInit, AfterViewInit {
     const convertedCount = leads.filter(l => l.status === 'Converted').length;
     const lostCount = leads.filter(l => l.status === 'Lost').length;
     const conversionRate = totalLeads > 0 ? Math.round((convertedCount / totalLeads) * 100) : 0;
+    const activeLeads = totalLeads - convertedCount - lostCount;
     
-    // Revenue and Pipeline
-    const revenueGenerated = leads.filter(l => l.status === 'Converted').reduce((sum, l) => sum + (l.revenueGenerated || 0), 0);
+    // Pipeline Value
     const estPipelineValue = leads
       .filter(l => l.status !== 'Converted' && l.status !== 'Lost')
       .reduce((sum, l) => {
@@ -237,13 +240,13 @@ export class LeadsComponent implements OnInit, AfterViewInit {
     this.stats = {
       total: totalLeads,
       newLeadsToday,
+      activeLeads,
       followUpsDueToday: followUpsDueTodayCount,
       trialScheduled: trialScheduledCount,
       trialAttended: trialAttendedCount,
       converted: convertedCount,
       lost: lostCount,
       conversionRate,
-      revenueGenerated,
       estPipelineValue
     };
 
@@ -260,47 +263,7 @@ export class LeadsComponent implements OnInit, AfterViewInit {
     this.missedFollowUps = leads.filter(l => l.status === 'Follow Up' && (l.nextFollowUp || l.followUpDate || '') < todayStr && l.followUpStatus === 'Pending');
     this.upcomingFollowUps = leads.filter(l => l.status === 'Follow Up' && (l.nextFollowUp || l.followUpDate || '') > todayStr && l.followUpStatus === 'Pending');
 
-    // 4. Build Sales Performance Leaderboard
-    const salesExecs = employees.filter(e => e.role === UserRole.Staff || e.role === UserRole.Manager);
-    const board = salesExecs.map(emp => {
-      const empLeads = leads.filter(l => l.leadOwner === emp.id || l.assignedEmployee === emp.id || l.assignedStaff?.toLowerCase() === emp.fullName.toLowerCase());
-      const empConverted = empLeads.filter(l => l.status === 'Converted');
-      const empRev = empConverted.reduce((sum, l) => sum + (l.revenueGenerated || 0), 0);
-      const empComm = empConverted.reduce((sum, l) => sum + (l.commissionEarned || 0), 0);
-      const empConvRate = empLeads.length > 0 ? Math.round((empConverted.length / empLeads.length) * 100) : 0;
-
-      return {
-        id: emp.id,
-        name: emp.fullName,
-        role: emp.role === UserRole.Staff ? 'Sales Executive' : 'Manager',
-        assigned: empLeads.length,
-        converted: empConverted.length,
-        conversionRate: empConvRate,
-        revenue: empRev,
-        commission: empComm
-      };
-    });
-
-    this.leaderboard = board.sort((a, b) => b.converted - a.converted || b.revenue - a.revenue);
-
-    // Leaderboard awards logic
-    if (this.leaderboard.length > 0) {
-      this.topPerformer = [...this.leaderboard].sort((a, b) => b.converted - a.converted)[0];
-      if (this.topPerformer.converted === 0) this.topPerformer = null;
-
-      this.highestRevenueGenerator = [...this.leaderboard].sort((a, b) => b.revenue - a.revenue)[0];
-      if (this.highestRevenueGenerator.revenue === 0) this.highestRevenueGenerator = null;
-
-      const eligibleForConvRate = this.leaderboard.filter(a => a.assigned >= 2);
-      if (eligibleForConvRate.length > 0) {
-        this.highestConversionRate = [...eligibleForConvRate].sort((a, b) => b.conversionRate - a.conversionRate)[0];
-        if (this.highestConversionRate.converted === 0) this.highestConversionRate = null;
-      } else {
-        this.highestConversionRate = null;
-      }
-    }
-
-    // 5. Build Source Performance Analytics
+    // 4. Build Source Performance Analytics
     const sources: Lead['leadSource'][] = ['Walk-In', 'Website', 'Instagram', 'Facebook', 'Google Ads', 'WhatsApp', 'Referral', 'Existing Member Referral', 'Trainer Referral', 'Other'];
     this.sourceAnalytics = sources.map(src => {
       const srcLeads = leads.filter(l => l.leadSource === src);
@@ -315,7 +278,7 @@ export class LeadsComponent implements OnInit, AfterViewInit {
       };
     });
 
-    // 6. Build Lost Reasons Analytics
+    // 5. Build Lost Reasons Analytics
     const lostLeads = leads.filter(l => l.status === 'Lost');
     const lostCountTotal = lostLeads.length;
     const reasons = [
@@ -338,14 +301,43 @@ export class LeadsComponent implements OnInit, AfterViewInit {
       };
     }).sort((a, b) => b.count - a.count);
 
-    // Update charts data values (specifically for June 2026 dynamic conversions)
-    const juneRev = leads
-      .filter(l => l.status === 'Converted' && (l.trialDate.startsWith('2026-06') || (l.createdAt && l.createdAt.startsWith('2026-06'))))
-      .reduce((sum, l) => sum + (l.revenueGenerated || 0), 0);
-    this.revenueChartValues[5] = juneRev;
+    this.buildFunnelData(leads);
 
     // Refresh reports
     this.generateReport();
+  }
+
+  private buildFunnelData(leads: Lead[]): void {
+    const stages = ['New', 'Contacted', 'Follow Up', 'Trial Scheduled', 'Trial Attended', 'Negotiation', 'Converted'];
+    const maxCount = leads.length || 1;
+
+    this.funnelStages = stages.map((stage, idx) => {
+      const count = leads.filter(l => {
+        if (stage === 'Converted') return l.status === 'Converted';
+        if (stage === 'Negotiation') return ['Negotiation', 'Converted'].includes(l.status);
+        if (stage === 'Trial Attended') return ['Trial Attended', 'Negotiation', 'Converted'].includes(l.status);
+        if (stage === 'Trial Scheduled') return ['Trial Scheduled', 'Trial Attended', 'Negotiation', 'Converted'].includes(l.status);
+        if (stage === 'Follow Up') return ['Follow Up', 'Trial Scheduled', 'Trial Attended', 'Negotiation', 'Converted'].includes(l.status);
+        if (stage === 'Contacted') return ['Contacted', 'Follow Up', 'Trial Scheduled', 'Trial Attended', 'Negotiation', 'Converted'].includes(l.status);
+        return true; // New
+      }).length;
+
+      const pct = Math.round((count / maxCount) * 100);
+      let color = '#3b82f6';
+      if (idx === 1) color = '#6366f1';
+      else if (idx === 2) color = '#8b5cf6';
+      else if (idx === 3) color = '#a855f7';
+      else if (idx === 4) color = '#d946ef';
+      else if (idx === 5) color = '#ec4899';
+      else if (idx === 6) color = '#10b981';
+
+      return {
+        label: stage,
+        count,
+        pct,
+        color
+      };
+    });
   }
 
   applyFilters(): void {
@@ -489,7 +481,7 @@ export class LeadsComponent implements OnInit, AfterViewInit {
     const leads = this.dataSource.data;
     switch (this.activeReportType) {
       case 'conversion':
-        this.reportHeaders = ['Lead Name', 'Lead Source', 'Stage', 'Preferred Plan', 'Owner', 'Created At', 'Converted By', 'Revenue Generated', 'Commission Earned'];
+        this.reportHeaders = ['Lead Name', 'Lead Source', 'Stage', 'Preferred Plan', 'Owner', 'Created At', 'Converted By', 'Revenue Generated'];
         this.reportData = leads.map(l => ({
           name: l.name,
           source: l.leadSource,
@@ -498,33 +490,7 @@ export class LeadsComponent implements OnInit, AfterViewInit {
           owner: l.assignedEmployeeName || l.assignedStaff || 'Unassigned',
           createdAt: l.createdAt || l.trialDate,
           convertedBy: l.convertedBy || '-',
-          revenue: l.revenueGenerated ? '₹' + l.revenueGenerated : '-',
-          commission: l.commissionEarned ? '₹' + l.commissionEarned : '-'
-        }));
-        break;
-
-      case 'performance':
-        this.reportHeaders = ['Salesperson', 'Role', 'Assigned Leads', 'Converted Leads', 'Conversion %', 'Revenue Generated', 'Commissions Earned'];
-        this.reportData = this.leaderboard.map(s => ({
-          name: s.name,
-          role: s.role,
-          assigned: s.assigned,
-          converted: s.converted,
-          convRate: s.conversionRate + '%',
-          revenue: '₹' + s.revenue,
-          commission: '₹' + s.commission
-        }));
-        break;
-
-      case 'revenue':
-        this.reportHeaders = ['Salesperson', 'Role', 'Converted Sales', 'Revenue Generated', 'Commission Earned', 'Average Deal Size'];
-        this.reportData = this.leaderboard.map(s => ({
-          name: s.name,
-          role: s.role,
-          converted: s.converted,
-          revenue: '₹' + s.revenue,
-          commission: '₹' + s.commission,
-          avgDeal: s.converted > 0 ? '₹' + Math.round(s.revenue / s.converted) : '₹0'
+          revenue: l.revenueGenerated ? '₹' + l.revenueGenerated : '-'
         }));
         break;
 
@@ -567,39 +533,7 @@ export class LeadsComponent implements OnInit, AfterViewInit {
     }
   }
 
-  // --- SVG Charts Helpers ---
-  getRevenueSVGPoints(): string {
-    const maxVal = Math.max(...this.revenueChartValues, 30000);
-    const width = 500;
-    const height = 150;
-    const padding = 20;
-    const stepX = (width - padding * 2) / 5;
-    
-    return this.revenueChartValues.map((val, i) => {
-      const x = padding + i * stepX;
-      const y = height - padding - ((val / maxVal) * (height - padding * 2));
-      return `${x},${y}`;
-    }).join(' ');
-  }
 
-  getRevenueSVGFillPoints(): string {
-    const maxVal = Math.max(...this.revenueChartValues, 30000);
-    const width = 500;
-    const height = 150;
-    const padding = 20;
-    const stepX = (width - padding * 2) / 5;
-    
-    const linePoints = this.revenueChartValues.map((val, i) => {
-      const x = padding + i * stepX;
-      const y = height - padding - ((val / maxVal) * (height - padding * 2));
-      return `${x},${y}`;
-    });
-
-    const startPoint = `${padding},${height - padding}`;
-    const endPoint = `${padding + 5 * stepX},${height - padding}`;
-
-    return `M ${startPoint} L ${linePoints.join(' L ')} L ${endPoint} Z`;
-  }
 
   // UI styling helpers
   getStatusClass(status: string): string {

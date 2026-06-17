@@ -387,7 +387,9 @@ export class PTState {
               amount: memberPlan.price,
               date: new Date().toISOString().split('T')[0],
               invoiceId: newPayment.id,
-              ptPlanName: memberPlan.planName
+              ptPlanName: memberPlan.planName,
+              salespersonId: (memberPlan as any).salespersonId || '',
+              salespersonName: (memberPlan as any).salespersonName || ''
             }).subscribe();
           }
         });

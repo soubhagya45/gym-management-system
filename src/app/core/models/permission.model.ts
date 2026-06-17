@@ -159,6 +159,7 @@ export const ALL_NAV_ITEMS: NavItem[] = [
   { label: 'Dashboard',        route: '/dashboard',     icon: 'dashboard',       permission: 'view:dashboard',     roles: [UserRole.SuperAdmin, UserRole.Owner, UserRole.Manager, UserRole.Trainer] },
   { label: 'Members',          route: '/members',        icon: 'people',          permission: 'view:members',       roles: [UserRole.SuperAdmin, UserRole.Owner, UserRole.Manager, UserRole.Staff, UserRole.Trainer] },
   { label: 'Leads',            route: '/leads',          icon: 'leaderboard',     permission: 'view:leads',         roles: [UserRole.SuperAdmin, UserRole.Owner, UserRole.Manager, UserRole.Staff] },
+  { label: 'CRM Sales',        route: '/crm-sales',      icon: 'insights',        permission: 'view:leads',         roles: [UserRole.SuperAdmin, UserRole.Owner, UserRole.Manager, UserRole.Staff] },
   { label: 'Employees',        route: '/employees',      icon: 'badge',           permission: 'view:employees',     roles: [UserRole.SuperAdmin, UserRole.Owner, UserRole.Manager] },
   { label: 'Attendance',       route: '/attendance',     icon: 'event_available', permission: 'view:attendance',    roles: [UserRole.SuperAdmin, UserRole.Owner, UserRole.Manager, UserRole.Trainer, UserRole.Staff] },
   { label: 'PT Sessions',      route: '/pt-sessions',    icon: 'event_note',      permission: 'view:pt-sessions',   roles: [UserRole.SuperAdmin, UserRole.Owner, UserRole.Manager, UserRole.Trainer, UserRole.Staff] },

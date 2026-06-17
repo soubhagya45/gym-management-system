@@ -68,6 +68,12 @@ const routes: Routes = [
         data: { permission: 'view:leads' }
       },
       {
+        path: 'crm-sales',
+        loadComponent: () => import('./pages/crm-sales/crm-sales.component').then(m => m.CrmSalesComponent),
+        canActivate: [authGuard, permissionGuard, branchGuard],
+        data: { permission: 'view:leads' }
+      },
+      {
         path: 'attendance',
         loadComponent: () => import('./pages/attendance/attendance.component').then(m => m.AttendanceComponent),
         canActivate: [authGuard, permissionGuard],
