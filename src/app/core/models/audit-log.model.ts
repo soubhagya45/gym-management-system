@@ -7,4 +7,11 @@ export interface AuditLog {
   entityId: string;
   timestamp: string;
   gymId: string;
+  userName?: string;
+  entityName?: string;
+  gymName?: string;
+  branchId?: string;
+  branchName?: string;
+  ipAddress?: string;
 }
+

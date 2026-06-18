@@ -27,8 +27,10 @@ import {
   IActivityLogRepository,
   IWhatsAppRepository,
   IBodyProgressRepository,
-  IFinanceRepository
+  IFinanceRepository,
+  IAuditLogRepository
 } from '../../../core/interfaces/repository.interfaces';
+import { AuditLog } from '../../../core/models/audit-log.model';
 import { Expense, Invoice, Collection } from '../../../core/models/finance.entity';
 import { Employee, EmployeeAttendance, EmployeePayroll, EmployeePerformance } from '../../../core/models/employee.entity';
 import { IEmployeeRepository } from '../../../core/interfaces/repository.interfaces';
@@ -471,3 +473,23 @@ export class ApiEmployeeRepository extends BaseApiRepository implements IEmploye
     return this.post<EmployeePerformance>('/performance', performance, { params: new HttpParams().set('gymId', gymId) });
   }
 }
+
+@Injectable({ providedIn: 'root' })
+export class ApiAuditLogRepository extends BaseApiRepository implements IAuditLogRepository {
+  protected get endpoint(): string {
+    return '/audit-logs';
+  }
+
+  constructor(http: HttpClient, configService: AppConfigService) {
+    super(http, configService);
+  }
+
+  getAuditLogs(gymId: string): Observable<AuditLog[]> {
+    return this.get<AuditLog[]>('', { params: new HttpParams().set('gymId', gymId) });
+  }
+
+  addAuditLog(gymId: string, log: Omit<AuditLog, 'id'>): Observable<AuditLog> {
+    return this.post<AuditLog>('', log, { params: new HttpParams().set('gymId', gymId) });
+  }
+}
+

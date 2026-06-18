@@ -1,9 +1,10 @@
-import { Injectable } from '@angular/core';
+import { Injectable, Injector } from '@angular/core';
 import { Observable, of, throwError } from 'rxjs';
 import { delay, map } from 'rxjs/operators';
 import { UserRole } from '../../../core/enums/roles.enum';
 import { IOnboardingRepository } from '../../../core/interfaces/onboarding-repository.interface';
 import { OnboardingData } from '../../../core/models/onboarding.model';
+import { AuthState } from '../../../presentation/state/auth.state';
 
 import {
   IAuthRepository,
@@ -19,8 +20,10 @@ import {
   IBodyProgressRepository,
   IFinanceRepository,
   IEmployeeRepository,
-  IPersonalTrainingRepository
+  IPersonalTrainingRepository,
+  IAuditLogRepository
 } from '../../../core/interfaces/repository.interfaces';
+import { AuditLog } from '../../../core/models/audit-log.model';
 
 
 import { UserProfile } from '../../../core/models/user.model';
@@ -242,7 +245,8 @@ const dbMockAccounts: Record<string, UserProfile> = {
     email: 'manager@apexfit.com',
     avatarUrl: 'https://api.dicebear.com/7.x/initials/svg?seed=Rahul%20Sharma',
     role: UserRole.Manager,
-    gymId: 'gym-a'
+    gymId: 'gym-a',
+    branchId: 'br-1'
   }),
   'receptionist@apexfit.com': buildUser({
     id: 'usr-receptionist-1',
@@ -1062,7 +1066,8 @@ export class MockAuthRepository implements IAuthRepository {
       [UserRole.Owner]:      'owner@apexfit.com',
       [UserRole.Trainer]:    'trainer@apexfit.com',
       [UserRole.Staff]:      'staff@apexfit.com',
-      [UserRole.SuperAdmin]: 'superadmin@apexfit.com'
+      [UserRole.SuperAdmin]: 'superadmin@apexfit.com',
+      [UserRole.Manager]:    'manager@apexfit.com'
     };
     const email = emailMap[role] ?? 'owner@apexfit.com';
     const user = buildUser(dbMockAccounts[email]);
@@ -2660,6 +2665,130 @@ export class MockPersonalTrainingRepository implements IPersonalTrainingReposito
       dbMemberPTPlans[idx] = memberPlan;
     }
     return of(undefined).pipe(delay(200));
+  }
+}
+
+// --- Audit Logs DB Seed Data ---
+export const dbAuditLogs: AuditLog[] = [
+  {
+    id: 'audit-1',
+    userId: 'owner-1',
+    userName: 'John Owner',
+    role: 'gym_owner',
+    action: 'Login',
+    entityType: 'user',
+    entityId: 'owner-1',
+    entityName: 'John Owner',
+    timestamp: new Date(Date.now() - 3600000).toISOString(),
+    gymId: 'gym-a',
+    gymName: 'Apex Fit Downtown',
+    branchId: 'br-1',
+    branchName: 'Downtown Branch',
+    ipAddress: '192.168.1.15'
+  },
+  {
+    id: 'audit-2',
+    userId: 'owner-1',
+    userName: 'John Owner',
+    role: 'gym_owner',
+    action: 'Lead Created',
+    entityType: 'lead',
+    entityId: 'lead-1',
+    entityName: 'Alice Smith',
+    timestamp: new Date(Date.now() - 7200000).toISOString(),
+    gymId: 'gym-a',
+    gymName: 'Apex Fit Downtown',
+    branchId: 'br-1',
+    branchName: 'Downtown Branch',
+    ipAddress: '192.168.1.15'
+  },
+  {
+    id: 'audit-3',
+    userId: 'owner-1',
+    userName: 'John Owner',
+    role: 'gym_owner',
+    action: 'Member Created',
+    entityType: 'member',
+    entityId: 'mem-1',
+    entityName: 'Liam Neeson',
+    timestamp: new Date(Date.now() - 10800000).toISOString(),
+    gymId: 'gym-a',
+    gymName: 'Apex Fit Downtown',
+    branchId: 'br-1',
+    branchName: 'Downtown Branch',
+    ipAddress: '192.168.1.15'
+  },
+  {
+    id: 'audit-4',
+    userId: 'manager-1',
+    userName: 'Sarah Manager',
+    role: 'branch_manager',
+    action: 'Login',
+    entityType: 'user',
+    entityId: 'manager-1',
+    entityName: 'Sarah Manager',
+    timestamp: new Date(Date.now() - 5000000).toISOString(),
+    gymId: 'gym-a',
+    gymName: 'Apex Fit Downtown',
+    branchId: 'br-1',
+    branchName: 'Downtown Branch',
+    ipAddress: '192.168.1.22'
+  },
+  {
+    id: 'audit-5',
+    userId: 'owner-b',
+    userName: 'Bruce Owner',
+    role: 'gym_owner',
+    action: 'Login',
+    entityType: 'user',
+    entityId: 'owner-b',
+    entityName: 'Bruce Owner',
+    timestamp: new Date(Date.now() - 4000000).toISOString(),
+    gymId: 'gym-b',
+    gymName: 'Apex Fit East',
+    branchId: 'br-b1',
+    branchName: 'East Branch',
+    ipAddress: '192.168.2.11'
+  }
+];
+
+@Injectable({ providedIn: 'root' })
+export class MockAuditLogRepository implements IAuditLogRepository {
+  constructor(private injector: Injector) {}
+
+  getAuditLogs(gymId: string): Observable<AuditLog[]> {
+    const authState = this.injector.get(AuthState);
+    const user = authState.currentUserValue;
+    if (!user) return of([]);
+
+    let list = [...dbAuditLogs];
+
+    if (user.role === 'super_admin') {
+      // Super Admin: sees all gyms
+    } else if (user.role === 'gym_owner') {
+      // Gym Owner: sees own gym logs
+      list = list.filter(l => l.gymId === gymId);
+    } else if (user.role === 'branch_manager') {
+      // Branch Manager: sees own branch logs
+      const branchId = user.branchId || '';
+      list = list.filter(l => l.gymId === gymId && l.branchId === branchId);
+    } else {
+      // Trainer and Staff: No access
+      return of([]);
+    }
+
+    list.sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
+    return of(list).pipe(delay(300));
+  }
+
+  addAuditLog(gymId: string, log: Omit<AuditLog, 'id'>): Observable<AuditLog> {
+    const newLog: AuditLog = {
+      ...log,
+      id: 'audit-' + Math.random().toString(36).substring(2, 9),
+      gymId
+    };
+    dbAuditLogs.unshift(newLog);
+    return of(newLog).pipe(delay(100));
   }
 }
 

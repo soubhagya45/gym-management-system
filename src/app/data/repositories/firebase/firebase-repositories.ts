@@ -36,8 +36,10 @@ import {
   IBodyProgressRepository,
   IFinanceRepository,
   IEmployeeRepository,
-  IPersonalTrainingRepository
+  IPersonalTrainingRepository,
+  IAuditLogRepository
 } from '../../../core/interfaces/repository.interfaces';
+import { AuditLog } from '../../../core/models/audit-log.model';
 
 import { PTPlan } from '../../../core/models/pt-plan.entity';
 import { PTSession } from '../../../core/models/pt-session.entity';
@@ -101,10 +103,10 @@ function getBranchFilteredQuery(injector: Injector, firebaseService: FirebaseSer
   return query(colRef, where('gymId', '==', gymId));
 }
 
-function logAudit(injector: Injector, action: string, entityType: string, entityId: string) {
+function logAudit(injector: Injector, action: string, entityType: string, entityId: string, entityName?: string) {
   try {
     const auditLogger = injector.get(AuditLoggerService);
-    auditLogger.log(action, entityType, entityId);
+    auditLogger.log(action, entityType, entityId, entityName);
   } catch (e) {
     console.error('Audit log failed:', e);
   }
@@ -574,7 +576,7 @@ export class FirebaseMemberRepository implements IMemberRepository {
         };
         return from(setDoc(doc(db, 'members', id), newMember)).pipe(
           map(() => {
-            logAudit(this.injector, 'Member Creation', 'member', id);
+            logAudit(this.injector, 'Member Created', 'member', id, member.name);
             return newMember;
           })
         );
@@ -587,7 +589,7 @@ export class FirebaseMemberRepository implements IMemberRepository {
     const db = this.firebaseService.getDb();
     return from(setDoc(doc(db, 'members', member.id), member)).pipe(
       map(() => {
-        logAudit(this.injector, 'Member Update', 'member', member.id);
+        logAudit(this.injector, 'Member Updated', 'member', member.id, member.name);
         return undefined;
       }),
       catchError(err => throwError(() => new Error(err.message || 'Failed to update member.')))
@@ -2401,6 +2403,66 @@ export class FirebasePersonalTrainingRepository implements IPersonalTrainingRepo
     return from(setDoc(doc(db, 'memberPTPlans', memberPlan.id), memberPlan)).pipe(
       map(() => undefined),
       catchError(err => throwError(() => new Error(err.message || 'Failed to update member PT plan.')))
+    );
+  }
+}
+
+@Injectable({ providedIn: 'root' })
+export class FirebaseAuditLogRepository implements IAuditLogRepository {
+  constructor(
+    private firebaseService: FirebaseService,
+    private injector: Injector
+  ) {}
+
+  getAuditLogs(gymId: string): Observable<AuditLog[]> {
+    const db = this.firebaseService.getDb();
+    const authState = this.injector.get(AuthState);
+    const user = authState.currentUserValue;
+    if (!user) return of([]);
+
+    let q = query(collection(db, 'auditLogs'));
+
+    if (user.role === 'super_admin') {
+      // Super Admin: sees all gyms
+    } else if (user.role === 'gym_owner') {
+      // Owner: sees own gym logs
+      q = query(collection(db, 'auditLogs'), where('gymId', '==', gymId));
+    } else if (user.role === 'branch_manager') {
+      // Branch Manager: sees own branch logs
+      const branchId = user.branchId || '';
+      q = query(collection(db, 'auditLogs'), where('gymId', '==', gymId), where('branchId', '==', branchId));
+    } else {
+      // Trainers and Staff: No access
+      return of([]);
+    }
+
+    return from(getDocs(q)).pipe(
+      map(snapshot => {
+        const logs = snapshot.docs.map(doc => {
+          const data = doc.data();
+          return {
+            ...data,
+            id: doc.id
+          } as AuditLog;
+        });
+        return logs.sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
+      }),
+      catchError(err => throwError(() => new Error(err.message || 'Failed to fetch audit logs.')))
+    );
+  }
+
+  addAuditLog(gymId: string, log: Omit<AuditLog, 'id'>): Observable<AuditLog> {
+    const db = this.firebaseService.getDb();
+    const id = 'audit_' + Math.random().toString(36).substring(2, 9);
+    const newLog = {
+      ...log,
+      id,
+      gymId
+    } as AuditLog;
+
+    return from(setDoc(doc(db, 'auditLogs', id), newLog)).pipe(
+      map(() => newLog),
+      catchError(err => throwError(() => new Error(err.message || 'Failed to add audit log.')))
     );
   }
 }

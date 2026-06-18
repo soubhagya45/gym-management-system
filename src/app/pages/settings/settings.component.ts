@@ -12,6 +12,8 @@ import { InvoiceSettingsComponent } from './invoice-settings/invoice-settings.co
 import { NotificationSettingsComponent } from './notification-settings/notification-settings.component';
 import { BrandingComponent } from './branding/branding.component';
 import { IntegrationsComponent } from './integrations/integrations.component';
+import { AuditLogsComponent } from './audit-logs/audit-logs.component';
+import { AuthState } from '../../presentation/state/auth.state';
 
 @Component({
   selector: 'app-settings',
@@ -29,7 +31,8 @@ import { IntegrationsComponent } from './integrations/integrations.component';
     InvoiceSettingsComponent,
     NotificationSettingsComponent,
     BrandingComponent,
-    IntegrationsComponent
+    IntegrationsComponent,
+    AuditLogsComponent
   ],
   templateUrl: './settings.component.html',
   styleUrls: ['./settings.component.scss']
@@ -37,26 +40,42 @@ import { IntegrationsComponent } from './integrations/integrations.component';
 export class SettingsComponent implements OnInit {
   activeTab = 'profile';
 
-  tabs = [
-    { id: 'profile', label: 'Gym Profile', icon: 'business' },
-    { id: 'branches', label: 'Branches', icon: 'store' },
-    { id: 'memberships', label: 'Membership Configuration', icon: 'card_membership' },
-    { id: 'payments', label: 'Payment Settings', icon: 'account_balance' },
-    { id: 'invoices', label: 'Invoice Settings', icon: 'receipt' },
-    { id: 'notifications', label: 'Notification Settings', icon: 'notifications_active' },
-    { id: 'branding', label: 'Branding', icon: 'palette' },
-    { id: 'integrations', label: 'Integrations', icon: 'integration_instructions' }
-  ];
+  tabs: { id: string; label: string; icon: string }[] = [];
 
   constructor(
     private route: ActivatedRoute,
+    private authState: AuthState,
     private cdr: ChangeDetectorRef
   ) {}
 
   ngOnInit(): void {
+    const user = this.authState.currentUserValue;
+    if (user && user.role === 'branch_manager') {
+      this.tabs = [
+        { id: 'audit-logs', label: 'Audit Logs', icon: 'history' }
+      ];
+      this.activeTab = 'audit-logs';
+    } else {
+      this.tabs = [
+        { id: 'profile', label: 'Gym Profile', icon: 'business' },
+        { id: 'branches', label: 'Branches', icon: 'store' },
+        { id: 'memberships', label: 'Membership Configuration', icon: 'card_membership' },
+        { id: 'payments', label: 'Payment Settings', icon: 'account_balance' },
+        { id: 'invoices', label: 'Invoice Settings', icon: 'receipt' },
+        { id: 'notifications', label: 'Notification Settings', icon: 'notifications_active' },
+        { id: 'branding', label: 'Branding', icon: 'palette' },
+        { id: 'integrations', label: 'Integrations', icon: 'integration_instructions' },
+        { id: 'audit-logs', label: 'Audit Logs', icon: 'history' }
+      ];
+      this.activeTab = 'profile';
+    }
+
     this.route.queryParams.subscribe(params => {
       if (params['tab']) {
-        this.activeTab = params['tab'];
+        const matchingTab = this.tabs.find(t => t.id === params['tab']);
+        if (matchingTab) {
+          this.activeTab = matchingTab.id;
+        }
         this.cdr.markForCheck();
       }
     });
@@ -67,3 +86,4 @@ export class SettingsComponent implements OnInit {
     this.cdr.markForCheck();
   }
 }
+

@@ -161,7 +161,7 @@ const routes: Routes = [
         path: 'settings',
         loadComponent: () => import('./pages/settings/settings.component').then(m => m.SettingsComponent),
         canActivate: [authGuard, permissionGuard, branchGuard],
-        data: { permission: 'manage:settings' }
+        data: { permission: 'view:settings' }
       },
       {
         path: 'whatsapp',

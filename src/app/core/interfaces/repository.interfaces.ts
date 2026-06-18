@@ -21,6 +21,7 @@ import { TrainerAssignment } from '../models/trainer-assignment.entity';
 import { SessionHistory } from '../models/session-history.entity';
 import { TrainerRevenue } from '../models/trainer-revenue.entity';
 import { MemberPTPlan } from '../models/member-pt-plan.entity';
+import { AuditLog } from '../models/audit-log.model';
 
 // --- Interface Definitions ---
 
@@ -102,6 +103,11 @@ export interface IMembershipPlanRepository {
 export interface IActivityLogRepository {
   getLogs(gymId: string): Observable<ActivityLog[]>;
   addLog(gymId: string, text: string, type: 'join' | 'payment' | 'attendance' | 'plan-change'): Observable<ActivityLog>;
+}
+
+export interface IAuditLogRepository {
+  getAuditLogs(gymId: string): Observable<AuditLog[]>;
+  addAuditLog(gymId: string, log: Omit<AuditLog, 'id'>): Observable<AuditLog>;
 }
 
 export interface IWhatsAppRepository {
@@ -195,4 +201,5 @@ export const BODY_PROGRESS_REPOSITORY_TOKEN = new InjectionToken<IBodyProgressRe
 export const FINANCE_REPOSITORY_TOKEN = new InjectionToken<IFinanceRepository>('FINANCE_REPOSITORY_TOKEN');
 export const EMPLOYEE_REPOSITORY_TOKEN = new InjectionToken<IEmployeeRepository>('EMPLOYEE_REPOSITORY_TOKEN');
 export const PERSONAL_TRAINING_REPOSITORY_TOKEN = new InjectionToken<IPersonalTrainingRepository>('PERSONAL_TRAINING_REPOSITORY_TOKEN');
+export const AUDIT_LOG_REPOSITORY_TOKEN = new InjectionToken<IAuditLogRepository>('AUDIT_LOG_REPOSITORY_TOKEN');
 

@@ -30,7 +30,9 @@ export type Permission =
   | 'view:employees'
   | 'manage:employees'
   | 'view:pt-sessions'
-  | 'manage:pt-sessions';
+  | 'manage:pt-sessions'
+  | 'view:settings'
+  | 'view:audit-logs';
 
 
 /**
@@ -57,7 +59,9 @@ export const ROLE_PERMISSIONS: Record<UserRole, Permission[]> = {
     'view:employees',
     'manage:employees',
     'view:pt-sessions',
-    'manage:pt-sessions'
+    'manage:pt-sessions',
+    'view:settings',
+    'view:audit-logs'
   ],
 
   [UserRole.Owner]: [
@@ -78,7 +82,9 @@ export const ROLE_PERMISSIONS: Record<UserRole, Permission[]> = {
     'view:employees',
     'manage:employees',
     'view:pt-sessions',
-    'manage:pt-sessions'
+    'manage:pt-sessions',
+    'view:settings',
+    'view:audit-logs'
   ],
 
   [UserRole.Manager]: [
@@ -91,7 +97,9 @@ export const ROLE_PERMISSIONS: Record<UserRole, Permission[]> = {
     'view:finance',
     'view:employees',       // read-only; manage:employees intentionally excluded
     'view:pt-sessions',
-    'manage:pt-sessions'
+    'manage:pt-sessions',
+    'view:settings',
+    'view:audit-logs'
   ],
 
   [UserRole.Trainer]: [
@@ -127,7 +135,7 @@ export const ROUTE_PERMISSION_MAP: Record<string, Permission> = {
   '/trainers':      'view:trainers',
   '/whatsapp':      'view:whatsapp',
   '/body-progress': 'view:body-progress',
-  '/settings':      'manage:settings',
+  '/settings':      'view:settings',
   '/finance/dashboard': 'view:finance',
   '/finance/invoices': 'view:finance',
   '/finance/collections': 'view:finance',
@@ -174,5 +182,5 @@ export const ALL_NAV_ITEMS: NavItem[] = [
   { label: 'Trainers',         route: '/trainers',       icon: 'sports',          permission: 'view:trainers',      roles: [UserRole.SuperAdmin, UserRole.Owner] },
   { label: 'WhatsApp Center',  route: '/whatsapp',       icon: 'chat',            permission: 'view:whatsapp',      roles: [UserRole.SuperAdmin, UserRole.Owner] },
   { label: 'Body Progress',    route: '/body-progress',  icon: 'trending_up',     permission: 'view:body-progress', roles: [UserRole.SuperAdmin, UserRole.Owner, UserRole.Manager, UserRole.Trainer, UserRole.Staff] },
-  { label: 'Settings',         route: '/settings',       icon: 'settings',        permission: 'manage:settings',    roles: [UserRole.SuperAdmin, UserRole.Owner] }
+  { label: 'Settings',         route: '/settings',       icon: 'settings',        permission: 'view:settings',    roles: [UserRole.SuperAdmin, UserRole.Owner, UserRole.Manager] }
 ];

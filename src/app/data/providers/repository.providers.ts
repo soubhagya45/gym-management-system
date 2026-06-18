@@ -29,7 +29,9 @@ import {
   IEmployeeRepository,
   EMPLOYEE_REPOSITORY_TOKEN,
   IPersonalTrainingRepository,
-  PERSONAL_TRAINING_REPOSITORY_TOKEN
+  PERSONAL_TRAINING_REPOSITORY_TOKEN,
+  IAuditLogRepository,
+  AUDIT_LOG_REPOSITORY_TOKEN
 } from '../../core/interfaces/repository.interfaces';
 import { IOnboardingRepository, ONBOARDING_REPOSITORY_TOKEN } from '../../core/interfaces/onboarding-repository.interface';
 import { MockOnboardingRepository } from '../repositories/mock/mock-onboarding.repository';
@@ -57,7 +59,8 @@ import {
   MockBodyProgressRepository,
   MockFinanceRepository,
   MockEmployeeRepository,
-  MockPersonalTrainingRepository
+  MockPersonalTrainingRepository,
+  MockAuditLogRepository
 } from '../repositories/mock/mock-repositories';
 
 
@@ -75,7 +78,8 @@ import {
   FirebaseBodyProgressRepository,
   FirebaseFinanceRepository,
   FirebaseEmployeeRepository,
-  FirebasePersonalTrainingRepository
+  FirebasePersonalTrainingRepository,
+  FirebaseAuditLogRepository
 } from '../repositories/firebase/firebase-repositories';
 
 
@@ -92,7 +96,8 @@ import {
   SupabaseWhatsAppRepository,
   SupabaseBodyProgressRepository,
   SupabaseFinanceRepository,
-  SupabaseEmployeeRepository
+  SupabaseEmployeeRepository,
+  SupabaseAuditLogRepository
 } from '../repositories/supabase/supabase-repositories';
 
 
@@ -109,7 +114,8 @@ import {
   ApiWhatsAppRepository,
   ApiBodyProgressRepository,
   ApiFinanceRepository,
-  ApiEmployeeRepository
+  ApiEmployeeRepository,
+  ApiAuditLogRepository
 } from '../repositories/api/api-repositories';
 
 
@@ -253,6 +259,17 @@ export function personalTrainingRepositoryFactory(configService: AppConfigServic
   }
 }
 
+export function auditLogRepositoryFactory(configService: AppConfigService, injector: Injector): IAuditLogRepository {
+  switch (configService.provider) {
+    case ProviderType.Firebase: return injector.get(FirebaseAuditLogRepository);
+    case ProviderType.Supabase: return injector.get(SupabaseAuditLogRepository);
+    case ProviderType.REST: return injector.get(ApiAuditLogRepository);
+    case ProviderType.Mock:
+    default: return injector.get(MockAuditLogRepository);
+  }
+}
+
+
 export function onboardingRepositoryFactory(configService: AppConfigService, injector: Injector): IOnboardingRepository {
   switch (configService.provider) {
     case ProviderType.Firebase: return injector.get(FirebaseOnboardingRepository);
@@ -352,6 +369,11 @@ export const REPOSITORY_PROVIDERS = [
   {
     provide: FILE_STORAGE_REPOSITORY_TOKEN,
     useFactory: fileStorageRepositoryFactory,
+    deps: [AppConfigService, Injector]
+  },
+  {
+    provide: AUDIT_LOG_REPOSITORY_TOKEN,
+    useFactory: auditLogRepositoryFactory,
     deps: [AppConfigService, Injector]
   }
 ];

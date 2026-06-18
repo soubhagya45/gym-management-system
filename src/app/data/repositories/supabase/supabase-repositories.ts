@@ -26,8 +26,10 @@ import {
   IActivityLogRepository,
   IWhatsAppRepository,
   IBodyProgressRepository,
-  IFinanceRepository
+  IFinanceRepository,
+  IAuditLogRepository
 } from '../../../core/interfaces/repository.interfaces';
+import { AuditLog } from '../../../core/models/audit-log.model';
 import { Expense, Invoice, Collection } from '../../../core/models/finance.entity';
 import { Employee, EmployeeAttendance, EmployeePayroll, EmployeePerformance } from '../../../core/models/employee.entity';
 import { IEmployeeRepository } from '../../../core/interfaces/repository.interfaces';
@@ -184,4 +186,11 @@ export class SupabaseEmployeeRepository implements IEmployeeRepository {
   getPerformance(gymId: string): Observable<EmployeePerformance[]> { return throwError(() => new Error('Supabase integration is not enabled.')); }
   addPerformance(gymId: string, performance: Omit<EmployeePerformance, 'id'>): Observable<EmployeePerformance> { return throwError(() => new Error('Supabase integration is not enabled.')); }
 }
+
+@Injectable({ providedIn: 'root' })
+export class SupabaseAuditLogRepository implements IAuditLogRepository {
+  getAuditLogs(gymId: string): Observable<AuditLog[]> { return throwError(() => new Error('Supabase integration is not enabled.')); }
+  addAuditLog(gymId: string, log: Omit<AuditLog, 'id'>): Observable<AuditLog> { return throwError(() => new Error('Supabase integration is not enabled.')); }
+}
+
 
