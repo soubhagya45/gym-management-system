@@ -27,7 +27,7 @@ import { UserProfile } from '../../../core/models/user.model';
 import { Gym } from '../../../core/models/gym.entity';
 import { Member } from '../../../core/models/member.entity';
 import { Payment } from '../../../core/models/payment.entity';
-import { Lead } from '../../../core/models/lead.entity';
+import { Lead, LeadConversionPayload, LeadConversionResult } from '../../../core/models/lead.entity';
 import { Trainer } from '../../../core/models/trainer.entity';
 import { Attendance } from '../../../core/models/attendance.entity';
 import { MembershipPlan } from '../../../core/models/membership-plan.entity';
@@ -274,15 +274,15 @@ const dbPasswords: Record<string, string> = {
 };
 
 const dbPlans: MembershipPlan[] = [
-  { id: 'plan-1', gymId: 'gym-a', name: 'Monthly', durationMonths: 1, price: 2000, description: 'Access to standard gym facilities, weights, and cardio area.', features: ['Full gym access', '1 Fitness assessment', 'Locker room access'], activeMembersCount: 15 },
-  { id: 'plan-2', gymId: 'gym-a', name: 'Quarterly', durationMonths: 3, price: 5000, description: 'Full access with trainer guidance, group classes, and sauna.', features: ['All Essential features', '10 Group fitness classes', 'Sauna & Steam room access', '2 Personal trainer sessions'], activeMembersCount: 24 },
-  { id: 'plan-3', gymId: 'gym-a', name: 'Annual', durationMonths: 12, price: 15000, description: 'VIP access with unlimited classes, private trainer, nutrition plans.', features: ['24/7 Gym access', 'Unlimited group classes', 'Sauna, Steam & Ice bath', 'Monthly customized meal plans', '1 Private session weekly', 'Complimentary supplement kit'], activeMembersCount: 8 },
-  { id: 'plan-4', gymId: 'gym-a', name: 'Half Yearly', durationMonths: 6, price: 9000, description: 'Standard bi-annual membership pass.', features: ['Gym floor access', 'Steam & Sauna room'], activeMembersCount: 0 },
-  { id: 'plan-5', gymId: 'gym-a', name: 'Personal Training', durationMonths: 1, price: 8000, description: 'One-on-one personal trainer sessions.', features: ['Custom workouts', 'Nutrition consultation'], activeMembersCount: 0 },
-  { id: 'plan-6', gymId: 'gym-a', name: 'Group Classes', durationMonths: 1, price: 4000, description: 'Unlimited group fitness classes access.', features: ['Yoga, Zumba, CrossFit'], activeMembersCount: 0 },
-  { id: 'plan-7', gymId: 'gym-a', name: 'Premium Package', durationMonths: 12, price: 20000, description: 'Ultimate all-access and training pass.', features: ['Sauna & Ice Bath', 'PT Access', 'Meal Preps'], activeMembersCount: 0 },
-  { id: 'plan-b1', gymId: 'gym-b', name: 'Standard Month Pass', durationMonths: 1, price: 2000, description: 'Basic workout pass.', features: ['Gym Floor', 'Lockers'], activeMembersCount: 2 },
-  { id: 'plan-b2', gymId: 'gym-b', name: 'VIP Year Pass', durationMonths: 12, price: 18000, description: 'All access pass.', features: ['Gym Floor', 'Sauna', 'Personal Trainer'], activeMembersCount: 1 }
+  { id: 'plan-1', gymId: 'gym-a', name: 'Monthly', type: 'membership', durationMonths: 1, duration: 1, durationUnit: 'months', price: 2000, tax: 18, description: 'Access to standard gym facilities, weights, and cardio area.', features: ['Full gym access', '1 Fitness assessment', 'Locker room access'], activeMembersCount: 15, isActive: true },
+  { id: 'plan-2', gymId: 'gym-a', name: 'Quarterly', type: 'membership', durationMonths: 3, duration: 3, durationUnit: 'months', price: 5000, tax: 18, description: 'Full access with trainer guidance, group classes, and sauna.', features: ['All Essential features', '10 Group fitness classes', 'Sauna & Steam room access', '2 Personal trainer sessions'], activeMembersCount: 24, isActive: true },
+  { id: 'plan-3', gymId: 'gym-a', name: 'Annual', type: 'membership', durationMonths: 12, duration: 12, durationUnit: 'months', price: 15000, tax: 18, description: 'VIP access with unlimited classes, private trainer, nutrition plans.', features: ['24/7 Gym access', 'Unlimited group classes', 'Sauna, Steam & Ice bath', 'Monthly customized meal plans', '1 Private session weekly', 'Complimentary supplement kit'], activeMembersCount: 8, isActive: true },
+  { id: 'plan-4', gymId: 'gym-a', name: 'Half Yearly', type: 'membership', durationMonths: 6, duration: 6, durationUnit: 'months', price: 9000, tax: 18, description: 'Standard bi-annual membership pass.', features: ['Gym floor access', 'Steam & Sauna room'], activeMembersCount: 0, isActive: true },
+  { id: 'plan-5', gymId: 'gym-a', name: 'Personal Training', type: 'membership', durationMonths: 1, duration: 1, durationUnit: 'months', price: 8000, tax: 18, description: 'One-on-one personal trainer sessions.', features: ['Custom workouts', 'Nutrition consultation'], activeMembersCount: 0, isActive: true },
+  { id: 'plan-6', gymId: 'gym-a', name: 'Group Classes', type: 'membership', durationMonths: 1, duration: 1, durationUnit: 'months', price: 4000, tax: 18, description: 'Unlimited group fitness classes access.', features: ['Yoga, Zumba, CrossFit'], activeMembersCount: 0, isActive: true },
+  { id: 'plan-7', gymId: 'gym-a', name: 'Premium Package', type: 'membership', durationMonths: 12, duration: 12, durationUnit: 'months', price: 20000, tax: 18, description: 'Ultimate all-access and training pass.', features: ['Sauna & Ice Bath', 'PT Access', 'Meal Preps'], activeMembersCount: 0, isActive: true },
+  { id: 'plan-b1', gymId: 'gym-b', name: 'Standard Month Pass', type: 'membership', durationMonths: 1, duration: 1, durationUnit: 'months', price: 2000, tax: 18, description: 'Basic workout pass.', features: ['Gym Floor', 'Lockers'], activeMembersCount: 2, isActive: true },
+  { id: 'plan-b2', gymId: 'gym-b', name: 'VIP Year Pass', type: 'membership', durationMonths: 12, duration: 12, durationUnit: 'months', price: 18000, tax: 18, description: 'All access pass.', features: ['Gym Floor', 'Sauna', 'Personal Trainer'], activeMembersCount: 1, isActive: true }
 ];
 
 const dbTrainers: Trainer[] = [
@@ -1334,11 +1334,16 @@ export class MockOnboardingRepository implements IOnboardingRepository {
             id: 'plan-' + Math.random().toString(36).substring(2, 9),
             gymId,
             name: planConfig.name,
+            type: 'membership',
             durationMonths: planConfig.durationMonths,
+            duration: planConfig.durationMonths,
+            durationUnit: 'months',
             price: planConfig.price,
+            tax: 18,
             description: planConfig.description,
             features: planConfig.features,
-            activeMembersCount: 0
+            activeMembersCount: 0,
+            isActive: true
           });
         }
       });
@@ -1387,6 +1392,11 @@ export class MockMemberRepository implements IMemberRepository {
     return of(undefined).pipe(delay(200));
   }
 
+  registerMember(payload: LeadConversionPayload): Observable<LeadConversionResult> {
+    const leadRepo = new MockLeadRepository();
+    return leadRepo.convertLeadToMember(payload);
+  }
+
   private getPlanPrice(gymId: string, planId: string): number {
     return dbPlans.find(p => p.gymId === gymId && p.id === planId)?.price || 0;
   }
@@ -1399,6 +1409,7 @@ export class MockPaymentRepository implements IPaymentRepository {
   }
 
   addPayment(gymId: string, payment: Omit<Payment, 'id'>): Observable<Payment> {
+    const today = new Date().toISOString().split('T')[0];
     const newPayment: Payment = {
       ...payment,
       id: 'pay-' + Math.random().toString(36).substring(2, 9),
@@ -1411,6 +1422,50 @@ export class MockPaymentRepository implements IPaymentRepository {
       member.balance = payment.dueAmount;
     }
 
+    // Create Invoice
+    const invoiceId = 'inv-mock-' + Math.random().toString(36).substring(2, 9);
+    const gst = Math.round(payment.amount * 0.18 * 100) / 100;
+    const baseAmount = payment.amount - gst;
+    dbInvoices.unshift({
+      id: invoiceId,
+      gymId,
+      invoiceNumber: `INV-${new Date().getFullYear()}-${Math.floor(1000 + Math.random() * 9000)}`,
+      memberId: payment.memberId,
+      memberName: payment.memberName,
+      membershipPlan: payment.planName,
+      amount: Number(baseAmount.toFixed(2)),
+      gst: Number(gst.toFixed(2)),
+      discount: 0,
+      finalAmount: payment.amount,
+      paymentMethod: payment.paidAmount > 0 || payment.status === 'paid' ? (payment.paymentMethod || 'UPI') : 'Pending',
+      invoiceDate: payment.date || today,
+      status: payment.status === 'paid' ? 'paid' : 'pending',
+      collectedBy: payment.collectedBy || 'Sophia Chen',
+      createdBy: payment.collectedBy || 'Sophia Chen',
+      type: (payment as any).type || 'membership',
+      trainerId: (payment as any).trainerId,
+      trainerName: (payment as any).trainerName
+    });
+
+    // Create Collection if status is paid
+    if (payment.status === 'paid') {
+      dbCollections.unshift({
+        id: 'col-mock-' + Math.random().toString(36).substring(2, 9),
+        gymId,
+        receiptNo: `REC-${new Date().getFullYear()}-${Math.floor(1000 + Math.random() * 9000)}`,
+        memberId: payment.memberId,
+        memberName: payment.memberName,
+        membershipPlan: payment.planName,
+        amount: payment.paidAmount || payment.amount,
+        paymentMethod: payment.paymentMethod || 'UPI',
+        date: payment.date || today,
+        collectedBy: payment.collectedBy || 'Sophia Chen',
+        type: (payment as any).type || 'membership',
+        trainerId: (payment as any).trainerId,
+        trainerName: (payment as any).trainerName
+      });
+    }
+
     return of(newPayment).pipe(delay(300));
   }
 
@@ -1420,11 +1475,79 @@ export class MockPaymentRepository implements IPaymentRepository {
       payment.status = 'paid';
       payment.paidAmount = payment.amount;
       payment.dueAmount = 0;
-      payment.date = new Date().toISOString().split('T')[0];
+      const today = new Date().toISOString().split('T')[0];
+      payment.date = today;
 
       const member = dbMembers.find(m => m.gymId === gymId && m.id === payment.memberId);
       if (member) {
         member.balance = 0;
+      }
+
+      // Check if invoice already exists
+      const existingInv = dbInvoices.find(inv => inv.gymId === gymId && inv.memberId === payment.memberId && Math.abs(inv.finalAmount - payment.amount) < 0.01);
+      if (!existingInv) {
+        const invoiceId = 'inv-mock-' + Math.random().toString(36).substring(2, 9);
+        const gst = Math.round(payment.amount * 0.18 * 100) / 100;
+        const baseAmount = payment.amount - gst;
+        dbInvoices.unshift({
+          id: invoiceId,
+          gymId,
+          invoiceNumber: `INV-${new Date().getFullYear()}-${Math.floor(1000 + Math.random() * 9000)}`,
+          memberId: payment.memberId,
+          memberName: payment.memberName,
+          membershipPlan: payment.planName,
+          amount: Number(baseAmount.toFixed(2)),
+          gst: Number(gst.toFixed(2)),
+          discount: 0,
+          finalAmount: payment.amount,
+          paymentMethod: payment.paymentMethod || 'UPI',
+          invoiceDate: today,
+          status: 'paid',
+          collectedBy: payment.collectedBy || 'Sophia Chen',
+          createdBy: payment.collectedBy || 'Sophia Chen',
+          type: (payment as any).type || 'membership',
+          trainerId: (payment as any).trainerId,
+          trainerName: (payment as any).trainerName
+        });
+      }
+
+      // Check if collection already exists
+      const existingCol = dbCollections.find(col => col.gymId === gymId && col.memberId === payment.memberId && Math.abs(col.amount - payment.amount) < 0.01 && col.date === today);
+      if (!existingCol) {
+        dbCollections.unshift({
+          id: 'col-mock-' + Math.random().toString(36).substring(2, 9),
+          gymId,
+          receiptNo: `REC-${new Date().getFullYear()}-${Math.floor(1000 + Math.random() * 9000)}`,
+          memberId: payment.memberId,
+          memberName: payment.memberName,
+          membershipPlan: payment.planName,
+          amount: payment.amount,
+          paymentMethod: payment.paymentMethod || 'UPI',
+          date: today,
+          collectedBy: payment.collectedBy || 'Sophia Chen',
+          type: (payment as any).type || 'membership',
+          trainerId: (payment as any).trainerId,
+          trainerName: (payment as any).trainerName
+        });
+      }
+
+      // If it is a PT payment, credit trainer revenue
+      if (payment.type === 'pt' && payment.trainerId && payment.trainerId !== 'unassigned') {
+        dbTrainerRevenue.unshift({
+          id: 'tr-mock-' + Math.random().toString(36).substring(2, 9),
+          gymId,
+          branchId: (payment as any).branchId || 'br-1',
+          trainerId: payment.trainerId,
+          trainerName: payment.trainerName || 'Unassigned',
+          memberId: payment.memberId,
+          memberName: payment.memberName,
+          amount: payment.amount, // credit amount
+          date: today,
+          invoiceId: paymentId,
+          ptPlanName: payment.planName,
+          salespersonId: payment.salespersonId || '',
+          salespersonName: payment.salespersonName || ''
+        });
       }
     }
     return of(undefined).pipe(delay(200));
@@ -1461,6 +1584,316 @@ export class MockLeadRepository implements ILeadRepository {
       dbLeads.splice(idx, 1);
     }
     return of(undefined).pipe(delay(200));
+  }
+
+  convertLeadToMember(payload: any): Observable<any> {
+    const { lead, memberData, membershipPlanPrice, conversionDetails, gymId, branchId, today } = payload;
+
+    const memberId        = 'mem_mock_'  + Math.random().toString(36).substring(2, 9);
+    const paymentId       = 'pay_mock_'  + Math.random().toString(36).substring(2, 9);
+    const invoiceId       = 'inv_mock_'  + Math.random().toString(36).substring(2, 9);
+    const mptId           = 'mpt_mock_'  + Math.random().toString(36).substring(2, 9);
+    const taId            = 'ta_mock_'   + Math.random().toString(36).substring(2, 9);
+    const ptPayId         = 'pay_mock_'  + Math.random().toString(36).substring(2, 9);
+    const trId            = 'trev_mock_' + Math.random().toString(36).substring(2, 9);
+
+    const hasPT   = conversionDetails.interestedInPT && !!conversionDetails.ptPlanId;
+    const ptPlanPrice = hasPT ? (conversionDetails.ptPlanPrice || 0) : 0;
+
+    // ── Proportional Discount Allocation ──
+    const discountType = conversionDetails.discountType || 'none';
+    const discountValue = conversionDetails.discountValue || 0;
+    let mDiscount = 0;
+    let ptDiscount = 0;
+
+    if (discountType === 'percentage') {
+      mDiscount = membershipPlanPrice * (discountValue / 100);
+      if (hasPT) {
+        ptDiscount = ptPlanPrice * (discountValue / 100);
+      }
+    } else if (discountType === 'flat') {
+      const totalOrig = membershipPlanPrice + ptPlanPrice;
+      if (totalOrig > 0) {
+        mDiscount = discountValue * (membershipPlanPrice / totalOrig);
+        ptDiscount = discountValue - mDiscount;
+      }
+    }
+
+    mDiscount = Math.round(mDiscount * 100) / 100;
+    ptDiscount = Math.round(ptDiscount * 100) / 100;
+
+    const mFinal = Math.max(0, membershipPlanPrice - mDiscount);
+    const ptFinal = Math.max(0, ptPlanPrice - ptDiscount);
+    const totalFinal = mFinal + ptFinal;
+
+    // ── Proportional Paid Allocation ──
+    const paidAmount = conversionDetails.paidAmount || 0;
+    let mPaid = 0;
+    let ptPaid = 0;
+
+    if (paidAmount >= totalFinal) {
+      mPaid = mFinal;
+      ptPaid = ptFinal;
+    } else if (totalFinal > 0) {
+      mPaid = paidAmount * (mFinal / totalFinal);
+      ptPaid = paidAmount - mPaid;
+    }
+
+    mPaid = Math.round(mPaid * 100) / 100;
+    ptPaid = Math.round(ptPaid * 100) / 100;
+
+    const mDue = Math.max(0, mFinal - mPaid);
+    const ptDue = Math.max(0, ptFinal - ptPaid);
+    const totalDue = mDue + ptDue;
+
+    const mStatus = mDue === 0 ? 'paid' : (mPaid > 0 ? 'partially_paid' : (conversionDetails.paymentStatus === 'overdue' ? 'overdue' : 'pending'));
+    const ptStatus = ptDue === 0 ? 'paid' : (ptPaid > 0 ? 'partially_paid' : (conversionDetails.paymentStatus === 'overdue' ? 'overdue' : 'pending'));
+    const overallStatus = totalDue === 0 ? 'paid' : (paidAmount > 0 ? 'partially_paid' : (conversionDetails.paymentStatus === 'overdue' ? 'overdue' : 'pending'));
+
+    // ── 1. Create Member ──
+    const defaultExpiry = new Date();
+    defaultExpiry.setFullYear(defaultExpiry.getFullYear() + 1);
+    const newMember: Member = {
+      ...memberData,
+      id: memberId,
+      gymId,
+      branchId: memberData.branchId || branchId,
+      joinDate: memberData.joinDate || today,
+      expiryDate: memberData.expiryDate || defaultExpiry.toISOString().split('T')[0],
+      attendanceCount: 0,
+      balance: totalDue,
+      ...(hasPT ? {
+        ptPlanId: conversionDetails.ptPlanId,
+        ptPlanName: conversionDetails.ptPlanName,
+        trainerId: conversionDetails.preferredTrainerId || 'unassigned',
+        trainerName: conversionDetails.trainerName || 'Unassigned',
+        ptGoal: conversionDetails.ptGoal,
+        ptStartDate: today,
+        ptEndDate: new Date(new Date().setMonth(new Date().getMonth() + (conversionDetails.ptPlanDuration || 1))).toISOString().split('T')[0],
+        ptSessionsTotal: conversionDetails.ptSessionsTotal || 0,
+        ptSessionsCompleted: 0,
+        ptSessionsRemaining: conversionDetails.ptSessionsTotal || 0
+      } : {})
+    } as Member;
+    dbMembers.unshift(newMember);
+
+    // ── 2. Update Lead ──
+    if (lead) {
+      const match = dbLeads.find(l => l.gymId === gymId && l.id === lead.id);
+      if (match) {
+        match.status = 'Converted';
+        match.convertedBy = conversionDetails.convertedBy;
+        match.revenueGenerated = totalFinal;
+      }
+    }
+
+    // ── 3. Membership Payment ──
+    const mPayment: Payment = {
+      id: paymentId,
+      gymId,
+      branchId,
+      memberId,
+      memberName: memberData.name,
+      amount: mFinal,
+      paidAmount: mPaid,
+      dueAmount: mDue,
+      dueDate: today,
+      date: today,
+      status: mStatus as any,
+      planName: memberData.planName,
+      paymentMethod: mPaid > 0 ? conversionDetails.paymentMethod : 'Pending',
+      type: 'membership',
+      collectedBy: conversionDetails.convertedBy,
+      membershipPlanId: memberData.planId,
+      originalAmount: membershipPlanPrice,
+      discountType: discountType as any,
+      discountValue: mDiscount,
+      finalAmount: mFinal,
+      discountGivenBy: conversionDetails.convertedBy,
+      discountDate: today,
+      salespersonId: conversionDetails.salespersonId || '',
+      salespersonName: conversionDetails.salespersonName || ''
+    };
+    dbPayments.unshift(mPayment);
+
+    // ── 4. Unified Invoice ──
+    const gst = Math.round(totalFinal * 0.18 * 100) / 100;
+    const baseAmount = totalFinal - gst;
+    const newInvoice: Invoice = {
+      id: invoiceId,
+      gymId,
+      branchId,
+      invoiceNumber: 'INV-MOCK-' + Date.now().toString().slice(-6),
+      memberId,
+      memberName: memberData.name,
+      membershipPlan: memberData.planName,
+      amount: Number(baseAmount.toFixed(2)),
+      gst: Number(gst.toFixed(2)),
+      discount: mDiscount + ptDiscount,
+      finalAmount: totalFinal,
+      paymentMethod: paidAmount > 0 ? conversionDetails.paymentMethod : 'Pending',
+      invoiceDate: today,
+      status: overallStatus as any,
+      collectedBy: conversionDetails.convertedBy,
+      createdBy: conversionDetails.convertedBy,
+      type: hasPT ? 'pt' : 'membership',
+      membershipPlanId: memberData.planId,
+      ptPlanId: conversionDetails.ptPlanId,
+      originalAmount: membershipPlanPrice + ptPlanPrice,
+      discountType: discountType as any,
+      discountValue: mDiscount + ptDiscount,
+      amountPaid: paidAmount,
+      pendingAmount: totalDue,
+      dueDate: today
+    };
+    dbInvoices.unshift(newInvoice);
+
+    // ── 4b. Membership Collection ──
+    if (mPaid > 0) {
+      dbCollections.unshift({
+        id: 'col_mock_' + Math.random().toString(36).substring(2, 9),
+        gymId,
+        branchId,
+        receiptNo: 'REC-MOCK-' + Date.now().toString().slice(-6),
+        memberId,
+        memberName: memberData.name,
+        membershipPlan: memberData.planName,
+        amount: mPaid,
+        paymentMethod: conversionDetails.paymentMethod || 'UPI',
+        date: today,
+        collectedBy: conversionDetails.convertedBy,
+        type: 'membership',
+        membershipPlanId: memberData.planId,
+        originalAmount: membershipPlanPrice,
+        discountType: discountType as any,
+        discountValue: mDiscount,
+        finalAmount: mFinal,
+        salespersonId: conversionDetails.salespersonId || '',
+        salespersonName: conversionDetails.salespersonName || ''
+      });
+    }
+
+    // ── 5. PT Wallet + Trainer Assignment + PT Payment ──
+    if (hasPT) {
+      const ptDuration = conversionDetails.ptPlanDuration || 1;
+      const ptEndDate = new Date(new Date().setMonth(new Date().getMonth() + ptDuration)).toISOString().split('T')[0];
+
+      dbMemberPTPlans.unshift({
+        id: mptId,
+        gymId,
+        branchId,
+        memberId,
+        memberName: memberData.name,
+        trainerId: conversionDetails.preferredTrainerId || 'unassigned',
+        trainerName: conversionDetails.trainerName || 'Unassigned',
+        planId: conversionDetails.ptPlanId || '',
+        planName: conversionDetails.ptPlanName || '',
+        price: ptFinal,
+        totalSessions: conversionDetails.ptSessionsTotal || 0,
+        completedSessions: 0,
+        remainingSessions: conversionDetails.ptSessionsTotal || 0,
+        expiredSessions: 0,
+        ptGoal: conversionDetails.ptGoal || 'General Fitness',
+        startDate: today,
+        endDate: ptEndDate,
+        status: 'active',
+        salespersonId: conversionDetails.salespersonId || '',
+        salespersonName: conversionDetails.salespersonName || '',
+        history: [{ action: 'assign', date: today, trainerId: conversionDetails.preferredTrainerId, trainerName: conversionDetails.trainerName, planId: conversionDetails.ptPlanId, planName: conversionDetails.ptPlanName, notes: 'Initial assignment' }]
+      });
+
+      dbTrainerAssignments.unshift({
+        id: taId,
+        gymId,
+        branchId,
+        memberId,
+        memberName: memberData.name,
+        trainerId: conversionDetails.preferredTrainerId || 'unassigned',
+        trainerName: conversionDetails.trainerName || 'Unassigned',
+        assignedDate: today,
+        status: 'active',
+        ptGoal: conversionDetails.ptGoal || 'General Fitness'
+      });
+
+      const ptPayment: Payment = {
+        id: ptPayId,
+        gymId,
+        branchId,
+        memberId,
+        memberName: memberData.name,
+        amount: ptFinal,
+        paidAmount: ptPaid,
+        dueAmount: ptDue,
+        dueDate: today,
+        date: today,
+        status: ptStatus as any,
+        planName: conversionDetails.ptPlanName || 'PT Plan',
+        paymentMethod: ptPaid > 0 ? conversionDetails.paymentMethod : 'Pending',
+        type: 'pt',
+        trainerId: conversionDetails.preferredTrainerId || 'unassigned',
+        trainerName: conversionDetails.trainerName || 'Unassigned',
+        collectedBy: conversionDetails.convertedBy,
+        ptPlanId: conversionDetails.ptPlanId,
+        originalAmount: ptPlanPrice,
+        discountType: discountType as any,
+        discountValue: ptDiscount,
+        finalAmount: ptFinal,
+        discountGivenBy: conversionDetails.convertedBy,
+        discountDate: today,
+        salespersonId: conversionDetails.salespersonId || '',
+        salespersonName: conversionDetails.salespersonName || ''
+      };
+      dbPayments.unshift(ptPayment);
+
+      if (ptPaid > 0) {
+        dbTrainerRevenue.unshift({
+          id: trId,
+          gymId,
+          branchId,
+          trainerId: conversionDetails.preferredTrainerId || 'unassigned',
+          trainerName: conversionDetails.trainerName || 'Unassigned',
+          memberId,
+          memberName: memberData.name,
+          amount: ptPaid,
+          date: today,
+          invoiceId: ptPayId,
+          ptPlanName: conversionDetails.ptPlanName || 'PT Plan',
+          salespersonId: conversionDetails.salespersonId || '',
+          salespersonName: conversionDetails.salespersonName || ''
+        });
+
+        dbCollections.unshift({
+          id: 'col_mock_' + Math.random().toString(36).substring(2, 9),
+          gymId,
+          branchId,
+          receiptNo: 'REC-MOCK-' + Date.now().toString().slice(-6),
+          memberId,
+          memberName: memberData.name,
+          membershipPlan: conversionDetails.ptPlanName || 'PT Plan',
+          amount: ptPaid,
+          paymentMethod: conversionDetails.paymentMethod || 'UPI',
+          date: today,
+          collectedBy: conversionDetails.convertedBy,
+          type: 'pt',
+          trainerId: conversionDetails.preferredTrainerId || 'unassigned',
+          trainerName: conversionDetails.trainerName || 'Unassigned',
+          ptPlanId: conversionDetails.ptPlanId,
+          originalAmount: ptPlanPrice,
+          discountType: discountType as any,
+          discountValue: ptDiscount,
+          finalAmount: ptFinal,
+          salespersonId: conversionDetails.salespersonId || '',
+          salespersonName: conversionDetails.salespersonName || ''
+        });
+      }
+    }
+
+    return of({
+      memberId,
+      membershipPaymentId: paymentId,
+      invoiceId,
+      ...(hasPT ? { memberPTPlanId: mptId, trainerAssignmentId: taId, ptPaymentId: ptPayId } : {})
+    }).pipe(delay(400));
   }
 }
 
@@ -1924,9 +2357,9 @@ export class MockEmployeeRepository implements IEmployeeRepository {
 
 // --- Personal Training DB Seed Data ---
 const dbPTPlans: PTPlan[] = [
-  { id: 'pt-1', gymId: 'gym-a', branchId: 'br-1', name: 'PT Monthly', price: 6000, numberOfSessions: 12, duration: 1, description: '12 sessions of customized personal coaching per month.', isActive: true },
-  { id: 'pt-2', gymId: 'gym-a', branchId: 'br-1', name: 'PT Quarterly', price: 15000, numberOfSessions: 36, duration: 3, description: '36 sessions of comprehensive strength and conditioning.', isActive: true },
-  { id: 'pt-3', gymId: 'gym-a', branchId: 'br-1', name: 'PT Annual', price: 50000, numberOfSessions: 144, duration: 12, description: '144 sessions of complete transformation package.', isActive: true }
+  { id: 'pt-1', gymId: 'gym-a', branchId: 'br-1', name: 'PT Monthly', type: 'pt', price: 6000, tax: 18, numberOfSessions: 12, duration: 1, durationUnit: 'months', description: '12 sessions of customized personal coaching per month.', isActive: true },
+  { id: 'pt-2', gymId: 'gym-a', branchId: 'br-1', name: 'PT Quarterly', type: 'pt', price: 15000, tax: 18, numberOfSessions: 36, duration: 3, durationUnit: 'months', description: '36 sessions of comprehensive strength and conditioning.', isActive: true },
+  { id: 'pt-3', gymId: 'gym-a', branchId: 'br-1', name: 'PT Annual', type: 'pt', price: 50000, tax: 18, numberOfSessions: 144, duration: 12, durationUnit: 'months', description: '144 sessions of complete transformation package.', isActive: true }
 ];
 
 const dbPTSessions: PTSession[] = [

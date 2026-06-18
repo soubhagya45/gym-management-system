@@ -7,7 +7,7 @@ import { UserProfile } from '../../../core/models/user.model';
 import { Gym } from '../../../core/models/gym.entity';
 import { Member } from '../../../core/models/member.entity';
 import { Payment } from '../../../core/models/payment.entity';
-import { Lead } from '../../../core/models/lead.entity';
+import { Lead, LeadConversionPayload, LeadConversionResult } from '../../../core/models/lead.entity';
 import { Trainer } from '../../../core/models/trainer.entity';
 import { Attendance } from '../../../core/models/attendance.entity';
 import { MembershipPlan } from '../../../core/models/membership-plan.entity';
@@ -66,7 +66,8 @@ import {
   updateDoc,
   deleteDoc,
   query,
-  where
+  where,
+  writeBatch
 } from 'firebase/firestore';
 
 function getBranchFilteredQuery(injector: Injector, firebaseService: FirebaseService, collectionName: string, gymId: string) {
@@ -603,6 +604,11 @@ export class FirebaseMemberRepository implements IMemberRepository {
       catchError(err => throwError(() => new Error(err.message || 'Failed to delete member.')))
     );
   }
+
+  registerMember(payload: LeadConversionPayload): Observable<LeadConversionResult> {
+    const leadRepo = this.injector.get(FirebaseLeadRepository);
+    return leadRepo.convertLeadToMember(payload);
+  }
 }
 
 @Injectable({ providedIn: 'root' })
@@ -631,19 +637,98 @@ export class FirebasePaymentRepository implements IPaymentRepository {
       branchId
     } as Payment;
 
-    const memberRef = doc(db, 'members', payment.memberId);
-    return from(setDoc(doc(db, 'payments', id), newPayment)).pipe(
-      switchMap(() => from(updateDoc(memberRef, { balance: payment.dueAmount }))),
-      map(() => {
-        logAudit(this.injector, 'Payment Entry', 'payment', id);
-        return newPayment;
-      }),
-      catchError(err => throwError(() => new Error(err.message || 'Failed to add payment.')))
-    );
+    const today = new Date().toISOString().split('T')[0];
+
+    return new Observable<Payment>(observer => {
+      try {
+        const batch = writeBatch(db);
+
+        // 1. Create the Payment document
+        batch.set(doc(db, 'payments', id), newPayment);
+
+        // 2. Update Member's balance
+        const memberRef = doc(db, 'members', payment.memberId);
+        batch.update(memberRef, { balance: payment.dueAmount });
+
+        // 3. Create Invoice document
+        const invoiceId = 'inv_' + Math.random().toString(36).substring(2, 9);
+        const year = new Date().getFullYear();
+        const rand = Math.floor(1000 + Math.random() * 9000);
+        const gst = Math.round(payment.amount * 0.18 * 100) / 100;
+        const baseAmount = payment.amount - gst;
+
+        batch.set(doc(db, 'invoices', invoiceId), {
+          id: invoiceId,
+          gymId,
+          branchId,
+          invoiceNumber: `INV-${year}-${rand}`,
+          memberId: payment.memberId,
+          memberName: payment.memberName,
+          membershipPlan: payment.planName || '',
+          amount: Number(baseAmount.toFixed(2)),
+          gst: Number(gst.toFixed(2)),
+          discount: 0,
+          finalAmount: payment.amount,
+          paymentMethod: payment.status === 'paid' ? (payment.paymentMethod || 'UPI') : 'Pending',
+          invoiceDate: payment.date || today,
+          status: payment.status === 'paid' ? 'paid' : 'pending',
+          collectedBy: payment.collectedBy || '',
+          createdBy: payment.collectedBy || '',
+          type: (payment as any).type || 'membership',
+          trainerId: (payment as any).trainerId,
+          trainerName: (payment as any).trainerName
+        });
+
+        // 4. Create Collection document if status is paid
+        if (payment.status === 'paid') {
+          const collectionId = 'col_' + Math.random().toString(36).substring(2, 9);
+          batch.set(doc(db, 'collections', collectionId), {
+            id: collectionId,
+            gymId,
+            branchId,
+            receiptNo: `REC-${year}-${rand}`,
+            memberId: payment.memberId,
+            memberName: payment.memberName,
+            membershipPlan: payment.planName || '',
+            amount: payment.paidAmount || payment.amount,
+            paymentMethod: payment.paymentMethod || 'UPI',
+            date: payment.date || today,
+            collectedBy: payment.collectedBy || '',
+            type: (payment as any).type || 'membership',
+            trainerId: (payment as any).trainerId,
+            trainerName: (payment as any).trainerName
+          });
+        }
+
+        // Commit all writes atomically
+        batch.commit().then(() => {
+          logAudit(this.injector, 'Payment Entry (Atomic Batch)', 'payment', id);
+          observer.next(newPayment);
+          observer.complete();
+        }).catch(err => {
+          observer.error(new Error(err.message || 'Payment recording batch failed.'));
+        });
+      } catch (err: any) {
+        observer.error(new Error(err.message || 'Payment recording batch setup failed.'));
+      }
+    });
   }
 
+  /**
+   * Confirms a pending payment using a Firestore WriteBatch.
+   * Atomically:
+   *   1. Updates payment status to 'paid'
+   *   2. Clears member balance
+   *   3. Creates Invoice (only if one does not already exist for this payment)
+   *   4. Creates Collection (only if one does not already exist for this payment)
+   *
+   * Includes an idempotent guard — if already paid, returns immediately.
+   * Duplicate prevention via pre-batch Firestore queries.
+   */
   confirmPayment(gymId: string, paymentId: string): Observable<void> {
     const db = this.firebaseService.getDb();
+    const tenantContext = this.injector.get(TenantContextService);
+    const branchId = tenantContext.getBranchId() || '';
     const paymentRef = doc(db, 'payments', paymentId);
 
     return from(getDoc(paymentRef)).pipe(
@@ -652,22 +737,130 @@ export class FirebasePaymentRepository implements IPaymentRepository {
           return throwError(() => new Error('Payment record not found.'));
         }
         const payment = snap.data() as Payment;
+
+        // Idempotent guard — already confirmed, no-op
+        if (payment.status === 'paid') {
+          return from(Promise.resolve() as Promise<void>);
+        }
+
         const today = new Date().toISOString().split('T')[0];
 
-        const updatedPayment = {
-          ...payment,
-          status: 'paid' as const,
-          paidAmount: payment.amount,
-          dueAmount: 0,
-          date: today
-        };
+        // Pre-batch duplicate checks
+        const existingInvoiceQuery = query(
+          collection(db, 'invoices'),
+          where('memberId', '==', payment.memberId),
+          where('gymId', '==', gymId)
+        );
+        const existingCollectionQuery = query(
+          collection(db, 'collections'),
+          where('memberId', '==', payment.memberId),
+          where('gymId', '==', gymId),
+          where('date', '==', payment.date || today)
+        );
 
-        const memberRef = doc(db, 'members', payment.memberId);
-        return forkJoin([
-          from(setDoc(paymentRef, updatedPayment)),
-          from(updateDoc(memberRef, { balance: 0 }))
-        ]).pipe(
-          map(() => undefined)
+        return from(Promise.all([
+          getDocs(existingInvoiceQuery),
+          getDocs(existingCollectionQuery)
+        ])).pipe(
+          switchMap(([invoiceSnap, collectionSnap]) => {
+            const invoiceExists = invoiceSnap.docs.some(d => {
+              const inv = d.data() as any;
+              return Math.abs((inv.finalAmount ?? inv.amount ?? 0) - payment.amount) < 0.01;
+            });
+            const collectionExists = collectionSnap.docs.some(d => {
+              const col = d.data() as any;
+              return Math.abs((col.amount ?? 0) - (payment.paidAmount || payment.amount)) < 0.01;
+            });
+
+            const batch = writeBatch(db);
+
+            // 1. Update payment → paid
+            batch.set(paymentRef, {
+              ...payment,
+              status: 'paid' as const,
+              paidAmount: payment.amount,
+              dueAmount: 0,
+              date: today
+            });
+
+            // 2. Clear member balance
+            batch.update(doc(db, 'members', payment.memberId), { balance: 0 });
+
+            // 2b. Add Trainer Revenue if confirming a PT payment
+            if (payment.type === 'pt' && payment.trainerId && payment.trainerId !== 'unassigned') {
+              const trId = 'trev_' + Math.random().toString(36).substring(2, 9);
+              batch.set(doc(db, 'trainerRevenue', trId), {
+                id: trId,
+                gymId,
+                branchId,
+                trainerId: payment.trainerId,
+                trainerName: payment.trainerName || 'Unassigned',
+                memberId: payment.memberId,
+                memberName: payment.memberName,
+                amount: payment.dueAmount,
+                date: today,
+                invoiceId: paymentId,
+                ptPlanName: payment.planName,
+                salespersonId: payment.salespersonId || '',
+                salespersonName: payment.salespersonName || ''
+              });
+            }
+
+            // 3. Create Invoice if not exists
+            if (!invoiceExists) {
+              const invoiceId = 'inv_' + Math.random().toString(36).substring(2, 9);
+              const year = new Date().getFullYear();
+              const rand = Math.floor(1000 + Math.random() * 9000);
+              const gst = Math.round(payment.amount * 0.18 * 100) / 100;
+              const baseAmount = payment.amount - gst;
+              batch.set(doc(db, 'invoices', invoiceId), {
+                id: invoiceId, gymId, branchId,
+                invoiceNumber: `INV-${year}-${rand}`,
+                memberId: payment.memberId, memberName: payment.memberName,
+                membershipPlan: payment.planName || '',
+                amount: Number(baseAmount.toFixed(2)),
+                gst: Number(gst.toFixed(2)),
+                discount: 0,
+                finalAmount: payment.amount,
+                paymentMethod: payment.paymentMethod || 'UPI',
+                invoiceDate: today,
+                status: 'paid',
+                collectedBy: payment.collectedBy || '',
+                createdBy: payment.collectedBy || '',
+                type: (payment as any).type || 'membership',
+                trainerId: (payment as any).trainerId,
+                trainerName: (payment as any).trainerName
+              });
+            }
+
+            // 4. Create Collection if not exists
+            if (!collectionExists) {
+              const collectionId = 'col_' + Math.random().toString(36).substring(2, 9);
+              const year = new Date().getFullYear();
+              const rand = Math.floor(1000 + Math.random() * 9000);
+              batch.set(doc(db, 'collections', collectionId), {
+                id: collectionId, gymId, branchId,
+                receiptNo: `REC-${year}-${rand}`,
+                memberId: payment.memberId, memberName: payment.memberName,
+                membershipPlan: payment.planName || '',
+                amount: payment.paidAmount || payment.amount,
+                paymentMethod: payment.paymentMethod || 'UPI',
+                date: today,
+                collectedBy: payment.collectedBy || '',
+                type: (payment as any).type || 'membership',
+                trainerId: (payment as any).trainerId,
+                trainerName: (payment as any).trainerName
+              });
+            }
+
+            // COMMIT — all or nothing
+            return from(batch.commit()).pipe(
+              map(() => {
+                logAudit(this.injector, 'Payment Confirmed (Atomic Batch)', 'payment', paymentId);
+                return undefined as void;
+              })
+            );
+          })
         );
       }),
       catchError(err => throwError(() => new Error(err.message || 'Failed to confirm payment.')))
@@ -681,6 +874,7 @@ export class FirebaseLeadRepository implements ILeadRepository {
     private firebaseService: FirebaseService,
     private injector: Injector
   ) { }
+
 
   getLeads(gymId: string): Observable<Lead[]> {
     return from(getDocs(getBranchFilteredQuery(this.injector, this.firebaseService, 'leads', gymId))).pipe(
@@ -733,6 +927,387 @@ export class FirebaseLeadRepository implements ILeadRepository {
       map(() => undefined),
       catchError(err => throwError(() => new Error(err.message || 'Failed to delete lead.')))
     );
+  }
+
+  /**
+   * Atomically converts a Lead to a Member using a Firestore WriteBatch.
+   *
+   * Documents written in one atomic commit:
+   *   1. members/{memberId}               — new Member record
+   *   2. leads/{leadId}                   — status → Converted
+   *   3. payments/{paymentId}             — membership payment
+   *   4. invoices/{invoiceId}             — membership invoice
+   *   5. members/{memberId} (balance)     — balance field update
+   *   --- IF interestedInPT ---
+   *   6. memberPTPlans/{mptId}            — PT wallet
+   *   7. trainerAssignments/{taId}        — trainer assignment
+   *   8. members/{memberId} (PT fields)   — member PT metadata
+   *   9. payments/{ptPayId}               — PT payment (if PT)
+   *  10. trainerRevenue/{trId}            — revenue record (if paid)
+   *
+   * Either ALL succeed or ALL fail. No partial state is possible.
+   */
+  convertLeadToMember(payload: LeadConversionPayload): Observable<LeadConversionResult> {
+    const db = this.firebaseService.getDb();
+    const { lead, memberData, membershipPlanPrice, conversionDetails, gymId, branchId, today } = payload;
+
+    // ── Pre-generate all IDs deterministically before building the batch ──
+    const memberId        = 'mem_'  + Math.random().toString(36).substring(2, 9);
+    const paymentId       = 'pay_'  + Math.random().toString(36).substring(2, 9);
+    const invoiceId       = 'inv_'  + Math.random().toString(36).substring(2, 9);
+    const mptId           = 'mpt_'  + Math.random().toString(36).substring(2, 9);
+    const taId            = 'ta_'   + Math.random().toString(36).substring(2, 9);
+    const ptPayId         = 'pay_'  + Math.random().toString(36).substring(2, 9);
+    const trId            = 'trev_' + Math.random().toString(36).substring(2, 9);
+
+    const hasPT   = conversionDetails.interestedInPT && !!conversionDetails.ptPlanId;
+    const ptPlanPrice = hasPT ? (conversionDetails.ptPlanPrice || 0) : 0;
+
+    // ── Proportional Discount Allocation ──
+    const discountType = conversionDetails.discountType || 'none';
+    const discountValue = conversionDetails.discountValue || 0;
+    let mDiscount = 0;
+    let ptDiscount = 0;
+
+    if (discountType === 'percentage') {
+      mDiscount = membershipPlanPrice * (discountValue / 100);
+      if (hasPT) {
+        ptDiscount = ptPlanPrice * (discountValue / 100);
+      }
+    } else if (discountType === 'flat') {
+      const totalOrig = membershipPlanPrice + ptPlanPrice;
+      if (totalOrig > 0) {
+        mDiscount = discountValue * (membershipPlanPrice / totalOrig);
+        ptDiscount = discountValue - mDiscount;
+      }
+    }
+
+    mDiscount = Math.round(mDiscount * 100) / 100;
+    ptDiscount = Math.round(ptDiscount * 100) / 100;
+
+    const mFinal = Math.max(0, membershipPlanPrice - mDiscount);
+    const ptFinal = Math.max(0, ptPlanPrice - ptDiscount);
+    const totalFinal = mFinal + ptFinal;
+
+    // ── Proportional Paid Allocation ──
+    const paidAmount = conversionDetails.paidAmount || 0;
+    let mPaid = 0;
+    let ptPaid = 0;
+
+    if (paidAmount >= totalFinal) {
+      mPaid = mFinal;
+      ptPaid = ptFinal;
+    } else if (totalFinal > 0) {
+      mPaid = paidAmount * (mFinal / totalFinal);
+      ptPaid = paidAmount - mPaid;
+    }
+
+    mPaid = Math.round(mPaid * 100) / 100;
+    ptPaid = Math.round(ptPaid * 100) / 100;
+
+    const mDue = Math.max(0, mFinal - mPaid);
+    const ptDue = Math.max(0, ptFinal - ptPaid);
+    const totalDue = mDue + ptDue;
+
+    // Individual statuses
+    const mStatus = mDue === 0 ? 'paid' : (mPaid > 0 ? 'partially_paid' : (conversionDetails.paymentStatus === 'overdue' ? 'overdue' : 'pending'));
+    const ptStatus = ptDue === 0 ? 'paid' : (ptPaid > 0 ? 'partially_paid' : (conversionDetails.paymentStatus === 'overdue' ? 'overdue' : 'pending'));
+    
+    // Overall status
+    const overallStatus = totalDue === 0 ? 'paid' : (paidAmount > 0 ? 'partially_paid' : (conversionDetails.paymentStatus === 'overdue' ? 'overdue' : 'pending'));
+
+    return new Observable<LeadConversionResult>(observer => {
+      try {
+        const batch = writeBatch(db);
+
+        // ── 1. New Member document ─────────────────────────────────────────
+        const defaultExpiry = new Date();
+        defaultExpiry.setFullYear(defaultExpiry.getFullYear() + 1);
+        const memberDoc = {
+          ...memberData,
+          id: memberId,
+          gymId,
+          branchId: memberData.branchId || branchId,
+          joinDate: memberData.joinDate || today,
+          expiryDate: memberData.expiryDate || defaultExpiry.toISOString().split('T')[0],
+          attendanceCount: 0,
+          balance: totalDue
+        };
+        batch.set(doc(db, 'members', memberId), memberDoc);
+
+        // ── 2. Update Lead → Converted ─────────────────────────────────────
+        if (lead) {
+          const updatedLead: Lead = {
+            ...lead,
+            status: 'Converted',
+            convertedBy: conversionDetails.convertedBy,
+            revenueGenerated: totalFinal,
+            commissionPercent: 0,
+            commissionEarned: 0,
+            nextFollowUp: undefined
+          };
+          batch.set(doc(db, 'leads', lead.id), updatedLead);
+        }
+
+        // ── 3. Membership Payment record ───────────────────────────────────
+        const membershipPayment = {
+          id: paymentId,
+          gymId,
+          branchId,
+          memberId,
+          memberName: memberData.name,
+          amount: mFinal,
+          paidAmount: mPaid,
+          dueAmount: mDue,
+          dueDate: today,
+          date: today,
+          status: mStatus,
+          planName: memberData.planName,
+          paymentMethod: mPaid > 0 ? conversionDetails.paymentMethod : 'Pending',
+          type: 'membership',
+          collectedBy: conversionDetails.convertedBy,
+          membershipPlanId: memberData.planId,
+          originalAmount: membershipPlanPrice,
+          discountType,
+          discountValue: mDiscount,
+          finalAmount: mFinal,
+          discountGivenBy: conversionDetails.convertedBy,
+          discountDate: today,
+          salespersonId: conversionDetails.salespersonId || lead?.assignedEmployee || lead?.leadOwner || '',
+          salespersonName: conversionDetails.salespersonName || conversionDetails.convertedBy || ''
+        };
+        batch.set(doc(db, 'payments', paymentId), membershipPayment);
+
+        // ── 4. Unified Invoice ─────────────────────────────────────────────
+        const invoiceNumber = 'INV-' + Date.now().toString().slice(-6);
+        const gst = Math.round(totalFinal * 0.18 * 100) / 100;
+        const baseAmount = totalFinal - gst;
+
+        const invoiceDoc = {
+          id: invoiceId,
+          gymId,
+          branchId,
+          invoiceNumber,
+          memberId,
+          memberName: memberData.name,
+          membershipPlan: memberData.planName,
+          amount: Number(baseAmount.toFixed(2)),
+          gst: Number(gst.toFixed(2)),
+          discount: mDiscount + ptDiscount,
+          finalAmount: totalFinal,
+          paymentMethod: paidAmount > 0 ? conversionDetails.paymentMethod : 'Pending',
+          invoiceDate: today,
+          status: overallStatus,
+          collectedBy: conversionDetails.convertedBy,
+          createdBy: conversionDetails.convertedBy,
+          type: hasPT ? 'pt' : 'membership',
+          membershipPlanId: memberData.planId,
+          ptPlanId: conversionDetails.ptPlanId,
+          originalAmount: membershipPlanPrice + ptPlanPrice,
+          discountType,
+          discountValue: mDiscount + ptDiscount,
+          amountPaid: paidAmount,
+          pendingAmount: totalDue,
+          dueDate: today
+        };
+        batch.set(doc(db, 'invoices', invoiceId), invoiceDoc);
+
+        // ── 4b. Membership Collection receipt (if paid portion > 0) ─────────
+        if (mPaid > 0) {
+          const collectionId = 'col_' + Math.random().toString(36).substring(2, 9);
+          const randCol = Math.floor(1000 + Math.random() * 9000);
+          const collectionDoc = {
+            id: collectionId,
+            gymId,
+            branchId,
+            receiptNo: `REC-${new Date().getFullYear()}-${randCol}`,
+            memberId,
+            memberName: memberData.name,
+            membershipPlan: memberData.planName || '',
+            amount: mPaid,
+            paymentMethod: conversionDetails.paymentMethod || 'UPI',
+            date: today,
+            collectedBy: conversionDetails.convertedBy,
+            type: 'membership',
+            membershipPlanId: memberData.planId,
+            originalAmount: membershipPlanPrice,
+            discountType,
+            discountValue: mDiscount,
+            finalAmount: mFinal,
+            salespersonId: conversionDetails.salespersonId || '',
+            salespersonName: conversionDetails.salespersonName || ''
+          };
+          batch.set(doc(db, 'collections', collectionId), collectionDoc);
+        }
+
+        // ── 5. PT Wallet + Trainer Assignment + PT Payment (conditional) ───
+        if (hasPT) {
+          const ptDuration = conversionDetails.ptPlanDuration || 1;
+          const ptEnd = new Date();
+          ptEnd.setMonth(ptEnd.getMonth() + ptDuration);
+          const endDate = ptEnd.toISOString().split('T')[0];
+
+          // 5a. MemberPTPlan (PT wallet)
+          const memberPTPlan = {
+            id: mptId,
+            gymId,
+            branchId,
+            memberId,
+            memberName: memberData.name,
+            trainerId: conversionDetails.preferredTrainerId || 'unassigned',
+            trainerName: conversionDetails.trainerName || 'Unassigned',
+            planId: conversionDetails.ptPlanId,
+            planName: conversionDetails.ptPlanName || '',
+            price: ptFinal,
+            totalSessions: conversionDetails.ptSessionsTotal || 0,
+            completedSessions: 0,
+            remainingSessions: conversionDetails.ptSessionsTotal || 0,
+            expiredSessions: 0,
+            ptGoal: conversionDetails.ptGoal || 'General Fitness',
+            startDate: today,
+            endDate,
+            status: 'active',
+            salespersonId: conversionDetails.salespersonId || lead?.assignedEmployee || '',
+            salespersonName: conversionDetails.salespersonName || conversionDetails.convertedBy || '',
+            history: [{
+              action: 'assign',
+              date: today,
+              trainerId: conversionDetails.preferredTrainerId,
+              trainerName: conversionDetails.trainerName,
+              planId: conversionDetails.ptPlanId,
+              planName: conversionDetails.ptPlanName,
+              notes: 'Initial assignment'
+            }]
+          };
+          batch.set(doc(db, 'memberPTPlans', mptId), memberPTPlan);
+
+          // 5b. Trainer Assignment
+          batch.set(doc(db, 'trainerAssignments', taId), {
+            id: taId,
+            gymId,
+            branchId,
+            memberId,
+            memberName: memberData.name,
+            trainerId: conversionDetails.preferredTrainerId || 'unassigned',
+            trainerName: conversionDetails.trainerName || 'Unassigned',
+            assignedDate: today,
+            status: 'active',
+            ptGoal: conversionDetails.ptGoal || 'General Fitness'
+          });
+
+          // 5c. Update member PT fields
+          batch.update(doc(db, 'members', memberId), {
+            ptPlanId: conversionDetails.ptPlanId,
+            ptPlanName: conversionDetails.ptPlanName,
+            trainerId: conversionDetails.preferredTrainerId || 'unassigned',
+            trainerName: conversionDetails.trainerName || 'Unassigned',
+            ptGoal: conversionDetails.ptGoal,
+            ptStartDate: today,
+            ptEndDate: endDate,
+            ptSessionsTotal: conversionDetails.ptSessionsTotal || 0,
+            ptSessionsCompleted: 0,
+            ptSessionsRemaining: conversionDetails.ptSessionsTotal || 0
+          });
+
+          // 5d. PT Payment
+          const ptPayment = {
+            id: ptPayId,
+            gymId,
+            branchId,
+            memberId,
+            memberName: memberData.name,
+            amount: ptFinal,
+            paidAmount: ptPaid,
+            dueAmount: ptDue,
+            dueDate: today,
+            date: today,
+            status: ptStatus,
+            planName: conversionDetails.ptPlanName || 'PT Plan',
+            paymentMethod: ptPaid > 0 ? conversionDetails.paymentMethod : 'Pending',
+            type: 'pt',
+            trainerId: conversionDetails.preferredTrainerId || 'unassigned',
+            trainerName: conversionDetails.trainerName || 'Unassigned',
+            collectedBy: conversionDetails.convertedBy,
+            ptPlanId: conversionDetails.ptPlanId,
+            originalAmount: ptPlanPrice,
+            discountType,
+            discountValue: ptDiscount,
+            finalAmount: ptFinal,
+            discountGivenBy: conversionDetails.convertedBy,
+            discountDate: today,
+            salespersonId: conversionDetails.salespersonId || '',
+            salespersonName: conversionDetails.salespersonName || ''
+          };
+          batch.set(doc(db, 'payments', ptPayId), ptPayment);
+
+          // 5e. Trainer Revenue (only if paid portion > 0)
+          if (ptPaid > 0) {
+            batch.set(doc(db, 'trainerRevenue', trId), {
+              id: trId,
+              gymId,
+              branchId,
+              trainerId: conversionDetails.preferredTrainerId || 'unassigned',
+              trainerName: conversionDetails.trainerName || 'Unassigned',
+              memberId,
+              memberName: memberData.name,
+              amount: ptPaid,
+              date: today,
+              invoiceId: ptPayId,
+              ptPlanName: conversionDetails.ptPlanName || 'PT Plan',
+              salespersonId: conversionDetails.salespersonId || '',
+              salespersonName: conversionDetails.salespersonName || ''
+            });
+          }
+
+          // 5f. PT Collection receipt (if paid portion > 0)
+          if (ptPaid > 0) {
+            const ptColId = 'col_' + Math.random().toString(36).substring(2, 9);
+            const randCol = Math.floor(1000 + Math.random() * 9000);
+            const ptCollection = {
+              id: ptColId,
+              gymId,
+              branchId,
+              receiptNo: `REC-${new Date().getFullYear()}-${randCol}`,
+              memberId,
+              memberName: memberData.name,
+              membershipPlan: conversionDetails.ptPlanName || 'PT Plan',
+              amount: ptPaid,
+              paymentMethod: conversionDetails.paymentMethod || 'UPI',
+              date: today,
+              collectedBy: conversionDetails.convertedBy,
+              type: 'pt',
+              trainerId: conversionDetails.preferredTrainerId || 'unassigned',
+              trainerName: conversionDetails.trainerName || 'Unassigned',
+              ptPlanId: conversionDetails.ptPlanId,
+              originalAmount: ptPlanPrice,
+              discountType,
+              discountValue: ptDiscount,
+              finalAmount: ptFinal,
+              salespersonId: conversionDetails.salespersonId || '',
+              salespersonName: conversionDetails.salespersonName || ''
+            };
+            batch.set(doc(db, 'collections', ptColId), ptCollection);
+          }
+        }
+
+        // ── COMMIT — single atomic operation ───────────────────────────────
+        batch.commit().then(() => {
+          logAudit(this.injector, lead ? 'Lead Conversion (Atomic Batch)' : 'Member Registration (Atomic Batch)', 'member', memberId);
+          const result: LeadConversionResult = {
+            memberId,
+            membershipPaymentId: paymentId,
+            invoiceId,
+            ...(hasPT ? { memberPTPlanId: mptId, trainerAssignmentId: taId, ptPaymentId: ptPayId } : {})
+          };
+          observer.next(result);
+          observer.complete();
+        }).catch(err => {
+          observer.error(new Error(err.message || 'Atomic registration batch failed. No changes were written.'));
+        });
+      } catch (err: any) {
+        observer.error(new Error(err.message || 'Atomic registration batch setup failed.'));
+      }
+    });
   }
 }
 

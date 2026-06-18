@@ -1,18 +1,21 @@
 import { Injectable, Inject } from '@angular/core';
-import { BehaviorSubject, Observable, of, combineLatest } from 'rxjs';
-import { switchMap, tap, take, map } from 'rxjs/operators';
+import { BehaviorSubject, Observable, of } from 'rxjs';
+import { switchMap, tap, map } from 'rxjs/operators';
 import {
   ILeadRepository,
   LEAD_REPOSITORY_TOKEN,
   IActivityLogRepository,
-  ACTIVITY_LOG_REPOSITORY_TOKEN
+  ACTIVITY_LOG_REPOSITORY_TOKEN,
+  IMembershipPlanRepository,
+  MEMBERSHIP_PLAN_REPOSITORY_TOKEN
 } from '../../core/interfaces/repository.interfaces';
-import { Lead } from '../../core/models/lead.entity';
+import { Lead, LeadConversionPayload } from '../../core/models/lead.entity';
 import { TenantContextService } from '../../domain/tenancy/tenant-context.service';
 import { MemberState } from './member.state';
 import { Member } from '../../core/models/member.entity';
 import { PaymentState } from './payment.state';
 import { PTState } from './pt.state';
+import { FinanceState } from './finance.state';
 
 @Injectable({
   providedIn: 'root'
@@ -24,10 +27,12 @@ export class LeadState {
   constructor(
     @Inject(LEAD_REPOSITORY_TOKEN) private leadRepository: ILeadRepository,
     @Inject(ACTIVITY_LOG_REPOSITORY_TOKEN) private logRepository: IActivityLogRepository,
+    @Inject(MEMBERSHIP_PLAN_REPOSITORY_TOKEN) private planRepository: IMembershipPlanRepository,
     private tenantContext: TenantContextService,
     private memberState: MemberState,
     private paymentState: PaymentState,
-    private ptState: PTState
+    private ptState: PTState,
+    private financeState: FinanceState
   ) {
     this.tenantContext.activeGymId$.pipe(
       switchMap(gymId => {
@@ -112,6 +117,15 @@ export class LeadState {
     );
   }
 
+  /**
+   * Converts a Lead to a Member using an atomic Firestore WriteBatch.
+   *
+   * Step 1: Pre-fetches the membership plan price (single read).
+   * Step 2: Builds LeadConversionPayload and calls leadRepository.convertLeadToMember().
+   * Step 3: The repository executes a single WriteBatch — either ALL documents
+   *         are written or NONE are. No partial state is possible.
+   * Step 4: On success, refresh all affected state caches and log the activity.
+   */
   convertLeadToMember(
     leadId: string,
     memberDetails: Omit<Member, 'id' | 'attendanceCount' | 'balance' | 'gymId'>,
@@ -119,7 +133,7 @@ export class LeadState {
       convertedBy: string;
       revenueGenerated: number;
       commissionPercent?: number;
-      paymentStatus: 'paid' | 'pending';
+      paymentStatus: 'paid' | 'partially_paid' | 'pending' | 'overdue';
       paymentMethod: string;
       paidAmount: number;
       interestedInPT?: 'Yes' | 'No';
@@ -131,94 +145,80 @@ export class LeadState {
       trainerName?: string;
       ptPlanDuration?: number;
       ptSessionsTotal?: number;
+      discountType?: 'flat' | 'percentage' | 'none';
+      discountValue?: number;
     }
   ): Observable<void> {
     const gymId = this.tenantContext.getTenantId();
+    const branchId = this.tenantContext.getBranchId() || '';
     if (!gymId) throw new Error('No active tenant selected');
 
-    return this.memberState.addMember(memberDetails).pipe(
-      switchMap((newMember) => {
-        const lead = this.leadsSubject.value.find(l => l.id === leadId);
-        if (lead) {
-          const updatedLead: Lead = {
-            ...lead,
-            status: 'Converted' as const,
+    const lead = this.leadsSubject.value.find(l => l.id === leadId);
+    if (!lead) return of(undefined);
+
+    const today = new Date().toISOString().split('T')[0];
+
+    // Step 1: Pre-fetch membership plan price (single read before batch)
+    return this.planRepository.getPlans(gymId).pipe(
+      switchMap(plans => {
+        const plan = plans.find(p => p.id === memberDetails.planId);
+        const planPrice = plan?.price ?? 0;
+
+        // Step 2: Build full atomic payload
+        const payload: LeadConversionPayload = {
+          lead,
+          memberData: {
+            ...memberDetails,
+            gymId,
+            branchId: memberDetails.branchId || branchId
+          },
+          membershipPlanPrice: planPrice,
+          conversionDetails: {
             convertedBy: conversionDetails.convertedBy,
             revenueGenerated: conversionDetails.revenueGenerated,
-            commissionPercent: 0,
-            commissionEarned: 0,
-            nextFollowUp: undefined // Clear follow-ups
-          };
+            paymentStatus: conversionDetails.paymentStatus,
+            paymentMethod: conversionDetails.paymentMethod,
+            paidAmount: conversionDetails.paidAmount,
+            interestedInPT: conversionDetails.interestedInPT === 'Yes',
+            ptPlanId: conversionDetails.ptPlanId,
+            ptPlanName: conversionDetails.ptPlanName,
+            ptPlanPrice: conversionDetails.ptPlanPrice,
+            ptPlanDuration: conversionDetails.ptPlanDuration,
+            ptSessionsTotal: conversionDetails.ptSessionsTotal,
+            preferredTrainerId: conversionDetails.preferredTrainerId,
+            trainerName: conversionDetails.trainerName,
+            ptGoal: conversionDetails.ptGoal,
+            salespersonId: lead.assignedEmployee || lead.leadOwner || '',
+            salespersonName: conversionDetails.convertedBy || lead.assignedEmployeeName || '',
+            discountType: conversionDetails.discountType,
+            discountValue: conversionDetails.discountValue,
+            discountGivenBy: conversionDetails.convertedBy,
+            discountDate: today
+          },
+          gymId,
+          branchId: memberDetails.branchId || branchId,
+          today
+        };
 
-          let ptAssign$: Observable<any> = of(null);
-          if (conversionDetails.interestedInPT === 'Yes' && conversionDetails.ptPlanId) {
-            const todayStr = new Date().toISOString().split('T')[0];
-            const end = new Date();
-            const duration = conversionDetails.ptPlanDuration || 1;
-            end.setMonth(end.getMonth() + duration);
-            const endStr = end.toISOString().split('T')[0];
+        // Step 3: Execute atomic WriteBatch — all or nothing
+        return this.leadRepository.convertLeadToMember(payload);
+      }),
+      tap(result => {
+        // Step 4: Refresh all affected caches after successful batch commit
+        this.loadLeads();
+        this.memberState.loadMembers();
+        this.paymentState.loadPayments();
+        this.ptState.loadAll();
+        this.financeState.loadFinanceData();
 
-            ptAssign$ = this.ptState.addMemberPTPlan({
-              memberId: newMember.id,
-              memberName: newMember.name,
-              trainerId: conversionDetails.preferredTrainerId || 'unassigned',
-              trainerName: conversionDetails.trainerName || 'Unassigned Trainer',
-              planId: conversionDetails.ptPlanId,
-              planName: conversionDetails.ptPlanName || '',
-              price: conversionDetails.ptPlanPrice || 0,
-              totalSessions: conversionDetails.ptSessionsTotal || 0,
-              completedSessions: 0,
-              remainingSessions: conversionDetails.ptSessionsTotal || 0,
-              expiredSessions: 0,
-              ptGoal: conversionDetails.ptGoal || 'General Fitness',
-              startDate: todayStr,
-              endDate: endStr,
-              status: 'active',
-              salespersonId: lead.assignedEmployee || lead.leadOwner || '',
-              salespersonName: conversionDetails.convertedBy || lead.assignedEmployeeName || lead.assignedStaff || '',
-              history: [{
-                action: 'assign',
-                date: todayStr,
-                trainerId: conversionDetails.preferredTrainerId,
-                trainerName: conversionDetails.trainerName,
-                planId: conversionDetails.ptPlanId,
-                planName: conversionDetails.ptPlanName,
-                notes: 'Initial assignment upon CRM Lead Conversion'
-              }]
-            }, conversionDetails.paymentStatus, conversionDetails.paymentMethod);
-          }
-
-          return combineLatest([
-            this.leadRepository.updateLead(gymId, updatedLead),
-            ptAssign$
-          ]).pipe(
-            tap(() => {
-              this.loadLeads();
-              this.logRepository.addLog(
-                gymId,
-                `Lead ${lead.name} converted to Member! Converted by ${conversionDetails.convertedBy}. Revenue: ₹${conversionDetails.revenueGenerated}.`,
-                'plan-change'
-              ).subscribe();
-
-              if (conversionDetails.paymentStatus === 'paid') {
-                // Give state and repository a brief tick to register the payment record, then confirm it
-                setTimeout(() => {
-                  this.paymentState.payments$.pipe(take(1)).subscribe(payments => {
-                    const pendingPay = payments.find(p => p.memberId === newMember.id && p.status === 'pending');
-                    if (pendingPay) {
-                      pendingPay.paymentMethod = conversionDetails.paymentMethod;
-                      pendingPay.collectedBy = conversionDetails.convertedBy;
-                      this.paymentState.confirmPayment(pendingPay.id).subscribe();
-                    }
-                  });
-                }, 500);
-              }
-            }),
-            map(() => undefined)
-          );
-        }
-        return of(undefined);
-      })
+        // Audit log (non-critical, fire-and-forget is acceptable here)
+        this.logRepository.addLog(
+          gymId,
+          `Lead ${lead.name} atomically converted to Member (ID: ${result.memberId}). Revenue: ₹${conversionDetails.revenueGenerated}. Converted by: ${conversionDetails.convertedBy}.`,
+          'plan-change'
+        ).subscribe();
+      }),
+      map(() => undefined)
     );
   }
 
@@ -266,3 +266,4 @@ export class LeadState {
     );
   }
 }
+

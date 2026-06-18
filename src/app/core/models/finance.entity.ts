@@ -24,6 +24,7 @@ export interface Expense {
 export interface Invoice {
   id: string;
   gymId: string;
+  branchId?: string;
   invoiceNumber: string;
   memberId: string;
   memberName: string;
@@ -34,11 +35,23 @@ export interface Invoice {
   finalAmount: number;
   paymentMethod: string;
   invoiceDate: string;
-  status: 'paid' | 'pending' | 'cancelled' | 'refunded';
+  status: 'paid' | 'partially_paid' | 'pending' | 'cancelled' | 'refunded' | 'overdue';
   collectedBy?: string;
   createdBy?: string;
   approvedBy?: string;
   attachmentUrl?: string;
+
+  // Plan-driven attributes
+  membershipPlanId?: string;
+  ptPlanId?: string;
+  originalAmount?: number;
+  discountType?: 'flat' | 'percentage' | 'none';
+  discountValue?: number;
+  amountPaid?: number;
+  pendingAmount?: number;
+  dueDate?: string;
+  salespersonId?: string;
+  salespersonName?: string;
   
   // PT Additions
   type?: 'membership' | 'pt';
@@ -49,6 +62,7 @@ export interface Invoice {
 export interface Collection {
   id: string;
   gymId: string;
+  branchId?: string;
   receiptNo: string;
   memberId: string;
   memberName: string;
@@ -57,6 +71,16 @@ export interface Collection {
   paymentMethod: string;
   date: string;
   collectedBy: string;
+
+  // Plan-driven attributes
+  membershipPlanId?: string;
+  ptPlanId?: string;
+  originalAmount?: number;
+  discountType?: 'flat' | 'percentage' | 'none';
+  discountValue?: number;
+  finalAmount?: number;
+  salespersonId?: string;
+  salespersonName?: string;
 
   // PT Additions
   type?: 'membership' | 'pt';

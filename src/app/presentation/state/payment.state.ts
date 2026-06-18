@@ -9,6 +9,7 @@ import {
 } from '../../core/interfaces/repository.interfaces';
 import { Payment } from '../../core/models/payment.entity';
 import { TenantContextService } from '../../domain/tenancy/tenant-context.service';
+import { FinanceState } from './finance.state';
 
 @Injectable({
   providedIn: 'root'
@@ -20,7 +21,8 @@ export class PaymentState {
   constructor(
     @Inject(PAYMENT_REPOSITORY_TOKEN) private paymentRepository: IPaymentRepository,
     @Inject(ACTIVITY_LOG_REPOSITORY_TOKEN) private logRepository: IActivityLogRepository,
-    private tenantContext: TenantContextService
+    private tenantContext: TenantContextService,
+    private financeState: FinanceState
   ) {
     this.tenantContext.activeGymId$.pipe(
       switchMap(gymId => {
@@ -48,6 +50,7 @@ export class PaymentState {
     return this.paymentRepository.addPayment(gymId, { ...payment, gymId }).pipe(
       tap(() => {
         this.loadPayments();
+        this.financeState.loadFinanceData();
         const msg = payment.status === 'paid' 
           ? `Recorded payment of ₹${payment.amount} from ${payment.memberName}`
           : `Created billing invoice of ₹${payment.amount} (Due: ₹${payment.dueAmount}) for ${payment.memberName}`;
@@ -67,6 +70,7 @@ export class PaymentState {
     return this.paymentRepository.confirmPayment(gymId, paymentId).pipe(
       tap(() => {
         this.loadPayments();
+        this.financeState.loadFinanceData();
         this.logRepository.addLog(gymId, `Confirmed pending payment of ₹${amount} from ${memberName}`, 'payment').subscribe();
       })
     );

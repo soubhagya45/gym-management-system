@@ -5,7 +5,7 @@ import { UserProfile } from '../../../core/models/user.model';
 import { Gym } from '../../../core/models/gym.entity';
 import { Member } from '../../../core/models/member.entity';
 import { Payment } from '../../../core/models/payment.entity';
-import { Lead } from '../../../core/models/lead.entity';
+import { Lead, LeadConversionPayload, LeadConversionResult } from '../../../core/models/lead.entity';
 import { Trainer } from '../../../core/models/trainer.entity';
 import { Attendance } from '../../../core/models/attendance.entity';
 import { MembershipPlan } from '../../../core/models/membership-plan.entity';
@@ -92,6 +92,7 @@ export class SupabaseMemberRepository implements IMemberRepository {
   addMember(gymId: string, member: Omit<Member, 'id' | 'attendanceCount' | 'balance'>): Observable<Member> { return throwError(() => new Error('Supabase integration is not enabled.')); }
   updateMember(gymId: string, member: Member): Observable<void> { return throwError(() => new Error('Supabase integration is not enabled.')); }
   deleteMember(gymId: string, id: string): Observable<void> { return throwError(() => new Error('Supabase integration is not enabled.')); }
+  registerMember(payload: LeadConversionPayload): Observable<LeadConversionResult> { return throwError(() => new Error('Supabase integration is not enabled.')); }
 }
 
 @Injectable({ providedIn: 'root' })
@@ -107,6 +108,7 @@ export class SupabaseLeadRepository implements ILeadRepository {
   addLead(gymId: string, lead: Omit<Lead, 'id'>): Observable<Lead> { return throwError(() => new Error('Supabase integration is not enabled.')); }
   updateLead(gymId: string, lead: Lead): Observable<void> { return throwError(() => new Error('Supabase integration is not enabled.')); }
   deleteLead(gymId: string, id: string): Observable<void> { return throwError(() => new Error('Supabase integration is not enabled.')); }
+  convertLeadToMember(_payload: LeadConversionPayload): Observable<LeadConversionResult> { return throwError(() => new Error('Supabase integration is not enabled.')); }
 }
 
 @Injectable({ providedIn: 'root' })

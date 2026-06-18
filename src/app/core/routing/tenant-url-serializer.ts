@@ -83,6 +83,15 @@ export class TenantUrlSerializer extends DefaultUrlSerializer {
     const hostname = window.location.hostname;
     const parts = hostname.split('.');
     
+    // Check if it's a Firebase hosting domain (e.g. my-app.web.app or my-app.firebaseapp.com)
+    const isFirebaseHosting = 
+      (parts.length >= 3 && parts[parts.length - 2] === 'web' && parts[parts.length - 1] === 'app') ||
+      (parts.length >= 3 && parts[parts.length - 2] === 'firebaseapp' && parts[parts.length - 1] === 'com');
+
+    if (isFirebaseHosting) {
+      return parts.length > 3;
+    }
+
     // Ignore localhost, www, and apexfit.com base domain
     if (parts.length > 2) {
       const subdomain = parts[0];

@@ -44,7 +44,7 @@ import { TrainerState } from '../../presentation/state/trainer.state';
     
     <form [formGroup]="convertForm" (ngSubmit)="onSubmit()">
       <mat-dialog-content class="dialog-form-content">
-        <p class="dialog-desc">Complete membership details and payment options to finalize the sale.</p>
+        <p class="dialog-desc">Complete membership details, discount incentives, and payment info to finalize the conversion.</p>
         
         <div class="form-grid">
           <!-- Plan Selection -->
@@ -119,15 +119,15 @@ import { TrainerState } from '../../presentation/state/trainer.state';
             <mat-error *ngIf="convertForm.get('fitnessGoal')?.hasError('required')">Fitness goal is required</mat-error>
           </mat-form-field>
 
-          <!-- Converted By (Salesperson) -->
+          <!-- Salesperson (Converted By) -->
           <mat-form-field appearance="outline">
-            <mat-label>Salesperson (Converted By)</mat-label>
-            <mat-select formControlName="convertedBy">
-              <mat-option *ngFor="let emp of employees" [value]="emp.fullName">
+            <mat-label>Salesperson (Lead Owner)</mat-label>
+            <mat-select formControlName="salespersonId">
+              <mat-option *ngFor="let emp of employees" [value]="emp.id">
                 {{ emp.fullName }} ({{ emp.role === 'staff' ? 'Sales Executive' : emp.role | titlecase }})
               </mat-option>
             </mat-select>
-            <mat-error *ngIf="convertForm.get('convertedBy')?.hasError('required')">Salesperson is required</mat-error>
+            <mat-error *ngIf="convertForm.get('salespersonId')?.hasError('required')">Salesperson is required</mat-error>
           </mat-form-field>
 
           <!-- Interested in Personal Training (PT) -->
@@ -170,60 +170,95 @@ import { TrainerState } from '../../presentation/state/trainer.state';
             <mat-error *ngIf="convertForm.get('ptGoal')?.hasError('required')">PT Goal is required</mat-error>
           </mat-form-field>
 
-          <!-- Payment Status -->
+          <!-- Discount Type -->
           <mat-form-field appearance="outline">
-            <mat-label>Payment Status</mat-label>
-            <mat-select formControlName="paymentStatus">
-              <mat-option value="paid">Paid immediately</mat-option>
-              <mat-option value="pending">Bill / Pay Later</mat-option>
+            <mat-label>Discount Incentive Type</mat-label>
+            <mat-select formControlName="discountType">
+              <mat-option value="none">No Discount</mat-option>
+              <mat-option value="flat">Flat Cash Discount (₹)</mat-option>
+              <mat-option value="percentage">Percentage Discount (%)</mat-option>
             </mat-select>
           </mat-form-field>
 
-          <!-- Payment Method -->
-          <mat-form-field appearance="outline" *ngIf="convertForm.get('paymentStatus')?.value === 'paid'">
+          <!-- Discount Value -->
+          <mat-form-field appearance="outline" *ngIf="convertForm.get('discountType')?.value !== 'none'">
+            <mat-label>{{ convertForm.get('discountType')?.value === 'flat' ? 'Discount Amount (₹)' : 'Discount Percentage (%)' }}</mat-label>
+            <input matInput type="number" formControlName="discountValue">
+            <mat-error *ngIf="convertForm.get('discountValue')?.hasError('min')">Value must be greater than 0</mat-error>
+          </mat-form-field>
+
+          <!-- Paid Amount -->
+          <mat-form-field appearance="outline">
+            <mat-label>Amount Paid (₹)</mat-label>
+            <input matInput type="number" formControlName="paidAmount">
+            <mat-error *ngIf="convertForm.get('paidAmount')?.hasError('required')">Paid amount is required</mat-error>
+            <mat-error *ngIf="convertForm.get('paidAmount')?.hasError('min')">Paid amount cannot be negative</mat-error>
+          </mat-form-field>
+
+          <!-- Payment Method (Only if Paid Amount > 0) -->
+          <mat-form-field appearance="outline" *ngIf="convertForm.get('paidAmount')?.value > 0">
             <mat-label>Payment Method</mat-label>
             <mat-select formControlName="paymentMethod">
-              <mat-option value="UPI">UPI / GPay</mat-option>
-              <mat-option value="Card">Credit/Debit Card</mat-option>
               <mat-option value="Cash">Cash</mat-option>
-              <mat-option value="NetBanking">Net Banking</mat-option>
+              <mat-option value="UPI">UPI / GPay / PhonePe</mat-option>
+              <mat-option value="Razorpay">Razorpay Gateway</mat-option>
+              <mat-option value="Credit Card">Credit Card</mat-option>
+              <mat-option value="Debit Card">Debit Card</mat-option>
+              <mat-option value="Net Banking">Net Banking</mat-option>
+            </mat-select>
+          </mat-form-field>
+
+          <!-- Payment Due Status (If Outstanding Balance exists) -->
+          <mat-form-field appearance="outline" *ngIf="calculations.pendingAmount > 0">
+            <mat-label>Outstanding Balance Status</mat-label>
+            <mat-select formControlName="paymentStatus">
+              <mat-option value="pending">Pending (Standard Term)</mat-option>
+              <mat-option value="overdue">Overdue (Immediate Attention)</mat-option>
             </mat-select>
           </mat-form-field>
         </div>
 
-        <div class="billing-summary" *ngIf="selectedPlanPrice > 0 || (convertForm.get('interestedInPT')?.value === 'Yes' && selectedPTPlanPrice > 0)">
-          <h4>Billing Invoice Summary</h4>
+        <!-- Billing Summary Section -->
+        <div class="billing-summary" *ngIf="calculations.originalTotal > 0">
+          <h4>Billing Summary Breakdown</h4>
           
-          <div class="summary-row" *ngIf="selectedPlanPrice > 0">
-            <span>Membership Plan:</span>
-            <strong>{{ selectedPlanName }} (₹{{ selectedPlanPrice }})</strong>
+          <div class="summary-row">
+            <span>Membership Plan Base (₹):</span>
+            <span>₹{{ calculations.membershipPrice | number:'1.2-2' }}</span>
           </div>
 
-          <div class="summary-row" *ngIf="convertForm.get('interestedInPT')?.value === 'Yes' && selectedPTPlanPrice > 0">
-            <span>Personal Training:</span>
-            <strong>{{ selectedPTPlanName }} (₹{{ selectedPTPlanPrice }})</strong>
+          <div class="summary-row" *ngIf="convertForm.get('interestedInPT')?.value === 'Yes' && calculations.ptPrice > 0">
+            <span>PT Plan Base (₹):</span>
+            <span>₹{{ calculations.ptPrice | number:'1.2-2' }}</span>
+          </div>
+
+          <div class="summary-row" *ngIf="calculations.discountAmount > 0">
+            <span>Incentive Discount:</span>
+            <span class="danger-text">-₹{{ calculations.discountAmount | number:'1.2-2' }}</span>
           </div>
 
           <div class="summary-row">
-            <span>Base Amount:</span>
-            <span>₹{{ ((selectedPlanPrice + (convertForm.get('interestedInPT')?.value === 'Yes' ? selectedPTPlanPrice : 0)) / 1.18) | number:'1.2-2' }}</span>
+            <span>GST Tax (18% inclusive):</span>
+            <span>₹{{ (calculations.finalTotal * 0.18) | number:'1.2-2' }}</span>
           </div>
-          <div class="summary-row">
-            <span>Tax (GST 18%):</span>
-            <span>₹{{ ((selectedPlanPrice + (convertForm.get('interestedInPT')?.value === 'Yes' ? selectedPTPlanPrice : 0)) - ((selectedPlanPrice + (convertForm.get('interestedInPT')?.value === 'Yes' ? selectedPTPlanPrice : 0)) / 1.18)) | number:'1.2-2' }}</span>
-          </div>
+
           <mat-divider></mat-divider>
+
           <div class="summary-row total">
-            <span>Final Paid Amount:</span>
-            <strong>₹{{ selectedPlanPrice + (convertForm.get('interestedInPT')?.value === 'Yes' ? selectedPTPlanPrice : 0) }}</strong>
+            <span>Grand Total (Payable):</span>
+            <strong>₹{{ calculations.finalTotal | number:'1.2-2' }}</strong>
           </div>
-          <div class="summary-row commission">
-            <span>Salesperson Commission (10% Auto):</span>
-            <span class="success-text">₹{{ (selectedPlanPrice * 0.10) | number:'1.2-2' }}</span>
+
+          <div class="summary-row paid-row">
+            <span>Amount Paid Now:</span>
+            <span class="success-text">₹{{ convertForm.get('paidAmount')?.value | number:'1.2-2' }}</span>
           </div>
-          <div class="summary-row commission" *ngIf="convertForm.get('interestedInPT')?.value === 'Yes' && selectedPTPlanPrice > 0 && convertForm.get('preferredTrainerId')?.value">
-            <span>Trainer Commission (10% Auto):</span>
-            <span class="success-text">₹{{ (selectedPTPlanPrice * 0.10) | number:'1.2-2' }}</span>
+
+          <div class="summary-row pending-row">
+            <span>Outstanding Due Balance:</span>
+            <strong [class.danger-text]="calculations.pendingAmount > 0" [class.success-text]="calculations.pendingAmount === 0">
+              ₹{{ calculations.pendingAmount | number:'1.2-2' }}
+            </strong>
           </div>
         </div>
       </mat-dialog-content>
@@ -263,15 +298,16 @@ import { TrainerState } from '../../presentation/state/trainer.state';
     }
     .billing-summary {
       background: rgba(255, 255, 255, 0.03);
-      border: 1px solid var(--border-color);
+      border: 1px dashed rgba(99, 102, 241, 0.4);
       padding: 16px;
       border-radius: 12px;
       margin-top: 8px;
 
       h4 {
         margin-bottom: 12px;
-        color: var(--accent-hover);
+        color: #6366f1;
         font-size: 15px;
+        font-weight: 600;
       }
     }
     .summary-row {
@@ -287,12 +323,13 @@ import { TrainerState } from '../../presentation/state/trainer.state';
         font-size: 15px;
         color: var(--text-primary);
       }
-      &.commission {
-        color: var(--success);
-      }
+    }
+    .danger-text {
+      color: #ef4444;
+      font-weight: 600;
     }
     .success-text {
-      color: var(--success);
+      color: #10b981;
       font-weight: 600;
     }
     .dialog-actions {
@@ -313,10 +350,6 @@ export class ConvertDialogComponent implements OnInit {
   employees: Employee[] = [];
   ptPlans: PTPlan[] = [];
   trainers: Trainer[] = [];
-  selectedPlanPrice = 0;
-  selectedPlanName = '';
-  selectedPTPlanPrice = 0;
-  selectedPTPlanName = '';
 
   fitnessGoalOptions: string[] = [
     'Weight Loss',
@@ -359,21 +392,20 @@ export class ConvertDialogComponent implements OnInit {
     this.employeeState.employees$.subscribe(employees => {
       this.employees = employees.filter(e => e.accountStatus === 'Active');
       
-      // Auto-prefill convertedBy if assignedStaff/assignedEmployeeName matches
       if (this.convertForm && this.employees.length > 0) {
         const matchingEmp = this.employees.find(e => 
           e.fullName.toLowerCase() === this.data.assignedStaff?.toLowerCase() ||
-          e.id === this.data.assignedEmployee
+          e.id === this.data.assignedEmployee ||
+          e.id === this.data.leadOwner
         );
         if (matchingEmp) {
-          this.convertForm.patchValue({ convertedBy: matchingEmp.fullName });
+          this.convertForm.patchValue({ salespersonId: matchingEmp.id });
         }
       }
     });
 
     this.ptState.ptPlans$.subscribe(plans => {
       this.ptPlans = plans.filter(p => p.isActive);
-      this.updatePTPlanDetails();
     });
 
     this.trainerState.trainers$.subscribe(trainers => {
@@ -417,10 +449,14 @@ export class ConvertDialogComponent implements OnInit {
       height: [this.data.height || 175, [Validators.required, Validators.min(50)]],
       weight: [this.data.weight || 70, [Validators.required, Validators.min(20)]],
       fitnessGoal: [initialGoals, [Validators.required]],
-      convertedBy: ['', [Validators.required]],
+      salespersonId: ['', [Validators.required]],
       commissionPercent: [10, [Validators.required]],
-      paymentStatus: ['paid', [Validators.required]],
-      paymentMethod: ['UPI', [Validators.required]],
+      
+      discountType: ['none', [Validators.required]],
+      discountValue: [0, [Validators.min(0)]],
+      paidAmount: [0, [Validators.required, Validators.min(0)]],
+      paymentStatus: ['pending', [Validators.required]],
+      paymentMethod: ['Cash', [Validators.required]],
 
       // PT fields
       interestedInPT: [this.data.interestedInPT || 'No', [Validators.required]],
@@ -429,8 +465,8 @@ export class ConvertDialogComponent implements OnInit {
       ptGoal: [this.data.ptGoal || 'General Fitness']
     });
 
-    this.convertForm.get('planId')?.valueChanges.subscribe(() => this.updatePlanDetails());
-    this.convertForm.get('startDate')?.valueChanges.subscribe(() => this.updatePlanDetails());
+    this.convertForm.get('planId')?.valueChanges.subscribe(() => this.updatePlanEndDate());
+    this.convertForm.get('startDate')?.valueChanges.subscribe(() => this.updatePlanEndDate());
 
     // PT Fields conditional validation
     this.convertForm.get('interestedInPT')?.valueChanges.subscribe(interested => {
@@ -451,49 +487,124 @@ export class ConvertDialogComponent implements OnInit {
       }
       ptPlanCtrl?.updateValueAndValidity();
       ptGoalCtrl?.updateValueAndValidity();
-      this.updatePTPlanDetails();
     });
 
-    this.convertForm.get('ptPlanId')?.valueChanges.subscribe(() => {
-      this.updatePTPlanDetails();
+    // Automatically cap paidAmount to grandTotal
+    this.convertForm.get('paidAmount')?.valueChanges.subscribe(val => {
+      const finalTotal = this.calculations.finalTotal;
+      if (val > finalTotal) {
+        this.convertForm.get('paidAmount')?.setValue(finalTotal, { emitEvent: false });
+      }
     });
-    
-    this.updatePlanDetails();
-    this.updatePTPlanDetails();
+
+    // Discount Type listener: reset value if none
+    this.convertForm.get('discountType')?.valueChanges.subscribe(type => {
+      const discountValCtrl = this.convertForm.get('discountValue');
+      if (type === 'none') {
+        discountValCtrl?.setValue(0);
+        discountValCtrl?.clearValidators();
+      } else {
+        discountValCtrl?.setValidators([Validators.required, Validators.min(0.01)]);
+      }
+      discountValCtrl?.updateValueAndValidity();
+    });
+
+    this.updatePlanEndDate();
   }
 
-  updatePlanDetails(): void {
+  get calculations() {
+    if (!this.convertForm) {
+      return {
+        membershipPrice: 0,
+        ptPrice: 0,
+        originalTotal: 0,
+        discountAmount: 0,
+        finalTotal: 0,
+        pendingAmount: 0,
+        membershipDiscount: 0,
+        ptDiscount: 0,
+        membershipFinal: 0,
+        ptFinal: 0
+      };
+    }
+
+    const formValue = this.convertForm.value;
+    const memPlan = this.plans.find(p => p.id === formValue.planId);
+    const ptPlan = formValue.interestedInPT === 'Yes' ? this.ptPlans.find(p => p.id === formValue.ptPlanId) : null;
+
+    const membershipPrice = memPlan ? memPlan.price : 0;
+    const ptPrice = ptPlan ? ptPlan.price : 0;
+    const originalTotal = membershipPrice + ptPrice;
+
+    const discountType = formValue.discountType || 'none';
+    const discountValue = formValue.discountValue || 0;
+    let discountAmount = 0;
+
+    let membershipDiscount = 0;
+    let ptDiscount = 0;
+
+    if (discountType === 'percentage') {
+      membershipDiscount = membershipPrice * (discountValue / 100);
+      ptDiscount = ptPrice * (discountValue / 100);
+      discountAmount = membershipDiscount + ptDiscount;
+    } else if (discountType === 'flat') {
+      discountAmount = discountValue;
+      if (originalTotal > 0) {
+        membershipDiscount = discountValue * (membershipPrice / originalTotal);
+        ptDiscount = discountValue - membershipDiscount;
+      }
+    }
+
+    membershipDiscount = Math.round(membershipDiscount * 100) / 100;
+    ptDiscount = Math.round(ptDiscount * 100) / 100;
+
+    const membershipFinal = Math.max(0, membershipPrice - membershipDiscount);
+    const ptFinal = Math.max(0, ptPrice - ptDiscount);
+    const finalTotal = membershipFinal + ptFinal;
+
+    const paidAmount = formValue.paidAmount || 0;
+    const pendingAmount = Math.max(0, finalTotal - paidAmount);
+
+    return {
+      membershipPrice,
+      ptPrice,
+      originalTotal,
+      discountAmount: Math.round(discountAmount * 100) / 100,
+      finalTotal,
+      pendingAmount,
+      membershipDiscount,
+      ptDiscount,
+      membershipFinal,
+      ptFinal
+    };
+  }
+
+  updatePlanEndDate(): void {
     if (!this.convertForm) return;
     const startDateVal = this.convertForm.get('startDate')?.value;
     const planIdVal = this.convertForm.get('planId')?.value;
     if (startDateVal && planIdVal) {
       const selectedPlan = this.plans.find(p => p.id === planIdVal);
       if (selectedPlan) {
-        this.selectedPlanPrice = selectedPlan.price;
-        this.selectedPlanName = selectedPlan.name;
-        
         const start = new Date(startDateVal);
-        const end = new Date(start.setMonth(start.getMonth() + selectedPlan.durationMonths));
+        const duration = selectedPlan.duration || selectedPlan.durationMonths || 1;
+        const unit = selectedPlan.durationUnit || 'months';
+
+        if (unit === 'days') {
+          start.setDate(start.getDate() + duration);
+        } else if (unit === 'weeks') {
+          start.setDate(start.getDate() + duration * 7);
+        } else if (unit === 'months') {
+          start.setMonth(start.getMonth() + duration);
+        } else if (unit === 'years') {
+          start.setFullYear(start.getFullYear() + duration);
+        }
+        
         this.convertForm.patchValue({
-          endDate: this.formatDate(end)
+          endDate: this.formatDate(start)
         }, { emitEvent: false });
       }
     }
-  }
-
-  updatePTPlanDetails(): void {
-    if (!this.convertForm) return;
-    const ptPlanId = this.convertForm.get('ptPlanId')?.value;
-    if (ptPlanId && this.convertForm.get('interestedInPT')?.value === 'Yes') {
-      const selectedPlan = this.ptPlans.find(p => p.id === ptPlanId);
-      if (selectedPlan) {
-        this.selectedPTPlanPrice = selectedPlan.price;
-        this.selectedPTPlanName = selectedPlan.name;
-        return;
-      }
-    }
-    this.selectedPTPlanPrice = 0;
-    this.selectedPTPlanName = '';
   }
 
   onCancel(): void {
@@ -506,6 +617,7 @@ export class ConvertDialogComponent implements OnInit {
       const selectedPlan = this.plans.find(p => p.id === formValue.planId);
       const selectedPTPlan = this.ptPlans.find(p => p.id === formValue.ptPlanId);
       const selectedTrainer = this.trainers.find(t => t.id === formValue.preferredTrainerId);
+      const salesperson = this.employees.find(e => e.id === formValue.salespersonId);
       
       const memberDetails: Omit<Member, 'id' | 'attendanceCount' | 'balance' | 'gymId'> = {
         name: this.data.name,
@@ -524,18 +636,24 @@ export class ConvertDialogComponent implements OnInit {
         avatarUrl: `https://images.unsplash.com/photo-1534438327276-14e5300c3a48?w=150`
       };
 
+      const finalCalculations = this.calculations;
+
       const conversionDetails = {
-        convertedBy: formValue.convertedBy,
-        revenueGenerated: this.selectedPlanPrice + (formValue.interestedInPT === 'Yes' ? this.selectedPTPlanPrice : 0),
+        convertedBy: salesperson ? salesperson.fullName : 'System',
+        salespersonId: salesperson ? salesperson.id : '',
+        salespersonName: salesperson ? salesperson.fullName : 'System',
+        revenueGenerated: finalCalculations.finalTotal,
         commissionPercent: formValue.commissionPercent,
-        paymentStatus: formValue.paymentStatus,
-        paymentMethod: formValue.paymentMethod,
-        paidAmount: formValue.paymentStatus === 'paid' ? (this.selectedPlanPrice + (formValue.interestedInPT === 'Yes' ? this.selectedPTPlanPrice : 0)) : 0,
+        paymentStatus: finalCalculations.pendingAmount === 0 ? 'paid' : formValue.paymentStatus,
+        paymentMethod: formValue.paidAmount > 0 ? formValue.paymentMethod : 'Pending',
+        paidAmount: formValue.paidAmount,
+        discountType: formValue.discountType,
+        discountValue: formValue.discountValue,
         
         // PT Additions
-        interestedInPT: formValue.interestedInPT,
-        ptPlanId: formValue.ptPlanId,
-        preferredTrainerId: formValue.preferredTrainerId,
+        interestedInPT: formValue.interestedInPT === 'Yes',
+        ptPlanId: formValue.ptPlanId || undefined,
+        preferredTrainerId: formValue.preferredTrainerId || undefined,
         ptGoal: formValue.ptGoal,
         ptPlanPrice: selectedPTPlan ? selectedPTPlan.price : 0,
         ptPlanName: selectedPTPlan ? selectedPTPlan.name : '',

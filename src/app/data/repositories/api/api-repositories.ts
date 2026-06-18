@@ -6,7 +6,7 @@ import { UserProfile } from '../../../core/models/user.model';
 import { Gym } from '../../../core/models/gym.entity';
 import { Member } from '../../../core/models/member.entity';
 import { Payment } from '../../../core/models/payment.entity';
-import { Lead } from '../../../core/models/lead.entity';
+import { Lead, LeadConversionPayload, LeadConversionResult } from '../../../core/models/lead.entity';
 import { Trainer } from '../../../core/models/trainer.entity';
 import { Attendance } from '../../../core/models/attendance.entity';
 import { MembershipPlan } from '../../../core/models/membership-plan.entity';
@@ -156,6 +156,10 @@ export class ApiMemberRepository extends BaseApiRepository implements IMemberRep
   deleteMember(gymId: string, id: string): Observable<void> {
     return this.delete<void>(`/${id}`, { params: new HttpParams().set('gymId', gymId) });
   }
+
+  registerMember(payload: LeadConversionPayload): Observable<LeadConversionResult> {
+    return this.post<LeadConversionResult>('/register', payload);
+  }
 }
 
 @Injectable({ providedIn: 'root' })
@@ -205,6 +209,10 @@ export class ApiLeadRepository extends BaseApiRepository implements ILeadReposit
 
   deleteLead(gymId: string, id: string): Observable<void> {
     return this.delete<void>(`/${id}`, { params: new HttpParams().set('gymId', gymId) });
+  }
+
+  convertLeadToMember(payload: LeadConversionPayload): Observable<LeadConversionResult> {
+    return this.post<LeadConversionResult>('/convert', payload, { params: new HttpParams().set('gymId', payload.gymId) });
   }
 }
 

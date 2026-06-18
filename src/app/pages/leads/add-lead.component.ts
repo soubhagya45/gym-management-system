@@ -11,6 +11,7 @@ import { MatDatepickerModule } from '@angular/material/datepicker';
 import { MatNativeDateModule } from '@angular/material/core';
 import { MatIconModule } from '@angular/material/icon';
 import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
+import { MatDividerModule } from '@angular/material/divider';
 
 import { LeadState } from '../../presentation/state/lead.state';
 import { MembershipPlanState } from '../../presentation/state/membership-plan.state';
@@ -38,7 +39,8 @@ import { Trainer } from '../../core/models/trainer.entity';
     MatDatepickerModule,
     MatNativeDateModule,
     MatIconModule,
-    MatSnackBarModule
+    MatSnackBarModule,
+    MatDividerModule
   ],
   templateUrl: './add-lead.component.html',
   styleUrls: ['./add-lead.component.scss']
@@ -218,6 +220,44 @@ export class AddLeadComponent implements OnInit {
         this.router.navigate(['/leads']);
       });
     }
+  }
+
+  get selectedMembershipPlan(): MembershipPlan | undefined {
+    const planName = this.leadForm?.get('preferredPlan')?.value;
+    return this.plans.find(p => p.name === planName);
+  }
+
+  get selectedPTPlan(): PTPlan | undefined {
+    if (this.leadForm?.get('interestedInPT')?.value !== 'Yes') return undefined;
+    const ptId = this.leadForm?.get('ptPlanId')?.value;
+    return this.ptPlans.find(p => p.id === ptId);
+  }
+
+  get pricingBreakdown() {
+    const memPlan = this.selectedMembershipPlan;
+    const ptPlan = this.selectedPTPlan;
+
+    const memBase = memPlan ? memPlan.price : 0;
+    const memTaxRate = memPlan ? memPlan.tax : 0;
+    const memGST = memBase * (memTaxRate / 100);
+    const memTotal = memBase + memGST;
+
+    const ptBase = ptPlan ? ptPlan.price : 0;
+    const ptTaxRate = ptPlan ? ptPlan.tax : 0;
+    const ptGST = ptBase * (ptTaxRate / 100);
+    const ptTotal = ptBase + ptGST;
+
+    return {
+      membershipBase: memBase,
+      membershipGST: memGST,
+      membershipTotal: memTotal,
+      ptBase: ptBase,
+      ptGST: ptGST,
+      ptTotal: ptTotal,
+      totalBase: memBase + ptBase,
+      totalGST: memGST + ptGST,
+      grandTotal: memTotal + ptTotal
+    };
   }
 
   private formatDate(date: any): string {

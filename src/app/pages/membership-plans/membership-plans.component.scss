@@ -4,6 +4,48 @@
   gap: 24px;
 }
 
+/* Tabs Navigation */
+.tabs-navigation {
+  display: flex;
+  gap: 16px;
+  border-bottom: 1px solid var(--border-color);
+  padding-bottom: 12px;
+  margin-bottom: 8px;
+
+  .tab-btn-item {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    background: transparent;
+    border: none;
+    outline: none;
+    color: var(--text-secondary);
+    font-size: 15px;
+    font-weight: 600;
+    padding: 10px 20px;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+
+    mat-icon {
+      font-size: 20px;
+      width: 20px;
+      height: 20px;
+    }
+
+    &:hover {
+      color: var(--text-primary);
+      background: var(--border-color);
+    }
+
+    &.active {
+      color: #6366f1; /* primary color */
+      background: rgba(99, 102, 241, 0.1);
+      box-shadow: inset 0 0 0 1px rgba(99, 102, 241, 0.2);
+    }
+  }
+}
+
 /* Pricing Grid */
 .plans-grid {
   display: grid;

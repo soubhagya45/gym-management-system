@@ -5,7 +5,7 @@ import { UserRole } from '../enums/roles.enum';
 import { Gym } from '../models/gym.entity';
 import { Member } from '../models/member.entity';
 import { Payment } from '../models/payment.entity';
-import { Lead } from '../models/lead.entity';
+import { Lead, LeadConversionPayload, LeadConversionResult } from '../models/lead.entity';
 import { Trainer } from '../models/trainer.entity';
 import { Attendance } from '../models/attendance.entity';
 import { MembershipPlan } from '../models/membership-plan.entity';
@@ -59,6 +59,7 @@ export interface IMemberRepository {
   addMember(gymId: string, member: Omit<Member, 'id' | 'attendanceCount' | 'balance'>): Observable<Member>;
   updateMember(gymId: string, member: Member): Observable<void>;
   deleteMember(gymId: string, id: string): Observable<void>;
+  registerMember(payload: LeadConversionPayload): Observable<LeadConversionResult>;
 }
 
 export interface IPaymentRepository {
@@ -72,6 +73,11 @@ export interface ILeadRepository {
   addLead(gymId: string, lead: Omit<Lead, 'id'>): Observable<Lead>;
   updateLead(gymId: string, lead: Lead): Observable<void>;
   deleteLead(gymId: string, id: string): Observable<void>;
+  /**
+   * Atomically converts a lead to a member using a Firestore WriteBatch.
+   * Either ALL writes succeed or ALL fail — no partial state is possible.
+   */
+  convertLeadToMember(payload: LeadConversionPayload): Observable<LeadConversionResult>;
 }
 
 export interface ITrainerRepository {

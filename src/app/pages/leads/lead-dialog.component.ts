@@ -9,6 +9,7 @@ import { MatButtonModule } from '@angular/material/button';
 import { MatDatepickerModule } from '@angular/material/datepicker';
 import { MatNativeDateModule } from '@angular/material/core';
 import { MatIconModule } from '@angular/material/icon';
+import { MatDividerModule } from '@angular/material/divider';
 import { Lead } from '../../core/models/lead.entity';
 import { MembershipPlan } from '../../core/models/membership-plan.entity';
 import { Employee } from '../../core/models/employee.entity';
@@ -32,7 +33,8 @@ import { TrainerState } from '../../presentation/state/trainer.state';
     MatButtonModule,
     MatDatepickerModule,
     MatNativeDateModule,
-    MatIconModule
+    MatIconModule,
+    MatDividerModule
   ],
   template: `
     <h2 mat-dialog-title class="gradient-text dialogue-title">
@@ -250,6 +252,28 @@ import { TrainerState } from '../../presentation/state/trainer.state';
             <mat-label>General Notes & CRM Requirements</mat-label>
             <textarea matInput formControlName="notes" rows="2" placeholder="Add custom notes, fitness level, schedule preferences..."></textarea>
           </mat-form-field>
+
+          <!-- Billing Live Summary Box -->
+          <div class="billing-summary-box billing-summary-field" *ngIf="selectedMembershipPlan || selectedPTPlan">
+            <h4 class="summary-title"><mat-icon>receipt_long</mat-icon> Live Pricing Summary</h4>
+            
+            <div class="summary-row" *ngIf="selectedMembershipPlan">
+              <span class="label">Membership ({{ selectedMembershipPlan.name }}):</span>
+              <span class="value">₹{{ pricingBreakdown.membershipBase | number:'1.2-2' }} + ₹{{ pricingBreakdown.membershipGST | number:'1.2-2' }} GST = <strong>₹{{ pricingBreakdown.membershipTotal | number:'1.2-2' }}</strong></span>
+            </div>
+
+            <div class="summary-row" *ngIf="selectedPTPlan">
+              <span class="label">PT Plan ({{ selectedPTPlan.name }}):</span>
+              <span class="value">₹{{ pricingBreakdown.ptBase | number:'1.2-2' }} + ₹{{ pricingBreakdown.ptGST | number:'1.2-2' }} GST = <strong>₹{{ pricingBreakdown.ptTotal | number:'1.2-2' }}</strong></span>
+            </div>
+
+            <mat-divider style="margin: 8px 0; grid-column: span 2;"></mat-divider>
+
+            <div class="summary-row grand-total-row">
+              <span class="label">Grand Total:</span>
+              <span class="value grand-total">₹{{ pricingBreakdown.grandTotal | number:'1.2-2' }}</span>
+            </div>
+          </div>
         </div>
       </mat-dialog-content>
       
@@ -283,6 +307,57 @@ import { TrainerState } from '../../presentation/state/trainer.state';
     .notes-field {
       grid-column: span 2;
     }
+    .billing-summary-field {
+      grid-column: span 2;
+    }
+    .billing-summary-box {
+      background-color: var(--card-bg-elevated, #242526);
+      border: 1px dashed rgba(99, 102, 241, 0.4);
+      border-radius: 12px;
+      padding: 16px;
+      margin-top: 12px;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+    .summary-title {
+      margin: 0 0 4px 0;
+      font-size: 14px;
+      font-weight: 700;
+      color: #6366f1;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      letter-spacing: 0.03em;
+      text-transform: uppercase;
+    }
+    .summary-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      font-size: 13px;
+      color: var(--text-secondary);
+      gap: 12px;
+    }
+    .summary-row .label {
+      font-weight: 500;
+    }
+    .summary-row .value {
+      text-align: right;
+      color: var(--text-primary);
+    }
+    .summary-row .value strong {
+      color: #6366f1;
+    }
+    .summary-row.grand-total-row {
+      font-size: 15px;
+      font-weight: 700;
+      color: var(--text-primary);
+    }
+    .summary-row.grand-total-row .grand-total {
+      font-size: 18px;
+      color: #10b981;
+    }
     .dialog-actions {
       padding: 16px 0 0 0 !important;
       gap: 8px;
@@ -293,6 +368,9 @@ import { TrainerState } from '../../presentation/state/trainer.state';
         grid-template-columns: 1fr;
       }
       .notes-field {
+        grid-column: span 1;
+      }
+      .billing-summary-field {
         grid-column: span 1;
       }
     }
@@ -476,6 +554,44 @@ export class LeadDialogComponent implements OnInit {
         this.dialogRef.close(formattedLead);
       }
     }
+  }
+
+  get selectedMembershipPlan(): MembershipPlan | undefined {
+    const planName = this.leadForm?.get('interestedPlan')?.value;
+    return this.plans.find(p => p.name === planName);
+  }
+
+  get selectedPTPlan(): PTPlan | undefined {
+    if (this.leadForm?.get('interestedInPT')?.value !== 'Yes') return undefined;
+    const ptId = this.leadForm?.get('ptPlanId')?.value;
+    return this.ptPlans.find(p => p.id === ptId);
+  }
+
+  get pricingBreakdown() {
+    const memPlan = this.selectedMembershipPlan;
+    const ptPlan = this.selectedPTPlan;
+
+    const memBase = memPlan ? memPlan.price : 0;
+    const memTaxRate = memPlan ? memPlan.tax : 0;
+    const memGST = memBase * (memTaxRate / 100);
+    const memTotal = memBase + memGST;
+
+    const ptBase = ptPlan ? ptPlan.price : 0;
+    const ptTaxRate = ptPlan ? ptPlan.tax : 0;
+    const ptGST = ptBase * (ptTaxRate / 100);
+    const ptTotal = ptBase + ptGST;
+
+    return {
+      membershipBase: memBase,
+      membershipGST: memGST,
+      membershipTotal: memTotal,
+      ptBase: ptBase,
+      ptGST: ptGST,
+      ptTotal: ptTotal,
+      totalBase: memBase + ptBase,
+      totalGST: memGST + ptGST,
+      grandTotal: memTotal + ptTotal
+    };
   }
  
   private formatDate(date: any): string {

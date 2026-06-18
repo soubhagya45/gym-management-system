@@ -215,6 +215,28 @@
               <mat-error *ngIf="leadForm.get('ptGoal')?.hasError('required')">PT Goal is required</mat-error>
             </mat-form-field>
           </ng-container>
+
+          <!-- Billing Live Summary Box -->
+          <div class="billing-summary-box" *ngIf="selectedMembershipPlan || selectedPTPlan">
+            <h4 class="summary-title"><mat-icon>receipt_long</mat-icon> Live Pricing Summary</h4>
+            
+            <div class="summary-row" *ngIf="selectedMembershipPlan">
+              <span class="label">Membership ({{ selectedMembershipPlan.name }}):</span>
+              <span class="value">₹{{ pricingBreakdown.membershipBase | number:'1.2-2' }} + ₹{{ pricingBreakdown.membershipGST | number:'1.2-2' }} GST = <strong>₹{{ pricingBreakdown.membershipTotal | number:'1.2-2' }}</strong></span>
+            </div>
+
+            <div class="summary-row" *ngIf="selectedPTPlan">
+              <span class="label">PT Plan ({{ selectedPTPlan.name }}):</span>
+              <span class="value">₹{{ pricingBreakdown.ptBase | number:'1.2-2' }} + ₹{{ pricingBreakdown.ptGST | number:'1.2-2' }} GST = <strong>₹{{ pricingBreakdown.ptTotal | number:'1.2-2' }}</strong></span>
+            </div>
+
+            <mat-divider style="margin: 8px 0;"></mat-divider>
+
+            <div class="summary-row grand-total-row">
+              <span class="label">Grand Total:</span>
+              <span class="value grand-total">₹{{ pricingBreakdown.grandTotal | number:'1.2-2' }}</span>
+            </div>
+          </div>
         </div>
 
         <!-- Section 4: Notes & Follow-Up Notes (Full Width) -->

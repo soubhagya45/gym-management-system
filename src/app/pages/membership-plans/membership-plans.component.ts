@@ -7,7 +7,9 @@ import { MatDialog, MatDialogModule } from '@angular/material/dialog';
 import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
 import { MatDividerModule } from '@angular/material/divider';
 import { MembershipPlanState } from '../../presentation/state/membership-plan.state';
+import { PTState } from '../../presentation/state/pt.state';
 import { MembershipPlan } from '../../core/models/membership-plan.entity';
+import { PTPlan } from '../../core/models/pt-plan.entity';
 import { PlanDialogComponent } from './plan-dialog.component';
 import { ConfirmDialogComponent } from '../members/confirm-dialog.component';
 import { Observable } from 'rxjs';
@@ -29,15 +31,23 @@ import { Observable } from 'rxjs';
 })
 export class MembershipPlansComponent implements OnInit {
   plans$: Observable<MembershipPlan[]> | undefined;
+  ptPlans$: Observable<PTPlan[]> | undefined;
+  activeTab: 'membership' | 'pt' = 'membership';
 
   constructor(
     private planState: MembershipPlanState,
+    private ptState: PTState,
     private dialog: MatDialog,
     private snackBar: MatSnackBar
   ) {}
 
   ngOnInit(): void {
     this.plans$ = this.planState.plans$;
+    this.ptPlans$ = this.ptState.ptPlans$;
+  }
+
+  switchTab(tab: 'membership' | 'pt'): void {
+    this.activeTab = tab;
   }
 
   // Add Plan Dialog
@@ -49,17 +59,25 @@ export class MembershipPlansComponent implements OnInit {
 
     dialogRef.afterClosed().subscribe(result => {
       if (result) {
-        this.planState.addPlan(result).subscribe(() => {
-          this.snackBar.open('Membership plan created successfully!', 'Dismiss', {
-            duration: 3000
+        if (result.type === 'pt') {
+          this.ptState.addPTPlan(result).subscribe(() => {
+            this.snackBar.open('Personal Training plan created successfully!', 'Dismiss', {
+              duration: 3000
+            });
           });
-        });
+        } else {
+          this.planState.addPlan(result).subscribe(() => {
+            this.snackBar.open('Membership plan created successfully!', 'Dismiss', {
+              duration: 3000
+            });
+          });
+        }
       }
     });
   }
 
   // Edit Plan Dialog
-  openEditPlanDialog(plan: MembershipPlan) {
+  openEditPlanDialog(plan: MembershipPlan | PTPlan) {
     const dialogRef = this.dialog.open(PlanDialogComponent, {
       width: '500px',
       data: plan
@@ -67,21 +85,30 @@ export class MembershipPlansComponent implements OnInit {
 
     dialogRef.afterClosed().subscribe(result => {
       if (result) {
-        this.planState.updatePlan(result).subscribe(() => {
-          this.snackBar.open('Membership plan updated!', 'Dismiss', {
-            duration: 3000
+        if (result.type === 'pt') {
+          this.ptState.updatePTPlan(result).subscribe(() => {
+            this.snackBar.open('Personal Training plan updated!', 'Dismiss', {
+              duration: 3000
+            });
           });
-        });
+        } else {
+          this.planState.updatePlan(result).subscribe(() => {
+            this.snackBar.open('Membership plan updated!', 'Dismiss', {
+              duration: 3000
+            });
+          });
+        }
       }
     });
   }
 
   // Delete Plan Confirmed
-  confirmDeletePlan(plan: MembershipPlan) {
+  confirmDeletePlan(plan: MembershipPlan | PTPlan) {
+    const isPT = plan.type === 'pt';
     const dialogRef = this.dialog.open(ConfirmDialogComponent, {
       width: '400px',
       data: {
-        title: 'Delete Membership Plan',
+        title: isPT ? 'Delete PT Plan' : 'Delete Membership Plan',
         message: `Are you sure you want to permanently delete the "${plan.name}" plan? This will affect new member registrations.`,
         confirmText: 'Delete Plan',
         cancelText: 'Cancel'
@@ -90,11 +117,19 @@ export class MembershipPlansComponent implements OnInit {
 
     dialogRef.afterClosed().subscribe(confirm => {
       if (confirm) {
-        this.planState.deletePlan(plan.id).subscribe(() => {
-          this.snackBar.open('Membership plan deleted.', 'Dismiss', {
-            duration: 3000
+        if (isPT) {
+          this.ptState.deletePTPlan(plan.id).subscribe(() => {
+            this.snackBar.open('Personal Training plan deleted.', 'Dismiss', {
+              duration: 3000
+            });
           });
-        });
+        } else {
+          this.planState.deletePlan(plan.id).subscribe(() => {
+            this.snackBar.open('Membership plan deleted.', 'Dismiss', {
+              duration: 3000
+            });
+          });
+        }
       }
     });
   }

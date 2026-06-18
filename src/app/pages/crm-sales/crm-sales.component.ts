@@ -21,6 +21,7 @@ import { ExportService } from '../../domain/export/export.service';
 import { LeadState } from '../../presentation/state/lead.state';
 import { PTState } from '../../presentation/state/pt.state';
 import { EmployeeState } from '../../presentation/state/employee.state';
+import { PaymentState } from '../../presentation/state/payment.state';
 import { Lead } from '../../core/models/lead.entity';
 import { Employee } from '../../core/models/employee.entity';
 import { MemberPTPlan } from '../../core/models/member-pt-plan.entity';
@@ -111,6 +112,7 @@ export class CrmSalesComponent implements OnInit, AfterViewInit {
     private leadState: LeadState,
     private ptState: PTState,
     private employeeState: EmployeeState,
+    private paymentState: PaymentState,
     private router: Router,
     private snackBar: MatSnackBar,
     private exportService: ExportService
@@ -121,12 +123,13 @@ export class CrmSalesComponent implements OnInit, AfterViewInit {
     combineLatest([
       this.leadState.leads$,
       this.employeeState.employees$,
-      this.ptState.memberPTPlans$
-    ]).subscribe(([leads, employees, ptPlans]) => {
-      this.calculateOverviewStats(leads, ptPlans);
-      this.buildLeaderboard(leads, employees, ptPlans);
+      this.ptState.memberPTPlans$,
+      this.paymentState.payments$
+    ]).subscribe(([leads, employees, ptPlans, payments]) => {
+      this.calculateOverviewStats(payments);
+      this.buildLeaderboard(leads, employees, payments);
       this.calculateTargetsProgress(employees);
-      this.buildTrainerSalesTracking(ptPlans);
+      this.buildTrainerSalesTracking(payments);
       this.calculateRevenueChartValues(leads);
     });
   }
@@ -138,25 +141,22 @@ export class CrmSalesComponent implements OnInit, AfterViewInit {
     this.trainerSalesData.sort = this.trainerSort;
   }
 
-  private calculateOverviewStats(leads: Lead[], ptPlans: MemberPTPlan[]): void {
-    // Revenue calculations
-    this.totalRevenue = leads
-      .filter(l => l.status === 'Converted')
-      .reduce((sum, l) => sum + (l.revenueGenerated || 0), 0);
+  private calculateOverviewStats(payments: any[]): void {
+    this.totalRevenue = payments.reduce((sum, p) => sum + (p.paidAmount || 0), 0);
 
-    // Sum of assigned member PT plan prices
-    this.ptRevenue = ptPlans
-      .reduce((sum, p) => sum + (p.price || 0), 0);
+    this.ptRevenue = payments
+      .filter(p => p.type === 'pt')
+      .reduce((sum, p) => sum + (p.paidAmount || 0), 0);
 
-    // Membership Revenue is total minus PT revenue
-    this.membershipRevenue = Math.max(0, this.totalRevenue - this.ptRevenue);
+    this.membershipRevenue = payments
+      .filter(p => p.type === 'membership')
+      .reduce((sum, p) => sum + (p.paidAmount || 0), 0);
   }
 
-  private buildLeaderboard(leads: Lead[], employees: Employee[], ptPlans: MemberPTPlan[]): void {
+  private buildLeaderboard(leads: Lead[], employees: Employee[], payments: any[]): void {
     const activeStaff = employees.filter(e => e.accountStatus === 'Active');
 
     const leaderboard: LeaderboardItem[] = activeStaff.map(emp => {
-      // Find leads owned by this employee
       const empLeads = leads.filter(l => 
         l.leadOwner === emp.id || 
         l.assignedEmployee === emp.id || 
@@ -165,16 +165,17 @@ export class CrmSalesComponent implements OnInit, AfterViewInit {
       );
 
       const converted = empLeads.filter(l => l.status === 'Converted');
-      const totalRevenue = converted.reduce((sum, l) => sum + (l.revenueGenerated || 0), 0);
+      
+      const empMembershipRevenue = payments
+        .filter(p => p.type === 'membership' && (p.salespersonId === emp.id || p.salespersonName?.toLowerCase() === emp.fullName.toLowerCase()))
+        .reduce((sum, p) => sum + (p.paidAmount || 0), 0);
 
-      // Sum of PT plans where salesperson matches this employee
-      const empPtRevenue = ptPlans
-        .filter(p => p.salespersonId === emp.id || p.salespersonName?.toLowerCase() === emp.fullName.toLowerCase())
-        .reduce((sum, p) => sum + (p.price || 0), 0);
+      const empPtRevenue = payments
+        .filter(p => p.type === 'pt' && (p.salespersonId === emp.id || p.salespersonName?.toLowerCase() === emp.fullName.toLowerCase()))
+        .reduce((sum, p) => sum + (p.paidAmount || 0), 0);
 
-      const membershipRevenue = Math.max(0, totalRevenue - empPtRevenue);
+      const totalRevenue = empMembershipRevenue + empPtRevenue;
 
-      // Count of all follow-ups logged by this employee
       let followups = 0;
       leads.forEach(l => {
         if (l.followUpHistory) {
@@ -193,17 +194,15 @@ export class CrmSalesComponent implements OnInit, AfterViewInit {
         assigned: empLeads.length,
         followups,
         converted: converted.length,
-        membershipRevenue,
+        membershipRevenue: empMembershipRevenue,
         ptRevenue: empPtRevenue,
         totalRevenue,
         conversionRate
       };
     });
 
-    // Sort by converted count desc, then total revenue desc
     this.leaderboardData.data = leaderboard.sort((a, b) => b.converted - a.converted || b.totalRevenue - a.totalRevenue);
 
-    // Leaderboard awards logic
     if (this.leaderboardData.data.length > 0) {
       this.topPerformer = [...this.leaderboardData.data].sort((a, b) => b.converted - a.converted)[0];
       if (this.topPerformer.converted === 0) this.topPerformer = null;
@@ -221,19 +220,20 @@ export class CrmSalesComponent implements OnInit, AfterViewInit {
     }
   }
 
-  private buildTrainerSalesTracking(ptPlans: MemberPTPlan[]): void {
-    const sales: TrainerSalesItem[] = ptPlans.map(p => ({
-      trainerId: p.trainerId,
+  private buildTrainerSalesTracking(payments: any[]): void {
+    const ptPayments = payments.filter(p => p.type === 'pt');
+
+    const sales: TrainerSalesItem[] = ptPayments.map(p => ({
+      trainerId: p.trainerId || 'unassigned',
       trainerName: p.trainerName || 'Unassigned Trainer',
-      planName: p.planName,
-      ptAmount: p.price,
+      planName: p.planName || 'PT Plan',
+      ptAmount: p.paidAmount || 0,
       salespersonName: p.salespersonName || 'Direct Sale',
-      date: p.startDate
+      date: p.date
     }));
 
     this.trainerSalesData.data = sales;
 
-    // Group referrals by Trainer
     const trainerGroups = new Map<string, { count: number; total: number }>();
     sales.forEach(s => {
       const key = s.trainerName;
@@ -252,7 +252,6 @@ export class CrmSalesComponent implements OnInit, AfterViewInit {
   }
 
   private calculateRevenueChartValues(leads: Lead[]): void {
-    // Update charts data values (specifically for June 2026 dynamic conversions)
     const juneRev = leads
       .filter(l => l.status === 'Converted' && (l.trialDate?.startsWith('2026-06') || (l.createdAt && l.createdAt.startsWith('2026-06'))))
       .reduce((sum, l) => sum + (l.revenueGenerated || 0), 0);

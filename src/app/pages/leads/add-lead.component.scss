@@ -114,3 +114,66 @@
     padding: 20px !important;
   }
 }
+
+/* Billing Summary Box */
+.billing-summary-box {
+  background-color: var(--card-bg-elevated, #242526);
+  border: 1px dashed rgba(99, 102, 241, 0.4);
+  border-radius: 12px;
+  padding: 16px;
+  margin-top: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+
+  .summary-title {
+    margin: 0 0 4px 0;
+    font-size: 14px;
+    font-weight: 700;
+    color: #6366f1; /* primary */
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    letter-spacing: 0.03em;
+    text-transform: uppercase;
+
+    mat-icon {
+      font-size: 18px;
+      width: 18px;
+      height: 18px;
+    }
+  }
+
+  .summary-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-size: 13px;
+    color: var(--text-secondary);
+    gap: 12px;
+
+    .label {
+      font-weight: 500;
+    }
+
+    .value {
+      text-align: right;
+      color: var(--text-primary);
+      
+      strong {
+        color: #6366f1;
+      }
+    }
+
+    &.grand-total-row {
+      font-size: 15px;
+      font-weight: 700;
+      color: var(--text-primary);
+
+      .grand-total {
+        font-size: 18px;
+        color: #10b981; /* success color */
+      }
+    }
+  }
+}

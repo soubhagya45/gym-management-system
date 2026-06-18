@@ -1,4 +1,4 @@
-import { Injectable, Inject } from '@angular/core';
+import { Injectable, Inject, Injector } from '@angular/core';
 import { BehaviorSubject, Observable, of } from 'rxjs';
 import { switchMap, tap } from 'rxjs/operators';
 import {
@@ -10,7 +10,11 @@ import {
   PAYMENT_REPOSITORY_TOKEN
 } from '../../core/interfaces/repository.interfaces';
 import { Member } from '../../core/models/member.entity';
+import { LeadConversionPayload } from '../../core/models/lead.entity';
 import { TenantContextService } from '../../domain/tenancy/tenant-context.service';
+import { PaymentState } from './payment.state';
+import { FinanceState } from './finance.state';
+import { PTState } from './pt.state';
 
 @Injectable({
   providedIn: 'root'
@@ -23,7 +27,10 @@ export class MemberState {
     @Inject(MEMBER_REPOSITORY_TOKEN) private memberRepository: IMemberRepository,
     @Inject(PAYMENT_REPOSITORY_TOKEN) private paymentRepository: IPaymentRepository,
     @Inject(ACTIVITY_LOG_REPOSITORY_TOKEN) private logRepository: IActivityLogRepository,
-    private tenantContext: TenantContextService
+    private tenantContext: TenantContextService,
+    private paymentState: PaymentState,
+    private financeState: FinanceState,
+    private injector: Injector
   ) {
     this.tenantContext.activeGymId$.pipe(
       switchMap(gymId => {
@@ -72,7 +79,10 @@ export class MemberState {
             date: new Date().toISOString().split('T')[0],
             status: 'pending',
             planName: newMember.planName
-          }).subscribe();
+          }).subscribe(() => {
+            this.paymentState.loadPayments();
+            this.financeState.loadFinanceData();
+          });
         }
       })
     );
@@ -147,8 +157,44 @@ export class MemberState {
           date: new Date().toISOString().split('T')[0],
           status: paymentStatus,
           planName
-        }).subscribe();
+        }).subscribe(() => {
+          this.paymentState.loadPayments();
+          this.financeState.loadFinanceData();
+        });
       }
     });
+  }
+
+  registerMember(payload: Omit<LeadConversionPayload, 'gymId' | 'branchId' | 'today'>): Observable<any> {
+    const gymId = this.tenantContext.getTenantId();
+    const branchId = this.tenantContext.getBranchId() || 'br-1';
+    if (!gymId) throw new Error('No active tenant selected');
+
+    const today = new Date().toISOString().split('T')[0];
+
+    const fullPayload: LeadConversionPayload = {
+      ...payload,
+      gymId,
+      branchId,
+      today
+    };
+
+    return this.memberRepository.registerMember(fullPayload).pipe(
+      tap(() => {
+        this.loadMembers();
+        this.paymentState.loadPayments();
+        this.financeState.loadFinanceData();
+        
+        // Dynamic load PTState to avoid circular import constructor issues
+        try {
+          const ptState = this.injector.get(PTState);
+          ptState.loadAll();
+        } catch (e) {
+          console.error('Failed to reload PTState:', e);
+        }
+        
+        this.logRepository.addLog(gymId, `Registered new member: ${payload.memberData.name}`, 'join').subscribe();
+      })
+    );
   }
 }

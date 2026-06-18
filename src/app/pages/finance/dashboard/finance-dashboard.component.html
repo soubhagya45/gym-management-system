@@ -54,7 +54,7 @@
       <div class="stat-icon-wrapper success">
         <mat-icon>today</mat-icon>
       </div>
-      <span class="growth-badge positive">+12.4%</span>
+      <span class="growth-badge positive">Today</span>
     </div>
     <div class="kpi-body">
       <h3 class="kpi-value">₹{{ kpis.todayCollection | number:'1.0-2' }}</h3>
@@ -68,7 +68,7 @@
       <div class="stat-icon-wrapper primary">
         <mat-icon>date_range</mat-icon>
       </div>
-      <span class="growth-badge positive">+5.7%</span>
+      <span class="growth-badge positive">7 Days</span>
     </div>
     <div class="kpi-body">
       <h3 class="kpi-value">₹{{ kpis.weeklyCollection | number:'1.0-2' }}</h3>
@@ -82,7 +82,7 @@
       <div class="stat-icon-wrapper primary">
         <mat-icon>account_balance_wallet</mat-icon>
       </div>
-      <span class="growth-badge positive">+8.2%</span>
+      <span class="growth-badge positive">Month</span>
     </div>
     <div class="kpi-body">
       <h3 class="kpi-value">₹{{ kpis.monthlyCollection | number:'1.0-2' }}</h3>
@@ -90,17 +90,87 @@
     </div>
   </div>
 
-  <!-- Total Revenue -->
+  <!-- Cash Collections -->
+  <div class="mat-card kpi-card interactive primary-glow">
+    <div class="kpi-header">
+      <div class="stat-icon-wrapper primary">
+        <mat-icon>payments</mat-icon>
+      </div>
+      <span class="growth-badge positive">Liquid</span>
+    </div>
+    <div class="kpi-body">
+      <h3 class="kpi-value">₹{{ kpis.cashCollections | number:'1.0-2' }}</h3>
+      <p class="kpi-label">Cash Collections</p>
+    </div>
+  </div>
+
+  <!-- UPI Collections -->
+  <div class="mat-card kpi-card interactive success-glow">
+    <div class="kpi-header">
+      <div class="stat-icon-wrapper success">
+        <mat-icon>qr_code_2</mat-icon>
+      </div>
+      <span class="growth-badge positive">Digital</span>
+    </div>
+    <div class="kpi-body">
+      <h3 class="kpi-value">₹{{ kpis.upiCollections | number:'1.0-2' }}</h3>
+      <p class="kpi-label">UPI Collections</p>
+    </div>
+  </div>
+
+  <!-- Total Membership Revenue -->
+  <div class="mat-card kpi-card interactive success-glow">
+    <div class="kpi-header">
+      <div class="stat-icon-wrapper success">
+        <mat-icon>card_membership</mat-icon>
+      </div>
+      <span class="growth-badge positive">Base</span>
+    </div>
+    <div class="kpi-body">
+      <h3 class="kpi-value">₹{{ kpis.totalMembershipRevenue | number:'1.0-2' }}</h3>
+      <p class="kpi-label">Membership Revenue</p>
+    </div>
+  </div>
+
+  <!-- Total PT Revenue -->
+  <div class="mat-card kpi-card interactive primary-glow">
+    <div class="kpi-header">
+      <div class="stat-icon-wrapper primary">
+        <mat-icon>fitness_center</mat-icon>
+      </div>
+      <span class="growth-badge positive">Premium</span>
+    </div>
+    <div class="kpi-body">
+      <h3 class="kpi-value">₹{{ kpis.totalPTRevenue | number:'1.0-2' }}</h3>
+      <p class="kpi-label">PT Revenue</p>
+    </div>
+  </div>
+
+  <!-- Total Discounts Given -->
+  <div class="mat-card kpi-card interactive danger-glow">
+    <div class="kpi-header">
+      <div class="stat-icon-wrapper danger">
+        <mat-icon>percent</mat-icon>
+      </div>
+      <span class="growth-badge neutral">Incentives</span>
+    </div>
+    <div class="kpi-body">
+      <h3 class="kpi-value">₹{{ kpis.totalDiscountsGiven | number:'1.0-2' }}</h3>
+      <p class="kpi-label">Discounts Given</p>
+    </div>
+  </div>
+
+  <!-- Revenue After Discount -->
   <div class="mat-card kpi-card interactive success-glow">
     <div class="kpi-header">
       <div class="stat-icon-wrapper success">
         <mat-icon>monetization_on</mat-icon>
       </div>
-      <span class="growth-badge positive">+15.3%</span>
+      <span class="growth-badge positive">Net</span>
     </div>
     <div class="kpi-body">
       <h3 class="kpi-value">₹{{ kpis.totalRevenue | number:'1.0-2' }}</h3>
-      <p class="kpi-label">Total Revenue</p>
+      <p class="kpi-label">Revenue After Discount</p>
     </div>
   </div>
 
@@ -110,11 +180,39 @@
       <div class="stat-icon-wrapper warning">
         <mat-icon>hourglass_empty</mat-icon>
       </div>
-      <span class="growth-badge negative" *ngIf="kpis.outstandingDues > 5000">Alert</span>
+      <span class="growth-badge negative" *ngIf="kpis.outstandingDues > 0">Receivables</span>
     </div>
     <div class="kpi-body">
       <h3 class="kpi-value">₹{{ kpis.outstandingDues | number:'1.0-2' }}</h3>
-      <p class="kpi-label">Outstanding Dues</p>
+      <p class="kpi-label">Outstanding Collections</p>
+    </div>
+  </div>
+
+  <!-- Total Pending Amount -->
+  <div class="mat-card kpi-card interactive warning-glow">
+    <div class="kpi-header">
+      <div class="stat-icon-wrapper warning">
+        <mat-icon>pending_actions</mat-icon>
+      </div>
+      <span class="growth-badge neutral">Pending</span>
+    </div>
+    <div class="kpi-body">
+      <h3 class="kpi-value">₹{{ kpis.totalPendingAmount | number:'1.0-2' }}</h3>
+      <p class="kpi-label">Pending Dues</p>
+    </div>
+  </div>
+
+  <!-- Overdue Amount -->
+  <div class="mat-card kpi-card interactive danger-glow">
+    <div class="kpi-header">
+      <div class="stat-icon-wrapper danger">
+        <mat-icon>warning</mat-icon>
+      </div>
+      <span class="growth-badge negative" *ngIf="kpis.overdueAmount > 0">Critical</span>
+    </div>
+    <div class="kpi-body">
+      <h3 class="kpi-value">₹{{ kpis.overdueAmount | number:'1.0-2' }}</h3>
+      <p class="kpi-label">Overdue Receivables</p>
     </div>
   </div>
 
@@ -138,7 +236,7 @@
       <div class="stat-icon-wrapper success">
         <mat-icon>trending_up</mat-icon>
       </div>
-      <span class="growth-badge positive">Healthy</span>
+      <span class="growth-badge positive">Net Profit</span>
     </div>
     <div class="kpi-body">
       <h3 class="kpi-value" [class.negative-profit]="kpis.netProfit < 0">
@@ -148,7 +246,7 @@
     </div>
   </div>
 
-  <!-- Active Membership Revenue -->
+  <!-- Active Membership MRR -->
   <div class="mat-card kpi-card interactive primary-glow">
     <div class="kpi-header">
       <div class="stat-icon-wrapper primary">

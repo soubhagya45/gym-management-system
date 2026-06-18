@@ -61,3 +61,70 @@ export interface FollowUpHistoryItem {
   nextFollowUpDate?: string;  // YYYY-MM-DD
 }
 
+// ── Atomic Lead Conversion Types ─────────────────────────────────────────────
+
+/**
+ * All data required to perform an atomic Lead → Member conversion.
+ * Passed to the repository layer where a single WriteBatch is built and committed.
+ */
+export interface LeadConversionPayload {
+  lead?: Lead;
+  memberData: {
+    name: string;
+    email: string;
+    phone: string;
+    planId: string;
+    planName: string;
+    status: string;
+    joinDate?: string;
+    expiryDate?: string;
+    gender?: string;
+    age?: number;
+    height?: number;
+    weight?: number;
+    address?: string;
+    branchId?: string;
+    [key: string]: any;
+  };
+  membershipPlanPrice: number;   // Pre-fetched before batch to avoid reads inside batch
+  conversionDetails: {
+    convertedBy: string;
+    revenueGenerated: number;
+    paymentStatus: 'paid' | 'partially_paid' | 'pending' | 'overdue';
+    paymentMethod: string;
+    paidAmount: number;
+    interestedInPT: boolean;
+    // PT fields (only used when interestedInPT = true)
+    ptPlanId?: string;
+    ptPlanName?: string;
+    ptPlanPrice?: number;
+    ptPlanDuration?: number;
+    ptSessionsTotal?: number;
+    preferredTrainerId?: string;
+    trainerName?: string;
+    ptGoal?: string;
+    salespersonId?: string;
+    salespersonName?: string;
+    // Discount fields
+    discountType?: 'flat' | 'percentage' | 'none';
+    discountValue?: number;
+    discountGivenBy?: string;
+    discountDate?: string;
+  };
+  gymId: string;
+  branchId: string;
+  today: string;               // YYYY-MM-DD
+}
+
+/**
+ * IDs of all documents created by the atomic conversion batch.
+ * Used by the state layer to trigger targeted cache invalidations.
+ */
+export interface LeadConversionResult {
+  memberId: string;
+  membershipPaymentId: string;
+  invoiceId: string;
+  memberPTPlanId?: string;
+  trainerAssignmentId?: string;
+  ptPaymentId?: string;
+}

@@ -2,8 +2,8 @@
   <!-- Page Header -->
   <div class="page-header">
     <div class="title-area">
-      <h1>Gym Membership Plans</h1>
-      <p>Configure subscription pricing packages, duration terms, and features.</p>
+      <h1>Packages & Pricing Plans</h1>
+      <p>Configure subscription pricing packages, duration terms, and features for Membership and PT.</p>
     </div>
     <div class="actions-area">
       <button mat-raised-button color="primary" (click)="openAddPlanDialog()">
@@ -13,8 +13,20 @@
     </div>
   </div>
 
-  <!-- Plans Pricing Card Grid -->
-  <div class="plans-grid">
+  <!-- Custom Navigation Tabs -->
+  <div class="tabs-navigation">
+    <button class="tab-btn-item" [class.active]="activeTab === 'membership'" (click)="switchTab('membership')">
+      <mat-icon>card_membership</mat-icon>
+      <span>Membership Plans</span>
+    </button>
+    <button class="tab-btn-item" [class.active]="activeTab === 'pt'" (click)="switchTab('pt')">
+      <mat-icon>fitness_center</mat-icon>
+      <span>Personal Training Plans</span>
+    </button>
+  </div>
+
+  <!-- Membership Plans Grid -->
+  <div class="plans-grid" *ngIf="activeTab === 'membership'">
     <div class="mat-card pricing-card interactive" 
          [class.primary-glow]="plan.durationMonths === 3"
          [class.success-glow]="plan.durationMonths === 12"
@@ -54,6 +66,63 @@
         <div class="feature-item" *ngFor="let feat of plan.features">
           <mat-icon class="check-icon">check</mat-icon>
           <span>{{ feat }}</span>
+        </div>
+      </div>
+
+      <!-- Action Buttons Footer -->
+      <div class="card-footer-actions">
+        <button mat-stroked-button color="accent" class="edit-btn" (click)="openEditPlanDialog(plan)">
+          <mat-icon>edit</mat-icon>
+          <span>Modify</span>
+        </button>
+        <button mat-icon-button color="warn" class="delete-btn" (click)="confirmDeletePlan(plan)">
+          <mat-icon>delete</mat-icon>
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- PT Plans Grid -->
+  <div class="plans-grid" *ngIf="activeTab === 'pt'">
+    <div class="mat-card pricing-card interactive info-glow" 
+         *ngFor="let plan of ptPlans$ | async">
+      
+      <div class="card-header-block">
+        <h2 class="plan-name">{{ plan.name }}</h2>
+        <div class="price-container">
+          <span class="currency">₹</span>
+          <span class="price-val">{{ plan.price }}</span>
+          <span class="duration">/ {{ plan.duration }} {{ plan.durationUnit }}</span>
+        </div>
+        <p class="plan-desc">{{ plan.description }}</p>
+      </div>
+
+      <mat-divider></mat-divider>
+
+      <!-- PT Session details -->
+      <div class="plan-stats">
+        <div class="stat-row">
+          <mat-icon class="stat-icon">fitness_center</mat-icon>
+          <span class="stat-text"><strong>{{ plan.numberOfSessions }}</strong> PT Sessions Included</span>
+        </div>
+      </div>
+
+      <mat-divider></mat-divider>
+
+      <!-- Features/Info list -->
+      <div class="features-list">
+        <h3>PLAN INFORMATION:</h3>
+        <div class="feature-item">
+          <mat-icon class="check-icon">schedule</mat-icon>
+          <span>Valid for {{ plan.duration }} {{ plan.durationUnit }}</span>
+        </div>
+        <div class="feature-item">
+          <mat-icon class="check-icon">percent</mat-icon>
+          <span>GST Rate: {{ plan.tax }}%</span>
+        </div>
+        <div class="feature-item">
+          <mat-icon class="check-icon">verified_user</mat-icon>
+          <span>1-on-1 Certified Personal Trainer coaching</span>
         </div>
       </div>
 

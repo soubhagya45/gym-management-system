@@ -64,7 +64,7 @@ export class FinanceDashboardComponent implements OnInit {
         sevenDaysAgo.setDate(new Date().getDate() - 7);
         const weeklyCollection = payments
           .filter(p => {
-            if (p.status !== 'paid') return false;
+            if (p.paidAmount <= 0) return false;
             const pDate = new Date(p.date);
             return pDate >= sevenDaysAgo;
           })
@@ -73,20 +73,52 @@ export class FinanceDashboardComponent implements OnInit {
         // Monthly collections (current calendar month)
         const monthlyCollection = payments
           .filter(p => {
-            if (p.status !== 'paid') return false;
+            if (p.paidAmount <= 0) return false;
             const pDate = new Date(p.date);
             return pDate.getMonth() === currentMonth && pDate.getFullYear() === currentYear;
           })
           .reduce((sum, p) => sum + p.paidAmount, 0);
 
-        // Total Revenue (all time paid amount)
-        const totalRevenue = payments
-          .filter(p => p.status === 'paid')
+        // Total Membership Revenue
+        const totalMembershipRevenue = payments
+          .filter(p => p.type === 'membership')
           .reduce((sum, p) => sum + p.paidAmount, 0);
 
-        // Outstanding dues (all pending or overdue)
+        // Total PT Revenue
+        const totalPTRevenue = payments
+          .filter(p => p.type === 'pt')
+          .reduce((sum, p) => sum + p.paidAmount, 0);
+
+        // Total Discounts Given
+        const totalDiscountsGiven = payments
+          .reduce((sum, p) => sum + (p.discountValue || 0), 0);
+
+        // Cash Collections
+        const cashCollections = payments
+          .filter(p => p.paymentMethod === 'Cash')
+          .reduce((sum, p) => sum + p.paidAmount, 0);
+
+        // UPI Collections
+        const upiCollections = payments
+          .filter(p => p.paymentMethod === 'UPI')
+          .reduce((sum, p) => sum + p.paidAmount, 0);
+
+        // Total Revenue (all time paid amount)
+        const totalRevenue = payments
+          .reduce((sum, p) => sum + p.paidAmount, 0);
+
+        // Outstanding dues (all pending, overdue or partially_paid dues)
         const outstandingDues = payments
-          .filter(p => p.status === 'pending' || p.status === 'overdue')
+          .reduce((sum, p) => sum + p.dueAmount, 0);
+
+        // Total Pending Amount (specifically status === 'pending')
+        const totalPendingAmount = payments
+          .filter(p => p.status === 'pending')
+          .reduce((sum, p) => sum + p.dueAmount, 0);
+
+        // Overdue Amount (specifically status === 'overdue')
+        const overdueAmount = payments
+          .filter(p => p.status === 'overdue')
           .reduce((sum, p) => sum + p.dueAmount, 0);
 
         // Total expenses
@@ -106,8 +138,15 @@ export class FinanceDashboardComponent implements OnInit {
           todayCollection,
           weeklyCollection,
           monthlyCollection,
+          totalMembershipRevenue,
+          totalPTRevenue,
+          totalDiscountsGiven,
+          cashCollections,
+          upiCollections,
           totalRevenue,
           outstandingDues,
+          totalPendingAmount,
+          overdueAmount,
           totalExpenses,
           netProfit,
           activeMembershipRevenue: Math.round(activeMembershipRevenue)

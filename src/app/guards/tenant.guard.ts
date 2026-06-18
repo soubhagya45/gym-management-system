@@ -20,7 +20,16 @@ export const tenantGuard: CanActivateFn = (route, state) => {
   // A. Check subdomain
   const hostname = window.location.hostname;
   const parts = hostname.split('.');
-  if (parts.length > 2 && parts[0] !== 'www' && parts[0] !== 'apexfit') {
+
+  const isFirebaseHosting = 
+    (parts.length >= 3 && parts[parts.length - 2] === 'web' && parts[parts.length - 1] === 'app') ||
+    (parts.length >= 3 && parts[parts.length - 2] === 'firebaseapp' && parts[parts.length - 1] === 'com');
+
+  if (isFirebaseHosting) {
+    if (parts.length > 3) {
+      tenantSlug = parts[0];
+    }
+  } else if (parts.length > 2 && parts[0] !== 'www' && parts[0] !== 'apexfit') {
     tenantSlug = parts[0];
   } else if (parts.length === 2 && parts[1] === 'localhost' && parts[0] !== 'www') {
     // support gym-a.localhost

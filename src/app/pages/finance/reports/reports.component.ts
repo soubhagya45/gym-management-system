@@ -28,7 +28,14 @@ type ReportType =
   | 'pt_revenue'
   | 'trainer_performance'
   | 'pt_sessions'
-  | 'membership_vs_pt';
+  | 'membership_vs_pt'
+  | 'salesperson_revenue'
+  | 'trainer_revenue'
+  | 'discount_report'
+  | 'pending_payment'
+  | 'cash_collection'
+  | 'upi_collection'
+  | 'revenue_after_discount';
 
 @Component({
   selector: 'app-reports',
@@ -302,6 +309,137 @@ export class ReportsComponent implements OnInit {
 
           this.dataSource.data = Object.values(compareMap)
             .sort((a: any, b: any) => b.sortKey - a.sortKey);
+          break;
+
+        case 'salesperson_revenue':
+          this.reportTitle = 'Salesperson Revenue Report';
+          this.reportSubtitle = 'Membership closed revenue and conversions attributed per salesperson';
+          this.displayedColumns = ['salespersonName', 'conversions', 'membershipRevenue', 'total'];
+          
+          const salesMap: Record<string, any> = {};
+          payments.forEach(p => {
+            const spName = p.salespersonName || 'System / Direct';
+            const spId = p.salespersonId || 'direct';
+            if (!salesMap[spId]) {
+              salesMap[spId] = { salespersonName: spName, conversions: 0, membershipRevenue: 0, total: 0 };
+            }
+            salesMap[spId].conversions++;
+            salesMap[spId].total += p.paidAmount;
+            if (p.type === 'membership') {
+              salesMap[spId].membershipRevenue += p.paidAmount;
+            }
+          });
+          this.dataSource.data = Object.values(salesMap).sort((a: any, b: any) => b.total - a.total);
+          break;
+
+        case 'trainer_revenue':
+          this.reportTitle = 'Trainer PT Revenue Report';
+          this.reportSubtitle = 'Personal Training revenue collections attributed per trainer';
+          this.displayedColumns = ['trainerName', 'plansSold', 'ptRevenue', 'averagePTAmount'];
+
+          const trainerMap: Record<string, any> = {};
+          payments.filter(p => p.type === 'pt').forEach(p => {
+            const trName = p.trainerName || 'Unassigned Trainer';
+            const trId = p.trainerId || 'unassigned';
+            if (!trainerMap[trId]) {
+              trainerMap[trId] = { trainerName: trName, plansSold: 0, ptRevenue: 0 };
+            }
+            trainerMap[trId].plansSold++;
+            trainerMap[trId].ptRevenue += p.paidAmount;
+          });
+          this.dataSource.data = Object.values(trainerMap).map((t: any) => ({
+            ...t,
+            averagePTAmount: t.plansSold > 0 ? Math.round(t.ptRevenue / t.plansSold) : 0
+          })).sort((a: any, b: any) => b.ptRevenue - a.ptRevenue);
+          break;
+
+        case 'discount_report':
+          this.reportTitle = 'Discounts & Incentives Report';
+          this.reportSubtitle = 'Breakdown of membership and PT discounts given to members';
+          this.displayedColumns = ['memberName', 'planName', 'originalAmount', 'discountType', 'discountValue', 'finalAmount', 'salespersonName'];
+
+          this.dataSource.data = payments
+            .filter(p => (p.discountValue || 0) > 0)
+            .map(p => ({
+              memberName: p.memberName,
+              planName: p.planName,
+              originalAmount: p.originalAmount || p.amount,
+              discountType: p.discountType || 'flat',
+              discountValue: p.discountValue || 0,
+              finalAmount: p.amount || p.finalAmount,
+              salespersonName: p.salespersonName || 'Direct / System'
+            }));
+          break;
+
+        case 'pending_payment':
+          this.reportTitle = 'Pending Payments Report';
+          this.reportSubtitle = 'Receivables that are pending or partially paid with outstanding dues';
+          this.displayedColumns = ['memberName', 'planName', 'finalAmount', 'paidAmount', 'dueAmount', 'dueDate', 'salespersonName'];
+
+          this.dataSource.data = payments
+            .filter(p => (p.dueAmount || 0) > 0 && p.status !== 'paid')
+            .map(p => ({
+              memberName: p.memberName,
+              planName: p.planName,
+              finalAmount: p.amount || p.finalAmount,
+              paidAmount: p.paidAmount || 0,
+              dueAmount: p.dueAmount,
+              dueDate: p.dueDate,
+              salespersonName: p.salespersonName || 'Direct / System'
+            }))
+            .sort((a, b) => a.dueDate.localeCompare(b.dueDate));
+          break;
+
+        case 'cash_collection':
+          this.reportTitle = 'Cash Collections Report';
+          this.reportSubtitle = 'Cash receipt transactions and deposits';
+          this.displayedColumns = ['date', 'memberName', 'planName', 'paidAmount', 'salespersonName'];
+
+          this.dataSource.data = payments
+            .filter(p => p.paymentMethod === 'Cash' && p.paidAmount > 0)
+            .map(p => ({
+              date: p.date,
+              memberName: p.memberName,
+              planName: p.planName,
+              paidAmount: p.paidAmount,
+              salespersonName: p.salespersonName || 'Direct / System'
+            }))
+            .sort((a, b) => b.date.localeCompare(a.date));
+          break;
+
+        case 'upi_collection':
+          this.reportTitle = 'UPI Collections Report';
+          this.reportSubtitle = 'Digital UPI transaction receipts and summaries';
+          this.displayedColumns = ['date', 'memberName', 'planName', 'paidAmount', 'salespersonName'];
+
+          this.dataSource.data = payments
+            .filter(p => p.paymentMethod === 'UPI' && p.paidAmount > 0)
+            .map(p => ({
+              date: p.date,
+              memberName: p.memberName,
+              planName: p.planName,
+              paidAmount: p.paidAmount,
+              salespersonName: p.salespersonName || 'Direct / System'
+            }))
+            .sort((a, b) => b.date.localeCompare(a.date));
+          break;
+
+        case 'revenue_after_discount':
+          this.reportTitle = 'Revenue After Discount Report';
+          this.reportSubtitle = 'Collections and post-discount closed values per transaction';
+          this.displayedColumns = ['date', 'memberName', 'planName', 'originalAmount', 'discountValue', 'paidAmount', 'dueAmount'];
+
+          this.dataSource.data = payments
+            .map(p => ({
+              date: p.date,
+              memberName: p.memberName,
+              planName: p.planName,
+              originalAmount: p.originalAmount || p.amount,
+              discountValue: p.discountValue || 0,
+              paidAmount: p.paidAmount || 0,
+              dueAmount: p.dueAmount || 0
+            }))
+            .sort((a, b) => b.date.localeCompare(a.date));
           break;
       }
     });

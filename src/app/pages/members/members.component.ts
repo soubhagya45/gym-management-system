@@ -190,7 +190,7 @@ export class MembersComponent implements OnInit, AfterViewInit {
 
       dialogRef.afterClosed().subscribe(result => {
         if (result) {
-          this.memberState.addMember(result).subscribe(() => {
+          this.memberState.registerMember(result).subscribe(() => {
             this.snackBar.open('Member registered successfully!', 'Dismiss', {
               duration: 3000,
               panelClass: ['premium-snack']

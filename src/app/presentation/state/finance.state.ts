@@ -8,9 +8,7 @@ import {
   ACTIVITY_LOG_REPOSITORY_TOKEN
 } from '../../core/interfaces/repository.interfaces';
 import { Expense, Invoice, Collection } from '../../core/models/finance.entity';
-import { Payment } from '../../core/models/payment.entity';
 import { TenantContextService } from '../../domain/tenancy/tenant-context.service';
-import { PaymentState } from './payment.state';
 import { AuthState } from './auth.state';
 
 @Injectable({
@@ -30,130 +28,24 @@ export class FinanceState {
     @Inject(FINANCE_REPOSITORY_TOKEN) private financeRepository: IFinanceRepository,
     @Inject(ACTIVITY_LOG_REPOSITORY_TOKEN) private logRepository: IActivityLogRepository,
     private tenantContext: TenantContextService,
-    private paymentState: PaymentState,
     private authState: AuthState
   ) {
-    // Combine active gym loading with payment state updates to keep everything fully synced.
-    combineLatest([
-      this.tenantContext.activeGymId$.pipe(
-        switchMap(gymId => {
-          if (!gymId) return of({ invoices: [], expenses: [], collections: [] });
-          return combineLatest([
-            this.financeRepository.getInvoices(gymId),
-            this.financeRepository.getExpenses(gymId),
-            this.financeRepository.getCollections(gymId)
-          ]).pipe(
-            map(([invoices, expenses, collections]) => ({ invoices, expenses, collections }))
-          );
-        })
-      ),
-      this.paymentState.payments$
-    ]).subscribe(([{ invoices, expenses, collections }, payments]) => {
-      const gymId = this.tenantContext.getTenantId();
-      if (!gymId) return;
-
-      const reconciledInvoices = [...invoices];
-      const reconciledCollections = [...collections];
-      let hasChanges = false;
-
-      payments.forEach(payment => {
-        // Reconcile Invoice
-        const matchingInvIdx = reconciledInvoices.findIndex(inv => 
-          inv.memberId === payment.memberId &&
-          Math.abs(inv.finalAmount - payment.amount) < 0.01 &&
-          (inv.invoiceDate === payment.date || inv.invoiceDate === payment.dueDate)
+    // Listen to active gym changes and load raw finance data directly without client-side reconciliation.
+    this.tenantContext.activeGymId$.pipe(
+      switchMap(gymId => {
+        if (!gymId) return of({ invoices: [], expenses: [], collections: [] });
+        return combineLatest([
+          this.financeRepository.getInvoices(gymId),
+          this.financeRepository.getExpenses(gymId),
+          this.financeRepository.getCollections(gymId)
+        ]).pipe(
+          map(([invoices, expenses, collections]) => ({ invoices, expenses, collections }))
         );
-
-        if (matchingInvIdx === -1) {
-          // Automatically generate an invoice
-          const year = new Date().getFullYear();
-          const rand = Math.floor(1000 + Math.random() * 9000);
-          const invoiceNumber = `INV-${year}-${rand}`;
-          
-          const discount = 0;
-          const finalAmount = payment.amount;
-          const gst = Math.round((finalAmount * 0.18) * 100) / 100;
-          const baseAmount = finalAmount - gst;
-
-          const newInvoice: Invoice = {
-            id: 'inv-' + Math.random().toString(36).substring(2, 9),
-            gymId,
-            invoiceNumber,
-            memberId: payment.memberId,
-            memberName: payment.memberName,
-            membershipPlan: payment.planName,
-            amount: Number(baseAmount.toFixed(2)),
-            gst: Number(gst.toFixed(2)),
-            discount,
-            finalAmount,
-            paymentMethod: payment.status === 'paid' ? (payment.paymentMethod || 'UPI') : 'Pending',
-            invoiceDate: payment.date || new Date().toISOString().split('T')[0],
-            status: payment.status === 'overdue' ? 'pending' : (payment.status === 'paid' ? 'paid' : 'pending'),
-            collectedBy: payment.collectedBy || 'Sophia Chen',
-            createdBy: payment.collectedBy || 'Sophia Chen',
-            type: payment.type || 'membership',
-            trainerId: payment.trainerId,
-            trainerName: payment.trainerName
-          };
-
-          this.financeRepository.addInvoice(gymId, newInvoice).subscribe();
-          reconciledInvoices.push(newInvoice);
-          hasChanges = true;
-        } else {
-          // Reconcile status
-          const invoice = reconciledInvoices[matchingInvIdx];
-          const expectedStatus = payment.status === 'overdue' ? 'pending' : (payment.status === 'paid' ? 'paid' : 'pending');
-          if (invoice.status !== expectedStatus) {
-            invoice.status = expectedStatus as any;
-            if (expectedStatus === 'paid') {
-              invoice.paymentMethod = payment.paymentMethod || 'UPI';
-              invoice.collectedBy = payment.collectedBy || 'Sophia Chen';
-            }
-            this.financeRepository.updateInvoice(gymId, invoice).subscribe();
-            hasChanges = true;
-          }
-        }
-
-        // Reconcile Collection: Only if payment is 'paid'
-        if (payment.status === 'paid') {
-          const matchingColIdx = reconciledCollections.findIndex(col => 
-            col.memberId === payment.memberId &&
-            Math.abs(col.amount - payment.paidAmount) < 0.01 &&
-            col.date === payment.date
-          );
-
-          if (matchingColIdx === -1) {
-            // Automatically generate a collection entry
-            const year = new Date().getFullYear();
-            const rand = Math.floor(1000 + Math.random() * 9000);
-            const receiptNo = `REC-${year}-${rand}`;
-
-            const newCollection: Collection = {
-              id: 'col-' + Math.random().toString(36).substring(2, 9),
-              gymId,
-              receiptNo,
-              memberId: payment.memberId,
-              memberName: payment.memberName,
-              membershipPlan: payment.planName,
-              amount: payment.paidAmount,
-              paymentMethod: payment.paymentMethod || 'UPI',
-              date: payment.date || new Date().toISOString().split('T')[0],
-              collectedBy: payment.collectedBy || 'Sophia Chen',
-              type: payment.type || 'membership',
-              trainerId: payment.trainerId,
-              trainerName: payment.trainerName
-            };
-
-            this.financeRepository.addCollection(gymId, newCollection).subscribe();
-            reconciledCollections.push(newCollection);
-            hasChanges = true;
-          }
-        }
-      });
-
-      this.invoicesSubject.next(reconciledInvoices);
+      })
+    ).subscribe(({ invoices, expenses, collections }) => {
+      this.invoicesSubject.next(invoices);
       this.expensesSubject.next(expenses);
-      this.collectionsSubject.next(reconciledCollections);
+      this.collectionsSubject.next(collections);
     });
   }
 
