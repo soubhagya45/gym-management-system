@@ -65,7 +65,7 @@ service cloud.firestore {
     // Gyms rules
     match /gyms/{gymId} {
       allow create: if isActive();
-      allow read: if isActive() && (isSuperAdmin() || (getUserData().gymId == gymId && getUserData().role == 'gym_owner'));
+      allow read: if isActive() && (isSuperAdmin() || getUserData().gymId == gymId);
       allow write: if isActive() && (isSuperAdmin() || (getUserData().gymId == gymId && getUserData().role == 'gym_owner'));
     }
 
@@ -86,10 +86,10 @@ service cloud.firestore {
 
     // Users rules
     match /users/{userId} {
-      allow read: if isActive() && (
-        isSuperAdmin() || 
+      allow read: if request.auth != null && (
         request.auth.uid == userId || 
-        getUserData().gymId == resource.data.gymId
+        isSuperAdmin() || 
+        (isActive() && getUserData().gymId == resource.data.gymId)
       );
       
       allow create: if isActive() && 
@@ -140,7 +140,13 @@ service cloud.firestore {
     // Audit logs rules
     match /auditLogs/{logId} {
       allow create: if isActive();
-      allow read: if isActive() && (isSuperAdmin() || getUserData().role == 'gym_owner');
+      allow read: if isActive() && (
+        isSuperAdmin() || 
+        (getUserData().gymId == resource.data.gymId && (
+          getUserData().role == 'gym_owner' ||
+          (getUserData().role == 'branch_manager' && getUserData().branchId == resource.data.branchId)
+        ))
+      );
       allow write: if isSuperAdmin();
     }
 
