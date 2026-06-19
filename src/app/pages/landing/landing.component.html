@@ -6,7 +6,7 @@
 
   <!-- Navbar Header -->
   <header class="navbar-header">
-    <div class="logo">
+    <div class="logo" (click)="refreshPage($event)" style="cursor: pointer;">
       <mat-icon class="logo-icon">fitness_center</mat-icon>
       <span class="logo-text">APEX<span>FIT</span></span>
     </div>
@@ -173,7 +173,7 @@
     <div class="footer-grid">
       <!-- Column 1: Brand Info -->
       <div class="footer-col brand-col">
-        <div class="footer-logo">
+        <div class="footer-logo" (click)="refreshPage($event)" style="cursor: pointer;">
           <mat-icon class="logo-icon">fitness_center</mat-icon>
           <span class="logo-text">APEX<span>FIT</span></span>
         </div>

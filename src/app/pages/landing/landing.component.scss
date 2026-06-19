@@ -4,11 +4,18 @@
   height: 100vh;
   overflow-y: auto;
   overflow-x: hidden;
-  background-color: #0b0b0f;
-  color: #ffffff;
-  font-family: 'Inter', system-ui, -apple-system, sans-serif;
+  background-color: #020205;
+  color: #f8fafc;
+  font-family: 'Outfit', 'Inter', system-ui, -apple-system, sans-serif;
   display: flex;
   flex-direction: column;
+}
+
+.gradient-text {
+  background: linear-gradient(90deg, #00f0ff 0%, #8b5cf6 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  display: inline-block;
 }
 
 /* Glowing Background Orbs */
@@ -21,10 +28,14 @@
   pointer-events: none;
   mix-blend-mode: screen;
 
+  @media (max-width: 768px) {
+    display: none;
+  }
+
   &.orb-1 {
     width: 400px;
     height: 400px;
-    background: #ff007f;
+    background: radial-gradient(circle, #00f0ff 0%, rgba(0, 240, 255, 0) 70%);
     top: 10%;
     left: -100px;
     animation: bounceOrb 20s infinite alternate;
@@ -33,7 +44,7 @@
   &.orb-2 {
     width: 500px;
     height: 500px;
-    background: #8a2be2;
+    background: radial-gradient(circle, #8b5cf6 0%, rgba(139, 92, 246, 0) 70%);
     top: 40%;
     right: -150px;
     animation: bounceOrb 25s infinite alternate-reverse;
@@ -42,7 +53,7 @@
   &.orb-3 {
     width: 350px;
     height: 350px;
-    background: #00b0ff;
+    background: radial-gradient(circle, #d946ef 0%, rgba(217, 70, 239, 0) 70%);
     bottom: 10%;
     left: 20%;
   }
@@ -67,7 +78,7 @@
   justify-content: space-between;
   align-items: center;
   padding: 16px 5%;
-  background: rgba(11, 11, 15, 0.7);
+  background: rgba(2, 2, 5, 0.7);
   backdrop-filter: blur(12px);
   -webkit-backdrop-filter: blur(12px);
   border-bottom: 1px solid rgba(255, 255, 255, 0.05);
@@ -79,10 +90,14 @@
     cursor: pointer;
 
     .logo-icon {
-      color: #ff007f;
+      color: #00f0ff;
       font-size: 28px;
       width: 28px;
       height: 28px;
+      background: linear-gradient(135deg, #00f0ff 0%, #8b5cf6 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      filter: drop-shadow(0 0 8px rgba(0, 240, 255, 0.4));
     }
 
     .logo-text {
@@ -92,7 +107,9 @@
       color: #fff;
 
       span {
-        color: #ff007f;
+        background: linear-gradient(90deg, #00f0ff 0%, #8b5cf6 100%);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
       }
     }
   }
@@ -113,7 +130,7 @@
       transition: color 0.2s ease;
 
       &:hover {
-        color: #ff007f;
+        color: #00f0ff;
       }
     }
   }
@@ -137,7 +154,7 @@
       transition: color 0.2s ease;
 
       &:hover {
-        color: #ff007f;
+        color: #00f0ff;
       }
     }
 
@@ -177,9 +194,9 @@
   }
 
   .hero-badge {
-    background: rgba(255, 0, 127, 0.1);
-    border: 1px solid rgba(255, 0, 127, 0.25);
-    color: #ff007f;
+    background: rgba(0, 240, 255, 0.1);
+    border: 1px solid rgba(0, 240, 255, 0.25);
+    color: #00f0ff;
     font-size: 12px;
     font-weight: 700;
     padding: 6px 14px;
@@ -229,7 +246,9 @@
       display: inline-flex;
       align-items: center;
       gap: 8px;
-      box-shadow: 0 4px 20px rgba(255, 0, 127, 0.3);
+      background: linear-gradient(90deg, #00f0ff, #8b5cf6) !important;
+      color: #ffffff !important;
+      box-shadow: 0 4px 20px rgba(0, 240, 255, 0.3);
     }
 
     .secondary-hero-btn {
@@ -261,6 +280,10 @@
   max-width: 880px;
   z-index: 1;
   perspective: 1000px;
+
+  @media (max-width: 768px) {
+    display: none;
+  }
 }
 
 .glass-mockup {
@@ -340,7 +363,7 @@
         width: 32px;
         height: 32px;
         border-radius: 8px;
-        background: #ff007f;
+        background: #00f0ff;
         display: flex;
         align-items: center;
         justify-content: center;
@@ -356,7 +379,7 @@
         background: rgba(255, 255, 255, 0.05);
 
         &.active {
-          background: rgba(255, 0, 127, 0.15);
+          background: rgba(0, 240, 255, 0.15);
         }
       }
     }
@@ -426,8 +449,8 @@
           }
 
           &.chart {
-            background: linear-gradient(180deg, rgba(255, 0, 127, 0.05) 0%, transparent 100%);
-            border-color: rgba(255, 0, 127, 0.08);
+            background: linear-gradient(180deg, rgba(0, 240, 255, 0.05) 0%, transparent 100%);
+            border-color: rgba(0, 240, 255, 0.08);
             position: relative;
 
             .chart-line {
@@ -436,7 +459,7 @@
               left: 10%;
               width: 80%;
               height: 40px;
-              border-bottom: 2px solid #ff007f;
+              border-bottom: 2px solid #00f0ff;
               border-radius: 10px;
             }
           }
@@ -489,8 +512,8 @@
 
   &:hover {
     transform: translateY(-4px);
-    border-color: rgba(255, 0, 127, 0.2);
-    box-shadow: 0 12px 40px rgba(255, 0, 127, 0.08);
+    border-color: rgba(0, 240, 255, 0.2);
+    box-shadow: 0 12px 40px rgba(0, 240, 255, 0.08);
   }
 
   .icon-box {
@@ -500,8 +523,8 @@
     width: 48px;
     height: 48px;
     border-radius: 12px;
-    background: rgba(255, 0, 127, 0.1);
-    color: #ff007f;
+    background: rgba(0, 240, 255, 0.1);
+    color: #00f0ff;
     margin-bottom: 20px;
 
     mat-icon {
@@ -554,7 +577,7 @@
     .label {
       font-size: 11px;
       font-weight: 700;
-      color: #00b0ff;
+      color: #00f0ff;
       letter-spacing: 1px;
       text-transform: uppercase;
     }
@@ -628,7 +651,7 @@
 
           .progress-fill {
             height: 100%;
-            background: linear-gradient(90deg, #ffd700, #ff8f00);
+            background: linear-gradient(90deg, #00f0ff, #8b5cf6);
             border-radius: 3px;
           }
         }
@@ -666,9 +689,9 @@
   z-index: 1;
 
   .card-glass {
-    background: linear-gradient(135deg, rgba(255, 0, 127, 0.05) 0%, rgba(138, 43, 226, 0.05) 100%);
-    border: 1px solid rgba(255, 0, 127, 0.15);
-    box-shadow: 0 12px 40px rgba(255, 0, 127, 0.05);
+    background: linear-gradient(135deg, rgba(0, 240, 255, 0.05) 0%, rgba(139, 92, 246, 0.05) 100%);
+    border: 1px solid rgba(0, 240, 255, 0.15);
+    box-shadow: 0 12px 40px rgba(0, 240, 255, 0.05);
     border-radius: 24px;
     padding: 56px 40px;
 
@@ -707,7 +730,9 @@
     display: inline-flex;
     align-items: center;
     gap: 8px;
-    box-shadow: 0 4px 24px rgba(255, 0, 127, 0.35);
+    background: linear-gradient(90deg, #00f0ff, #8b5cf6) !important;
+    color: #ffffff !important;
+    box-shadow: 0 4px 24px rgba(0, 240, 255, 0.35);
   }
 }
 
@@ -760,10 +785,14 @@
       margin-bottom: 4px;
 
       .logo-icon {
-        color: #ff007f;
+        color: #00f0ff;
         font-size: 24px;
         width: 24px;
         height: 24px;
+        background: linear-gradient(135deg, #00f0ff 0%, #8b5cf6 100%);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        filter: drop-shadow(0 0 8px rgba(0, 240, 255, 0.4));
       }
 
       .logo-text {
@@ -773,7 +802,9 @@
         color: #fff;
 
         span {
-          color: #ff007f;
+          background: linear-gradient(90deg, #00f0ff 0%, #8b5cf6 100%);
+          -webkit-background-clip: text;
+          -webkit-text-fill-color: transparent;
         }
       }
     }
@@ -809,9 +840,9 @@
         }
 
         &:hover {
-          background: rgba(255, 0, 127, 0.1);
-          border-color: rgba(255, 0, 127, 0.3);
-          color: #ff007f;
+          background: rgba(0, 240, 255, 0.1);
+          border-color: rgba(0, 240, 255, 0.3);
+          color: #00f0ff;
           transform: translateY(-2px);
         }
       }
@@ -834,7 +865,7 @@
       cursor: pointer;
 
       &:hover {
-        color: #ff007f;
+        color: #00f0ff;
       }
     }
   }
@@ -846,15 +877,15 @@
       gap: 8px;
       font-family: monospace;
       font-size: 11px;
-      color: #00e676;
+      color: #10b981;
       margin: 0;
 
       .status-dot {
         width: 6px;
         height: 6px;
         border-radius: 50%;
-        background-color: #00e676;
-        box-shadow: 0 0 8px #00e676;
+        background-color: #10b981;
+        box-shadow: 0 0 8px #10b981;
         animation: pulse 2s infinite;
       }
     }
@@ -870,7 +901,7 @@
         transition: color 0.2s ease;
 
         &:hover {
-          color: #ff007f;
+          color: #00f0ff;
         }
       }
     }

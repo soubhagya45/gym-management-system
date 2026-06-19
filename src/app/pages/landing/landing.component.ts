@@ -81,6 +81,11 @@ export class LandingPageComponent implements OnInit, OnDestroy {
     }
   }
 
+  refreshPage(event: Event): void {
+    event.preventDefault();
+    window.location.reload();
+  }
+
   ngOnDestroy(): void {
     this.destroy$.next();
     this.destroy$.complete();

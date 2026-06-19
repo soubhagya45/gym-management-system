@@ -1,179 +1,258 @@
 <div class="login-page-wrapper">
-  <!-- Cybernetic Grid & Particle background -->
+  <!-- Glowing ambient color spheres in background -->
   <div class="cyber-grid"></div>
   <div class="glow-sphere sphere-one"></div>
   <div class="glow-sphere sphere-two"></div>
   <div class="glow-sphere sphere-three"></div>
 
-  <div class="portal-container">
-    
-    <!-- Branding Header -->
-    <div class="portal-header">
-      <div class="logo-wrapper animate-pulse">
+  <!-- Left Pane (45%) -->
+  <div class="left-pane">
+    <div class="left-content">
+      <!-- Logo -->
+      <div class="logo-wrapper" routerLink="/landing" style="cursor: pointer;">
         <mat-icon class="logo-icon">fitness_center</mat-icon>
-        <h1 class="logo-text">APEX<span class="logo-highlight">FIT</span></h1>
-      </div>
-      <div class="system-status">
-        <span class="status-dot"></span>
-        <span class="status-label">SYS_ONLINE // v1.0.0</span>
-      </div>
-    </div>
-
-    <!-- Main Dynamic Glass Layout -->
-    <div class="glass-panel portal-main-card">
-      <div class="progress-bar-container" *ngIf="isLoading">
-        <mat-progress-bar mode="indeterminate" class="cyber-progress"></mat-progress-bar>
+        <span class="logo-text">APEX<span class="logo-highlight">FIT</span></span>
       </div>
 
-      <div class="card-grid">
-        
-        <!-- Left Side: Login Form -->
-        <div class="form-section">
-          <h2 class="section-title">Authenticate</h2>
-          <p class="section-subtitle">Establish secure connection with Apex Fit Core.</p>
+      <!-- Hero Headers -->
+      <div class="hero-section">
+        <h1 class="hero-title">The Operating System for Modern Fitness Businesses</h1>
+        <p class="hero-subtitle">
+          Manage members, trainers, leads, attendance, payments and multi-branch operations from one secure platform.
+        </p>
+      </div>
 
-          <form [formGroup]="loginForm" (ngSubmit)="onSubmit()">
-            
-            <!-- Email/Username Input -->
-            <div class="cyber-form-group">
-              <label class="cyber-label">IDENTITY NODE (EMAIL OR USERNAME)</label>
-              <div class="cyber-input-wrapper">
-                <mat-icon class="input-icon">alternate_email</mat-icon>
-                <input 
-                  type="text" 
-                  formControlName="usernameOrEmail" 
-                  placeholder="name@apexfit.com or username" 
-                  class="cyber-input"
-                  [readonly]="isLoading">
-              </div>
-              <span class="error-msg" *ngIf="loginForm.get('usernameOrEmail')?.touched && loginForm.get('usernameOrEmail')?.hasError('required')">
-                Identity email or username is required.
-              </span>
-            </div>
-
-            <!-- Password Input -->
-            <div class="cyber-form-group">
-              <label class="cyber-label">ACCESS KEY (PASSWORD)</label>
-              <div class="cyber-input-wrapper">
-                <mat-icon class="input-icon">vpn_key</mat-icon>
-                <input 
-                  [type]="hidePassword ? 'password' : 'text'" 
-                  formControlName="password" 
-                  placeholder="••••••••" 
-                  class="cyber-input"
-                  [readonly]="isLoading">
-                <button 
-                  type="button" 
-                  class="password-toggle-btn" 
-                  (click)="hidePassword = !hidePassword"
-                  [disabled]="isLoading">
-                  <mat-icon>{{ hidePassword ? 'visibility_off' : 'visibility' }}</mat-icon>
-                </button>
-              </div>
-              <div style="display: flex; justify-content: space-between; margin-top: 4px; align-items: center;">
-                <span class="error-msg" style="margin: 0;" *ngIf="loginForm.get('password')?.touched && loginForm.get('password')?.hasError('required')">
-                  Access key is required.
-                </span>
-                <a href="javascript:void(0)" (click)="forgotPassword()" class="forgot-password-link" style="color: #818cf8; font-size: 11px; text-decoration: none; font-weight: 600; letter-spacing: 0.5px; text-transform: uppercase;">Forgot Password?</a>
-              </div>
-            </div>
-
-            <!-- General Error Message Display -->
-            <div class="auth-error-alert" *ngIf="errorMessage">
-              <mat-icon class="alert-icon">report_problem</mat-icon>
-              <span class="alert-text">{{ errorMessage }}</span>
-            </div>
-
-            <!-- Standard Submit Button -->
-            <button 
-              type="submit" 
-              class="cyber-btn primary-submit" 
-              [disabled]="loginForm.invalid || isLoading">
-              <span class="btn-glow"></span>
-              <span class="btn-content" *ngIf="!isLoading">
-                INITIALIZE SIGN_IN
-                <mat-icon class="btn-arrow">arrow_forward</mat-icon>
-              </span>
-              <span class="btn-content loading-content" *ngIf="isLoading">
-                DECRYPTING CREDENTIALS...
-              </span>
-            </button>
-            
-            <!-- New Gym Registration Link -->
-            <div class="registration-link-wrapper">
-              <span class="registration-text">New Gym Client Node?</span>
-              <a routerLink="/register" class="registration-link">INITIALIZE REGISTRATION</a>
-            </div>
-          </form>
+      <!-- Glassmorphic Login Card -->
+      <div class="glass-card login-card">
+        <div class="progress-bar-container" *ngIf="isLoading">
+          <mat-progress-bar mode="indeterminate" class="cyber-progress"></mat-progress-bar>
         </div>
 
-        <!-- Right Side: Identity Core (Role Selector) -->
-        <div class="identity-selector-section">
-          <h2 class="section-title">Identity Node</h2>
-          <p class="section-subtitle">
-            <ng-container *ngIf="!isFirebaseMode">Select role matrix module for instant verification.</ng-container>
-            <ng-container *ngIf="isFirebaseMode">Select your role, then enter your registered credentials.</ng-container>
-          </p>
-
-          <!-- Firebase mode: role validation hint banner -->
-          <div *ngIf="isFirebaseMode" style="
-            background: rgba(251,146,60,0.08);
-            border: 1px solid rgba(251,146,60,0.35);
-            border-radius: 8px;
-            padding: 10px 14px;
-            margin-bottom: 12px;
-            display: flex;
-            align-items: flex-start;
-            gap: 8px;">
-            <mat-icon style="color:#fb923c; font-size:16px; margin-top:2px; flex-shrink:0;">local_fire_department</mat-icon>
-            <span style="color:rgba(255,255,255,0.75); font-size:11.5px; line-height:1.5;">
-              <strong style="color:#fb923c;">Firebase Live Mode</strong> — Select your role below, then enter
-              your registered email &amp; password. If your role doesn't match, access will be denied.
+        <form [formGroup]="loginForm" (ngSubmit)="onSubmit()" class="login-form">
+          <!-- Email / Username Input -->
+          <div class="form-group">
+            <label class="form-label">EMAIL ADDRESS / IDENTITY</label>
+            <div class="input-wrapper">
+              <mat-icon class="input-icon">alternate_email</mat-icon>
+              <input 
+                type="text" 
+                formControlName="usernameOrEmail" 
+                placeholder="name@apexfit.com or username" 
+                class="cyber-input"
+                [readonly]="isLoading">
+            </div>
+            <span class="error-msg" *ngIf="loginForm.get('usernameOrEmail')?.touched && loginForm.get('usernameOrEmail')?.hasError('required')">
+              Identity email or username is required.
             </span>
           </div>
 
-          <!-- Module Picker Grid -->
-          <div class="role-grid">
-            <div
-              *ngFor="let role of availableRoles"
-              class="role-card"
-              [class.active]="activeRole === role"
-              (click)="selectRole(role)"
-              [style.--active-color]="roleDetails[role].color">
-              <div class="role-card-header">
-                <mat-icon class="role-icon">{{ roleDetails[role].icon }}</mat-icon>
-                <span class="role-badge" [ngClass]="'badge-' + role">{{ roleDetails[role].badge }}</span>
-              </div>
-              <div class="role-card-body">
-                <h3 class="role-name">{{ role === UserRole.SuperAdmin ? 'Super Admin' : (role | titlecase) }}</h3>
-                <p class="role-description">{{ roleDetails[role].desc }}</p>
-              </div>
+          <!-- Password Input -->
+          <div class="form-group">
+            <div class="password-label-row">
+              <label class="form-label">ACCESS KEY / PASSWORD</label>
+              <a href="javascript:void(0)" (click)="forgotPassword()" class="forgot-password-link">Forgot Password?</a>
             </div>
+            <div class="input-wrapper">
+              <mat-icon class="input-icon">vpn_key</mat-icon>
+              <input 
+                [type]="hidePassword ? 'password' : 'text'" 
+                formControlName="password" 
+                placeholder="••••••••" 
+                class="cyber-input"
+                [readonly]="isLoading">
+              <button 
+                type="button" 
+                class="password-toggle-btn" 
+                (click)="hidePassword = !hidePassword"
+                [disabled]="isLoading">
+                <mat-icon>{{ hidePassword ? 'visibility_off' : 'visibility' }}</mat-icon>
+              </button>
+            </div>
+            <span class="error-msg" *ngIf="loginForm.get('password')?.touched && loginForm.get('password')?.hasError('required')">
+              Access key is required.
+            </span>
           </div>
 
-          <!-- Action Button -->
-          <div class="quick-action-area">
-            <button
-              type="button"
-              class="cyber-btn outline-btn"
-              (click)="onQuickLoginClick()"
-              [disabled]="isLoading">
-              <span class="btn-content">
-                <ng-container *ngIf="!isFirebaseMode">SYNC SELECT NODES &amp; ENTER</ng-container>
-                <ng-container *ngIf="isFirebaseMode">VERIFY ROLE &amp; AUTHENTICATE</ng-container>
-                <mat-icon>vpn_lock</mat-icon>
-              </span>
-            </button>
+          <!-- General Error Display -->
+          <div class="auth-error-alert" *ngIf="errorMessage">
+            <mat-icon class="alert-icon">report_problem</mat-icon>
+            <span class="alert-text">{{ errorMessage }}</span>
           </div>
-        </div>
 
+          <!-- Submit Button -->
+          <button 
+            type="submit" 
+            class="cyber-btn primary-submit" 
+            [disabled]="loginForm.invalid || isLoading">
+            <span class="btn-glow"></span>
+            <span class="btn-content" *ngIf="!isLoading">
+              INITIALIZE SIGN_IN
+              <mat-icon class="btn-arrow">arrow_forward</mat-icon>
+            </span>
+            <span class="btn-content loading-content" *ngIf="isLoading">
+              AUTHENTICATING...
+            </span>
+          </button>
+        </form>
+      </div>
+
+      <!-- Registration Footer -->
+      <div class="registration-wrapper">
+        <span class="registration-text">Don't have a gym account?</span>
+        <a routerLink="/register" class="registration-link">REGISTER</a>
       </div>
     </div>
+  </div>
 
-    <!-- Portal Footer -->
-    <div class="portal-footer">
-      <span>SECURE TRANSCEIVER NODE // APEX GYM SERVICES</span>
-      <span>RESTRICTED ACCESS ONLY</span>
+  <!-- Right Pane (55%) -->
+  <div class="right-pane">
+    <div class="right-content">
+      
+      <!-- Section 1: Platform Highlights -->
+      <div class="section-container">
+        <h3 class="section-heading">Platform Highlights</h3>
+        <div class="feature-grid">
+          <div class="feature-badge-card">
+            <mat-icon class="feature-icon font-cyan">trending_up</mat-icon>
+            <div class="feature-info">
+              <div class="feature-title">Lead CRM & Sales Tracking</div>
+            </div>
+          </div>
+          <div class="feature-badge-card">
+            <mat-icon class="feature-icon font-violet">badge</mat-icon>
+            <div class="feature-info">
+              <div class="feature-title">Membership Management</div>
+            </div>
+          </div>
+          <div class="feature-badge-card">
+            <mat-icon class="feature-icon font-cyan">sports</mat-icon>
+            <div class="feature-info">
+              <div class="feature-title">Personal Training Management</div>
+            </div>
+          </div>
+          <div class="feature-badge-card">
+            <mat-icon class="feature-icon font-violet">check_circle</mat-icon>
+            <div class="feature-info">
+              <div class="feature-title">Attendance Tracking</div>
+            </div>
+          </div>
+          <div class="feature-badge-card">
+            <mat-icon class="feature-icon font-cyan">people</mat-icon>
+            <div class="feature-info">
+              <div class="feature-title">Employee Management</div>
+            </div>
+          </div>
+          <div class="feature-badge-card">
+            <mat-icon class="feature-icon font-violet">payments</mat-icon>
+            <div class="feature-info">
+              <div class="feature-title">Finance & Billing</div>
+            </div>
+          </div>
+          <div class="feature-badge-card">
+            <mat-icon class="feature-icon font-cyan">domain</mat-icon>
+            <div class="feature-info">
+              <div class="feature-title">Multi Branch Operations</div>
+            </div>
+          </div>
+          <div class="feature-badge-card">
+            <mat-icon class="feature-icon font-violet">bar_chart</mat-icon>
+            <div class="feature-info">
+              <div class="feature-title">Analytics & Reporting</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Section 2: Enterprise Security -->
+      <div class="section-container">
+        <h3 class="section-heading">Enterprise Security</h3>
+        <div class="security-badges-container">
+          <span class="security-badge">
+            <mat-icon class="security-icon font-cyan">gpp_good</mat-icon>
+            <span>Firebase Authentication</span>
+          </span>
+          <span class="security-badge">
+            <mat-icon class="security-icon font-violet">gpp_good</mat-icon>
+            <span>Multi-Tenant Architecture</span>
+          </span>
+          <span class="security-badge">
+            <mat-icon class="security-icon font-cyan">gpp_good</mat-icon>
+            <span>Role Based Access Control</span>
+          </span>
+          <span class="security-badge">
+            <mat-icon class="security-icon font-violet">gpp_good</mat-icon>
+            <span>Branch Level Permissions</span>
+          </span>
+          <span class="security-badge">
+            <mat-icon class="security-icon font-cyan">gpp_good</mat-icon>
+            <span>Audit Logging</span>
+          </span>
+          <span class="security-badge">
+            <mat-icon class="security-icon font-violet">gpp_good</mat-icon>
+            <span>Secure Cloud Storage</span>
+          </span>
+          <span class="security-badge">
+            <mat-icon class="security-icon font-cyan">gpp_good</mat-icon>
+            <span>Automatic Backup Ready</span>
+          </span>
+          <span class="security-badge">
+            <mat-icon class="security-icon font-violet">gpp_good</mat-icon>
+            <span>Data Isolation Protection</span>
+          </span>
+        </div>
+      </div>
+
+      <!-- Section 3: Platform Value Card -->
+      <div class="value-card glass-card">
+        <h4 class="value-card-title">Everything Your Gym Needs In One Platform</h4>
+        <div class="value-grid">
+          <div class="value-item">
+            <mat-icon class="value-bullet font-cyan">done</mat-icon>
+            <span>Convert Leads Into Members</span>
+          </div>
+          <div class="value-item">
+            <mat-icon class="value-bullet font-violet">done</mat-icon>
+            <span>Track Membership Lifecycle</span>
+          </div>
+          <div class="value-item">
+            <mat-icon class="value-bullet font-cyan">done</mat-icon>
+            <span>Manage Trainers & PT Sessions</span>
+          </div>
+          <div class="value-item">
+            <mat-icon class="value-bullet font-violet">done</mat-icon>
+            <span>Monitor Revenue & Collections</span>
+          </div>
+          <div class="value-item">
+            <mat-icon class="value-bullet font-cyan">done</mat-icon>
+            <span>Run Multiple Branches</span>
+          </div>
+          <div class="value-item">
+            <mat-icon class="value-bullet font-violet">done</mat-icon>
+            <span>Access Anywhere From The Cloud</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Section 4: System Status Widget -->
+      <div class="status-widget">
+        <div class="status-item">
+          <span class="status-indicator-dot online"></span>
+          <span class="status-text">Authentication Online</span>
+        </div>
+        <div class="status-item">
+          <span class="status-indicator-dot online"></span>
+          <span class="status-text">Database Connected</span>
+        </div>
+        <div class="status-item">
+          <span class="status-indicator-dot online"></span>
+          <span class="status-text">Security Active</span>
+        </div>
+        <div class="status-item">
+          <span class="status-indicator-dot online"></span>
+          <span class="status-text">Backup Ready</span>
+        </div>
+      </div>
+
     </div>
   </div>
 </div>

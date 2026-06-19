@@ -49,63 +49,6 @@ export class LoginComponent implements OnInit, OnDestroy {
   pendingUser: UserProfile | null = null;
   dialogRef: any = null;
 
-  // Selected quick role for UI presentation
-  activeRole: UserRole = UserRole.Owner;
-  UserRole = UserRole;
-
-  // Ordered list of roles for dynamic layout
-  availableRoles = [
-    UserRole.SuperAdmin,
-    UserRole.Owner,
-    UserRole.Manager,
-    UserRole.Trainer,
-    UserRole.Staff
-  ];
-
-  // Role details for dynamic styling & descriptions in the futuristic interface
-  roleDetails: Record<UserRole, { title: string; desc: string; badge: string; color: string; email: string; icon: string }> = {
-    [UserRole.SuperAdmin]: {
-      title: 'Super Administrator',
-      desc: 'Global system overview, multi-tenant gym directories & database provider swapping.',
-      badge: 'Root Access',
-      color: '#f43f5e', // Rose glow
-      email: 'superadmin@apexfit.com',
-      icon: 'admin_panel_settings'
-    },
-    [UserRole.Owner]: {
-      title: 'HQ Club Owner',
-      desc: 'Access core club management, financial reports, membership plans & settings.',
-      badge: 'Level 3 Auth',
-      color: '#6366f1', // Indigo glow
-      email: 'owner@apexfit.com',
-      icon: 'storefront'
-    },
-    [UserRole.Manager]: {
-      title: 'General Manager',
-      desc: 'Direct gym operations: view dashboard, manage members, check-ins, and employees.',
-      badge: 'Manager Auth',
-      color: '#3b82f6', // Blue glow
-      email: 'manager@apexfit.com',
-      icon: 'assignment_ind'
-    },
-    [UserRole.Trainer]: {
-      title: 'Pro Coach Terminal',
-      desc: 'Track fitness goals, log workout sessions, and mark class attendances.',
-      badge: 'Coach Auth',
-      color: '#10b981', // Emerald glow
-      email: 'trainer@apexfit.com',
-      icon: 'sports'
-    },
-    [UserRole.Staff]: {
-      title: 'Front Roster Staff',
-      desc: 'Manage active members, register new leads, update payments & check-ins.',
-      badge: 'Staff Auth',
-      color: '#eab308', // Amber glow
-      email: 'staff@apexfit.com',
-      icon: 'people'
-    }
-  };
-
   constructor(
     private fb: FormBuilder,
     private authState: AuthState,
@@ -116,7 +59,7 @@ export class LoginComponent implements OnInit, OnDestroy {
     private appConfig: AppConfigService
   ) {}
 
-  /** True when app is running against live Firebase — hides demo role panel */
+  /** True when app is running against live Firebase */
   get isFirebaseMode(): boolean {
     return this.appConfig.provider === ProviderType.Firebase;
   }
@@ -126,37 +69,20 @@ export class LoginComponent implements OnInit, OnDestroy {
     document.body.classList.add('auth-page-active');
 
     this.loginForm = this.fb.group({
-      usernameOrEmail: ['', [Validators.required]],
-      password: ['', [Validators.required, Validators.minLength(4)]]
+      usernameOrEmail: [
+        this.isFirebaseMode ? '' : 'owner@apexfit.com',
+        [Validators.required]
+      ],
+      password: [
+        this.isFirebaseMode ? '' : 'password',
+        [Validators.required, Validators.minLength(4)]
+      ]
     });
-
-    // Preset the form with the selected role email for UX convenience
-    this.syncFormWithRole();
   }
 
   ngOnDestroy(): void {
     document.documentElement.classList.remove('auth-page-active');
     document.body.classList.remove('auth-page-active');
-  }
-
-  // Set selected quick role and auto-fill email field
-  selectRole(role: UserRole): void {
-    this.activeRole = role;
-    this.syncFormWithRole();
-    this.errorMessage = null;
-  }
-
-  private syncFormWithRole(): void {
-    if (this.isFirebaseMode) {
-      // In Firebase mode: keep role selected for validation, but don't auto-fill demo credentials
-      // User must type their real registered email and password
-      return;
-    }
-    const email = this.roleDetails[this.activeRole].email;
-    this.loginForm.patchValue({
-      usernameOrEmail: email,
-      password: 'password' // Standard default password for all mock accounts
-    });
   }
 
   // Handle standard login submission
@@ -174,15 +100,6 @@ export class LoginComponent implements OnInit, OnDestroy {
       next: (user) => {
         this.isLoading = false;
 
-        // In Firebase mode: validate that the logged-in user's role matches the selected role chip
-        if (this.isFirebaseMode && user.role !== this.activeRole) {
-          this.authState.logout();
-          this.errorMessage =
-            `Access denied. This account is registered as "${user.role}", not "${this.activeRole}". ` +
-            `Please select the correct role or log in with the right account.`;
-          return;
-        }
-
         if (user.isFirstLogin) {
           this.promptPasswordChange(user);
         } else {
@@ -193,44 +110,10 @@ export class LoginComponent implements OnInit, OnDestroy {
         this.isLoading = false;
         const msg: string = err.message || '';
         if (msg.startsWith('ACCOUNT_DISABLED:')) {
-          // Account is suspended or inactive — redirect to dedicated blocked-account page
           this.router.navigate(['/account-disabled']);
           return;
         }
         this.errorMessage = msg || 'Access Denied. Verification failed.';
-      }
-    });
-  }
-
-  // Direct quick login action
-  onQuickLoginClick(): void {
-    if (this.isFirebaseMode) {
-      // In Firebase mode: quick login validates the form email/password against the selected role
-      if (this.loginForm.invalid) {
-        this.loginForm.markAllAsTouched();
-        this.errorMessage = 'Please enter your email and password to authenticate.';
-        return;
-      }
-      this.onSubmit();
-      return;
-    }
-
-    // Mock/Demo mode: instant role login with demo accounts
-    this.isLoading = true;
-    this.errorMessage = null;
-
-    this.authState.loginWithRole(this.activeRole).subscribe({
-      next: (user) => {
-        this.isLoading = false;
-        if (user.isFirstLogin) {
-          this.promptPasswordChange(user);
-        } else {
-          this.navigateToWorkspace(user.role);
-        }
-      },
-      error: (err) => {
-        this.isLoading = false;
-        this.errorMessage = err.message || 'Quick login synchronization failed.';
       }
     });
   }

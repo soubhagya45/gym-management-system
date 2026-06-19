@@ -1,391 +1,515 @@
-<div class="register-wrapper">
+<div class="register-page-wrapper">
   <!-- Glowing backdrops -->
-  <div class="orb orb-pink"></div>
-  <div class="orb orb-purple"></div>
+  <div class="cyber-grid"></div>
+  <div class="glow-sphere sphere-one"></div>
+  <div class="glow-sphere sphere-two"></div>
+  <div class="glow-sphere sphere-three"></div>
 
-  <!-- Brand logo header -->
-  <div class="brand-header" routerLink="/">
-    <mat-icon class="brand-icon">fitness_center</mat-icon>
-    <span class="brand-text">APEX<span>FIT</span></span>
+  <!-- Left Pane (65%) -->
+  <div class="left-pane">
+    <div class="left-content">
+      
+      <!-- Brand Logo Header -->
+      <div class="logo-wrapper" routerLink="/landing" style="cursor: pointer;">
+        <mat-icon class="logo-icon">fitness_center</mat-icon>
+        <span class="logo-text">APEX<span class="logo-highlight">FIT</span></span>
+      </div>
+
+      <!-- Hero Headers -->
+      <div class="hero-section">
+        <h1 class="hero-title">Create Your Gym Enterprise Workspace</h1>
+        <p class="hero-subtitle">
+          Configure your tenant profile, owner credentials, and default branch settings.
+        </p>
+      </div>
+
+      <!-- Stepper Navigation Header -->
+      <div class="stepper-header" *ngIf="currentStep !== 3 && currentStep !== 7">
+        <div class="step-indicator" [class.active]="currentStep === 1" [class.completed]="currentStep > 1">
+          <div class="circle">
+            <mat-icon *ngIf="currentStep > 1">check</mat-icon>
+            <span *ngIf="currentStep === 1">1</span>
+          </div>
+          <span class="step-lbl">Gym Profile</span>
+        </div>
+        <div class="step-line" [class.filled]="currentStep > 1"></div>
+        
+        <div class="step-indicator" [class.active]="currentStep === 2" [class.completed]="currentStep > 2">
+          <div class="circle">
+            <mat-icon *ngIf="currentStep > 2">check</mat-icon>
+            <span *ngIf="currentStep <= 2">2</span>
+          </div>
+          <span class="step-lbl">Verify Email</span>
+        </div>
+        <div class="step-line" [class.filled]="currentStep > 2"></div>
+
+        <div class="step-indicator" [class.active]="currentStep === 4" [class.completed]="currentStep > 4">
+          <div class="circle">
+            <mat-icon *ngIf="currentStep > 4">check</mat-icon>
+            <span *ngIf="currentStep <= 4">3</span>
+          </div>
+          <span class="step-lbl">Owner Account</span>
+        </div>
+        <div class="step-line" [class.filled]="currentStep > 4"></div>
+
+        <div class="step-indicator" [class.active]="currentStep === 5" [class.completed]="currentStep > 5">
+          <div class="circle">
+            <mat-icon *ngIf="currentStep > 5">check</mat-icon>
+            <span *ngIf="currentStep <= 5">4</span>
+          </div>
+          <span class="step-lbl">Default Branch</span>
+        </div>
+        <div class="step-line" [class.filled]="currentStep > 5"></div>
+
+        <div class="step-indicator" [class.active]="currentStep === 6" [class.completed]="currentStep > 6">
+          <div class="circle">
+            <span *ngIf="currentStep <= 6">5</span>
+          </div>
+          <span class="step-lbl">Default Plans</span>
+        </div>
+      </div>
+
+      <!-- MAIN GLASS CONTAINER CARD -->
+      <div class="glass-card login-card register-card-body">
+        <div class="error-banner" *ngIf="errorMessage">
+          <mat-icon>error_outline</mat-icon>
+          <span>{{ errorMessage }}</span>
+        </div>
+
+        <!-- STEP 1: GYM INFORMATION -->
+        <div class="step-content" *ngIf="currentStep === 1" @stepAnimation>
+          <div class="step-title-area">
+            <h2>Register Your Gym Profile</h2>
+            <p>Let's configure your tenant business settings first.</p>
+          </div>
+
+          <form [formGroup]="gymForm" (ngSubmit)="submitGymInfo()">
+            <div class="form-inputs-grid">
+              <mat-form-field appearance="outline" class="full-width">
+                <mat-label>Gym Name</mat-label>
+                <input matInput formControlName="gymName" placeholder="Apex Fit Downtown">
+                <mat-icon matSuffix>business</mat-icon>
+                <mat-error *ngIf="gymForm.get('gymName')?.hasError('required')">Gym Name is required</mat-error>
+                <mat-error *ngIf="gymForm.get('gymName')?.hasError('minlength')">Must be at least 3 characters</mat-error>
+              </mat-form-field>
+
+              <div class="form-row">
+                <mat-form-field appearance="outline" class="flex-field">
+                  <mat-label>Gym Phone Number</mat-label>
+                  <input matInput formControlName="gymPhone" placeholder="+91 99887 76655">
+                  <mat-icon matSuffix>phone</mat-icon>
+                  <mat-error *ngIf="gymForm.get('gymPhone')?.hasError('required')">Phone number is required</mat-error>
+                  <mat-error *ngIf="gymForm.get('gymPhone')?.hasError('pattern')">Please enter a valid phone number</mat-error>
+                </mat-form-field>
+
+                <mat-form-field appearance="outline" class="flex-field">
+                  <mat-label>Gym Corporate Email</mat-label>
+                  <input matInput type="email" formControlName="gymEmail" placeholder="contact@gymname.com">
+                  <mat-icon matSuffix>email</mat-icon>
+                  <mat-error *ngIf="gymForm.get('gymEmail')?.hasError('required')">Corporate email is required</mat-error>
+                  <mat-error *ngIf="gymForm.get('gymEmail')?.hasError('email')">Please enter a valid email address</mat-error>
+                </mat-form-field>
+              </div>
+
+              <mat-form-field appearance="outline" class="full-width">
+                <mat-label>Gym Address</mat-label>
+                <input matInput formControlName="gymAddress" placeholder="123 Fitness Ave, Block C">
+                <mat-icon matSuffix>place</mat-icon>
+                <mat-error *ngIf="gymForm.get('gymAddress')?.hasError('required')">Address is required</mat-error>
+              </mat-form-field>
+
+              <div class="form-row-three">
+                <mat-form-field appearance="outline">
+                  <mat-label>City</mat-label>
+                  <input matInput formControlName="gymCity" placeholder="Bangalore">
+                  <mat-error *ngIf="gymForm.get('gymCity')?.hasError('required')">City is required</mat-error>
+                </mat-form-field>
+
+                <mat-form-field appearance="outline">
+                  <mat-label>State</mat-label>
+                  <input matInput formControlName="gymState" placeholder="Karnataka">
+                  <mat-error *ngIf="gymForm.get('gymState')?.hasError('required')">State is required</mat-error>
+                </mat-form-field>
+
+                <mat-form-field appearance="outline">
+                  <mat-label>Country</mat-label>
+                  <input matInput formControlName="gymCountry" placeholder="India">
+                  <mat-error *ngIf="gymForm.get('gymCountry')?.hasError('required')">Country is required</mat-error>
+                </mat-form-field>
+              </div>
+            </div>
+
+            <div class="actions-row align-right">
+              <button mat-raised-button color="primary" type="submit" [disabled]="gymForm.invalid || isLoading" class="action-btn">
+                <span>Send Verification Code</span>
+                <mat-icon>chevron_right</mat-icon>
+              </button>
+            </div>
+          </form>
+        </div>
+
+        <!-- STEP 2: VERIFY EMAIL -->
+        <div class="step-content" *ngIf="currentStep === 2" @stepAnimation>
+          <div class="step-title-area text-center">
+            <h2>Email Verification</h2>
+            <p>We've sent a 6-digit OTP code to the gym corporate email: <strong>{{ gymForm.value.gymEmail }}</strong></p>
+          </div>
+
+          <form [formGroup]="otpForm" (ngSubmit)="verifyEmail()">
+            <div class="verification-box">
+              <mat-form-field appearance="outline" class="otp-field text-center">
+                <mat-label>Verification Code</mat-label>
+                <input matInput formControlName="code" placeholder="123456" maxlength="6" class="otp-input">
+                <mat-icon matSuffix>lock_open</mat-icon>
+                <mat-error *ngIf="otpForm.get('code')?.hasError('required')">Code is required</mat-error>
+                <mat-error *ngIf="otpForm.get('code')?.hasError('pattern')">Please enter 6-digit code</mat-error>
+              </mat-form-field>
+
+              <div class="timer-row">
+                <span class="countdown-text" *ngIf="resendCountdown > 0">Resend code in {{ resendCountdown }}s</span>
+                <button mat-button type="button" class="resend-btn" *ngIf="resendCountdown === 0" (click)="resendVerificationCode()" [disabled]="isLoading">
+                  Resend Code
+                </button>
+              </div>
+            </div>
+
+            <div class="actions-row">
+              <button mat-button type="button" (click)="prevStep(1)" class="back-btn" [disabled]="isLoading">
+                <mat-icon>chevron_left</mat-icon>
+                <span>Back</span>
+              </button>
+              <button mat-raised-button color="primary" type="submit" [disabled]="otpForm.invalid || isLoading" class="action-btn">
+                <span>Verify & Continue</span>
+                <mat-icon>chevron_right</mat-icon>
+              </button>
+            </div>
+          </form>
+        </div>
+
+        <!-- STEP 3: DATABASE PROVISIONING SPINNER -->
+        <div class="step-content onboarding-console" *ngIf="currentStep === 3" @stepAnimation>
+          <div class="step-title-area text-center">
+            <h2 class="gradient-text">Creating Gym Profile</h2>
+            <p>Please wait while we provision your secure cloud tenant environments...</p>
+          </div>
+
+          <div class="onboarding-progress-section">
+            <mat-progress-bar mode="determinate" [value]="onboardingProgress" class="premium-progress-bar"></mat-progress-bar>
+            <span class="progress-number">{{ onboardingProgress }}%</span>
+          </div>
+
+          <div class="console-box">
+            <div class="console-line" *ngFor="let task of onboardingTasks" [ngClass]="task.status">
+              <mat-icon class="status-icon" *ngIf="task.status === 'pending'">hourglass_empty</mat-icon>
+              <mat-icon class="status-icon spinner" *ngIf="task.status === 'running'">sync</mat-icon>
+              <mat-icon class="status-icon checked" *ngIf="task.status === 'done'">check_circle</mat-icon>
+              <span class="line-text">{{ task.label }}</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- STEP 4: OWNER ACCOUNT DETAILS -->
+        <div class="step-content" *ngIf="currentStep === 4" @stepAnimation>
+          <div class="step-title-area">
+            <h2>Create Owner Account</h2>
+            <p>Set up administrative credentials to log in and manage your gym.</p>
+          </div>
+
+          <form [formGroup]="ownerForm" (ngSubmit)="submitOwnerDetails()">
+            <div class="form-inputs-grid">
+              <mat-form-field appearance="outline" class="full-width">
+                <mat-label>Owner Full Name</mat-label>
+                <input matInput formControlName="ownerFullName" placeholder="Alex Johnson">
+                <mat-icon matSuffix>person</mat-icon>
+                <mat-error *ngIf="ownerForm.get('ownerFullName')?.hasError('required')">Name is required</mat-error>
+                <mat-error *ngIf="ownerForm.get('ownerFullName')?.hasError('minlength')">Must be at least 2 characters</mat-error>
+              </mat-form-field>
+
+              <div class="form-row">
+                <mat-form-field appearance="outline" class="flex-field">
+                  <mat-label>Owner Email (Verified)</mat-label>
+                  <input matInput formControlName="ownerEmail">
+                  <mat-icon matSuffix>verified_user</mat-icon>
+                </mat-form-field>
+
+                <mat-form-field appearance="outline" class="flex-field">
+                  <mat-label>Owner Contact Phone</mat-label>
+                  <input matInput formControlName="ownerPhone" placeholder="+91 99887 76655">
+                  <mat-icon matSuffix>phone</mat-icon>
+                  <mat-error *ngIf="ownerForm.get('ownerPhone')?.hasError('required')">Phone number is required</mat-error>
+                  <mat-error *ngIf="ownerForm.get('ownerPhone')?.hasError('pattern')">Please enter a valid phone number</mat-error>
+                </mat-form-field>
+              </div>
+
+              <mat-form-field appearance="outline" class="full-width">
+                <mat-label>Password</mat-label>
+                <input matInput [type]="hidePassword ? 'password' : 'text'" formControlName="ownerPassword">
+                <button mat-icon-button matSuffix (click)="hidePassword = !hidePassword" type="button" [attr.aria-label]="'Hide password'" [attr.aria-pressed]="hidePassword">
+                  <mat-icon>{{hidePassword ? 'visibility_off' : 'visibility'}}</mat-icon>
+                </button>
+                <mat-error *ngIf="ownerForm.get('ownerPassword')?.hasError('required')">Password is required</mat-error>
+                <mat-error *ngIf="ownerForm.get('ownerPassword')?.hasError('minlength')">Must be at least 6 characters</mat-error>
+              </mat-form-field>
+            </div>
+
+            <div class="actions-row">
+              <button mat-button type="button" (click)="prevStep(2)" class="back-btn">
+                <mat-icon>chevron_left</mat-icon>
+                <span>Back</span>
+              </button>
+              <button mat-raised-button color="primary" type="submit" [disabled]="ownerForm.invalid" class="action-btn">
+                <span>Next: Setup Branch</span>
+                <mat-icon>chevron_right</mat-icon>
+              </button>
+            </div>
+          </form>
+        </div>
+
+        <!-- STEP 5: CREATE DEFAULT BRANCH -->
+        <div class="step-content" *ngIf="currentStep === 5" @stepAnimation>
+          <div class="step-title-area">
+            <h2>Create Default Branch</h2>
+            <p>Every gym has at least one physical branch. Let's create your first location.</p>
+          </div>
+
+          <form [formGroup]="branchForm" (ngSubmit)="submitBranchDetails()">
+            <div class="form-inputs-grid">
+              <mat-form-field appearance="outline" class="full-width">
+                <mat-label>Branch Name</mat-label>
+                <input matInput formControlName="branchName" placeholder="Main HQ Branch">
+                <mat-icon matSuffix>store</mat-icon>
+                <mat-error *ngIf="branchForm.get('branchName')?.hasError('required')">Branch Name is required</mat-error>
+                <mat-error *ngIf="branchForm.get('branchName')?.hasError('minlength')">Must be at least 3 characters</mat-error>
+              </mat-form-field>
+
+              <mat-form-field appearance="outline" class="full-width">
+                <mat-label>Branch Phone</mat-label>
+                <input matInput formControlName="branchPhone" placeholder="+91 99887 76655">
+                <mat-icon matSuffix>phone</mat-icon>
+                <mat-error *ngIf="branchForm.get('branchPhone')?.hasError('required')">Phone is required</mat-error>
+                <mat-error *ngIf="branchForm.get('branchPhone')?.hasError('pattern')">Please enter a valid phone number</mat-error>
+              </mat-form-field>
+
+              <mat-form-field appearance="outline" class="full-width">
+                <mat-label>Branch Address</mat-label>
+                <input matInput formControlName="branchAddress" placeholder="Enter branch physical address">
+                <mat-icon matSuffix>place</mat-icon>
+                <mat-error *ngIf="branchForm.get('branchAddress')?.hasError('required')">Address is required</mat-error>
+              </mat-form-field>
+            </div>
+
+            <div class="actions-row">
+              <button mat-button type="button" (click)="prevStep(4)" class="back-btn">
+                <mat-icon>chevron_left</mat-icon>
+                <span>Back</span>
+              </button>
+              <button mat-raised-button color="primary" type="submit" [disabled]="branchForm.invalid" class="action-btn">
+                <span>Next: Setup Plans</span>
+                <mat-icon>chevron_right</mat-icon>
+              </button>
+            </div>
+          </form>
+        </div>
+
+        <!-- STEP 6: CREATE DEFAULT MEMBERSHIP PLANS -->
+        <div class="step-content" *ngIf="currentStep === 6" @stepAnimation>
+          <div class="step-title-area">
+            <h2>Configure Membership Plans</h2>
+            <p>We've pre-seeded standard baseline packages. Customize the pricing tiers before launching.</p>
+          </div>
+
+          <div class="pricing-setup-list">
+            <div class="price-setup-card" *ngFor="let plan of plans; let i = index" [class.disabled]="!plan.enabled">
+              <div class="card-header-row">
+                <div class="card-header-left">
+                  <label class="custom-checkbox-container">
+                    <input type="checkbox" [(ngModel)]="plan.enabled">
+                    <span class="checkmark"></span>
+                  </label>
+                  <input type="text" [(ngModel)]="plan.name" class="plan-name-input" *ngIf="plan.enabled" placeholder="Plan Name">
+                  <span class="plan-name" *ngIf="!plan.enabled">{{ plan.name }}</span>
+                </div>
+                <div class="duration-edit-row" *ngIf="plan.enabled">
+                  <input type="number" [(ngModel)]="plan.durationMonths" min="1" max="12" class="duration-number-input">
+                  <span class="duration-label">Mo</span>
+                </div>
+                <span class="duration-badge" *ngIf="!plan.enabled">{{ plan.durationMonths }} Month{{ plan.durationMonths > 1 ? 's' : '' }}</span>
+              </div>
+              
+              <input type="text" [(ngModel)]="plan.description" class="plan-desc-input" *ngIf="plan.enabled" placeholder="Brief plan description...">
+              <p class="plan-desc" *ngIf="!plan.enabled">{{ plan.description }}</p>
+
+              <div class="plan-price-edit" *ngIf="plan.enabled">
+                <span class="currency-symbol">₹</span>
+                <input type="number" [(ngModel)]="plan.price" min="0" class="price-number-input">
+                <span class="billing-cycle">/ billing cycle</span>
+              </div>
+              
+              <div class="plan-features-list">
+                <div class="feature-item" *ngFor="let feat of plan.features">
+                  <mat-icon class="feature-check">check</mat-icon>
+                  <span>{{ feat }}</span>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="add-plan-action-row">
+            <button mat-stroked-button type="button" class="add-plan-btn" (click)="addNewPlan()">
+              <mat-icon>add</mat-icon>
+              <span>Add Custom Plan</span>
+            </button>
+          </div>
+
+          <div class="actions-row">
+            <button mat-button type="button" (click)="prevStep(5)" class="back-btn" [disabled]="isLoading">
+              <mat-icon>chevron_left</mat-icon>
+              <span>Back</span>
+            </button>
+            <button mat-raised-button color="primary" (click)="finalizeOnboarding()" class="action-btn" [disabled]="isLoading">
+              <mat-icon>rocket_launch</mat-icon>
+              <span>Finalize Workspace Onboarding</span>
+            </button>
+          </div>
+        </div>
+
+        <!-- STEP 7: FINAL ONBOARDING CONSOLE & REDIRECT -->
+        <div class="step-content onboarding-console" *ngIf="currentStep === 7" @stepAnimation>
+          <div class="step-title-area text-center">
+            <h2 class="gradient-text">Deploying ApexFit Tenant Environment</h2>
+            <p>Building your administrative database, default branch workspace, and pricing plan configurations...</p>
+          </div>
+
+          <div class="onboarding-progress-section">
+            <mat-progress-bar mode="determinate" [value]="onboardingProgress" class="premium-progress-bar"></mat-progress-bar>
+            <span class="progress-number">{{ onboardingProgress }}%</span>
+          </div>
+
+          <div class="console-box">
+            <div class="console-line" *ngFor="let task of onboardingTasks" [ngClass]="task.status">
+              <mat-icon class="status-icon" *ngIf="task.status === 'pending'">hourglass_empty</mat-icon>
+              <mat-icon class="status-icon spinner" *ngIf="task.status === 'running'">sync</mat-icon>
+              <mat-icon class="status-icon checked" *ngIf="task.status === 'done'">check_circle</mat-icon>
+              <span class="line-text">{{ task.label }}</span>
+            </div>
+          </div>
+        </div>
+
+      </div>
+
+      <!-- Registration Footer -->
+      <div class="registration-wrapper" *ngIf="currentStep !== 3 && currentStep !== 7">
+        <span class="registration-text">Already have an account?</span>
+        <a routerLink="/login" class="registration-link">LOGIN</a>
+      </div>
+
+    </div>
   </div>
 
-  <div class="register-container">
-    <!-- Stepper Navigation Header -->
-    <div class="stepper-header" *ngIf="currentStep !== 3 && currentStep !== 7">
-      <div class="step-indicator" [class.active]="currentStep === 1" [class.completed]="currentStep > 1">
-        <div class="circle">
-          <mat-icon *ngIf="currentStep > 1">check</mat-icon>
-          <span *ngIf="currentStep === 1">1</span>
-        </div>
-        <span>Gym Profile</span>
-      </div>
-      <div class="step-line" [class.filled]="currentStep > 1"></div>
+  <!-- Right Pane (35%) -->
+  <div class="right-pane">
+    <div class="right-content">
       
-      <div class="step-indicator" [class.active]="currentStep === 2" [class.completed]="currentStep > 2">
-        <div class="circle">
-          <mat-icon *ngIf="currentStep > 2">check</mat-icon>
-          <span *ngIf="currentStep <= 2">2</span>
+      <!-- Section 1: Platform Highlights -->
+      <div class="section-container">
+        <h3 class="section-heading">Platform Highlights</h3>
+        <div class="feature-grid">
+          <div class="feature-badge-card">
+            <mat-icon class="feature-icon font-cyan">trending_up</mat-icon>
+            <span class="feature-title">Lead CRM</span>
+          </div>
+          <div class="feature-badge-card">
+            <mat-icon class="feature-icon font-violet">badge</mat-icon>
+            <span class="feature-title">Membership Management</span>
+          </div>
+          <div class="feature-badge-card">
+            <mat-icon class="feature-icon font-cyan">sports</mat-icon>
+            <span class="feature-title">PT Management</span>
+          </div>
+          <div class="feature-badge-card">
+            <mat-icon class="feature-icon font-violet">check_circle</mat-icon>
+            <span class="feature-title">Attendance Tracking</span>
+          </div>
+          <div class="feature-badge-card">
+            <mat-icon class="feature-icon font-cyan">payments</mat-icon>
+            <span class="feature-title">Finance & Billing</span>
+          </div>
+          <div class="feature-badge-card">
+            <mat-icon class="feature-icon font-violet">domain</mat-icon>
+            <span class="feature-title">Multi Branch Operations</span>
+          </div>
         </div>
-        <span>Verify Email</span>
-      </div>
-      <div class="step-line" [class.filled]="currentStep > 2"></div>
-
-      <div class="step-indicator" [class.active]="currentStep === 4" [class.completed]="currentStep > 4">
-        <div class="circle">
-          <mat-icon *ngIf="currentStep > 4">check</mat-icon>
-          <span *ngIf="currentStep <= 4">3</span>
-        </div>
-        <span>Owner Account</span>
-      </div>
-      <div class="step-line" [class.filled]="currentStep > 4"></div>
-
-      <div class="step-indicator" [class.active]="currentStep === 5" [class.completed]="currentStep > 5">
-        <div class="circle">
-          <mat-icon *ngIf="currentStep > 5">check</mat-icon>
-          <span *ngIf="currentStep <= 5">4</span>
-        </div>
-        <span>Default Branch</span>
-      </div>
-      <div class="step-line" [class.filled]="currentStep > 5"></div>
-
-      <div class="step-indicator" [class.active]="currentStep === 6" [class.completed]="currentStep > 6">
-        <div class="circle">
-          <span *ngIf="currentStep <= 6">5</span>
-        </div>
-        <span>Default Plans</span>
-      </div>
-    </div>
-
-    <!-- MAIN GLASS CONTAINER CARD -->
-    <div class="mat-card glass-form-card">
-      <div class="error-banner" *ngIf="errorMessage">
-        <mat-icon>error_outline</mat-icon>
-        <span>{{ errorMessage }}</span>
       </div>
 
-      <!-- STEP 1: GYM INFORMATION -->
-      <div class="step-content" *ngIf="currentStep === 1" @stepAnimation>
-        <div class="step-title-area">
-          <h2>Register Your Gym Profile</h2>
-          <p>Let's configure your tenant business settings first.</p>
+      <!-- Section 2: Enterprise Security -->
+      <div class="section-container">
+        <h3 class="section-heading">Enterprise Security</h3>
+        <div class="security-badges-container">
+          <span class="security-badge">
+            <mat-icon class="security-icon font-cyan">gpp_good</mat-icon>
+            <span>Firebase Authentication</span>
+          </span>
+          <span class="security-badge">
+            <mat-icon class="security-icon font-violet">gpp_good</mat-icon>
+            <span>Multi Tenant Architecture</span>
+          </span>
+          <span class="security-badge">
+            <mat-icon class="security-icon font-cyan">gpp_good</mat-icon>
+            <span>Role Based Access</span>
+          </span>
+          <span class="security-badge">
+            <mat-icon class="security-icon font-violet">gpp_good</mat-icon>
+            <span>Audit Logs</span>
+          </span>
+          <span class="security-badge">
+            <mat-icon class="security-icon font-cyan">gpp_good</mat-icon>
+            <span>Data Isolation</span>
+          </span>
         </div>
+      </div>
 
-        <form [formGroup]="gymForm" (ngSubmit)="submitGymInfo()">
-          <div class="form-inputs-grid">
-            <mat-form-field appearance="outline" class="full-width">
-              <mat-label>Gym Name</mat-label>
-              <input matInput formControlName="gymName" placeholder="Apex Fit Downtown">
-              <mat-icon matSuffix>business</mat-icon>
-              <mat-error *ngIf="gymForm.get('gymName')?.hasError('required')">Gym Name is required</mat-error>
-              <mat-error *ngIf="gymForm.get('gymName')?.hasError('minlength')">Must be at least 3 characters</mat-error>
-            </mat-form-field>
-
-            <div class="form-row">
-              <mat-form-field appearance="outline" class="flex-field">
-                <mat-label>Gym Phone Number</mat-label>
-                <input matInput formControlName="gymPhone" placeholder="+91 99887 76655">
-                <mat-icon matSuffix>phone</mat-icon>
-                <mat-error *ngIf="gymForm.get('gymPhone')?.hasError('required')">Phone number is required</mat-error>
-                <mat-error *ngIf="gymForm.get('gymPhone')?.hasError('pattern')">Please enter a valid phone number</mat-error>
-              </mat-form-field>
-
-              <mat-form-field appearance="outline" class="flex-field">
-                <mat-label>Gym Corporate Email</mat-label>
-                <input matInput type="email" formControlName="gymEmail" placeholder="contact@gymname.com">
-                <mat-icon matSuffix>email</mat-icon>
-                <mat-error *ngIf="gymForm.get('gymEmail')?.hasError('required')">Corporate email is required</mat-error>
-                <mat-error *ngIf="gymForm.get('gymEmail')?.hasError('email')">Please enter a valid email address</mat-error>
-              </mat-form-field>
+      <!-- Section 3: Sample Dashboard Preview -->
+      <div class="section-container">
+        <h3 class="section-heading">Sample Dashboard Preview</h3>
+        <div class="sample-dashboard-card glass-card">
+          <div class="preview-header">
+            <div class="preview-title">HQ Analytics Preview</div>
+            <span class="preview-indicator">SAMPLE DATA</span>
+          </div>
+          <div class="preview-stats">
+            <div class="preview-stat-box">
+              <span class="stat-lbl">Active Members</span>
+              <span class="stat-val font-cyan">1,248</span>
+              <span class="stat-trend">+12.4%</span>
             </div>
-
-            <mat-form-field appearance="outline" class="full-width">
-              <mat-label>Gym Address</mat-label>
-              <input matInput formControlName="gymAddress" placeholder="123 Fitness Ave, Block C">
-              <mat-icon matSuffix>place</mat-icon>
-              <mat-error *ngIf="gymForm.get('gymAddress')?.hasError('required')">Address is required</mat-error>
-            </mat-form-field>
-
-            <div class="form-row-three">
-              <mat-form-field appearance="outline">
-                <mat-label>City</mat-label>
-                <input matInput formControlName="gymCity" placeholder="Bangalore">
-                <mat-error *ngIf="gymForm.get('gymCity')?.hasError('required')">City is required</mat-error>
-              </mat-form-field>
-
-              <mat-form-field appearance="outline">
-                <mat-label>State</mat-label>
-                <input matInput formControlName="gymState" placeholder="Karnataka">
-                <mat-error *ngIf="gymForm.get('gymState')?.hasError('required')">State is required</mat-error>
-              </mat-form-field>
-
-              <mat-form-field appearance="outline">
-                <mat-label>Country</mat-label>
-                <input matInput formControlName="gymCountry" placeholder="India">
-                <mat-error *ngIf="gymForm.get('gymCountry')?.hasError('required')">Country is required</mat-error>
-              </mat-form-field>
+            <div class="preview-stat-box">
+              <span class="stat-lbl">Monthly Revenue</span>
+              <span class="stat-val font-violet">₹2.4M</span>
+              <span class="stat-trend">+8.2%</span>
             </div>
           </div>
-
-          <div class="actions-row align-right">
-            <button mat-raised-button color="primary" type="submit" [disabled]="gymForm.invalid || isLoading" class="action-btn">
-              <span>Send Verification Code</span>
-              <mat-icon>chevron_right</mat-icon>
-            </button>
-          </div>
-        </form>
-      </div>
-
-      <!-- STEP 2: VERIFY EMAIL -->
-      <div class="step-content" *ngIf="currentStep === 2" @stepAnimation>
-        <div class="step-title-area text-center">
-          <h2>Email Verification</h2>
-          <p>We've sent a 6-digit OTP code to the gym corporate email: <strong>{{ gymForm.value.gymEmail }}</strong></p>
-        </div>
-
-        <form [formGroup]="otpForm" (ngSubmit)="verifyEmail()">
-          <div class="verification-box">
-            <mat-form-field appearance="outline" class="otp-field text-center">
-              <mat-label>Verification Code</mat-label>
-              <input matInput formControlName="code" placeholder="123456" maxlength="6" class="otp-input">
-              <mat-icon matSuffix>lock_open</mat-icon>
-              <mat-error *ngIf="otpForm.get('code')?.hasError('required')">Code is required</mat-error>
-              <mat-error *ngIf="otpForm.get('code')?.hasError('pattern')">Please enter 6-digit code</mat-error>
-            </mat-form-field>
-
-            <div class="timer-row">
-              <span class="countdown-text" *ngIf="resendCountdown > 0">Resend code in {{ resendCountdown }}s</span>
-              <button mat-button type="button" class="resend-btn" *ngIf="resendCountdown === 0" (click)="resendVerificationCode()" [disabled]="isLoading">
-                Resend Code
-              </button>
-            </div>
-          </div>
-
-          <div class="actions-row">
-            <button mat-button type="button" (click)="prevStep(1)" class="back-btn" [disabled]="isLoading">
-              <mat-icon>chevron_left</mat-icon>
-              <span>Back</span>
-            </button>
-            <button mat-raised-button color="primary" type="submit" [disabled]="otpForm.invalid || isLoading" class="action-btn">
-              <span>Verify & Continue</span>
-              <mat-icon>chevron_right</mat-icon>
-            </button>
-          </div>
-        </form>
-      </div>
-
-      <!-- STEP 3: DATABASE PROVISIONING SPINNER -->
-      <div class="step-content onboarding-console" *ngIf="currentStep === 3" @stepAnimation>
-        <div class="step-title-area text-center">
-          <h2 class="gradient-text">Creating Gym Profile</h2>
-          <p>Please wait while we provision your secure cloud tenant environments...</p>
-        </div>
-
-        <div class="onboarding-progress-section">
-          <mat-progress-bar mode="determinate" [value]="onboardingProgress" class="premium-progress-bar"></mat-progress-bar>
-          <span class="progress-number">{{ onboardingProgress }}%</span>
-        </div>
-
-        <div class="console-box">
-          <div class="console-line" *ngFor="let task of onboardingTasks" [ngClass]="task.status">
-            <mat-icon class="status-icon" *ngIf="task.status === 'pending'">hourglass_empty</mat-icon>
-            <mat-icon class="status-icon spinner" *ngIf="task.status === 'running'">sync</mat-icon>
-            <mat-icon class="status-icon checked" *ngIf="task.status === 'done'">check_circle</mat-icon>
-            <span class="line-text">{{ task.label }}</span>
+          <div class="preview-chart">
+            <div class="chart-bar" style="--bar-height: 40%"></div>
+            <div class="chart-bar" style="--bar-height: 65%"></div>
+            <div class="chart-bar" style="--bar-height: 50%"></div>
+            <div class="chart-bar" style="--bar-height: 85%"></div>
+            <div class="chart-bar" style="--bar-height: 70%"></div>
+            <div class="chart-bar" style="--bar-height: 95%"></div>
           </div>
         </div>
       </div>
 
-      <!-- STEP 4: OWNER ACCOUNT DETAILS -->
-      <div class="step-content" *ngIf="currentStep === 4" @stepAnimation>
-        <div class="step-title-area">
-          <h2>Create Owner Account</h2>
-          <p>Set up administrative credentials to log in and manage your gym.</p>
+      <!-- Section 4: Need Help? -->
+      <div class="help-widget">
+        <div class="help-header">
+          <mat-icon class="help-icon font-cyan">contact_support</mat-icon>
+          <span class="help-title">Need Help?</span>
         </div>
-
-        <form [formGroup]="ownerForm" (ngSubmit)="submitOwnerDetails()">
-          <div class="form-inputs-grid">
-            <mat-form-field appearance="outline" class="full-width">
-              <mat-label>Owner Full Name</mat-label>
-              <input matInput formControlName="ownerFullName" placeholder="Alex Johnson">
-              <mat-icon matSuffix>person</mat-icon>
-              <mat-error *ngIf="ownerForm.get('ownerFullName')?.hasError('required')">Name is required</mat-error>
-              <mat-error *ngIf="ownerForm.get('ownerFullName')?.hasError('minlength')">Must be at least 2 characters</mat-error>
-            </mat-form-field>
-
-            <div class="form-row">
-              <mat-form-field appearance="outline" class="flex-field">
-                <mat-label>Owner Email (Verified)</mat-label>
-                <input matInput formControlName="ownerEmail">
-                <mat-icon matSuffix>verified_user</mat-icon>
-              </mat-form-field>
-
-              <mat-form-field appearance="outline" class="flex-field">
-                <mat-label>Owner Contact Phone</mat-label>
-                <input matInput formControlName="ownerPhone" placeholder="+91 99887 76655">
-                <mat-icon matSuffix>phone</mat-icon>
-                <mat-error *ngIf="ownerForm.get('ownerPhone')?.hasError('required')">Phone number is required</mat-error>
-                <mat-error *ngIf="ownerForm.get('ownerPhone')?.hasError('pattern')">Please enter a valid phone number</mat-error>
-              </mat-form-field>
-            </div>
-
-            <mat-form-field appearance="outline" class="full-width">
-              <mat-label>Password</mat-label>
-              <input matInput [type]="hidePassword ? 'password' : 'text'" formControlName="ownerPassword">
-              <button mat-icon-button matSuffix (click)="hidePassword = !hidePassword" type="button" [attr.aria-label]="'Hide password'" [attr.aria-pressed]="hidePassword">
-                <mat-icon>{{hidePassword ? 'visibility_off' : 'visibility'}}</mat-icon>
-              </button>
-              <mat-error *ngIf="ownerForm.get('ownerPassword')?.hasError('required')">Password is required</mat-error>
-              <mat-error *ngIf="ownerForm.get('ownerPassword')?.hasError('minlength')">Must be at least 6 characters</mat-error>
-            </mat-form-field>
-          </div>
-
-          <div class="actions-row">
-            <button mat-button type="button" (click)="prevStep(2)" class="back-btn">
-              <mat-icon>chevron_left</mat-icon>
-              <span>Back</span>
-            </button>
-            <button mat-raised-button color="primary" type="submit" [disabled]="ownerForm.invalid" class="action-btn">
-              <span>Next: Setup Branch</span>
-              <mat-icon>chevron_right</mat-icon>
-            </button>
-          </div>
-        </form>
+        <p class="help-text">
+          Our onboarding team is ready to guide you. Contact core support at <strong>support@apexfit.com</strong> for assistance.
+        </p>
       </div>
 
-      <!-- STEP 5: CREATE DEFAULT BRANCH -->
-      <div class="step-content" *ngIf="currentStep === 5" @stepAnimation>
-        <div class="step-title-area">
-          <h2>Create Default Branch</h2>
-          <p>Every gym has at least one physical branch. Let's create your first location.</p>
-        </div>
-
-        <form [formGroup]="branchForm" (ngSubmit)="submitBranchDetails()">
-          <div class="form-inputs-grid">
-            <mat-form-field appearance="outline" class="full-width">
-              <mat-label>Branch Name</mat-label>
-              <input matInput formControlName="branchName" placeholder="Main HQ Branch">
-              <mat-icon matSuffix>store</mat-icon>
-              <mat-error *ngIf="branchForm.get('branchName')?.hasError('required')">Branch Name is required</mat-error>
-              <mat-error *ngIf="branchForm.get('branchName')?.hasError('minlength')">Must be at least 3 characters</mat-error>
-            </mat-form-field>
-
-            <mat-form-field appearance="outline" class="full-width">
-              <mat-label>Branch Phone</mat-label>
-              <input matInput formControlName="branchPhone" placeholder="+91 99887 76655">
-              <mat-icon matSuffix>phone</mat-icon>
-              <mat-error *ngIf="branchForm.get('branchPhone')?.hasError('required')">Phone is required</mat-error>
-              <mat-error *ngIf="branchForm.get('branchPhone')?.hasError('pattern')">Please enter a valid phone number</mat-error>
-            </mat-form-field>
-
-            <mat-form-field appearance="outline" class="full-width">
-              <mat-label>Branch Address</mat-label>
-              <input matInput formControlName="branchAddress" placeholder="Enter branch physical address">
-              <mat-icon matSuffix>place</mat-icon>
-              <mat-error *ngIf="branchForm.get('branchAddress')?.hasError('required')">Address is required</mat-error>
-            </mat-form-field>
-          </div>
-
-          <div class="actions-row">
-            <button mat-button type="button" (click)="prevStep(4)" class="back-btn">
-              <mat-icon>chevron_left</mat-icon>
-              <span>Back</span>
-            </button>
-            <button mat-raised-button color="primary" type="submit" [disabled]="branchForm.invalid" class="action-btn">
-              <span>Next: Setup Plans</span>
-              <mat-icon>chevron_right</mat-icon>
-            </button>
-          </div>
-        </form>
-      </div>
-
-      <!-- STEP 6: CREATE DEFAULT MEMBERSHIP PLANS -->
-      <div class="step-content" *ngIf="currentStep === 6" @stepAnimation>
-        <div class="step-title-area">
-          <h2>Configure Membership Plans</h2>
-          <p>We've pre-seeded standard baseline packages. Customize the pricing tiers or toggle them before launching.</p>
-        </div>
-
-        <div class="pricing-setup-list">
-          <div class="price-setup-card" *ngFor="let plan of plans; let i = index" [class.disabled]="!plan.enabled">
-            <div class="card-header-row">
-              <div class="card-header-left">
-                <label class="custom-checkbox-container">
-                  <input type="checkbox" [(ngModel)]="plan.enabled">
-                  <span class="checkmark"></span>
-                </label>
-                <input type="text" [(ngModel)]="plan.name" class="plan-name-input" *ngIf="plan.enabled" placeholder="Plan Name">
-                <span class="plan-name" *ngIf="!plan.enabled">{{ plan.name }}</span>
-              </div>
-              <div class="duration-edit-row" *ngIf="plan.enabled">
-                <input type="number" [(ngModel)]="plan.durationMonths" min="1" max="12" class="duration-number-input">
-                <span class="duration-label">Mo</span>
-              </div>
-              <span class="duration-badge" *ngIf="!plan.enabled">{{ plan.durationMonths }} Month{{ plan.durationMonths > 1 ? 's' : '' }}</span>
-            </div>
-            
-            <input type="text" [(ngModel)]="plan.description" class="plan-desc-input" *ngIf="plan.enabled" placeholder="Brief plan description...">
-            <p class="plan-desc" *ngIf="!plan.enabled">{{ plan.description }}</p>
-
-            <div class="plan-price-edit" *ngIf="plan.enabled">
-              <span class="currency-symbol">₹</span>
-              <input type="number" [(ngModel)]="plan.price" min="0" class="price-number-input">
-              <span class="billing-cycle">/ billing cycle</span>
-            </div>
-            
-            <div class="plan-features-list">
-              <div class="feature-item" *ngFor="let feat of plan.features">
-                <mat-icon class="feature-check">check</mat-icon>
-                <span>{{ feat }}</span>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        <div class="add-plan-action-row">
-          <button mat-stroked-button type="button" class="add-plan-btn" (click)="addNewPlan()">
-            <mat-icon>add</mat-icon>
-            <span>Add Custom Plan</span>
-          </button>
-        </div>
-
-        <div class="actions-row">
-          <button mat-button type="button" (click)="prevStep(5)" class="back-btn" [disabled]="isLoading">
-            <mat-icon>chevron_left</mat-icon>
-            <span>Back</span>
-          </button>
-          <button mat-raised-button color="primary" (click)="finalizeOnboarding()" class="action-btn" [disabled]="isLoading">
-            <mat-icon>rocket_launch</mat-icon>
-            <span>Finalize Workspace Onboarding</span>
-          </button>
-        </div>
-      </div>
-
-      <!-- STEP 7: FINAL ONBOARDING CONSOLE & REDIRECT -->
-      <div class="step-content onboarding-console" *ngIf="currentStep === 7" @stepAnimation>
-        <div class="step-title-area text-center">
-          <h2 class="gradient-text">Deploying ApexFit Tenant Environment</h2>
-          <p>Building your administrative database, default branch workspace, and pricing plan configurations...</p>
-        </div>
-
-        <div class="onboarding-progress-section">
-          <mat-progress-bar mode="determinate" [value]="onboardingProgress" class="premium-progress-bar"></mat-progress-bar>
-          <span class="progress-number">{{ onboardingProgress }}%</span>
-        </div>
-
-        <div class="console-box">
-          <div class="console-line" *ngFor="let task of onboardingTasks" [ngClass]="task.status">
-            <mat-icon class="status-icon" *ngIf="task.status === 'pending'">hourglass_empty</mat-icon>
-            <mat-icon class="status-icon spinner" *ngIf="task.status === 'running'">sync</mat-icon>
-            <mat-icon class="status-icon checked" *ngIf="task.status === 'done'">check_circle</mat-icon>
-            <span class="line-text">{{ task.label }}</span>
-          </div>
-        </div>
-      </div>
-    </div>
-
-    <!-- Switch Login links -->
-    <div class="login-prompt" *ngIf="currentStep !== 3 && currentStep !== 7">
-      Already have a gym account? <a routerLink="/login">Log In Instead</a>
     </div>
   </div>
 </div>

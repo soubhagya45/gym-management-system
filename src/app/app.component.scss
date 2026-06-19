@@ -49,7 +49,7 @@
       background: var(--accent-gradient);
       -webkit-background-clip: text;
       -webkit-text-fill-color: transparent;
-      filter: drop-shadow(0 0 8px var(--accent-color));
+      filter: drop-shadow(0 2px 4px rgba(6, 182, 212, 0.15));
     }
     
     .logo-text {
@@ -303,6 +303,7 @@
 
 /* Main Layout Shell */
 .main-content {
+  position: relative;
   flex: 1;
   display: flex;
   flex-direction: column;
@@ -310,6 +311,22 @@
   overflow: hidden;
   background-color: var(--bg-primary);
   transition: background-color var(--transition-speed) var(--transition-curve);
+
+  &::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-image: 
+      linear-gradient(rgba(255, 255, 255, 0.005) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(255, 255, 255, 0.005) 1px, transparent 1px);
+    background-size: 60px 60px;
+    background-position: center;
+    pointer-events: none;
+    z-index: 0;
+  }
 }
 
 .top-navbar {
