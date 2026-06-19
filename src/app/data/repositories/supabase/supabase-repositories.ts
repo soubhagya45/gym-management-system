@@ -144,12 +144,15 @@ export class SupabaseActivityLogRepository implements IActivityLogRepository {
 @Injectable({ providedIn: 'root' })
 export class SupabaseWhatsAppRepository implements IWhatsAppRepository {
   getTemplates(gymId: string): Observable<WhatsAppTemplate[]> { return throwError(() => new Error('Supabase integration is not enabled.')); }
+  addTemplate(gymId: string, template: Omit<WhatsAppTemplate, 'id'>): Observable<WhatsAppTemplate> { return throwError(() => new Error('Supabase integration is not enabled.')); }
   updateTemplate(gymId: string, template: WhatsAppTemplate): Observable<void> { return throwError(() => new Error('Supabase integration is not enabled.')); }
+  deleteTemplate(gymId: string, id: string): Observable<void> { return throwError(() => new Error('Supabase integration is not enabled.')); }
   getReminders(gymId: string): Observable<WhatsAppReminder[]> { return throwError(() => new Error('Supabase integration is not enabled.')); }
   addReminder(gymId: string, reminder: Omit<WhatsAppReminder, 'id'>): Observable<WhatsAppReminder> { return throwError(() => new Error('Supabase integration is not enabled.')); }
   updateReminder(gymId: string, reminder: WhatsAppReminder): Observable<void> { return throwError(() => new Error('Supabase integration is not enabled.')); }
   deleteReminder(gymId: string, id: string): Observable<void> { return throwError(() => new Error('Supabase integration is not enabled.')); }
 }
+
 
 @Injectable({ providedIn: 'root' })
 export class SupabaseBodyProgressRepository implements IBodyProgressRepository {

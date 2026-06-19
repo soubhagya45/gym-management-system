@@ -1,6 +1,7 @@
 import { Injectable, Inject } from '@angular/core';
 import { BehaviorSubject, Observable, of } from 'rxjs';
-import { map, switchMap, tap } from 'rxjs/operators';
+import { catchError, map, switchMap, tap } from 'rxjs/operators';
+
 import { IGymRepository, GYM_REPOSITORY_TOKEN } from '../../core/interfaces/repository.interfaces';
 import { Gym } from '../../core/models/gym.entity';
 import { TenantContextService } from '../../domain/tenancy/tenant-context.service';
@@ -29,34 +30,54 @@ export class GymState {
     })
   );
 
-
   constructor(
     @Inject(GYM_REPOSITORY_TOKEN) private gymRepository: IGymRepository,
     private tenantContext: TenantContextService,
     private subscriptionService: SubscriptionService
   ) {
-    this.loadGyms();
-
-    // Automatically synchronize active Gym details whenever Tenant ID changes
+    // ── Reactive gym list hydration ─────────────────────────────────────────────
+    // Mirrors the exact pattern used by MemberState, EmployeeState, LeadState,
+    // PaymentState, and PTState. No query fires until activeGymId$ emits a non-null
+    // value, which only happens AFTER APP_INITIALIZER (Firebase Auth resolution)
+    // has completed — eliminating the permission-denied race condition on refresh.
     this.tenantContext.activeGymId$.pipe(
       switchMap(gymId => {
-        if (!gymId) return of(null);
-        return this.gymRepository.getGymById(gymId);
+        if (!gymId) return of([]);
+        return this.gymRepository.getGyms().pipe(
+          catchError(err => {
+            console.error('[GymState] Error fetching gym list:', err);
+            return of([]);
+          })
+        );
       })
-    ).subscribe(gym => {
-      this.activeGymSubject.next(gym);
+    ).subscribe(gyms => {
+      this.gymsSubject.next(gyms);
+      // Derive activeGym from the freshly-loaded list to keep gyms$ and activeGym$
+      // always consistent without a second independent Firestore subscription.
+      const activeId = this.tenantContext.getTenantId();
+      const match = activeId ? gyms.find(g => g.gymId === activeId) : undefined;
+      this.activeGymSubject.next(match ?? null);
     });
   }
 
+  /**
+   * Manual refresh — re-queries the gym list from Firestore.
+   * Guards silently if no authenticated tenant context is present, consistent
+   * with MemberState.loadMembers() and EmployeeState.loadEmployees().
+   */
   loadGyms(): void {
-    this.gymRepository.getGyms().subscribe(gyms => {
+    const gymId = this.tenantContext.getTenantId();
+    if (!gymId) return;
+
+    this.gymRepository.getGyms().pipe(
+      catchError(err => {
+        console.error('[GymState] Error refreshing gym list:', err);
+        return of([]);
+      })
+    ).subscribe(gyms => {
       this.gymsSubject.next(gyms);
-      
-      const activeId = this.tenantContext.getTenantId();
-      if (activeId) {
-        const active = gyms.find(g => g.gymId === activeId);
-        if (active) this.activeGymSubject.next(active);
-      }
+      const active = gyms.find(g => g.gymId === gymId);
+      this.activeGymSubject.next(active ?? null);
     });
   }
 
@@ -90,4 +111,3 @@ export class GymState {
     );
   }
 }
-

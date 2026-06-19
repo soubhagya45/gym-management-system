@@ -1,6 +1,6 @@
 import { Injectable, Inject } from '@angular/core';
-import { BehaviorSubject, Observable, of } from 'rxjs';
-import { switchMap, tap } from 'rxjs/operators';
+import { BehaviorSubject, Observable, of, combineLatest } from 'rxjs';
+import { switchMap, tap, take, catchError } from 'rxjs/operators';
 import {
   IWhatsAppRepository,
   WHATSAPP_REPOSITORY_TOKEN,
@@ -10,6 +10,8 @@ import {
 import { WhatsAppTemplate } from '../../core/models/whatsapp-template.entity';
 import { WhatsAppReminder } from '../../core/models/whatsapp-reminder.entity';
 import { TenantContextService } from '../../domain/tenancy/tenant-context.service';
+import { GymState } from './gym.state';
+import { buildDefaultWhatsAppTemplates } from '../../core/models/default-whatsapp-templates';
 
 @Injectable({
   providedIn: 'root'
@@ -24,15 +26,15 @@ export class WhatsAppState {
   constructor(
     @Inject(WHATSAPP_REPOSITORY_TOKEN) private whatsappRepository: IWhatsAppRepository,
     @Inject(ACTIVITY_LOG_REPOSITORY_TOKEN) private logRepository: IActivityLogRepository,
-    private tenantContext: TenantContextService
+    private tenantContext: TenantContextService,
+    private gymState: GymState
   ) {
-    // React to tenant changes
+    // React to tenant changes — load templates and reminders
     this.tenantContext.activeGymId$.pipe(
       switchMap(gymId => {
         if (!gymId) {
           return of({ templates: [], reminders: [] });
         }
-        // Fetch both templates and reminders
         return this.whatsappRepository.getTemplates(gymId).pipe(
           switchMap(templates => {
             return this.whatsappRepository.getReminders(gymId).pipe(
@@ -40,12 +42,26 @@ export class WhatsAppState {
                 return of({ templates, reminders });
               })
             );
-          })
+          }),
+          catchError(() => of({ templates: [], reminders: [] }))
         );
       })
     ).subscribe(data => {
       this.templatesSubject.next(data.templates);
       this.remindersSubject.next(data.reminders);
+
+      // Back-fill default templates for existing gyms registered before this feature.
+      // Only runs once when the gym loads and has no templates yet.
+      if (data.templates.length === 0) {
+        const gymId = this.tenantContext.getTenantId();
+        if (gymId) {
+          this.gymState.activeGym$.pipe(take(1)).subscribe(gym => {
+            if (gym) {
+              this.ensureDefaultTemplates(gymId, gym.gymName);
+            }
+          });
+        }
+      }
     });
   }
 
@@ -67,6 +83,21 @@ export class WhatsAppState {
     }
   }
 
+  /**
+   * Adds a new custom WhatsApp template for the active gym.
+   */
+  addTemplate(template: Omit<WhatsAppTemplate, 'id' | 'gymId'>): Observable<WhatsAppTemplate> {
+    const gymId = this.tenantContext.getTenantId();
+    if (!gymId) throw new Error('No active tenant selected');
+
+    return this.whatsappRepository.addTemplate(gymId, { ...template, gymId }).pipe(
+      tap(saved => {
+        this.templatesSubject.next([...this.templatesSubject.value, saved]);
+        this.logRepository.addLog(gymId, `Created WhatsApp template: "${saved.name}"`, 'plan-change').subscribe();
+      })
+    );
+  }
+
   updateTemplate(template: WhatsAppTemplate): Observable<void> {
     const gymId = this.tenantContext.getTenantId();
     if (!gymId) throw new Error('No active tenant selected');
@@ -76,6 +107,47 @@ export class WhatsAppState {
         this.loadTemplates();
       })
     );
+  }
+
+  /**
+   * Deletes a WhatsApp template.
+   */
+  deleteTemplate(id: string): Observable<void> {
+    const gymId = this.tenantContext.getTenantId();
+    if (!gymId) throw new Error('No active tenant selected');
+
+    return this.whatsappRepository.deleteTemplate(gymId, id).pipe(
+      tap(() => {
+        this.templatesSubject.next(this.templatesSubject.value.filter(t => t.id !== id));
+        this.logRepository.addLog(gymId, `Deleted WhatsApp template`, 'plan-change').subscribe();
+      })
+    );
+  }
+
+  /**
+   * Seeds the 8 default WhatsApp templates for a gym that has none.
+   * Called automatically when a gym loads with an empty template list,
+   * providing backward compatibility for gyms registered before onboarding seeding was added.
+   */
+  private ensureDefaultTemplates(gymId: string, gymName: string): void {
+    const defaults = buildDefaultWhatsAppTemplates(gymId, gymName);
+    const saves = defaults.map(t =>
+      this.whatsappRepository.addTemplate(gymId, t)
+    );
+
+    // Use forkJoin-style sequential saves via individual subscriptions
+    saves.forEach(save$ => {
+      save$.pipe(
+        catchError(err => {
+          console.error('[WhatsAppState] Failed to seed default template:', err);
+          return of(null);
+        })
+      ).subscribe(saved => {
+        if (saved) {
+          this.templatesSubject.next([...this.templatesSubject.value, saved]);
+        }
+      });
+    });
   }
 
   sendReminder(reminder: Omit<WhatsAppReminder, 'id' | 'gymId' | 'status' | 'sentTime'>): Observable<WhatsAppReminder> {
@@ -153,3 +225,5 @@ export class WhatsAppState {
     );
   }
 }
+
+

@@ -2041,6 +2041,16 @@ export class MockWhatsAppRepository implements IWhatsAppRepository {
     return of(dbWhatsAppTemplates.filter(t => t.gymId === gymId)).pipe(delay(200));
   }
 
+  addTemplate(gymId: string, template: Omit<WhatsAppTemplate, 'id'>): Observable<WhatsAppTemplate> {
+    const newTpl: WhatsAppTemplate = {
+      ...template,
+      id: 'tpl_' + Math.random().toString(36).substring(2, 9),
+      gymId
+    };
+    dbWhatsAppTemplates.push(newTpl);
+    return of(newTpl).pipe(delay(200));
+  }
+
   updateTemplate(gymId: string, template: WhatsAppTemplate): Observable<void> {
     const idx = dbWhatsAppTemplates.findIndex(t => t.gymId === gymId && t.id === template.id);
     if (idx !== -1) {
@@ -2048,6 +2058,13 @@ export class MockWhatsAppRepository implements IWhatsAppRepository {
     }
     return of(undefined).pipe(delay(200));
   }
+
+  deleteTemplate(gymId: string, id: string): Observable<void> {
+    const idx = dbWhatsAppTemplates.findIndex(t => t.gymId === gymId && t.id === id);
+    if (idx !== -1) dbWhatsAppTemplates.splice(idx, 1);
+    return of(undefined).pipe(delay(200));
+  }
+
 
   getReminders(gymId: string): Observable<WhatsAppReminder[]> {
     return of(dbWhatsAppReminders.filter(r => r.gymId === gymId)).pipe(delay(200));

@@ -11,6 +11,7 @@ import { SubscriptionPlan } from '../../../core/enums/subscription-plans.enum';
 import { createUserWithEmailAndPassword } from 'firebase/auth';
 import { doc, setDoc } from 'firebase/firestore';
 import { Employee } from '../../../core/models/employee.entity';
+import { buildDefaultWhatsAppTemplates } from '../../../core/models/default-whatsapp-templates';
 
 @Injectable({ providedIn: 'root' })
 export class FirebaseOnboardingRepository implements IOnboardingRepository {
@@ -129,7 +130,7 @@ export class FirebaseOnboardingRepository implements IOnboardingRepository {
           from(setDoc(doc(db, 'employees', uid), ownerEmployee))
         ];
 
-        // Seed initial plans if enabled in onboarding
+        // Seed initial membership plans if enabled in onboarding
         if (payload.plans && payload.plans.length > 0) {
           payload.plans.forEach(planConfig => {
             if (planConfig.enabled) {
@@ -149,6 +150,16 @@ export class FirebaseOnboardingRepository implements IOnboardingRepository {
           });
         }
 
+        // ── Seed 8 default WhatsApp message templates ──────────────────────────
+        // These templates are available immediately in the WhatsApp Reminder Center
+        // so the gym owner can start sending messages without manual setup.
+        const defaultTemplates = buildDefaultWhatsAppTemplates(gymId, payload.gymName);
+        defaultTemplates.forEach(templateData => {
+          const tplId = 'tpl_' + Math.random().toString(36).substring(2, 10);
+          const fullTemplate = { ...templateData, id: tplId };
+          ops.push(from(setDoc(doc(db, 'whatsapp_templates', tplId), fullTemplate)));
+        });
+
         return forkJoin(ops).pipe(
           map(() => ({ gym: newGym, owner: ownerProfile }))
         );
@@ -157,3 +168,4 @@ export class FirebaseOnboardingRepository implements IOnboardingRepository {
     );
   }
 }
+

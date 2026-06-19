@@ -1,6 +1,7 @@
 import { Component, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
+import { WhatsAppTemplateType } from '../../core/models/whatsapp-template.entity';
 import { MatTabsModule } from '@angular/material/tabs';
 import { MatCardModule } from '@angular/material/card';
 import { MatIconModule } from '@angular/material/icon';
@@ -11,6 +12,7 @@ import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatInputModule } from '@angular/material/input';
 import { MatDialog, MatDialogModule } from '@angular/material/dialog';
 import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
+import { MatSelectModule } from '@angular/material/select';
 
 import { WhatsAppState } from '../../presentation/state/whatsapp.state';
 import { WhatsAppTemplate } from '../../core/models/whatsapp-template.entity';
@@ -33,6 +35,7 @@ import { WhatsAppPreviewModalComponent } from './whatsapp-preview-modal.componen
     MatTooltipModule,
     MatFormFieldModule,
     MatInputModule,
+    MatSelectModule,
     MatDialogModule,
     MatSnackBarModule
   ],
@@ -57,6 +60,21 @@ export class WhatsAppComponent implements OnInit {
   // Editing template state
   editingTemplateId: string | null = null;
   editingBody = '';
+
+  // Add-template form state
+  showAddTemplateForm = false;
+  newTemplateName = '';
+  newTemplateType: WhatsAppTemplateType = 'welcome_message';
+  newTemplateBody = '';
+  isSubmittingTemplate = false;
+
+  templateTypes: { value: WhatsAppTemplateType; label: string }[] = [
+    { value: 'welcome_message',     label: 'Welcome Message' },
+    { value: 'renewal_reminder',    label: 'Renewal Reminder' },
+    { value: 'payment_reminder',    label: 'Payment Reminder' },
+    { value: 'trial_follow_up',     label: 'Trial Follow-Up' },
+    { value: 'attendance_reminder', label: 'Attendance Reminder' }
+  ];
 
   // Table columns
   scheduledColumns = ['recipient', 'phone', 'template', 'scheduledTime', 'actions'];
@@ -166,6 +184,61 @@ export class WhatsAppComponent implements OnInit {
 
   insertVariable(variable: string): void {
     this.editingBody += variable;
+  }
+
+  insertNewVariable(variable: string): void {
+    this.newTemplateBody += variable;
+  }
+
+  openAddTemplateForm(): void {
+    this.showAddTemplateForm = true;
+    this.newTemplateName = '';
+    this.newTemplateType = 'welcome_message';
+    this.newTemplateBody = '';
+  }
+
+  cancelAddTemplate(): void {
+    this.showAddTemplateForm = false;
+  }
+
+  saveNewTemplate(): void {
+    if (!this.newTemplateName.trim() || !this.newTemplateBody.trim()) {
+      this.snackBar.open('Template name and body are required.', 'Dismiss', { duration: 3000 });
+      return;
+    }
+    if (this.isSubmittingTemplate) return;
+    this.isSubmittingTemplate = true;
+
+    const template = {
+      name: this.newTemplateName.trim(),
+      type: this.newTemplateType,
+      body: this.newTemplateBody.trim(),
+      variables: this.availableVariables
+        .filter(v => this.newTemplateBody.includes(v.name))
+        .map(v => v.name),
+      isActive: true
+    };
+
+    this.whatsappState.addTemplate(template).subscribe({
+      next: () => {
+        this.isSubmittingTemplate = false;
+        this.showAddTemplateForm = false;
+        this.snackBar.open(`Template "${template.name}" created!`, 'Dismiss', {
+          duration: 3000,
+          panelClass: ['premium-snack']
+        });
+      },
+      error: () => {
+        this.isSubmittingTemplate = false;
+        this.snackBar.open('Failed to create template. Please try again.', 'Dismiss', { duration: 3000 });
+      }
+    });
+  }
+
+  deleteTemplate(template: WhatsAppTemplate): void {
+    this.whatsappState.deleteTemplate(template.id).subscribe(() => {
+      this.snackBar.open(`Template "${template.name}" deleted.`, 'Dismiss', { duration: 3000 });
+    });
   }
 
   // --- Scheduled Reminders ---

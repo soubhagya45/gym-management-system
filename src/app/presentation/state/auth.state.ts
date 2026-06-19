@@ -59,6 +59,59 @@ export class AuthState {
     return this.permissionService.canAccessRoute(this.currentUserValue, routePath);
   }
 
+  /**
+   * Awaits the first Firebase Auth state resolution (onAuthStateChanged).
+   *
+   * This is called by APP_INITIALIZER to gate Angular bootstrapping until
+   * Firebase has recovered the user token from IndexedDB. This eliminates
+   * the race condition where Firestore queries fire before the auth token
+   * is available, causing permission-denied errors and empty UI state.
+   *
+   * Synchronisation logic:
+   * - If Firebase resolves a valid user → session is already live, proceed normally.
+   * - If Firebase resolves null but localStorage has a cached session → the server-side
+   *   session has expired or been revoked. Clear local state and redirect to /login.
+   * - If no localStorage session → normal unauthenticated state, nothing to do.
+   *
+   * @param firebaseAuth The Firebase Auth instance (injected by APP_INITIALIZER factory).
+   */
+  waitForAuthResolution(firebaseAuth: import('firebase/auth').Auth): Promise<void> {
+    return new Promise<void>((resolve) => {
+      // Import onAuthStateChanged lazily to avoid a hard dependency in the provider-agnostic state layer.
+      import('firebase/auth').then(({ onAuthStateChanged }) => {
+        const unsubscribe = onAuthStateChanged(firebaseAuth, (firebaseUser) => {
+          // Unsubscribe immediately — we only need the first emission.
+          unsubscribe();
+
+          if (!firebaseUser) {
+            // Firebase reports no authenticated user.
+            // If we have a stale localStorage session, evict it now — before any
+            // data queries run — so the app starts in a clean unauthenticated state.
+            const hasCachedSession = !!localStorage.getItem(this.STORAGE_KEY);
+            if (hasCachedSession) {
+              console.warn('[AuthState] Firebase Auth resolved null but localStorage has a cached session. Clearing stale session.');
+              localStorage.removeItem(this.STORAGE_KEY);
+              this.currentUserSubject.next(null);
+              this.tenantContext.setTenantId(null);
+              this.sessionService.stop();
+              // Navigate to login after Angular finishes bootstrapping.
+              // Using a microtask ensures the router is fully initialised.
+              Promise.resolve().then(() => this.router.navigate(['/login']));
+            }
+          }
+          // If firebaseUser is non-null, the existing loadSession() already populated
+          // the state from localStorage. The session is valid — no action needed.
+
+          resolve();
+        });
+      }).catch(() => {
+        // If the firebase/auth import fails (e.g. Mock provider), resolve immediately
+        // so the app still boots normally in non-Firebase environments.
+        resolve();
+      });
+    });
+  }
+
   private loadSession(): void {
     try {
       const saved = localStorage.getItem(this.STORAGE_KEY);

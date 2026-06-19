@@ -80,6 +80,10 @@ function getBranchFilteredQuery(injector: Injector, firebaseService: FirebaseSer
   const colRef = collection(db, collectionName);
 
   if (!user) {
+    // Defensive guard: APP_INITIALIZER should prevent queries from reaching here
+    // without an authenticated user. If this warning appears, investigate whether
+    // the initializer ran correctly or whether localStorage was corrupt on startup.
+    console.warn(`[getBranchFilteredQuery] No authenticated user found when querying '${collectionName}'. Firestore rules will reject this request.`);
     return query(colRef, where('gymId', '==', gymId));
   }
 
@@ -1560,6 +1564,16 @@ export class FirebaseWhatsAppRepository implements IWhatsAppRepository {
     );
   }
 
+  addTemplate(gymId: string, template: Omit<WhatsAppTemplate, 'id'>): Observable<WhatsAppTemplate> {
+    const db = this.firebaseService.getDb();
+    const id = 'tpl_' + Math.random().toString(36).substring(2, 10);
+    const newTemplate: WhatsAppTemplate = { ...template, id, gymId };
+    return from(setDoc(doc(db, 'whatsapp_templates', id), newTemplate)).pipe(
+      map(() => newTemplate),
+      catchError(err => throwError(() => new Error(err.message || 'Failed to add WhatsApp template.')))
+    );
+  }
+
   updateTemplate(gymId: string, template: WhatsAppTemplate): Observable<void> {
     const db = this.firebaseService.getDb();
     return from(setDoc(doc(db, 'whatsapp_templates', template.id), template)).pipe(
@@ -1567,6 +1581,15 @@ export class FirebaseWhatsAppRepository implements IWhatsAppRepository {
       catchError(err => throwError(() => new Error(err.message || 'Failed to update template.')))
     );
   }
+
+  deleteTemplate(gymId: string, id: string): Observable<void> {
+    const db = this.firebaseService.getDb();
+    return from(deleteDoc(doc(db, 'whatsapp_templates', id))).pipe(
+      map(() => undefined),
+      catchError(err => throwError(() => new Error(err.message || 'Failed to delete WhatsApp template.')))
+    );
+  }
+
 
   getReminders(gymId: string): Observable<WhatsAppReminder[]> {
     const db = this.firebaseService.getDb();

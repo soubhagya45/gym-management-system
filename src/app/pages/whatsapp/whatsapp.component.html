@@ -55,6 +55,58 @@
         </ng-template>
 
         <div class="tab-content">
+
+          <!-- Tab Actions Bar -->
+          <div class="tab-actions-bar mt-2">
+            <button mat-raised-button color="primary" (click)="openAddTemplateForm()" [disabled]="showAddTemplateForm">
+              <mat-icon>add</mat-icon>
+              <span>Add Template</span>
+            </button>
+          </div>
+
+          <!-- Add Template Inline Form -->
+          <div class="add-template-form-panel mat-card mt-3" *ngIf="showAddTemplateForm">
+            <h3 class="form-section-title"><mat-icon>add_circle</mat-icon> New Message Template</h3>
+
+            <div class="add-tpl-fields">
+              <mat-form-field appearance="outline" class="w-100">
+                <mat-label>Template Name</mat-label>
+                <input matInput [(ngModel)]="newTemplateName" placeholder="e.g. Birthday Greeting" />
+              </mat-form-field>
+
+              <mat-form-field appearance="outline" class="w-100">
+                <mat-label>Template Type</mat-label>
+                <mat-select [(ngModel)]="newTemplateType">
+                  <mat-option *ngFor="let t of templateTypes" [value]="t.value">{{ t.label }}</mat-option>
+                </mat-select>
+              </mat-form-field>
+
+              <mat-form-field appearance="outline" class="w-100">
+                <mat-label>Message Body</mat-label>
+                <textarea matInput rows="5" [(ngModel)]="newTemplateBody" placeholder="Type your message here..."></textarea>
+              </mat-form-field>
+
+              <div class="variables-editor-panel">
+                <span class="panel-lbl">Insert Variable placeholder:</span>
+                <div class="chips-editor-container">
+                  <button mat-button class="var-insert-btn" *ngFor="let v of availableVariables"
+                          (click)="insertNewVariable(v.name)" [matTooltip]="v.desc">
+                    {{ v.name }}
+                  </button>
+                </div>
+              </div>
+            </div>
+
+            <div class="edit-actions-row mt-3">
+              <button mat-button (click)="cancelAddTemplate()">Cancel</button>
+              <span class="spacer"></span>
+              <button mat-raised-button color="primary" (click)="saveNewTemplate()" [disabled]="isSubmittingTemplate">
+                <mat-icon>save</mat-icon>
+                <span>{{ isSubmittingTemplate ? 'Saving...' : 'Save Template' }}</span>
+              </button>
+            </div>
+          </div>
+
           <div class="templates-grid mt-3" *ngIf="templates$ | async as templates">
             
             <div class="template-card mat-card" [class.interactive]="editingTemplateId !== tpl.id" *ngFor="let tpl of templates" [class.editing]="editingTemplateId === tpl.id">
@@ -83,18 +135,23 @@
                   <div class="template-preview-text">
                     {{ tpl.body }}
                   </div>
-                  <div class="template-card-footer mt-3">
-                    <div class="variables-indicator">
-                      <span class="label">Placeholders:</span>
-                      <div class="chips-container">
-                        <span class="var-chip" *ngFor="let v of tpl.variables">{{ v }}</span>
+                    <div class="tpl-card-footer mt-3">
+                      <div class="variables-indicator">
+                        <span class="label">Placeholders:</span>
+                        <div class="chips-container">
+                          <span class="var-chip" *ngFor="let v of tpl.variables">{{ v }}</span>
+                        </div>
+                      </div>
+                      <div class="tpl-card-actions">
+                        <button mat-icon-button color="warn" (click)="deleteTemplate(tpl)" matTooltip="Delete Template">
+                          <mat-icon>delete_outline</mat-icon>
+                        </button>
+                        <button mat-stroked-button color="accent" (click)="startEditTemplate(tpl)">
+                          <mat-icon>edit</mat-icon>
+                          <span>Edit Template</span>
+                        </button>
                       </div>
                     </div>
-                    <button mat-stroked-button color="accent" (click)="startEditTemplate(tpl)">
-                      <mat-icon>edit</mat-icon>
-                      <span>Edit Template</span>
-                    </button>
-                  </div>
                 </ng-container>
 
                 <!-- EDIT MODE -->

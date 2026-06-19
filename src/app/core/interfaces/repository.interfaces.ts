@@ -112,7 +112,9 @@ export interface IAuditLogRepository {
 
 export interface IWhatsAppRepository {
   getTemplates(gymId: string): Observable<WhatsAppTemplate[]>;
+  addTemplate(gymId: string, template: Omit<WhatsAppTemplate, 'id'>): Observable<WhatsAppTemplate>;
   updateTemplate(gymId: string, template: WhatsAppTemplate): Observable<void>;
+  deleteTemplate(gymId: string, id: string): Observable<void>;
   getReminders(gymId: string): Observable<WhatsAppReminder[]>;
   addReminder(gymId: string, reminder: Omit<WhatsAppReminder, 'id'>): Observable<WhatsAppReminder>;
   updateReminder(gymId: string, reminder: WhatsAppReminder): Observable<void>;

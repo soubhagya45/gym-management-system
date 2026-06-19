@@ -324,8 +324,16 @@ export class ApiWhatsAppRepository extends BaseApiRepository implements IWhatsAp
     return this.get<WhatsAppTemplate[]>('/templates', { params: new HttpParams().set('gymId', gymId) });
   }
 
+  addTemplate(gymId: string, template: Omit<WhatsAppTemplate, 'id'>): Observable<WhatsAppTemplate> {
+    return this.post<WhatsAppTemplate>('/templates', template, { params: new HttpParams().set('gymId', gymId) });
+  }
+
   updateTemplate(gymId: string, template: WhatsAppTemplate): Observable<void> {
     return this.put<void>(`/templates/${template.id}`, template, { params: new HttpParams().set('gymId', gymId) });
+  }
+
+  deleteTemplate(gymId: string, id: string): Observable<void> {
+    return this.delete<void>(`/templates/${id}`, { params: new HttpParams().set('gymId', gymId) });
   }
 
   getReminders(gymId: string): Observable<WhatsAppReminder[]> {
@@ -343,6 +351,7 @@ export class ApiWhatsAppRepository extends BaseApiRepository implements IWhatsAp
   deleteReminder(gymId: string, id: string): Observable<void> {
     return this.delete<void>(`/reminders/${id}`, { params: new HttpParams().set('gymId', gymId) });
   }
+
 }
 
 @Injectable({ providedIn: 'root' })
