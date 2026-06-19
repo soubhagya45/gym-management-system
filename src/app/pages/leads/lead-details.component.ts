@@ -18,6 +18,7 @@ import { LeadDialogComponent } from './lead-dialog.component';
 import { ConfirmDialogComponent } from '../members/confirm-dialog.component';
 import { ConvertDialogComponent } from './convert-dialog.component';
 import { LogFollowUpDialogComponent } from './log-followup-dialog.component';
+import { SubmissionGuardService } from '../../services/submission-guard.service';
 
 @Component({
   selector: 'app-lead-details',
@@ -47,7 +48,8 @@ export class LeadDetailsComponent implements OnInit {
     private memberState: MemberState,
     private dialog: MatDialog,
     private snackBar: MatSnackBar,
-    private router: Router
+    private router: Router,
+    public submissionGuard: SubmissionGuardService
   ) {}
 
   ngOnInit(): void {
@@ -89,11 +91,23 @@ export class LeadDetailsComponent implements OnInit {
 
     dialogRef.afterClosed().subscribe(result => {
       if (result) {
-        this.leadState.updateLead(result).subscribe(() => {
-          this.snackBar.open('Lead details updated successfully!', 'Dismiss', {
-            duration: 3000,
-            panelClass: ['premium-snack']
-          });
+        if (!this.submissionGuard.start('lead-update')) {
+          return;
+        }
+        this.leadState.updateLead(result).subscribe({
+          next: () => {
+            this.submissionGuard.end('lead-update');
+            this.snackBar.open('Lead details updated successfully!', 'Dismiss', {
+              duration: 3000,
+              panelClass: ['premium-snack']
+            });
+          },
+          error: (err) => {
+            this.submissionGuard.end('lead-update');
+            this.snackBar.open(err.message || 'Failed to update lead details', 'Dismiss', {
+              duration: 3000
+            });
+          }
         });
       }
     });
@@ -135,11 +149,24 @@ export class LeadDetailsComponent implements OnInit {
 
     dialogRef.afterClosed().subscribe(result => {
       if (result && result.memberDetails && result.conversionDetails) {
-        this.leadState.convertLeadToMember(this.leadId, result.memberDetails, result.conversionDetails).subscribe(() => {
-          this.snackBar.open(`Lead ${this.lead?.name} successfully converted to member!`, 'Dismiss', {
-            duration: 3000,
-            panelClass: ['premium-snack']
-          });
+        if (!this.submissionGuard.start('lead-convert')) {
+          return;
+        }
+        this.leadState.convertLeadToMember(this.leadId, result.memberDetails, result.conversionDetails).subscribe({
+          next: () => {
+            this.submissionGuard.end('lead-convert');
+            this.snackBar.open(`Lead ${this.lead?.name} successfully converted to member!`, 'Dismiss', {
+              duration: 3000,
+              panelClass: ['premium-snack']
+            });
+            this.router.navigate(['/members']);
+          },
+          error: (err) => {
+            this.submissionGuard.end('lead-convert');
+            this.snackBar.open(err.message || 'Failed to convert lead', 'Dismiss', {
+              duration: 3000
+            });
+          }
         });
       }
     });
@@ -177,11 +204,23 @@ export class LeadDetailsComponent implements OnInit {
 
     dialogRef.afterClosed().subscribe(result => {
       if (result) {
-        this.leadState.logFollowUp(this.leadId, result).subscribe(() => {
-          this.snackBar.open('Lead follow-up logged successfully!', 'Dismiss', {
-            duration: 3000,
-            panelClass: ['premium-snack']
-          });
+        if (!this.submissionGuard.start('lead-followup')) {
+          return;
+        }
+        this.leadState.logFollowUp(this.leadId, result).subscribe({
+          next: () => {
+            this.submissionGuard.end('lead-followup');
+            this.snackBar.open('Lead follow-up logged successfully!', 'Dismiss', {
+              duration: 3000,
+              panelClass: ['premium-snack']
+            });
+          },
+          error: (err) => {
+            this.submissionGuard.end('lead-followup');
+            this.snackBar.open(err.message || 'Failed to log follow-up', 'Dismiss', {
+              duration: 3000
+            });
+          }
         });
       }
     });

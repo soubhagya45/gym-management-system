@@ -12,6 +12,7 @@ import { MatNativeDateModule } from '@angular/material/core';
 import { MatIconModule } from '@angular/material/icon';
 import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
 import { MatDividerModule } from '@angular/material/divider';
+import { SubmissionGuardService } from '../../services/submission-guard.service';
 
 import { LeadState } from '../../presentation/state/lead.state';
 import { MembershipPlanState } from '../../presentation/state/membership-plan.state';
@@ -93,7 +94,8 @@ export class AddLeadComponent implements OnInit {
     private ptState: PTState,
     private trainerState: TrainerState,
     private snackBar: MatSnackBar,
-    private router: Router
+    private router: Router,
+    public submissionGuard: SubmissionGuardService
   ) {}
 
   ngOnInit(): void {
@@ -195,6 +197,10 @@ export class AddLeadComponent implements OnInit {
 
   onSubmit(): void {
     if (this.leadForm.valid) {
+      if (!this.submissionGuard.start('lead-create')) {
+        return;
+      }
+
       const formValue = this.leadForm.value;
       const assignedEmp = this.employees.find(e => e.id === formValue.assignedEmployee);
       
@@ -212,12 +218,21 @@ export class AddLeadComponent implements OnInit {
         reasonLost: formValue.status === 'Lost' ? formValue.reasonLost : ''
       };
 
-      this.leadState.addLead(formattedLead).subscribe(() => {
-        this.snackBar.open('New lead registered successfully!', 'Dismiss', {
-          duration: 3000,
-          panelClass: ['premium-snack']
-        });
-        this.router.navigate(['/leads']);
+      this.leadState.addLead(formattedLead).subscribe({
+        next: () => {
+          this.submissionGuard.end('lead-create');
+          this.snackBar.open('New lead registered successfully!', 'Dismiss', {
+            duration: 3000,
+            panelClass: ['premium-snack']
+          });
+          this.router.navigate(['/leads']);
+        },
+        error: (err) => {
+          this.submissionGuard.end('lead-create');
+          this.snackBar.open(err.message || 'Failed to register lead', 'Dismiss', {
+            duration: 3000
+          });
+        }
       });
     }
   }

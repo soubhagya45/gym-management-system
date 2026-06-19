@@ -257,9 +257,10 @@
 
       <div class="form-actions">
         <button mat-button type="button" routerLink="/leads" class="cancel-btn">Cancel</button>
-        <button mat-raised-button color="primary" type="submit" [disabled]="leadForm.invalid" class="submit-btn">
-          <mat-icon>check_circle</mat-icon>
-          <span>Save Lead Profile</span>
+        <button mat-raised-button color="primary" type="submit" [disabled]="leadForm.invalid || (submissionGuard.isSubmitting('lead-create') | async)" class="submit-btn">
+          <mat-icon *ngIf="!(submissionGuard.isSubmitting('lead-create') | async)">check_circle</mat-icon>
+          <mat-icon *ngIf="submissionGuard.isSubmitting('lead-create') | async" class="spin-icon">sync</mat-icon>
+          <span>{{ (submissionGuard.isSubmitting('lead-create') | async) ? 'Saving Lead...' : 'Save Lead Profile' }}</span>
         </button>
       </div>
     </form>

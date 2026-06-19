@@ -19,6 +19,7 @@ import { MembershipPlanState } from '../../presentation/state/membership-plan.st
 import { EmployeeState } from '../../presentation/state/employee.state';
 import { PTState } from '../../presentation/state/pt.state';
 import { TrainerState } from '../../presentation/state/trainer.state';
+import { SubmissionGuardService } from '../../services/submission-guard.service';
 
 @Component({
   selector: 'app-lead-dialog',
@@ -278,9 +279,10 @@ import { TrainerState } from '../../presentation/state/trainer.state';
       </mat-dialog-content>
       
       <mat-dialog-actions align="end" class="dialog-actions">
-        <button mat-button type="button" (click)="onCancel()">Cancel</button>
-        <button mat-raised-button color="primary" type="submit" [disabled]="leadForm.invalid">
-          {{ isEdit ? 'Save Changes' : 'Add Lead' }}
+        <button mat-button type="button" (click)="onCancel()" [disabled]="submissionGuard.isSubmitting('lead-edit') | async">Cancel</button>
+        <button mat-raised-button color="primary" type="submit" [disabled]="leadForm.invalid || (submissionGuard.isSubmitting('lead-edit') | async)">
+          <mat-icon *ngIf="submissionGuard.isSubmitting('lead-edit') | async" class="spin-icon" style="margin-right: 8px;">sync</mat-icon>
+          <span>{{ (submissionGuard.isSubmitting('lead-edit') | async) ? 'Saving...' : (isEdit ? 'Save Changes' : 'Add Lead') }}</span>
         </button>
       </mat-dialog-actions>
     </form>
@@ -424,6 +426,7 @@ export class LeadDialogComponent implements OnInit {
     private ptState: PTState,
     private trainerState: TrainerState,
     private dialogRef: MatDialogRef<LeadDialogComponent>,
+    public submissionGuard: SubmissionGuardService,
     @Inject(MAT_DIALOG_DATA) public data: Lead | null
   ) { }
  
@@ -530,6 +533,9 @@ export class LeadDialogComponent implements OnInit {
  
   onSubmit(): void {
     if (this.leadForm.valid) {
+      if (!this.submissionGuard.start('lead-edit')) {
+        return;
+      }
       const formValue = this.leadForm.value;
       const assignedEmp = this.employees.find(e => e.id === formValue.assignedEmployee);
  
@@ -553,6 +559,7 @@ export class LeadDialogComponent implements OnInit {
       } else {
         this.dialogRef.close(formattedLead);
       }
+      this.submissionGuard.end('lead-edit');
     }
   }
 

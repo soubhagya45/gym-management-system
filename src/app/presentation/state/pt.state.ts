@@ -1,6 +1,6 @@
 import { Injectable, Inject } from '@angular/core';
 import { BehaviorSubject, Observable, of, combineLatest } from 'rxjs';
-import { switchMap, tap, take, map } from 'rxjs/operators';
+import { switchMap, tap, take, map, catchError } from 'rxjs/operators';
 import {
   IPersonalTrainingRepository,
   PERSONAL_TRAINING_REPOSITORY_TOKEN,
@@ -46,16 +46,49 @@ export class PTState {
     private paymentState: PaymentState,
     private memberState: MemberState
   ) {
-    this.tenantContext.activeGymId$.pipe(
-      switchMap(gymId => {
+    combineLatest([
+      this.tenantContext.activeGymId$,
+      this.tenantContext.activeBranchId$
+    ]).pipe(
+      switchMap(([gymId, branchId]) => {
         if (!gymId) return of(null);
         return combineLatest([
-          this.ptRepository.getPTPlans(gymId),
-          this.ptRepository.getPTSessions(gymId),
-          this.ptRepository.getTrainerAssignments(gymId),
-          this.ptRepository.getSessionHistory(gymId),
-          this.ptRepository.getTrainerRevenue(gymId),
-          this.ptRepository.getMemberPTPlans(gymId)
+          this.ptRepository.getPTPlans(gymId).pipe(
+            catchError(err => {
+              console.error('Error fetching PT plans:', err);
+              return of([]);
+            })
+          ),
+          this.ptRepository.getPTSessions(gymId).pipe(
+            catchError(err => {
+              console.error('Error fetching PT sessions:', err);
+              return of([]);
+            })
+          ),
+          this.ptRepository.getTrainerAssignments(gymId).pipe(
+            catchError(err => {
+              console.error('Error fetching trainer assignments:', err);
+              return of([]);
+            })
+          ),
+          this.ptRepository.getSessionHistory(gymId).pipe(
+            catchError(err => {
+              console.error('Error fetching session history:', err);
+              return of([]);
+            })
+          ),
+          this.ptRepository.getTrainerRevenue(gymId).pipe(
+            catchError(err => {
+              console.error('Error fetching trainer revenue:', err);
+              return of([]);
+            })
+          ),
+          this.ptRepository.getMemberPTPlans(gymId).pipe(
+            catchError(err => {
+              console.error('Error fetching member PT plans:', err);
+              return of([]);
+            })
+          )
         ]);
       })
     ).subscribe(data => {

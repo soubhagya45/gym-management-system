@@ -822,6 +822,7 @@ export class PaymentSettingsComponent implements OnInit, OnDestroy {
           bankAccountNo: gym.paymentSettings?.bankAccountNo || '',
           bankIfsc: gym.paymentSettings?.bankIfsc || ''
         });
+        this.refreshPlanStatus(null, null);
         this.cdr.markForCheck();
       }
     });

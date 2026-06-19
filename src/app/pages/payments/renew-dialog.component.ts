@@ -8,10 +8,12 @@ import { MatSelectModule } from '@angular/material/select';
 import { MatButtonModule } from '@angular/material/button';
 import { MatDatepickerModule } from '@angular/material/datepicker';
 import { MatNativeDateModule } from '@angular/material/core';
+import { MatIconModule } from '@angular/material/icon';
 import { MemberState } from '../../presentation/state/member.state';
 import { MembershipPlanState } from '../../presentation/state/membership-plan.state';
 import { Member } from '../../core/models/member.entity';
 import { MembershipPlan } from '../../core/models/membership-plan.entity';
+import { SubmissionGuardService } from '../../services/submission-guard.service';
 
 @Component({
   selector: 'app-renew-dialog',
@@ -25,7 +27,8 @@ import { MembershipPlan } from '../../core/models/membership-plan.entity';
     MatSelectModule,
     MatButtonModule,
     MatDatepickerModule,
-    MatNativeDateModule
+    MatNativeDateModule,
+    MatIconModule
   ],
   template: `
     <h2 mat-dialog-title class="gradient-text dialogue-title">Renew Gym Membership</h2>
@@ -106,9 +109,10 @@ import { MembershipPlan } from '../../core/models/membership-plan.entity';
       </mat-dialog-content>
       
       <mat-dialog-actions align="end" class="dialog-actions">
-        <button mat-button type="button" (click)="onCancel()">Cancel</button>
-        <button mat-raised-button color="primary" type="submit" [disabled]="renewForm.invalid">
-          Renew Membership
+        <button mat-button type="button" (click)="onCancel()" [disabled]="submissionGuard.isSubmitting('renew-dialog-submit') | async">Cancel</button>
+        <button mat-raised-button color="primary" type="submit" [disabled]="renewForm.invalid || (submissionGuard.isSubmitting('renew-dialog-submit') | async)">
+          <mat-icon *ngIf="submissionGuard.isSubmitting('renew-dialog-submit') | async" class="spin-icon" style="margin-right: 8px;">sync</mat-icon>
+          <span>{{ (submissionGuard.isSubmitting('renew-dialog-submit') | async) ? 'Renewing...' : 'Renew Membership' }}</span>
         </button>
       </mat-dialog-actions>
     </form>
@@ -184,6 +188,7 @@ export class RenewDialogComponent implements OnInit {
     private memberState: MemberState,
     private planState: MembershipPlanState,
     private dialogRef: MatDialogRef<RenewDialogComponent>,
+    public submissionGuard: SubmissionGuardService,
     @Inject(MAT_DIALOG_DATA) public data: { member?: Member } | null
   ) {
     if (data && data.member) {
@@ -280,6 +285,9 @@ export class RenewDialogComponent implements OnInit {
 
   onSubmit(): void {
     if (this.renewForm.valid) {
+      if (!this.submissionGuard.start('renew-dialog-submit')) {
+        return;
+      }
       const formValue = this.renewForm.getRawValue();
       const finalMemberId = this.preselectedMember ? this.preselectedMember.id : formValue.memberId;
       
@@ -295,6 +303,7 @@ export class RenewDialogComponent implements OnInit {
       };
 
       this.dialogRef.close(renewalResult);
+      this.submissionGuard.end('renew-dialog-submit');
     }
   }
 

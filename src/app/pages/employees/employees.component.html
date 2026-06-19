@@ -287,9 +287,10 @@
 
             <div class="form-actions-bar">
               <button mat-stroked-button type="button" (click)="onTabChange(0)">Cancel</button>
-              <button mat-flat-button color="primary" type="submit" [disabled]="employeeForm.invalid" class="submit-onboard-btn">
-                <mat-icon>how_to_reg</mat-icon>
-                <span>Onboard Employee</span>
+              <button mat-flat-button color="primary" type="submit" [disabled]="employeeForm.invalid || (submissionGuard.isSubmitting('employee-onboarding') | async)" class="submit-onboard-btn">
+                <mat-icon *ngIf="!(submissionGuard.isSubmitting('employee-onboarding') | async)">how_to_reg</mat-icon>
+                <mat-icon *ngIf="submissionGuard.isSubmitting('employee-onboarding') | async" class="spin-icon">sync</mat-icon>
+                <span>{{ (submissionGuard.isSubmitting('employee-onboarding') | async) ? 'Registering...' : 'Onboard Employee' }}</span>
               </button>
             </div>
           </form>

@@ -24,6 +24,7 @@ import { ConfirmDialogComponent } from './confirm-dialog.component';
 import { WhatsAppPreviewModalComponent } from '../whatsapp/whatsapp-preview-modal.component';
 import { take } from 'rxjs/operators';
 import { ExportService } from '../../domain/export/export.service';
+import { SubmissionGuardService } from '../../services/submission-guard.service';
 import { MatMenuModule } from '@angular/material/menu';
 
 
@@ -72,7 +73,8 @@ export class MembersComponent implements OnInit, AfterViewInit {
     private snackBar: MatSnackBar,
     private router: Router,
     private route: ActivatedRoute,
-    private exportService: ExportService
+    private exportService: ExportService,
+    public submissionGuard: SubmissionGuardService
   ) {}
 
   viewProfile(member: Member) {
@@ -190,11 +192,23 @@ export class MembersComponent implements OnInit, AfterViewInit {
 
       dialogRef.afterClosed().subscribe(result => {
         if (result) {
-          this.memberState.registerMember(result).subscribe(() => {
-            this.snackBar.open('Member registered successfully!', 'Dismiss', {
-              duration: 3000,
-              panelClass: ['premium-snack']
-            });
+          if (!this.submissionGuard.start('member-create')) {
+            return;
+          }
+          this.memberState.registerMember(result).subscribe({
+            next: () => {
+              this.submissionGuard.end('member-create');
+              this.snackBar.open('Member registered successfully!', 'Dismiss', {
+                duration: 3000,
+                panelClass: ['premium-snack']
+              });
+            },
+            error: (err) => {
+              this.submissionGuard.end('member-create');
+              this.snackBar.open(err.message || 'Failed to register member', 'Dismiss', {
+                duration: 3000
+              });
+            }
           });
         }
       });
@@ -210,11 +224,23 @@ export class MembersComponent implements OnInit, AfterViewInit {
 
     dialogRef.afterClosed().subscribe(result => {
       if (result) {
-        this.memberState.updateMember(result).subscribe(() => {
-          this.snackBar.open('Member profile updated!', 'Dismiss', {
-            duration: 3000,
-            panelClass: ['premium-snack']
-          });
+        if (!this.submissionGuard.start('member-update')) {
+          return;
+        }
+        this.memberState.updateMember(result).subscribe({
+          next: () => {
+            this.submissionGuard.end('member-update');
+            this.snackBar.open('Member profile updated!', 'Dismiss', {
+              duration: 3000,
+              panelClass: ['premium-snack']
+            });
+          },
+          error: (err) => {
+            this.submissionGuard.end('member-update');
+            this.snackBar.open(err.message || 'Failed to update member', 'Dismiss', {
+              duration: 3000
+            });
+          }
         });
       }
     });

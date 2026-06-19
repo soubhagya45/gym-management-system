@@ -21,6 +21,7 @@ import { PTPlan } from '../../core/models/pt-plan.entity';
 import { Trainer } from '../../core/models/trainer.entity';
 import { Employee } from '../../core/models/employee.entity';
 import { FILE_STORAGE_REPOSITORY_TOKEN, IFileStorageRepository } from '../../core/interfaces/file-storage-repository.interface';
+import { SubmissionGuardService } from '../../services/submission-guard.service';
 
 @Component({
   selector: 'app-member-dialog',
@@ -330,9 +331,10 @@ import { FILE_STORAGE_REPOSITORY_TOKEN, IFileStorageRepository } from '../../cor
       </mat-dialog-content>
       
       <mat-dialog-actions align="end" class="dialog-actions">
-        <button mat-button type="button" (click)="onCancel()">Cancel</button>
-        <button mat-raised-button color="primary" type="submit" [disabled]="memberForm.invalid">
-          {{ isEdit ? 'Save Profile' : 'Complete Registration' }}
+        <button mat-button type="button" (click)="onCancel()" [disabled]="submissionGuard.isSubmitting('member-dialog-submit') | async">Cancel</button>
+        <button mat-raised-button color="primary" type="submit" [disabled]="memberForm.invalid || (submissionGuard.isSubmitting('member-dialog-submit') | async)">
+          <mat-icon *ngIf="submissionGuard.isSubmitting('member-dialog-submit') | async" class="spin-icon" style="margin-right: 8px;">sync</mat-icon>
+          <span>{{ (submissionGuard.isSubmitting('member-dialog-submit') | async) ? 'Saving...' : (isEdit ? 'Save Profile' : 'Complete Registration') }}</span>
         </button>
       </mat-dialog-actions>
     </form>
@@ -442,6 +444,7 @@ export class MemberDialogComponent implements OnInit {
     private trainerState: TrainerState,
     private employeeState: EmployeeState,
     private dialogRef: MatDialogRef<MemberDialogComponent>,
+    public submissionGuard: SubmissionGuardService,
     @Inject(MAT_DIALOG_DATA) public data: Member | null,
     @Inject(FILE_STORAGE_REPOSITORY_TOKEN) private fileStorage: IFileStorageRepository
   ) {}
@@ -688,6 +691,9 @@ export class MemberDialogComponent implements OnInit {
 
   onSubmit(): void {
     if (this.memberForm.valid) {
+      if (!this.submissionGuard.start('member-dialog-submit')) {
+        return;
+      }
       const formValue = this.memberForm.value;
       const selectedPlan = this.plans.find(p => p.id === formValue.planId);
       const selectedPTPlan = this.ptPlans.find(p => p.id === formValue.ptPlanId);
@@ -751,6 +757,7 @@ export class MemberDialogComponent implements OnInit {
           conversionDetails
         });
       }
+      this.submissionGuard.end('member-dialog-submit');
     }
   }
 

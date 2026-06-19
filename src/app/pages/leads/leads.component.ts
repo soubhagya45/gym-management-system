@@ -33,6 +33,7 @@ import { LeadDialogComponent } from './lead-dialog.component';
 import { ConfirmDialogComponent } from '../members/confirm-dialog.component';
 import { ConvertDialogComponent } from './convert-dialog.component';
 import { WhatsAppPreviewModalComponent } from '../whatsapp/whatsapp-preview-modal.component';
+import { SubmissionGuardService } from '../../services/submission-guard.service';
 
 interface SalesCRMStats {
   total: number;
@@ -138,7 +139,8 @@ export class LeadsComponent implements OnInit, AfterViewInit {
     private dialog: MatDialog,
     private snackBar: MatSnackBar,
     private router: Router,
-    private exportService: ExportService
+    private exportService: ExportService,
+    public submissionGuard: SubmissionGuardService
   ) {}
 
   ngOnInit(): void {
@@ -376,11 +378,23 @@ export class LeadsComponent implements OnInit, AfterViewInit {
 
     dialogRef.afterClosed().subscribe(result => {
       if (result) {
-        this.leadState.updateLead(result).subscribe(() => {
-          this.snackBar.open('Lead details updated!', 'Dismiss', {
-            duration: 3000,
-            panelClass: ['premium-snack']
-          });
+        if (!this.submissionGuard.start('lead-update')) {
+          return;
+        }
+        this.leadState.updateLead(result).subscribe({
+          next: () => {
+            this.submissionGuard.end('lead-update');
+            this.snackBar.open('Lead details updated!', 'Dismiss', {
+              duration: 3000,
+              panelClass: ['premium-snack']
+            });
+          },
+          error: (err) => {
+            this.submissionGuard.end('lead-update');
+            this.snackBar.open(err.message || 'Failed to update lead details', 'Dismiss', {
+              duration: 3000
+            });
+          }
         });
       }
     });
@@ -417,11 +431,24 @@ export class LeadsComponent implements OnInit, AfterViewInit {
 
     dialogRef.afterClosed().subscribe(result => {
       if (result && result.memberDetails && result.conversionDetails) {
-        this.leadState.convertLeadToMember(lead.id, result.memberDetails, result.conversionDetails).subscribe(() => {
-          this.snackBar.open(`Successfully converted ${lead.name} to a member!`, 'Dismiss', {
-            duration: 3000,
-            panelClass: ['premium-snack']
-          });
+        if (!this.submissionGuard.start('lead-convert')) {
+          return;
+        }
+        this.leadState.convertLeadToMember(lead.id, result.memberDetails, result.conversionDetails).subscribe({
+          next: () => {
+            this.submissionGuard.end('lead-convert');
+            this.snackBar.open(`Successfully converted ${lead.name} to a member!`, 'Dismiss', {
+              duration: 3000,
+              panelClass: ['premium-snack']
+            });
+            this.router.navigate(['/members']);
+          },
+          error: (err) => {
+            this.submissionGuard.end('lead-convert');
+            this.snackBar.open(err.message || 'Failed to convert lead to member', 'Dismiss', {
+              duration: 3000
+            });
+          }
         });
       }
     });

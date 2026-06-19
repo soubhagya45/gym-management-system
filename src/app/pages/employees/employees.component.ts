@@ -24,6 +24,7 @@ import { SubscriptionService } from '../../domain/subscription/subscription.serv
 import { Employee, EmployeeAttendance, EmployeePayroll, EmployeePerformance } from '../../core/models/employee.entity';
 import { UserRole } from '../../core/enums/roles.enum';
 import { FILE_STORAGE_REPOSITORY_TOKEN, IFileStorageRepository } from '../../core/interfaces/file-storage-repository.interface';
+import { SubmissionGuardService } from '../../services/submission-guard.service';
 
 @Component({
   selector: 'app-employees',
@@ -130,6 +131,7 @@ export class EmployeesComponent implements OnInit {
     private dialog: MatDialog,
     private route: ActivatedRoute,
     private router: Router,
+    public submissionGuard: SubmissionGuardService,
     @Inject(FILE_STORAGE_REPOSITORY_TOKEN) private fileStorage: IFileStorageRepository
   ) {
     this.employees$ = this.employeeState.employees$;
@@ -412,8 +414,15 @@ export class EmployeesComponent implements OnInit {
       return;
     }
 
+    if (!this.submissionGuard.start('employee-onboarding')) {
+      return;
+    }
+
     this.gymState.activeGym$.pipe(take(1)).subscribe(gym => {
-      if (!gym) return;
+      if (!gym) {
+        this.submissionGuard.end('employee-onboarding');
+        return;
+      }
 
       const employeeCount = this.employeeState.employees.length;
       const isLimitReached = this.subscriptionService.hasReachedLimit(
@@ -423,6 +432,7 @@ export class EmployeesComponent implements OnInit {
       );
 
       if (isLimitReached) {
+        this.submissionGuard.end('employee-onboarding');
         this.snackBar.open(
           `Employee limit reached for plan: ${this.getSubscriptionPlanLabel(gym.subscriptionPlan)}. Please upgrade to onboard more staff.`,
           'Upgrade Plan',
@@ -468,6 +478,7 @@ export class EmployeesComponent implements OnInit {
 
       this.employeeState.addEmployee(payload).subscribe({
         next: (createdEmp: Employee) => {
+          this.submissionGuard.end('employee-onboarding');
           this.createdEmployeeCredentials = createdEmp;
           this.employeeForm.reset({
             gender: 'Male',
@@ -489,6 +500,7 @@ export class EmployeesComponent implements OnInit {
           this.onTabChange(0);
         },
         error: (err) => {
+          this.submissionGuard.end('employee-onboarding');
           this.snackBar.open(err.message || 'Failed to register employee', 'Close', { duration: 5000 });
         }
       });

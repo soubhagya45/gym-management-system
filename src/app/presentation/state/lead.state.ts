@@ -1,6 +1,6 @@
 import { Injectable, Inject } from '@angular/core';
-import { BehaviorSubject, Observable, of } from 'rxjs';
-import { switchMap, tap, map } from 'rxjs/operators';
+import { BehaviorSubject, Observable, of, combineLatest } from 'rxjs';
+import { switchMap, tap, map, catchError } from 'rxjs/operators';
 import {
   ILeadRepository,
   LEAD_REPOSITORY_TOKEN,
@@ -34,10 +34,18 @@ export class LeadState {
     private ptState: PTState,
     private financeState: FinanceState
   ) {
-    this.tenantContext.activeGymId$.pipe(
-      switchMap(gymId => {
+    combineLatest([
+      this.tenantContext.activeGymId$,
+      this.tenantContext.activeBranchId$
+    ]).pipe(
+      switchMap(([gymId, branchId]) => {
         if (!gymId) return of([]);
-        return this.leadRepository.getLeads(gymId);
+        return this.leadRepository.getLeads(gymId).pipe(
+          catchError(err => {
+            console.error('Error fetching leads:', err);
+            return of([]);
+          })
+        );
       })
     ).subscribe(leads => {
       this.leadsSubject.next(leads);

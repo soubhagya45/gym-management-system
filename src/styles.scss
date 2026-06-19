@@ -953,5 +953,16 @@ body.light-theme {
   width: 100%;
 }
 
+/* Global loading spin animation utility */
+.spin-icon {
+  animation: spin-anim-global 1.5s infinite linear;
+  display: inline-block;
+}
+
+@keyframes spin-anim-global {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
 
 

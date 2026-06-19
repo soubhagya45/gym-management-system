@@ -1,6 +1,6 @@
 import { Injectable, Inject } from '@angular/core';
-import { BehaviorSubject, Observable, of } from 'rxjs';
-import { switchMap, tap } from 'rxjs/operators';
+import { BehaviorSubject, Observable, of, combineLatest } from 'rxjs';
+import { switchMap, tap, catchError } from 'rxjs/operators';
 import {
   IPaymentRepository,
   PAYMENT_REPOSITORY_TOKEN,
@@ -24,10 +24,18 @@ export class PaymentState {
     private tenantContext: TenantContextService,
     private financeState: FinanceState
   ) {
-    this.tenantContext.activeGymId$.pipe(
-      switchMap(gymId => {
+    combineLatest([
+      this.tenantContext.activeGymId$,
+      this.tenantContext.activeBranchId$
+    ]).pipe(
+      switchMap(([gymId, branchId]) => {
         if (!gymId) return of([]);
-        return this.paymentRepository.getPayments(gymId);
+        return this.paymentRepository.getPayments(gymId).pipe(
+          catchError(err => {
+            console.error('Error fetching payments:', err);
+            return of([]);
+          })
+        );
       })
     ).subscribe(payments => {
       this.paymentsSubject.next(payments);

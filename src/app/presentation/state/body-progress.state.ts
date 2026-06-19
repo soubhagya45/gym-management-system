@@ -1,6 +1,6 @@
 import { Injectable, Inject } from '@angular/core';
 import { BehaviorSubject, Observable, of, combineLatest } from 'rxjs';
-import { map, switchMap, tap } from 'rxjs/operators';
+import { map, switchMap, tap, catchError } from 'rxjs/operators';
 import {
   IBodyProgressRepository,
   BODY_PROGRESS_REPOSITORY_TOKEN,
@@ -101,12 +101,20 @@ export class BodyProgressState {
     private memberState: MemberState
   ) {
     // React to tenant changes
-    this.tenantContext.activeGymId$.pipe(
-      switchMap(gymId => {
+    combineLatest([
+      this.tenantContext.activeGymId$,
+      this.tenantContext.activeBranchId$
+    ]).pipe(
+      switchMap(([gymId, branchId]) => {
         if (!gymId) {
           return of([]);
         }
-        return this.progressRepository.getAllEntries(gymId);
+        return this.progressRepository.getAllEntries(gymId).pipe(
+          catchError(err => {
+            console.error('Error fetching body progress entries:', err);
+            return of([]);
+          })
+        );
       })
     ).subscribe(entries => {
       this.allEntriesSubject.next(entries);

@@ -31,6 +31,7 @@ import { WhatsAppPreviewModalComponent } from '../whatsapp/whatsapp-preview-moda
 import { GymState } from '../../presentation/state/gym.state';
 import { ExportService } from '../../domain/export/export.service';
 import { MatMenuModule } from '@angular/material/menu';
+import { SubmissionGuardService } from '../../services/submission-guard.service';
 
 interface PaymentStats {
   totalCollected: number;
@@ -88,7 +89,8 @@ export class PaymentsComponent implements OnInit {
     private snackBar: MatSnackBar,
     private route: ActivatedRoute,
     private router: Router,
-    private exportService: ExportService
+    private exportService: ExportService,
+    public submissionGuard: SubmissionGuardService
   ) {}
 
   ngOnInit(): void {
@@ -195,10 +197,22 @@ export class PaymentsComponent implements OnInit {
 
     dialogRef.afterClosed().subscribe(result => {
       if (result) {
-        this.paymentState.addPayment(result).subscribe(() => {
-          this.snackBar.open('Invoice recorded successfully!', 'Dismiss', {
-            duration: 3000
-          });
+        if (!this.submissionGuard.start('payment-add')) {
+          return;
+        }
+        this.paymentState.addPayment(result).subscribe({
+          next: () => {
+            this.submissionGuard.end('payment-add');
+            this.snackBar.open('Invoice recorded successfully!', 'Dismiss', {
+              duration: 3000
+            });
+          },
+          error: (err) => {
+            this.submissionGuard.end('payment-add');
+            this.snackBar.open(err.message || 'Failed to record invoice', 'Dismiss', {
+              duration: 3000
+            });
+          }
         });
       }
     });
@@ -271,6 +285,9 @@ export class PaymentsComponent implements OnInit {
         start.setMonth(start.getMonth() + durationMonths);
         const endDate = start.toISOString().split('T')[0];
 
+        if (!this.submissionGuard.start('membership-renew')) {
+          return;
+        }
         this.memberState.renewMembership(
           result.memberId,
           result.planId,
@@ -282,9 +299,19 @@ export class PaymentsComponent implements OnInit {
           result.dueAmount,
           result.dueDate,
           result.paymentStatus
-        );
-        this.snackBar.open(`Membership renewed successfully for ${member.name}!`, 'Dismiss', {
-          duration: 3000
+        ).subscribe({
+          next: () => {
+            this.submissionGuard.end('membership-renew');
+            this.snackBar.open(`Membership renewed successfully for ${member.name}!`, 'Dismiss', {
+              duration: 3000
+            });
+          },
+          error: (err) => {
+            this.submissionGuard.end('membership-renew');
+            this.snackBar.open(err.message || 'Failed to renew membership', 'Dismiss', {
+              duration: 3000
+            });
+          }
         });
       }
     });

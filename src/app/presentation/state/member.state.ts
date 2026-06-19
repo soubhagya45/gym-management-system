@@ -1,6 +1,6 @@
 import { Injectable, Inject, Injector } from '@angular/core';
-import { BehaviorSubject, Observable, of } from 'rxjs';
-import { switchMap, tap } from 'rxjs/operators';
+import { BehaviorSubject, Observable, of, combineLatest, throwError } from 'rxjs';
+import { catchError, switchMap, tap, take } from 'rxjs/operators';
 import {
   IMemberRepository,
   MEMBER_REPOSITORY_TOKEN,
@@ -32,10 +32,18 @@ export class MemberState {
     private financeState: FinanceState,
     private injector: Injector
   ) {
-    this.tenantContext.activeGymId$.pipe(
-      switchMap(gymId => {
+    combineLatest([
+      this.tenantContext.activeGymId$,
+      this.tenantContext.activeBranchId$
+    ]).pipe(
+      switchMap(([gymId, branchId]) => {
         if (!gymId) return of([]);
-        return this.memberRepository.getMembers(gymId);
+        return this.memberRepository.getMembers(gymId).pipe(
+          catchError(err => {
+            console.error('Error fetching members:', err);
+            return of([]);
+          })
+        );
       })
     ).subscribe(members => {
       this.membersSubject.next(members);
@@ -125,12 +133,15 @@ export class MemberState {
     dueAmount: number,
     dueDate: string,
     paymentStatus: 'paid' | 'pending'
-  ): void {
+  ): Observable<any> {
     const gymId = this.tenantContext.getTenantId();
-    if (!gymId) return;
+    if (!gymId) return throwError(() => new Error('No active tenant selected'));
 
-    this.getMemberById(memberId).subscribe(member => {
-      if (member) {
+    return this.getMemberById(memberId).pipe(
+      take(1),
+      switchMap(member => {
+        if (!member) return throwError(() => new Error('Member not found'));
+        
         const updated: Member = {
           ...member,
           planId,
@@ -141,28 +152,32 @@ export class MemberState {
           balance: dueAmount
         };
 
-        this.memberRepository.updateMember(gymId, updated).subscribe(() => {
-          this.loadMembers();
-          this.logRepository.addLog(gymId, `Renewed membership for ${member.name} (Plan: ${planName})`, 'plan-change').subscribe();
-        });
+        return this.memberRepository.updateMember(gymId, updated).pipe(
+          switchMap(() => {
+            this.loadMembers();
+            this.logRepository.addLog(gymId, `Renewed membership for ${member.name} (Plan: ${planName})`, 'plan-change').subscribe();
 
-        this.paymentRepository.addPayment(gymId, {
-          gymId,
-          memberId,
-          memberName: member.name,
-          amount: price,
-          paidAmount,
-          dueAmount,
-          dueDate,
-          date: new Date().toISOString().split('T')[0],
-          status: paymentStatus,
-          planName
-        }).subscribe(() => {
-          this.paymentState.loadPayments();
-          this.financeState.loadFinanceData();
-        });
-      }
-    });
+            return this.paymentRepository.addPayment(gymId, {
+              gymId,
+              memberId,
+              memberName: member.name,
+              amount: price,
+              paidAmount,
+              dueAmount,
+              dueDate,
+              date: new Date().toISOString().split('T')[0],
+              status: paymentStatus,
+              planName
+            }).pipe(
+              tap(() => {
+                this.paymentState.loadPayments();
+                this.financeState.loadFinanceData();
+              })
+            );
+          })
+        );
+      })
+    );
   }
 
   registerMember(payload: Omit<LeadConversionPayload, 'gymId' | 'branchId' | 'today'>): Observable<any> {

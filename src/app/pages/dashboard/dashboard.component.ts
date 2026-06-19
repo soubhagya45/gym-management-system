@@ -35,6 +35,7 @@ import { SubscriptionStatus } from '../../core/models/subscription.model';
 import { RenewDialogComponent } from '../payments/renew-dialog.component';
 import { Observable, combineLatest } from 'rxjs';
 import { map, take } from 'rxjs/operators';
+import { SubmissionGuardService } from '../../services/submission-guard.service';
 
 @Component({
   selector: 'app-dashboard',
@@ -109,7 +110,8 @@ export class DashboardComponent implements OnInit {
     private ptState: PTState,
     private subscriptionService: SubscriptionService,
     private dialog: MatDialog,
-    private snackBar: MatSnackBar
+    private snackBar: MatSnackBar,
+    public submissionGuard: SubmissionGuardService
   ) {
     this.canAccessAnalytics$ = this.gymState.activeGymFeatures$.pipe(
       map(features => features ? features.canAccessAnalytics : false)
@@ -454,6 +456,9 @@ export class DashboardComponent implements OnInit {
 
     dialogRef.afterClosed().subscribe(result => {
       if (result) {
+        if (!this.submissionGuard.start('membership-renew')) {
+          return;
+        }
         this.memberState.renewMembership(
           result.memberId,
           result.planId,
@@ -465,8 +470,16 @@ export class DashboardComponent implements OnInit {
           result.dueAmount,
           result.dueDate,
           result.paymentStatus
-        );
-        this.snackBar.open(`Membership renewed for ${member.name}!`, 'Dismiss', { duration: 3000 });
+        ).subscribe({
+          next: () => {
+            this.submissionGuard.end('membership-renew');
+            this.snackBar.open(`Membership renewed for ${member.name}!`, 'Dismiss', { duration: 3000 });
+          },
+          error: (err) => {
+            this.submissionGuard.end('membership-renew');
+            this.snackBar.open(err.message || 'Failed to renew membership', 'Dismiss', { duration: 3000 });
+          }
+        });
       }
     });
   }

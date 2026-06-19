@@ -8,8 +8,10 @@ import { MatSelectModule } from '@angular/material/select';
 import { MatButtonModule } from '@angular/material/button';
 import { MatDatepickerModule } from '@angular/material/datepicker';
 import { MatNativeDateModule } from '@angular/material/core';
+import { MatIconModule } from '@angular/material/icon';
 import { MemberState } from '../../presentation/state/member.state';
 import { Member } from '../../core/models/member.entity';
+import { SubmissionGuardService } from '../../services/submission-guard.service';
 
 @Component({
   selector: 'app-payment-dialog',
@@ -23,7 +25,8 @@ import { Member } from '../../core/models/member.entity';
     MatSelectModule,
     MatButtonModule,
     MatDatepickerModule,
-    MatNativeDateModule
+    MatNativeDateModule,
+    MatIconModule
   ],
   template: `
     <h2 mat-dialog-title class="gradient-text dialogue-title">Record Payment Invoice</h2>
@@ -109,9 +112,10 @@ import { Member } from '../../core/models/member.entity';
       </mat-dialog-content>
       
       <mat-dialog-actions align="end" class="dialog-actions">
-        <button mat-button type="button" (click)="onCancel()">Cancel</button>
-        <button mat-raised-button color="primary" type="submit" [disabled]="paymentForm.invalid">
-          Record Payment
+        <button mat-button type="button" (click)="onCancel()" [disabled]="submissionGuard.isSubmitting('payment-record') | async">Cancel</button>
+        <button mat-raised-button color="primary" type="submit" [disabled]="paymentForm.invalid || (submissionGuard.isSubmitting('payment-record') | async)">
+          <mat-icon *ngIf="submissionGuard.isSubmitting('payment-record') | async" class="spin-icon" style="margin-right: 8px;">sync</mat-icon>
+          <span>{{ (submissionGuard.isSubmitting('payment-record') | async) ? 'Recording...' : 'Record Payment' }}</span>
         </button>
       </mat-dialog-actions>
     </form>
@@ -159,7 +163,8 @@ export class PaymentDialogComponent implements OnInit {
   constructor(
     private fb: FormBuilder,
     private memberState: MemberState,
-    private dialogRef: MatDialogRef<PaymentDialogComponent>
+    private dialogRef: MatDialogRef<PaymentDialogComponent>,
+    public submissionGuard: SubmissionGuardService
   ) {}
 
   ngOnInit(): void {
@@ -236,6 +241,9 @@ export class PaymentDialogComponent implements OnInit {
 
   onSubmit(): void {
     if (this.paymentForm.valid) {
+      if (!this.submissionGuard.start('payment-record')) {
+        return;
+      }
       const formValue = this.paymentForm.getRawValue();
       const member = this.members.find(m => m.id === formValue.memberId);
       
@@ -254,6 +262,7 @@ export class PaymentDialogComponent implements OnInit {
       };
 
       this.dialogRef.close(paymentResult);
+      this.submissionGuard.end('payment-record');
     }
   }
 

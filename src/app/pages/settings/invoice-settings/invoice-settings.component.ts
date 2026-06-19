@@ -12,6 +12,7 @@ import { Subject } from 'rxjs';
 import { takeUntil } from 'rxjs/operators';
 import { GymState } from '../../../presentation/state/gym.state';
 import { Gym } from '../../../core/models/gym.entity';
+import { SubmissionGuardService } from '../../../services/submission-guard.service';
 
 @Component({
   selector: 'app-invoice-settings',
@@ -115,9 +116,10 @@ import { Gym } from '../../../core/models/gym.entity';
 
           <!-- Save Button -->
           <div class="action-bar-footer">
-            <button mat-raised-button color="primary" type="submit" [disabled]="invoiceForm.invalid" class="save-settings-btn">
-              <mat-icon>save</mat-icon>
-              <span>Save Invoice Settings</span>
+            <button mat-raised-button color="primary" type="submit" [disabled]="invoiceForm.invalid || (submissionGuard.isSubmitting('invoice-settings-save') | async)" class="save-settings-btn">
+              <mat-icon *ngIf="!(submissionGuard.isSubmitting('invoice-settings-save') | async)">save</mat-icon>
+              <mat-icon *ngIf="submissionGuard.isSubmitting('invoice-settings-save') | async" class="spin-icon">sync</mat-icon>
+              <span>{{ (submissionGuard.isSubmitting('invoice-settings-save') | async) ? 'Saving...' : 'Save Invoice Settings' }}</span>
             </button>
           </div>
         </form>
@@ -245,7 +247,8 @@ export class InvoiceSettingsComponent implements OnInit, OnDestroy {
     private fb: FormBuilder,
     private gymState: GymState,
     private snackBar: MatSnackBar,
-    private cdr: ChangeDetectorRef
+    private cdr: ChangeDetectorRef,
+    public submissionGuard: SubmissionGuardService
   ) {}
 
   ngOnInit(): void {
@@ -279,6 +282,9 @@ export class InvoiceSettingsComponent implements OnInit, OnDestroy {
 
   onSave(): void {
     if (this.invoiceForm.valid && this.activeGym) {
+      if (!this.submissionGuard.start('invoice-settings-save')) {
+        return;
+      }
       const updated: Gym = {
         ...this.activeGym,
         invoiceSettings: {
@@ -295,9 +301,11 @@ export class InvoiceSettingsComponent implements OnInit, OnDestroy {
 
       this.gymState.updateGym(updated).pipe(takeUntil(this.destroy$)).subscribe({
         next: () => {
+          this.submissionGuard.end('invoice-settings-save');
           this.snackBar.open('Invoice settings saved successfully!', 'Dismiss', { duration: 3000 });
         },
         error: (err) => {
+          this.submissionGuard.end('invoice-settings-save');
           this.snackBar.open(`Failed to save settings: ${err.message || err}`, 'Dismiss', { duration: 4000 });
         }
       });

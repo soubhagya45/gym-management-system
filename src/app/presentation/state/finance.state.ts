@@ -1,6 +1,6 @@
 import { Injectable, Inject } from '@angular/core';
 import { BehaviorSubject, Observable, combineLatest, of } from 'rxjs';
-import { map, switchMap, tap } from 'rxjs/operators';
+import { map, switchMap, tap, catchError } from 'rxjs/operators';
 import {
   IFinanceRepository,
   FINANCE_REPOSITORY_TOKEN,
@@ -30,14 +30,32 @@ export class FinanceState {
     private tenantContext: TenantContextService,
     private authState: AuthState
   ) {
-    // Listen to active gym changes and load raw finance data directly without client-side reconciliation.
-    this.tenantContext.activeGymId$.pipe(
-      switchMap(gymId => {
+    // Listen to active gym and branch changes and load raw finance data.
+    combineLatest([
+      this.tenantContext.activeGymId$,
+      this.tenantContext.activeBranchId$
+    ]).pipe(
+      switchMap(([gymId, branchId]) => {
         if (!gymId) return of({ invoices: [], expenses: [], collections: [] });
         return combineLatest([
-          this.financeRepository.getInvoices(gymId),
-          this.financeRepository.getExpenses(gymId),
-          this.financeRepository.getCollections(gymId)
+          this.financeRepository.getInvoices(gymId).pipe(
+            catchError(err => {
+              console.error('Error fetching invoices:', err);
+              return of([]);
+            })
+          ),
+          this.financeRepository.getExpenses(gymId).pipe(
+            catchError(err => {
+              console.error('Error fetching expenses:', err);
+              return of([]);
+            })
+          ),
+          this.financeRepository.getCollections(gymId).pipe(
+            catchError(err => {
+              console.error('Error fetching collections:', err);
+              return of([]);
+            })
+          )
         ]).pipe(
           map(([invoices, expenses, collections]) => ({ invoices, expenses, collections }))
         );

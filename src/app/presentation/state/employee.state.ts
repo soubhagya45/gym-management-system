@@ -1,6 +1,6 @@
 import { Injectable, Inject } from '@angular/core';
-import { BehaviorSubject, Observable, of } from 'rxjs';
-import { switchMap, tap } from 'rxjs/operators';
+import { BehaviorSubject, Observable, of, combineLatest } from 'rxjs';
+import { switchMap, tap, catchError } from 'rxjs/operators';
 import {
   IEmployeeRepository,
   EMPLOYEE_REPOSITORY_TOKEN,
@@ -36,8 +36,11 @@ export class EmployeeState {
     @Inject(ACTIVITY_LOG_REPOSITORY_TOKEN) private logRepository: IActivityLogRepository,
     private tenantContext: TenantContextService
   ) {
-    this.tenantContext.activeGymId$.pipe(
-      switchMap(gymId => {
+    combineLatest([
+      this.tenantContext.activeGymId$,
+      this.tenantContext.activeBranchId$
+    ]).pipe(
+      switchMap(([gymId, branchId]) => {
         if (!gymId) {
           this.employeesSubject.next([]);
           this.attendanceSubject.next([]);
@@ -52,10 +55,33 @@ export class EmployeeState {
   }
 
   private loadAll(gymId: string): void {
-    this.employeeRepository.getEmployees(gymId).subscribe(emp => this.employeesSubject.next(emp));
-    this.employeeRepository.getAttendance(gymId).subscribe(att => this.attendanceSubject.next(att));
-    this.employeeRepository.getPayroll(gymId).subscribe(pay => this.payrollSubject.next(pay));
-    this.employeeRepository.getPerformance(gymId).subscribe(perf => this.performanceSubject.next(perf));
+    this.employeeRepository.getEmployees(gymId).pipe(
+      catchError(err => {
+        console.error('Error fetching employees:', err);
+        return of([]);
+      })
+    ).subscribe(emp => this.employeesSubject.next(emp));
+
+    this.employeeRepository.getAttendance(gymId).pipe(
+      catchError(err => {
+        console.error('Error fetching employee attendance:', err);
+        return of([]);
+      })
+    ).subscribe(att => this.attendanceSubject.next(att));
+
+    this.employeeRepository.getPayroll(gymId).pipe(
+      catchError(err => {
+        console.error('Error fetching employee payroll:', err);
+        return of([]);
+      })
+    ).subscribe(pay => this.payrollSubject.next(pay));
+
+    this.employeeRepository.getPerformance(gymId).pipe(
+      catchError(err => {
+        console.error('Error fetching employee performance:', err);
+        return of([]);
+      })
+    ).subscribe(perf => this.performanceSubject.next(perf));
   }
 
   loadEmployees(): void {

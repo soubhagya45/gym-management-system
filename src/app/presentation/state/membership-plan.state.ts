@@ -1,6 +1,6 @@
 import { Injectable, Inject } from '@angular/core';
-import { BehaviorSubject, Observable, of } from 'rxjs';
-import { switchMap, tap } from 'rxjs/operators';
+import { BehaviorSubject, Observable, of, combineLatest } from 'rxjs';
+import { switchMap, tap, catchError } from 'rxjs/operators';
 import {
   IMembershipPlanRepository,
   MEMBERSHIP_PLAN_REPOSITORY_TOKEN,
@@ -22,10 +22,18 @@ export class MembershipPlanState {
     @Inject(ACTIVITY_LOG_REPOSITORY_TOKEN) private logRepository: IActivityLogRepository,
     private tenantContext: TenantContextService
   ) {
-    this.tenantContext.activeGymId$.pipe(
-      switchMap(gymId => {
+    combineLatest([
+      this.tenantContext.activeGymId$,
+      this.tenantContext.activeBranchId$
+    ]).pipe(
+      switchMap(([gymId, branchId]) => {
         if (!gymId) return of([]);
-        return this.planRepository.getPlans(gymId);
+        return this.planRepository.getPlans(gymId).pipe(
+          catchError(err => {
+            console.error('Error fetching membership plans:', err);
+            return of([]);
+          })
+        );
       })
     ).subscribe(plans => {
       this.plansSubject.next(plans);

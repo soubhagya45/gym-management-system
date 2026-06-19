@@ -1,6 +1,6 @@
 import { Injectable, Inject } from '@angular/core';
-import { BehaviorSubject, Observable, of } from 'rxjs';
-import { switchMap, tap } from 'rxjs/operators';
+import { BehaviorSubject, Observable, of, combineLatest } from 'rxjs';
+import { switchMap, tap, catchError } from 'rxjs/operators';
 import {
   IAttendanceRepository,
   ATTENDANCE_REPOSITORY_TOKEN,
@@ -25,10 +25,18 @@ export class AttendanceState {
     @Inject(MEMBER_REPOSITORY_TOKEN) private memberRepository: IMemberRepository,
     private tenantContext: TenantContextService
   ) {
-    this.tenantContext.activeGymId$.pipe(
-      switchMap(gymId => {
+    combineLatest([
+      this.tenantContext.activeGymId$,
+      this.tenantContext.activeBranchId$
+    ]).pipe(
+      switchMap(([gymId, branchId]) => {
         if (!gymId) return of([]);
-        return this.attendanceRepository.getAttendance(gymId);
+        return this.attendanceRepository.getAttendance(gymId).pipe(
+          catchError(err => {
+            console.error('Error fetching attendance:', err);
+            return of([]);
+          })
+        );
       })
     ).subscribe(attendance => {
       this.attendanceSubject.next(attendance);

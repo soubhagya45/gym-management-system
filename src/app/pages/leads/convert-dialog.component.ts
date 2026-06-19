@@ -20,6 +20,7 @@ import { MembershipPlanState } from '../../presentation/state/membership-plan.st
 import { EmployeeState } from '../../presentation/state/employee.state';
 import { PTState } from '../../presentation/state/pt.state';
 import { TrainerState } from '../../presentation/state/trainer.state';
+import { SubmissionGuardService } from '../../services/submission-guard.service';
 
 @Component({
   selector: 'app-convert-dialog',
@@ -264,10 +265,11 @@ import { TrainerState } from '../../presentation/state/trainer.state';
       </mat-dialog-content>
       
       <mat-dialog-actions align="end" class="dialog-actions">
-        <button mat-button type="button" (click)="onCancel()">Cancel</button>
-        <button mat-raised-button color="primary" type="submit" [disabled]="convertForm.invalid">
-          <mat-icon>check</mat-icon>
-          <span>Complete Conversion</span>
+        <button mat-button type="button" (click)="onCancel()" [disabled]="submissionGuard.isSubmitting('lead-convert') | async">Cancel</button>
+        <button mat-raised-button color="primary" type="submit" [disabled]="convertForm.invalid || (submissionGuard.isSubmitting('lead-convert') | async)">
+          <mat-icon *ngIf="!(submissionGuard.isSubmitting('lead-convert') | async)">check</mat-icon>
+          <mat-icon *ngIf="submissionGuard.isSubmitting('lead-convert') | async" class="spin-icon">sync</mat-icon>
+          <span>{{ (submissionGuard.isSubmitting('lead-convert') | async) ? 'Converting...' : 'Complete Conversion' }}</span>
         </button>
       </mat-dialog-actions>
     </form>
@@ -380,6 +382,7 @@ export class ConvertDialogComponent implements OnInit {
     private ptState: PTState,
     private trainerState: TrainerState,
     private dialogRef: MatDialogRef<ConvertDialogComponent>,
+    public submissionGuard: SubmissionGuardService,
     @Inject(MAT_DIALOG_DATA) public data: Lead
   ) {}
 
@@ -613,6 +616,9 @@ export class ConvertDialogComponent implements OnInit {
 
   onSubmit(): void {
     if (this.convertForm.valid) {
+      if (!this.submissionGuard.start('lead-convert')) {
+        return;
+      }
       const formValue = this.convertForm.value;
       const selectedPlan = this.plans.find(p => p.id === formValue.planId);
       const selectedPTPlan = this.ptPlans.find(p => p.id === formValue.ptPlanId);
@@ -666,6 +672,7 @@ export class ConvertDialogComponent implements OnInit {
         memberDetails,
         conversionDetails
       });
+      this.submissionGuard.end('lead-convert');
     }
   }
 

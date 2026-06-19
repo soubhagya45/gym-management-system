@@ -30,6 +30,7 @@ import { Trainer } from '../../core/models/trainer.entity';
 import { MemberDialogComponent } from './member-dialog.component';
 import { LogBodyProgressDialogComponent } from './log-body-progress-dialog.component';
 import { PTActionDialogComponent } from './pt-action-dialog.component';
+import { SubmissionGuardService } from '../../services/submission-guard.service';
 
 @Component({
   selector: 'app-member-profile',
@@ -89,7 +90,8 @@ export class MemberProfileComponent implements OnInit {
     private ptState: PTState,
     private trainerState: TrainerState,
     private dialog: MatDialog,
-    private snackBar: MatSnackBar
+    private snackBar: MatSnackBar,
+    public submissionGuard: SubmissionGuardService
   ) {}
 
   ngOnInit(): void {
@@ -175,11 +177,23 @@ export class MemberProfileComponent implements OnInit {
 
     dialogRef.afterClosed().subscribe(result => {
       if (result) {
-        this.memberState.updateMember(result).subscribe(() => {
-          this.snackBar.open('Member profile updated successfully!', 'Dismiss', {
-            duration: 3000,
-            panelClass: ['premium-snack']
-          });
+        if (!this.submissionGuard.start('member-update')) {
+          return;
+        }
+        this.memberState.updateMember(result).subscribe({
+          next: () => {
+            this.submissionGuard.end('member-update');
+            this.snackBar.open('Member profile updated successfully!', 'Dismiss', {
+              duration: 3000,
+              panelClass: ['premium-snack']
+            });
+          },
+          error: (err) => {
+            this.submissionGuard.end('member-update');
+            this.snackBar.open(err.message || 'Failed to update member', 'Dismiss', {
+              duration: 3000
+            });
+          }
         });
       }
     });

@@ -1,6 +1,6 @@
 import { Injectable, Inject } from '@angular/core';
-import { BehaviorSubject, Observable, of } from 'rxjs';
-import { switchMap, tap } from 'rxjs/operators';
+import { BehaviorSubject, Observable, of, combineLatest } from 'rxjs';
+import { switchMap, tap, catchError } from 'rxjs/operators';
 import { IActivityLogRepository, ACTIVITY_LOG_REPOSITORY_TOKEN } from '../../core/interfaces/repository.interfaces';
 import { ActivityLog } from '../../core/models/activity-log.entity';
 import { TenantContextService } from '../../domain/tenancy/tenant-context.service';
@@ -16,10 +16,18 @@ export class ActivityLogState {
     @Inject(ACTIVITY_LOG_REPOSITORY_TOKEN) private logRepository: IActivityLogRepository,
     private tenantContext: TenantContextService
   ) {
-    this.tenantContext.activeGymId$.pipe(
-      switchMap(gymId => {
+    combineLatest([
+      this.tenantContext.activeGymId$,
+      this.tenantContext.activeBranchId$
+    ]).pipe(
+      switchMap(([gymId, branchId]) => {
         if (!gymId) return of([]);
-        return this.logRepository.getLogs(gymId);
+        return this.logRepository.getLogs(gymId).pipe(
+          catchError(err => {
+            console.error('Error fetching logs:', err);
+            return of([]);
+          })
+        );
       })
     ).subscribe(logs => {
       this.logsSubject.next(logs);
