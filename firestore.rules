@@ -97,10 +97,10 @@ service cloud.firestore {
         request.resource.data.role != 'super_admin' && (
           // Case 1: Public registration - user can only self-register as gym_owner
           (request.auth.uid == userId && request.resource.data.role == 'gym_owner') ||
-          // Case 2: Employee creation by an owner or super admin
+          // Case 2: Employee creation by an owner or manager or super admin
           (request.auth.uid != userId && (
             isSuperAdmin() || (
-              getUserData().role == 'gym_owner' && 
+              (getUserData().role == 'gym_owner' || getUserData().role == 'branch_manager') && 
               request.resource.data.gymId == getUserData().gymId &&
               (request.resource.data.role == 'gym_owner' ||
                request.resource.data.role == 'branch_manager' || 
@@ -113,7 +113,7 @@ service cloud.firestore {
       allow update: if isActive() && (
         request.auth.uid == userId || 
         isSuperAdmin() || 
-        (getUserData().role == 'gym_owner' && resource.data.gymId == getUserData().gymId)
+        ((getUserData().role == 'gym_owner' || getUserData().role == 'branch_manager') && resource.data.gymId == getUserData().gymId)
       ) && (
         // Check if role is changing
         request.resource.data.role == resource.data.role || (
@@ -121,7 +121,7 @@ service cloud.firestore {
           request.auth.uid != userId && 
           request.resource.data.role != 'super_admin' && (
             isSuperAdmin() || (
-              getUserData().role == 'gym_owner' && 
+              (getUserData().role == 'gym_owner' || getUserData().role == 'branch_manager') && 
               resource.data.gymId == getUserData().gymId &&
               (request.resource.data.role == 'gym_owner' ||
                request.resource.data.role == 'branch_manager' || 
@@ -217,21 +217,21 @@ service cloud.firestore {
         (request.auth.uid == id && getUserData().gymId == resource.data.gymId)
       );
 
-      // CREATE - only super_admin or gym_owner, or self-creation as owner
+      // CREATE - only super_admin, gym_owner, branch_manager or self-creation as owner
       allow create: if isActive() && (
         isSuperAdmin() ||
         (request.auth.uid == id && request.resource.data.role == 'gym_owner') ||
-        (getUserData().role == 'gym_owner' && request.resource.data.gymId == getUserData().gymId)
+        ((getUserData().role == 'gym_owner' || getUserData().role == 'branch_manager') && request.resource.data.gymId == getUserData().gymId)
       );
 
-      // UPDATE - only super_admin or gym_owner
+      // UPDATE - only super_admin, gym_owner or branch_manager
       // Explicitly prevents salary, role, department modification by anyone else
       allow update: if isActive() && (
         isSuperAdmin() ||
         (
-          getUserData().role == 'gym_owner' &&
+          (getUserData().role == 'gym_owner' || getUserData().role == 'branch_manager') &&
           resource.data.gymId == getUserData().gymId &&
-          // Gym owner cannot escalate employee to super_admin
+          // Gym owner/manager cannot escalate employee to super_admin
           request.resource.data.role != 'super_admin' &&
           // gymId must not be changed
           request.resource.data.gymId == resource.data.gymId
