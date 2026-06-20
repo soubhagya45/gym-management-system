@@ -446,9 +446,13 @@ export class FirebaseAuthRepository implements IAuthRepository {
 
   changePassword(email: string, newPassword: string): Observable<void> {
     const auth = this.firebaseService.getAuth();
+    const db = this.firebaseService.getDb();
     const currentUser = auth.currentUser;
     if (currentUser && currentUser.email?.toLowerCase().trim() === email.toLowerCase().trim()) {
       return from(updatePassword(currentUser, newPassword)).pipe(
+        switchMap(() => {
+          return from(updateDoc(doc(db, 'users', currentUser.uid), { isFirstLogin: false }));
+        }),
         catchError(err => throwError(() => new Error(err.message || 'Failed to update password.')))
       );
     } else {
@@ -461,7 +465,31 @@ export class FirebaseAuthRepository implements IAuthRepository {
 
   clearFirstLoginFlag(email: string): Observable<void> {
     const db = this.firebaseService.getDb();
-    const q = query(collection(db, 'users'), where('email', '==', email.toLowerCase().trim()));
+    const auth = this.firebaseService.getAuth();
+    const currentUser = auth.currentUser;
+    const cleanEmail = email.toLowerCase().trim();
+
+    if (currentUser && currentUser.email?.toLowerCase().trim() === cleanEmail) {
+      return from(updateDoc(doc(db, 'users', currentUser.uid), { isFirstLogin: false })).pipe(
+        map(() => undefined),
+        catchError(() => {
+          const q = query(collection(db, 'users'), where('email', '==', cleanEmail));
+          return from(getDocs(q)).pipe(
+            switchMap(snap => {
+              if (!snap.empty) {
+                const userDoc = snap.docs[0];
+                return from(updateDoc(doc(db, 'users', userDoc.id), { isFirstLogin: false }));
+              }
+              return throwError(() => new Error('User not found in system.'));
+            }),
+            map(() => undefined)
+          );
+        }),
+        catchError(err => throwError(() => new Error(err.message || 'Failed to clear first login flag.')))
+      );
+    }
+
+    const q = query(collection(db, 'users'), where('email', '==', cleanEmail));
     return from(getDocs(q)).pipe(
       switchMap(snap => {
         if (!snap.empty) {
