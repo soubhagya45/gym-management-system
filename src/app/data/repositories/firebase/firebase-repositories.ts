@@ -469,11 +469,17 @@ export class FirebaseAuthRepository implements IAuthRepository {
     const currentUser = auth.currentUser;
     const cleanEmail = email.toLowerCase().trim();
 
+    const authState = this.injector.get(AuthState);
+    const activeUser = authState.currentUserValue;
+    const userGymId = activeUser?.gymId;
+
     if (currentUser && currentUser.email?.toLowerCase().trim() === cleanEmail) {
       return from(updateDoc(doc(db, 'users', currentUser.uid), { isFirstLogin: false })).pipe(
         map(() => undefined),
         catchError(() => {
-          const q = query(collection(db, 'users'), where('email', '==', cleanEmail));
+          const q = userGymId
+            ? query(collection(db, 'users'), where('gymId', '==', userGymId), where('email', '==', cleanEmail))
+            : query(collection(db, 'users'), where('email', '==', cleanEmail));
           return from(getDocs(q)).pipe(
             switchMap(snap => {
               if (!snap.empty) {
@@ -489,7 +495,9 @@ export class FirebaseAuthRepository implements IAuthRepository {
       );
     }
 
-    const q = query(collection(db, 'users'), where('email', '==', cleanEmail));
+    const q = userGymId
+      ? query(collection(db, 'users'), where('gymId', '==', userGymId), where('email', '==', cleanEmail))
+      : query(collection(db, 'users'), where('email', '==', cleanEmail));
     return from(getDocs(q)).pipe(
       switchMap(snap => {
         if (!snap.empty) {
@@ -1910,15 +1918,15 @@ export class FirebaseEmployeeRepository implements IEmployeeRepository {
 
     const generatedPassword = generateSecurePassword();
 
-    // 1. Check for duplicate emails in Firestore collections first
-    const empQ = query(collection(db, 'employees'), where('email', '==', cleanEmail));
+    // 1. Check for duplicate emails in Firestore collections first (scoped to this gym for tenant isolation)
+    const empQ = query(collection(db, 'employees'), where('gymId', '==', gymId), where('email', '==', cleanEmail));
     return from(getDocs(empQ)).pipe(
       switchMap(empSnap => {
         if (!empSnap.empty) {
           return throwError(() => new Error('An employee with this email already exists in Firestore.'));
         }
         
-        const userQ = query(collection(db, 'users'), where('email', '==', cleanEmail));
+        const userQ = query(collection(db, 'users'), where('gymId', '==', gymId), where('email', '==', cleanEmail));
         return from(getDocs(userQ)).pipe(
           switchMap(userSnap => {
             if (!userSnap.empty) {
