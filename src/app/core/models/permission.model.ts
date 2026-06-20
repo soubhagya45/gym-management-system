@@ -90,11 +90,18 @@ export const ROLE_PERMISSIONS: Record<UserRole, Permission[]> = {
   [UserRole.Manager]: [
     'view:dashboard',
     'view:members', 'manage:members',
+    'view:trainers', 'manage:trainers',
     'view:payments', 'manage:payments',
     'view:leads', 'manage:leads',
     'view:attendance', 'manage:attendance',
+    'view:plans', 'manage:plans',
+    'view:whatsapp', 'manage:whatsapp',
     'view:body-progress',
+    'manage:settings',
+    'export:reports',
+    'invite:staff',
     'view:finance',
+    'manage:finance',
     'view:employees',
     'manage:employees',
     'view:pt-sessions',
@@ -179,9 +186,9 @@ export const ALL_NAV_ITEMS: NavItem[] = [
     permission: 'view:finance',
     roles: [UserRole.SuperAdmin, UserRole.Owner, UserRole.Manager, UserRole.Staff]
   },
-  { label: 'Membership Plans', route: '/plans',          icon: 'fitness_center',  permission: 'view:plans',         roles: [UserRole.SuperAdmin, UserRole.Owner] },
-  { label: 'Trainers',         route: '/trainers',       icon: 'sports',          permission: 'view:trainers',      roles: [UserRole.SuperAdmin, UserRole.Owner] },
-  { label: 'WhatsApp Center',  route: '/whatsapp',       icon: 'chat',            permission: 'view:whatsapp',      roles: [UserRole.SuperAdmin, UserRole.Owner] },
+  { label: 'Membership Plans', route: '/plans',          icon: 'fitness_center',  permission: 'view:plans',         roles: [UserRole.SuperAdmin, UserRole.Owner, UserRole.Manager] },
+  { label: 'Trainers',         route: '/trainers',       icon: 'sports',          permission: 'view:trainers',      roles: [UserRole.SuperAdmin, UserRole.Owner, UserRole.Manager] },
+  { label: 'WhatsApp Center',  route: '/whatsapp',       icon: 'chat',            permission: 'view:whatsapp',      roles: [UserRole.SuperAdmin, UserRole.Owner, UserRole.Manager] },
   { label: 'Body Progress',    route: '/body-progress',  icon: 'trending_up',     permission: 'view:body-progress', roles: [UserRole.SuperAdmin, UserRole.Owner, UserRole.Manager, UserRole.Trainer, UserRole.Staff] },
   { label: 'Settings',         route: '/settings',       icon: 'settings',        permission: 'view:settings',    roles: [UserRole.SuperAdmin, UserRole.Owner, UserRole.Manager] }
 ];
