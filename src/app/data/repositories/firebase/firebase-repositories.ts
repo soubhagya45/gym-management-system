@@ -1082,6 +1082,16 @@ export class FirebaseLeadRepository implements ILeadRepository {
       try {
         const batch = writeBatch(db);
 
+        const cleanObject = (obj: any) => {
+          const clean = { ...obj };
+          Object.keys(clean).forEach(key => {
+            if (clean[key] === undefined) {
+              delete clean[key];
+            }
+          });
+          return clean;
+        };
+
         // ── 1. New Member document ─────────────────────────────────────────
         const defaultExpiry = new Date();
         defaultExpiry.setFullYear(defaultExpiry.getFullYear() + 1);
@@ -1095,7 +1105,7 @@ export class FirebaseLeadRepository implements ILeadRepository {
           attendanceCount: 0,
           balance: totalDue
         };
-        batch.set(doc(db, 'members', memberId), memberDoc);
+        batch.set(doc(db, 'members', memberId), cleanObject(memberDoc));
 
         // ── 2. Update Lead → Converted ─────────────────────────────────────
         if (lead) {
@@ -1105,10 +1115,10 @@ export class FirebaseLeadRepository implements ILeadRepository {
             convertedBy: conversionDetails.convertedBy,
             revenueGenerated: totalFinal,
             commissionPercent: 0,
-            commissionEarned: 0,
-            nextFollowUp: undefined
+            commissionEarned: 0
           };
-          batch.set(doc(db, 'leads', lead.id), updatedLead);
+          delete updatedLead.nextFollowUp;
+          batch.set(doc(db, 'leads', lead.id), cleanObject(updatedLead));
         }
 
         // ── 3. Membership Payment record ───────────────────────────────────
@@ -1138,7 +1148,7 @@ export class FirebaseLeadRepository implements ILeadRepository {
           salespersonId: conversionDetails.salespersonId || lead?.assignedEmployee || lead?.leadOwner || '',
           salespersonName: conversionDetails.salespersonName || conversionDetails.convertedBy || ''
         };
-        batch.set(doc(db, 'payments', paymentId), membershipPayment);
+        batch.set(doc(db, 'payments', paymentId), cleanObject(membershipPayment));
 
         // ── 4. Unified Invoice ─────────────────────────────────────────────
         const invoiceNumber = 'INV-' + Date.now().toString().slice(-6);
@@ -1172,7 +1182,7 @@ export class FirebaseLeadRepository implements ILeadRepository {
           pendingAmount: totalDue,
           dueDate: today
         };
-        batch.set(doc(db, 'invoices', invoiceId), invoiceDoc);
+        batch.set(doc(db, 'invoices', invoiceId), cleanObject(invoiceDoc));
 
         // ── 4b. Membership Collection receipt (if paid portion > 0) ─────────
         if (mPaid > 0) {
@@ -1199,7 +1209,7 @@ export class FirebaseLeadRepository implements ILeadRepository {
             salespersonId: conversionDetails.salespersonId || '',
             salespersonName: conversionDetails.salespersonName || ''
           };
-          batch.set(doc(db, 'collections', collectionId), collectionDoc);
+          batch.set(doc(db, 'collections', collectionId), cleanObject(collectionDoc));
         }
 
         // ── 5. PT Wallet + Trainer Assignment + PT Payment (conditional) ───
@@ -1241,10 +1251,10 @@ export class FirebaseLeadRepository implements ILeadRepository {
               notes: 'Initial assignment'
             }]
           };
-          batch.set(doc(db, 'memberPTPlans', mptId), memberPTPlan);
+          batch.set(doc(db, 'memberPTPlans', mptId), cleanObject(memberPTPlan));
 
           // 5b. Trainer Assignment
-          batch.set(doc(db, 'trainerAssignments', taId), {
+          batch.set(doc(db, 'trainerAssignments', taId), cleanObject({
             id: taId,
             gymId,
             branchId,
@@ -1255,10 +1265,10 @@ export class FirebaseLeadRepository implements ILeadRepository {
             assignedDate: today,
             status: 'active',
             ptGoal: conversionDetails.ptGoal || 'General Fitness'
-          });
+          }));
 
           // 5c. Update member PT fields
-          batch.update(doc(db, 'members', memberId), {
+          batch.update(doc(db, 'members', memberId), cleanObject({
             ptPlanId: conversionDetails.ptPlanId,
             ptPlanName: conversionDetails.ptPlanName,
             trainerId: conversionDetails.preferredTrainerId || 'unassigned',
@@ -1269,7 +1279,7 @@ export class FirebaseLeadRepository implements ILeadRepository {
             ptSessionsTotal: conversionDetails.ptSessionsTotal || 0,
             ptSessionsCompleted: 0,
             ptSessionsRemaining: conversionDetails.ptSessionsTotal || 0
-          });
+          }));
 
           // 5d. PT Payment
           const ptPayment = {
@@ -1300,11 +1310,11 @@ export class FirebaseLeadRepository implements ILeadRepository {
             salespersonId: conversionDetails.salespersonId || '',
             salespersonName: conversionDetails.salespersonName || ''
           };
-          batch.set(doc(db, 'payments', ptPayId), ptPayment);
+          batch.set(doc(db, 'payments', ptPayId), cleanObject(ptPayment));
 
           // 5e. Trainer Revenue (only if paid portion > 0)
           if (ptPaid > 0) {
-            batch.set(doc(db, 'trainerRevenue', trId), {
+            batch.set(doc(db, 'trainerRevenue', trId), cleanObject({
               id: trId,
               gymId,
               branchId,
@@ -1318,7 +1328,7 @@ export class FirebaseLeadRepository implements ILeadRepository {
               ptPlanName: conversionDetails.ptPlanName || 'PT Plan',
               salespersonId: conversionDetails.salespersonId || '',
               salespersonName: conversionDetails.salespersonName || ''
-            });
+            }));
           }
 
           // 5f. PT Collection receipt (if paid portion > 0)
@@ -1348,7 +1358,7 @@ export class FirebaseLeadRepository implements ILeadRepository {
               salespersonId: conversionDetails.salespersonId || '',
               salespersonName: conversionDetails.salespersonName || ''
             };
-            batch.set(doc(db, 'collections', ptColId), ptCollection);
+            batch.set(doc(db, 'collections', ptColId), cleanObject(ptCollection));
           }
         }
 
