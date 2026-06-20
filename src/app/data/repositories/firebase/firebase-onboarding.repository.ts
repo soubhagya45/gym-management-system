@@ -8,7 +8,7 @@ import { UserProfile } from '../../../core/models/user.model';
 import { OnboardingData } from '../../../core/models/onboarding.model';
 import { UserRole } from '../../../core/enums/roles.enum';
 import { SubscriptionPlan } from '../../../core/enums/subscription-plans.enum';
-import { createUserWithEmailAndPassword } from 'firebase/auth';
+import { createUserWithEmailAndPassword, deleteUser } from 'firebase/auth';
 import { doc, setDoc } from 'firebase/firestore';
 import { Employee } from '../../../core/models/employee.entity';
 import { buildDefaultWhatsAppTemplates } from '../../../core/models/default-whatsapp-templates';
@@ -35,6 +35,7 @@ export class FirebaseOnboardingRepository implements IOnboardingRepository {
       switchMap(cred => {
         const uid = cred.user.uid;
         const gymId = 'gym_' + Math.random().toString(36).substring(2, 9);
+        const branchId = 'branch_' + Math.random().toString(36).substring(2, 9);
         const today = new Date();
         const trialExpiry = new Date();
         trialExpiry.setDate(today.getDate() + 14);
@@ -56,7 +57,7 @@ export class FirebaseOnboardingRepository implements IOnboardingRepository {
           subscriptionStatus: 'trialing',
           branches: [
             {
-              id: 'branch_' + Math.random().toString(36).substring(2, 9),
+              id: branchId,
               name: payload.branchName || 'Main Branch',
               code: (payload.branchName || 'MAIN').toUpperCase().replace(/\s+/g, '-').substring(0, 5),
               address: payload.branchAddress || payload.gymAddress || 'Not Specified',
@@ -99,6 +100,7 @@ export class FirebaseOnboardingRepository implements IOnboardingRepository {
           avatarUrl: `https://api.dicebear.com/7.x/initials/svg?seed=${encodeURIComponent(payload.ownerFullName)}`,
           role: UserRole.Owner,
           gymId,
+          branchId,
           isFirstLogin: true,
           permissions: [],
           lastLogin: new Date().toISOString(),
@@ -108,6 +110,7 @@ export class FirebaseOnboardingRepository implements IOnboardingRepository {
         const ownerEmployee: Employee = {
           id: uid,
           gymId,
+          branchId,
           fullName: payload.ownerFullName,
           phone: payload.ownerPhone || payload.gymPhone,
           email: payload.ownerEmail,
@@ -124,44 +127,57 @@ export class FirebaseOnboardingRepository implements IOnboardingRepository {
           photoUrl: ownerProfile.avatarUrl
         };
 
-        const ops: Observable<any>[] = [
-          from(setDoc(doc(db, 'gyms', gymId), newGym)),
-          from(setDoc(doc(db, 'users', uid), ownerProfile)),
-          from(setDoc(doc(db, 'employees', uid), ownerEmployee))
-        ];
+        // 1. Sequentially write user Profile first so that permissions logic resolves correctly in subsequent writes
+        return from(setDoc(doc(db, 'users', uid), ownerProfile)).pipe(
+          switchMap(() => {
+            const ops: Observable<any>[] = [
+              from(setDoc(doc(db, 'gyms', gymId), newGym)),
+              from(setDoc(doc(db, 'employees', uid), ownerEmployee))
+            ];
 
-        // Seed initial membership plans if enabled in onboarding
-        if (payload.plans && payload.plans.length > 0) {
-          payload.plans.forEach(planConfig => {
-            if (planConfig.enabled) {
-              const planId = 'plan_' + Math.random().toString(36).substring(2, 9);
-              const newPlan = {
-                id: planId,
-                gymId,
-                name: planConfig.name,
-                durationMonths: planConfig.durationMonths,
-                price: planConfig.price,
-                description: planConfig.description,
-                features: planConfig.features,
-                activeMembersCount: 0
-              };
-              ops.push(from(setDoc(doc(db, 'membership_plans', planId), newPlan)));
+            // Seed initial membership plans if enabled in onboarding
+            if (payload.plans && payload.plans.length > 0) {
+              payload.plans.forEach(planConfig => {
+                if (planConfig.enabled) {
+                  const planId = 'plan_' + Math.random().toString(36).substring(2, 9);
+                  const newPlan = {
+                    id: planId,
+                    gymId,
+                    name: planConfig.name,
+                    durationMonths: planConfig.durationMonths,
+                    price: planConfig.price,
+                    description: planConfig.description,
+                    features: planConfig.features,
+                    activeMembersCount: 0
+                  };
+                  ops.push(from(setDoc(doc(db, 'membership_plans', planId), newPlan)));
+                }
+              });
             }
-          });
-        }
 
-        // ── Seed 8 default WhatsApp message templates ──────────────────────────
-        // These templates are available immediately in the WhatsApp Reminder Center
-        // so the gym owner can start sending messages without manual setup.
-        const defaultTemplates = buildDefaultWhatsAppTemplates(gymId, payload.gymName);
-        defaultTemplates.forEach(templateData => {
-          const tplId = 'tpl_' + Math.random().toString(36).substring(2, 10);
-          const fullTemplate = { ...templateData, id: tplId };
-          ops.push(from(setDoc(doc(db, 'whatsapp_templates', tplId), fullTemplate)));
-        });
+            // Seed WhatsApp templates
+            const defaultTemplates = buildDefaultWhatsAppTemplates(gymId, payload.gymName);
+            defaultTemplates.forEach(templateData => {
+              const tplId = 'tpl_' + Math.random().toString(36).substring(2, 10);
+              const fullTemplate = { ...templateData, id: tplId };
+              ops.push(from(setDoc(doc(db, 'whatsapp_templates', tplId), fullTemplate)));
+            });
 
-        return forkJoin(ops).pipe(
-          map(() => ({ gym: newGym, owner: ownerProfile }))
+            return forkJoin(ops).pipe(
+              map(() => ({ gym: newGym, owner: ownerProfile }))
+            );
+          }),
+          catchError(firestoreErr => {
+            console.error('[FirebaseOnboardingRepository] Onboarding database writes failed. Initiating rollback user deletion...', firestoreErr);
+            // 2. Rollback by deleting the Firebase Auth user if database setup fails
+            return from(deleteUser(cred.user)).pipe(
+              catchError(cleanupErr => {
+                console.error('[FirebaseOnboardingRepository] Cleanup user deletion failed:', cleanupErr);
+                return of(undefined);
+              }),
+              switchMap(() => throwError(() => new Error('Workspace creation failed while saving records: ' + (firestoreErr.message || firestoreErr))))
+            );
+          })
         );
       }),
       catchError(err => throwError(() => new Error(err.message || 'Workspace onboarding failed.')))

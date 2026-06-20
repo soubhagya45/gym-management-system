@@ -213,6 +213,7 @@ export class AuthState {
 
   logout(): void {
     localStorage.removeItem(this.STORAGE_KEY);
+    localStorage.removeItem('apexfit_active_tenant');
     this.currentUserSubject.next(null);
     this.tenantContext.setTenantId(null);
     this.sessionService.stop();

@@ -101,7 +101,8 @@ service cloud.firestore {
             isSuperAdmin() || (
               getUserData().role == 'gym_owner' && 
               request.resource.data.gymId == getUserData().gymId &&
-              (request.resource.data.role == 'branch_manager' || 
+              (request.resource.data.role == 'gym_owner' ||
+               request.resource.data.role == 'branch_manager' || 
                request.resource.data.role == 'trainer' || 
                request.resource.data.role == 'staff')
             )
@@ -121,7 +122,8 @@ service cloud.firestore {
             isSuperAdmin() || (
               getUserData().role == 'gym_owner' && 
               resource.data.gymId == getUserData().gymId &&
-              (request.resource.data.role == 'branch_manager' || 
+              (request.resource.data.role == 'gym_owner' ||
+               request.resource.data.role == 'branch_manager' || 
                request.resource.data.role == 'trainer' || 
                request.resource.data.role == 'staff')
             )
@@ -214,9 +216,10 @@ service cloud.firestore {
         (request.auth.uid == id && getUserData().gymId == resource.data.gymId)
       );
 
-      // CREATE - only super_admin or gym_owner
+      // CREATE - only super_admin or gym_owner, or self-creation as owner
       allow create: if isActive() && (
         isSuperAdmin() ||
+        (request.auth.uid == id && request.resource.data.role == 'gym_owner') ||
         (getUserData().role == 'gym_owner' && request.resource.data.gymId == getUserData().gymId)
       );
 
@@ -227,9 +230,8 @@ service cloud.firestore {
         (
           getUserData().role == 'gym_owner' &&
           resource.data.gymId == getUserData().gymId &&
-          // Gym owner cannot escalate employee to gym_owner or super_admin
+          // Gym owner cannot escalate employee to super_admin
           request.resource.data.role != 'super_admin' &&
-          request.resource.data.role != 'gym_owner' &&
           // gymId must not be changed
           request.resource.data.gymId == resource.data.gymId
         )

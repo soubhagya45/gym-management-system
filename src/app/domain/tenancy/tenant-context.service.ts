@@ -29,7 +29,10 @@ export class TenantContextService {
 
   setTenantId(gymId: string | null): void {
     this.activeGymIdSubject.next(gymId);
-    if (!gymId) {
+    if (gymId) {
+      localStorage.setItem('apexfit_active_tenant', gymId);
+    } else {
+      localStorage.removeItem('apexfit_active_tenant');
       this.activeGymSubject.next(null);
       this.activeSubscriptionSubject.next(null);
       this.activeFeatureFlagsSubject.next(null);
@@ -71,6 +74,7 @@ export class TenantContextService {
     if (gym) {
       this.activeGymIdSubject.next(gym.gymId);
       this.setSubscription(gym.subscriptionPlan);
+      localStorage.setItem('apexfit_active_tenant', gym.gymId);
       
       // Auto-resolve branch
       const savedBranchId = localStorage.getItem(`apexfit_active_branch_${gym.gymId}`);

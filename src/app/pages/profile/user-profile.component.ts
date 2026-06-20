@@ -53,8 +53,9 @@ export class UserProfileComponent implements OnInit {
 
   getRoleLabel(role: string): string {
     switch (role) {
-      case 'super-admin': return 'Super Administrator';
-      case 'owner': return 'Club Owner';
+      case 'super_admin': return 'Super Administrator';
+      case 'gym_owner': return 'Club Owner';
+      case 'branch_manager': return 'Branch Manager';
       case 'trainer': return 'Personal Trainer';
       case 'staff': return 'Front Roster Staff';
       default: return 'User';

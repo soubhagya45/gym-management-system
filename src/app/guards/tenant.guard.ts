@@ -51,6 +51,11 @@ export const tenantGuard: CanActivateFn = (route, state) => {
     tenantSlug = authState.currentUserValue.gymId;
   }
 
+  // D2. Check localStorage for active tenant slug (persisted from previous session)
+  if (!tenantSlug) {
+    tenantSlug = localStorage.getItem('apexfit_active_tenant');
+  }
+
   // E. Fallback default
   if (!tenantSlug) {
     tenantSlug = 'gym-a'; // Default to gym-a for mock database / local demo

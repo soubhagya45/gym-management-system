@@ -1121,6 +1121,7 @@ export class MockAuthRepository implements IAuthRepository {
     }
 
     const gymId = 'gym-' + Math.random().toString(36).substring(2, 9);
+    const branchId = 'branch-' + Math.random().toString(36).substring(2, 9);
     const newGym: Gym = {
       gymId,
       gymName,
@@ -1134,7 +1135,17 @@ export class MockAuthRepository implements IAuthRepository {
       gstNumber: gstNumber || undefined,
       gymType: gymType || 'Unisex',
       openingTime: openingTime || '06:00',
-      closingTime: closingTime || '22:00'
+      closingTime: closingTime || '22:00',
+      branches: [
+        {
+          id: branchId,
+          name: 'Main Branch',
+          code: 'MAIN',
+          address: address || 'Not Specified',
+          manager: ownerName,
+          phone: phone
+        }
+      ]
     };
     dbGyms.push(newGym);
 
@@ -1144,7 +1155,8 @@ export class MockAuthRepository implements IAuthRepository {
       email,
       avatarUrl: `https://api.dicebear.com/7.x/initials/svg?seed=${encodeURIComponent(ownerName)}`,
       role: UserRole.Owner,
-      gymId
+      gymId,
+      branchId
     });
     dbMockAccounts[emailKey] = newUser;
     if (password) dbPasswords[emailKey] = password;
@@ -1152,6 +1164,7 @@ export class MockAuthRepository implements IAuthRepository {
     const ownerEmployee: Employee = {
       id: newUser.id,
       gymId,
+      branchId,
       fullName: ownerName,
       phone: phone,
       email,
@@ -1238,6 +1251,7 @@ export class MockOnboardingRepository implements IOnboardingRepository {
 
   onboardWorkspace(payload: OnboardingData): Observable<{ gym: Gym; owner: UserProfile }> {
     const gymId = 'gym-' + Math.random().toString(36).substring(2, 9);
+    const branchId = 'branch-' + Math.random().toString(36).substring(2, 9);
     const today = new Date();
     const trialExpiry = new Date();
     trialExpiry.setDate(today.getDate() + 14);
@@ -1259,7 +1273,7 @@ export class MockOnboardingRepository implements IOnboardingRepository {
       subscriptionStatus: 'trialing',
       branches: [
         {
-          id: 'branch-' + Math.random().toString(36).substring(2, 9),
+          id: branchId,
           name: payload.branchName,
           code: payload.branchName.toUpperCase().replace(/\s+/g, '-').substring(0, 5),
           address: payload.branchAddress,
@@ -1305,6 +1319,7 @@ export class MockOnboardingRepository implements IOnboardingRepository {
       avatarUrl: `https://api.dicebear.com/7.x/initials/svg?seed=${encodeURIComponent(payload.ownerFullName)}`,
       role: UserRole.Owner,
       gymId: gymId,
+      branchId: branchId,
       isFirstLogin: true
     });
 
@@ -1315,6 +1330,7 @@ export class MockOnboardingRepository implements IOnboardingRepository {
     const ownerEmployee: Employee = {
       id: userId,
       gymId,
+      branchId,
       fullName: payload.ownerFullName,
       phone: payload.ownerPhone || payload.gymPhone,
       email: payload.ownerEmail,
