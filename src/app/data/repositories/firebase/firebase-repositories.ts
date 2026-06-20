@@ -362,7 +362,8 @@ export class FirebaseAuthRepository implements IAuthRepository {
           isFirstLogin: false,
           permissions: [],
           lastLogin: new Date().toISOString(),
-          sessionExpiresAt: new Date(Date.now() + 8 * 60 * 60 * 1000).toISOString()
+          sessionExpiresAt: new Date(Date.now() + 8 * 60 * 60 * 1000).toISOString(),
+          accountStatus: 'Active'
         };
 
         const ownerEmployee: Employee = {
@@ -484,8 +485,27 @@ export class FirebaseGymRepository implements IGymRepository {
 
   getGyms(): Observable<Gym[]> {
     const db = this.firebaseService.getDb();
-    return from(getDocs(collection(db, 'gyms'))).pipe(
-      map(snap => snap.docs.map(d => d.data() as Gym)),
+    const authState = this.injector.get(AuthState);
+    const user = authState.currentUserValue;
+
+    if (!user) {
+      return of([]);
+    }
+
+    if (user.role === UserRole.SuperAdmin) {
+      return from(getDocs(collection(db, 'gyms'))).pipe(
+        map(snap => snap.docs.map(d => d.data() as Gym)),
+        catchError(err => throwError(() => new Error(err.message || 'Failed to get gyms.')))
+      );
+    }
+
+    const gymId = user.gymId;
+    if (!gymId) {
+      return of([]);
+    }
+
+    return from(getDoc(doc(db, 'gyms', gymId))).pipe(
+      map(snap => snap.exists() ? [snap.data() as Gym] : []),
       catchError(err => throwError(() => new Error(err.message || 'Failed to get gyms.')))
     );
   }
@@ -1925,7 +1945,8 @@ export class FirebaseEmployeeRepository implements IEmployeeRepository {
                   tempPasswordExpiresAt: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString(),
                   permissions: [],
                   lastLogin: new Date().toISOString(),
-                  sessionExpiresAt: new Date(Date.now() + 8 * 60 * 60 * 1000).toISOString()
+                  sessionExpiresAt: new Date(Date.now() + 8 * 60 * 60 * 1000).toISOString(),
+                  accountStatus: 'Active'
                 };
 
                 const cleanUserProfile = { ...userProfile };

@@ -1156,7 +1156,8 @@ export class MockAuthRepository implements IAuthRepository {
       avatarUrl: `https://api.dicebear.com/7.x/initials/svg?seed=${encodeURIComponent(ownerName)}`,
       role: UserRole.Owner,
       gymId,
-      branchId
+      branchId,
+      accountStatus: 'Active'
     });
     dbMockAccounts[emailKey] = newUser;
     if (password) dbPasswords[emailKey] = password;
@@ -1320,7 +1321,8 @@ export class MockOnboardingRepository implements IOnboardingRepository {
       role: UserRole.Owner,
       gymId: gymId,
       branchId: branchId,
-      isFirstLogin: true
+      isFirstLogin: true,
+      accountStatus: 'Active'
     });
 
     const emailKey = payload.ownerEmail.toLowerCase().trim();

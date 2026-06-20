@@ -104,7 +104,8 @@ export class FirebaseOnboardingRepository implements IOnboardingRepository {
           isFirstLogin: true,
           permissions: [],
           lastLogin: new Date().toISOString(),
-          sessionExpiresAt: new Date(Date.now() + 8 * 60 * 60 * 1000).toISOString()
+          sessionExpiresAt: new Date(Date.now() + 8 * 60 * 60 * 1000).toISOString(),
+          accountStatus: 'Active'
         };
 
         const ownerEmployee: Employee = {

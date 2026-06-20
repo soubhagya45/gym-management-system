@@ -10,6 +10,7 @@ service cloud.firestore {
     function isActive() {
       return request.auth != null && (
         !exists(/databases/$(database)/documents/users/$(request.auth.uid)) ||
+        !('accountStatus' in getUserData()) ||
         getUserData().accountStatus == 'Active'
       );
     }
