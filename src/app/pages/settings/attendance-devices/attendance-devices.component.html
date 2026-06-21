@@ -1,0 +1,281 @@
+<div class="attendance-devices-container">
+  
+  <mat-tab-group class="attendance-devices-tabs">
+    <!-- Tab 1: Device Management -->
+    <mat-tab label="Devices Configuration">
+      <div class="tab-content">
+        <div class="header-actions">
+          <div class="title-meta">
+            <h3>Registered Attendance Hardware / APIs</h3>
+            <p class="text-muted">Register and configure local biometric scanners, facial recognition cameras, RFID logs, or QR servers.</p>
+          </div>
+          <button mat-raised-button color="primary" (click)="openAddDevice()" *ngIf="!showDeviceForm">
+            <mat-icon>add_to_queue</mat-icon>
+            <span>Add Device</span>
+          </button>
+        </div>
+
+        <!-- Inline Add/Edit Device Form -->
+        <div class="mat-card form-card glass-panel" *ngIf="showDeviceForm">
+          <h4>{{ isEditingDevice ? 'Edit Attendance Device' : 'Add New Attendance Device' }}</h4>
+          <form (submit)="saveDevice(); $event.preventDefault()" class="device-form-grid">
+            <mat-form-field appearance="outline" class="col-span-2">
+              <mat-label>Device Name</mat-label>
+              <input matInput [(ngModel)]="deviceForm.deviceName" name="deviceName" placeholder="e.g. Front Gate ESSL Biometric" required>
+            </mat-form-field>
+
+            <mat-form-field appearance="outline">
+              <mat-label>Device Type</mat-label>
+              <mat-select [(ngModel)]="deviceForm.deviceType" name="deviceType">
+                <mat-option value="essl_biometric">ESSL Biometric</mat-option>
+                <mat-option value="face_recognition">Face Recognition</mat-option>
+                <mat-option value="fingerprint">Fingerprint</mat-option>
+                <mat-option value="rfid_card">RFID Card Reader</mat-option>
+                <mat-option value="qr_attendance">QR Attendance</mat-option>
+                <mat-option value="custom_api">Custom API</mat-option>
+              </mat-select>
+            </mat-form-field>
+
+            <mat-form-field appearance="outline">
+              <mat-label>Status</mat-label>
+              <mat-select [(ngModel)]="deviceForm.status" name="status">
+                <mat-option value="Active">Active</mat-option>
+                <mat-option value="Inactive">Inactive</mat-option>
+              </mat-select>
+            </mat-form-field>
+
+            <!-- TCP/IP Specific Fields -->
+            <ng-container *ngIf="deviceForm.deviceType === 'essl_biometric' || deviceForm.deviceType === 'fingerprint' || deviceForm.deviceType === 'rfid_card'">
+              <mat-form-field appearance="outline">
+                <mat-label>IP Address</mat-label>
+                <input matInput [(ngModel)]="deviceForm.ipAddress" name="ipAddress" placeholder="e.g. 192.168.1.201">
+              </mat-form-field>
+
+              <mat-form-field appearance="outline">
+                <mat-label>Port</mat-label>
+                <input matInput type="number" [(ngModel)]="deviceForm.port" name="port" placeholder="e.g. 4370">
+              </mat-form-field>
+            </ng-container>
+
+            <!-- API / Webhook Specific Fields -->
+            <ng-container *ngIf="deviceForm.deviceType === 'face_recognition' || deviceForm.deviceType === 'qr_attendance' || deviceForm.deviceType === 'custom_api'">
+              <mat-form-field appearance="outline" class="col-span-2">
+                <mat-label>API Endpoint URL</mat-label>
+                <input matInput [(ngModel)]="deviceForm.apiUrl" name="apiUrl" placeholder="e.g. https://api.facescanner.local/v1">
+              </mat-form-field>
+            </ng-container>
+
+            <!-- Credentials -->
+            <mat-form-field appearance="outline">
+              <mat-label>Username (Optional)</mat-label>
+              <input matInput [(ngModel)]="deviceForm.username" name="username" placeholder="e.g. admin">
+            </mat-form-field>
+
+            <mat-form-field appearance="outline">
+              <mat-label>Password / Secret (Optional)</mat-label>
+              <input matInput type="password" [(ngModel)]="plainPassword" name="plainPassword" placeholder="••••••••">
+            </mat-form-field>
+
+            <div class="form-actions col-span-2">
+              <button mat-stroked-button type="button" (click)="showDeviceForm = false">Cancel</button>
+              <button mat-raised-button color="primary" type="submit">Save Configuration</button>
+            </div>
+          </form>
+        </div>
+
+        <!-- Devices Table -->
+        <div class="table-container" *ngIf="!showDeviceForm">
+          <table mat-table [dataSource]="devices" class="w-100 mat-elevation-z0">
+            
+            <!-- Device Name -->
+            <ng-container matColumnDef="name">
+              <th mat-header-cell *matHeaderCellDef> Device Name </th>
+              <td mat-cell *matCellDef="let element" class="font-semibold">
+                <div class="name-cell">
+                  <mat-icon class="device-icon">hardware</mat-icon>
+                  <span>{{ element.deviceName }}</span>
+                </div>
+              </td>
+            </ng-container>
+
+            <!-- Device Type -->
+            <ng-container matColumnDef="type">
+              <th mat-header-cell *matHeaderCellDef> Connection Type </th>
+              <td mat-cell *matCellDef="let element">
+                {{ getDeviceTypeLabel(element.deviceType) }}
+              </td>
+            </ng-container>
+
+            <!-- Connection Details -->
+            <ng-container matColumnDef="connection">
+              <th mat-header-cell *matHeaderCellDef> Network Details </th>
+              <td mat-cell *matCellDef="let element" class="connection-details">
+                <span *ngIf="element.ipAddress">{{ element.ipAddress }}:{{ element.port || 4370 }}</span>
+                <span *ngIf="element.apiUrl" class="url-text" [title]="element.apiUrl">{{ element.apiUrl }}</span>
+                <span *ngIf="!element.ipAddress && !element.apiUrl">—</span>
+              </td>
+            </ng-container>
+
+            <!-- Last Sync Time -->
+            <ng-container matColumnDef="syncInfo">
+              <th mat-header-cell *matHeaderCellDef> Last Synced </th>
+              <td mat-cell *matCellDef="let element" class="text-muted">
+                {{ element.lastSyncTime ? (element.lastSyncTime | date:'short') : 'Never Synced' }}
+              </td>
+            </ng-container>
+
+            <!-- Status -->
+            <ng-container matColumnDef="status">
+              <th mat-header-cell *matHeaderCellDef style="width: 100px"> Status </th>
+              <td mat-cell *matCellDef="let element">
+                <span class="status-badge" [ngClass]="element.status === 'Active' ? 'active' : 'inactive'">
+                  {{ element.status }}
+                </span>
+              </td>
+            </ng-container>
+
+            <!-- Actions -->
+            <ng-container matColumnDef="actions">
+              <th mat-header-cell *matHeaderCellDef style="width: 320px; text-align: center"> Actions </th>
+              <td mat-cell *matCellDef="let element" style="text-align: center">
+                <div class="row-actions">
+                  <button mat-button color="primary" (click)="testConnection(element)" matTooltip="Test Connection">
+                    <mat-icon>power</mat-icon>
+                    <span>Test</span>
+                  </button>
+                  <button mat-button color="accent" (click)="syncLogs(element)" [disabled]="element.status === 'Inactive'" matTooltip="Sync Attendance Logs">
+                    <mat-icon>sync</mat-icon>
+                    <span>Sync Logs</span>
+                  </button>
+                  <button mat-icon-button (click)="openEditDevice(element)" matTooltip="Edit Device Config">
+                    <mat-icon>edit</mat-icon>
+                  </button>
+                  <button mat-icon-button (click)="toggleDeviceStatus(element)" [matTooltip]="element.status === 'Active' ? 'Disable Device' : 'Enable Device'">
+                    <mat-icon>{{ element.status === 'Active' ? 'pause_circle' : 'play_circle' }}</mat-icon>
+                  </button>
+                  <button mat-icon-button color="warn" (click)="deleteDevice(element.id)" matTooltip="Delete Device">
+                    <mat-icon>delete</mat-icon>
+                  </button>
+                </div>
+              </td>
+            </ng-container>
+
+            <tr mat-header-row *matHeaderRowDef="displayedDeviceColumns"></tr>
+            <tr mat-row *matRowDef="let row; columns: displayedDeviceColumns;"></tr>
+          </table>
+
+          <div class="empty-state" *ngIf="devices.length === 0">
+            <mat-icon>developer_board</mat-icon>
+            <h4>No devices registered yet</h4>
+            <p>Click "Add Device" to link biometric, face scanning, RFID, or custom API endpoints to ApexFit.</p>
+          </div>
+        </div>
+      </div>
+    </mat-tab>
+
+    <!-- Tab 2: ID Mappings -->
+    <mat-tab label="User ID Mappings">
+      <div class="tab-content">
+        <div class="header-actions">
+          <div class="title-meta">
+            <h3>Hardware User ID → Profile Mappings</h3>
+            <p class="text-muted">Map custom user IDs from biometric logs (e.g. fingerprint scan slot '101') directly to Members or Staff profiles.</p>
+          </div>
+          <button mat-raised-button color="primary" (click)="openAddMapping()" *ngIf="!showMappingForm">
+            <mat-icon>link</mat-icon>
+            <span>Create Mapping</span>
+          </button>
+        </div>
+
+        <!-- Inline Mapping Form -->
+        <div class="mat-card form-card glass-panel" *ngIf="showMappingForm">
+          <h4>Create Attendance mapping</h4>
+          <form (submit)="saveMapping(); $event.preventDefault()" class="mapping-form-grid">
+            <mat-form-field appearance="outline">
+              <mat-label>Device User ID</mat-label>
+              <input matInput [(ngModel)]="mappingForm.deviceUserId" name="deviceUserId" placeholder="e.g. 101" required>
+            </mat-form-field>
+
+            <mat-form-field appearance="outline">
+              <mat-label>Profile Category</mat-label>
+              <mat-select [(ngModel)]="mappingForm.mappedType" name="mappedType" (selectionChange)="mappingForm.mappedId=''">
+                <mat-option value="member">Member</mat-option>
+                <mat-option value="employee">Employee / Staff</mat-option>
+              </mat-select>
+            </mat-form-field>
+
+            <!-- Search Person Selection Dropdown -->
+            <mat-form-field appearance="outline">
+              <mat-label>Search & Select Profile</mat-label>
+              <mat-select [(ngModel)]="mappingForm.mappedId" name="mappedId" required>
+                <ng-container *ngIf="mappingForm.mappedType === 'member'">
+                  <mat-option *ngFor="let m of members" [value]="m.id">{{ m.name }} (Member)</mat-option>
+                </ng-container>
+                <ng-container *ngIf="mappingForm.mappedType === 'employee'">
+                  <mat-option *ngFor="let e of employees" [value]="e.id">{{ e.fullName }} ({{ getRoleLabel(e.role) }})</mat-option>
+                </ng-container>
+              </mat-select>
+            </mat-form-field>
+
+            <div class="form-actions col-span-3">
+              <button mat-stroked-button type="button" (click)="showMappingForm = false">Cancel</button>
+              <button mat-raised-button color="primary" type="submit">Link Profile</button>
+            </div>
+          </form>
+        </div>
+
+        <!-- Mappings Table -->
+        <div class="table-container" *ngIf="!showMappingForm">
+          <table mat-table [dataSource]="mappings" class="w-100 mat-elevation-z0">
+            
+            <!-- Device ID -->
+            <ng-container matColumnDef="deviceUserId">
+              <th mat-header-cell *matHeaderCellDef> Device User ID </th>
+              <td mat-cell *matCellDef="let element" class="font-semibold">
+                <span class="id-badge">{{ element.deviceUserId }}</span>
+              </td>
+            </ng-container>
+
+            <!-- Target Type -->
+            <ng-container matColumnDef="mappedType">
+              <th mat-header-cell *matHeaderCellDef> Profile Type </th>
+              <td mat-cell *matCellDef="let element">
+                <span class="type-badge" [ngClass]="element.mappedType">
+                  {{ element.mappedType === 'member' ? 'Member' : 'Employee' }}
+                </span>
+              </td>
+            </ng-container>
+
+            <!-- Mapped Profile Name -->
+            <ng-container matColumnDef="mappedName">
+              <th mat-header-cell *matHeaderCellDef> Mapped Profile Name </th>
+              <td mat-cell *matCellDef="let element">
+                {{ element.mappedName }}
+              </td>
+            </ng-container>
+
+            <!-- Actions -->
+            <ng-container matColumnDef="actions">
+              <th mat-header-cell *matHeaderCellDef style="width: 100px; text-align: center"> Actions </th>
+              <td mat-cell *matCellDef="let element" style="text-align: center">
+                <button mat-icon-button color="warn" (click)="deleteMapping(element.id)" matTooltip="Unlink Profile">
+                  <mat-icon>link_off</mat-icon>
+                </button>
+              </td>
+            </ng-container>
+
+            <tr mat-header-row *matHeaderRowDef="displayedMappingColumns"></tr>
+            <tr mat-row *matRowDef="let row; columns: displayedMappingColumns;"></tr>
+          </table>
+
+          <div class="empty-state" *ngIf="mappings.length === 0">
+            <mat-icon>link</mat-icon>
+            <h4>No mappings created yet</h4>
+            <p>Create a mapping to resolve device logging numbers (like RFID cards or biometric user slots) to actual members or employee records.</p>
+          </div>
+        </div>
+      </div>
+    </mat-tab>
+  </mat-tab-group>
+
+</div>

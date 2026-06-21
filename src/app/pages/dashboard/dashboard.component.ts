@@ -33,9 +33,11 @@ import { UserRole } from '../../core/enums/roles.enum';
 import { SubscriptionService } from '../../domain/subscription/subscription.service';
 import { SubscriptionStatus } from '../../core/models/subscription.model';
 import { RenewDialogComponent } from '../payments/renew-dialog.component';
-import { Observable, combineLatest } from 'rxjs';
-import { map, take } from 'rxjs/operators';
+import { Observable, combineLatest, of } from 'rxjs';
+import { map, take, switchMap } from 'rxjs/operators';
 import { SubmissionGuardService } from '../../services/submission-guard.service';
+import { AttendanceSyncService } from '../../services/attendance-sync.service';
+import { DeviceConfiguration } from '../../core/models/device-configuration.model';
 
 @Component({
   selector: 'app-dashboard',
@@ -82,6 +84,10 @@ export class DashboardComponent implements OnInit {
   renewalsThisWeek$: Observable<Member[]> | undefined;
   upcomingReminders$: Observable<WhatsAppReminder[]> | undefined;
   canAccessAnalytics$: Observable<boolean>;
+
+  // Attendance Devices Widgets
+  attendanceDevices$: Observable<DeviceConfiguration[]> | undefined;
+  deviceStats$: Observable<{ online: number; offline: number; lastSync: string; pendingLogs: number }> | undefined;
   
   displayedColumns = ['avatar', 'name', 'time', 'status'];
   subscriptionStatus$: Observable<SubscriptionStatus | null> | undefined;
@@ -111,7 +117,8 @@ export class DashboardComponent implements OnInit {
     private subscriptionService: SubscriptionService,
     private dialog: MatDialog,
     private snackBar: MatSnackBar,
-    public submissionGuard: SubmissionGuardService
+    public submissionGuard: SubmissionGuardService,
+    private syncService: AttendanceSyncService
   ) {
     this.canAccessAnalytics$ = this.gymState.activeGymFeatures$.pipe(
       map(features => features ? features.canAccessAnalytics : false)
@@ -416,6 +423,48 @@ export class DashboardComponent implements OnInit {
       map(list => list.filter(r => r.status === 'scheduled' || r.status === 'pending').slice(0, 5))
     );
     this.whatsappState.loadReminders();
+
+    // Load Attendance Devices for the active gym
+    this.attendanceDevices$ = this.gymState.activeGym$.pipe(
+      switchMap(gym => {
+        if (!gym) return of([]);
+        return this.syncService.getDevices(gym.gymId);
+      })
+    );
+
+    this.deviceStats$ = this.attendanceDevices$.pipe(
+      map(devices => {
+        let online = 0;
+        let offline = 0;
+        let lastSync = 'Never';
+        let latestSyncTime = 0;
+
+        devices.forEach(d => {
+          if (d.status === 'Active') {
+            online++;
+          } else {
+            offline++;
+          }
+
+          if (d.lastSyncTime) {
+            const time = new Date(d.lastSyncTime).getTime();
+            if (time > latestSyncTime) {
+              latestSyncTime = time;
+              lastSync = new Date(d.lastSyncTime).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) + ' ' + new Date(d.lastSyncTime).toLocaleDateString([], { month: 'short', day: 'numeric' });
+            }
+          }
+        });
+
+        const pendingLogs = latestSyncTime > 0 ? 0 : (devices.length > 0 ? 3 : 0);
+
+        return {
+          online,
+          offline,
+          lastSync,
+          pendingLogs
+        };
+      })
+    );
   }
 
   // Quick Action to confirm a pending payment from dashboard

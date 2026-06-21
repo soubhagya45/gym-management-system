@@ -13,6 +13,7 @@ import { NotificationSettingsComponent } from './notification-settings/notificat
 import { BrandingComponent } from './branding/branding.component';
 import { IntegrationsComponent } from './integrations/integrations.component';
 import { AuditLogsComponent } from './audit-logs/audit-logs.component';
+import { AttendanceDevicesComponent } from './attendance-devices/attendance-devices.component';
 import { AuthState } from '../../presentation/state/auth.state';
 
 @Component({
@@ -32,7 +33,8 @@ import { AuthState } from '../../presentation/state/auth.state';
     NotificationSettingsComponent,
     BrandingComponent,
     IntegrationsComponent,
-    AuditLogsComponent
+    AuditLogsComponent,
+    AttendanceDevicesComponent
   ],
   templateUrl: './settings.component.html',
   styleUrls: ['./settings.component.scss']
@@ -49,26 +51,20 @@ export class SettingsComponent implements OnInit {
   ) {}
 
   ngOnInit(): void {
-    const user = this.authState.currentUserValue;
-    if (user && user.role === 'branch_manager') {
-      this.tabs = [
-        { id: 'audit-logs', label: 'Audit Logs', icon: 'history' }
-      ];
-      this.activeTab = 'audit-logs';
-    } else {
-      this.tabs = [
-        { id: 'profile', label: 'Gym Profile', icon: 'business' },
-        { id: 'branches', label: 'Branches', icon: 'store' },
-        { id: 'memberships', label: 'Membership Configuration', icon: 'card_membership' },
-        { id: 'payments', label: 'Payment Settings', icon: 'account_balance' },
-        { id: 'invoices', label: 'Invoice Settings', icon: 'receipt' },
-        { id: 'notifications', label: 'Notification Settings', icon: 'notifications_active' },
-        { id: 'branding', label: 'Branding', icon: 'palette' },
-        { id: 'integrations', label: 'Integrations', icon: 'integration_instructions' },
-        { id: 'audit-logs', label: 'Audit Logs', icon: 'history' }
-      ];
-      this.activeTab = 'profile';
-    }
+    // Both gym_owner and branch_manager roles now access the full list of workspace configurations
+    this.tabs = [
+      { id: 'profile', label: 'Gym Profile', icon: 'business' },
+      { id: 'branches', label: 'Branches', icon: 'store' },
+      { id: 'memberships', label: 'Membership Configuration', icon: 'card_membership' },
+      { id: 'payments', label: 'Payment Settings', icon: 'account_balance' },
+      { id: 'invoices', label: 'Invoice Settings', icon: 'receipt' },
+      { id: 'notifications', label: 'Notification Settings', icon: 'notifications_active' },
+      { id: 'branding', label: 'Branding', icon: 'palette' },
+      { id: 'integrations', label: 'Integrations', icon: 'integration_instructions' },
+      { id: 'attendance-devices', label: 'Attendance Devices', icon: 'devices' },
+      { id: 'audit-logs', label: 'Audit Logs', icon: 'history' }
+    ];
+    this.activeTab = 'profile';
 
     this.route.queryParams.subscribe(params => {
       if (params['tab']) {

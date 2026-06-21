@@ -16,7 +16,7 @@
   opacity: 0.12;
   pointer-events: none;
   transition: all 0.5s ease;
-  
+
   body.light-theme & {
     opacity: 0.05;
     filter: blur(70px);
@@ -51,7 +51,7 @@
   box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.25) !important;
   border-radius: 16px !important;
   transition: all 0.3s ease !important;
-  
+
   body.light-theme & {
     background: rgba(255, 255, 255, 0.55) !important;
     border: 1px solid rgba(0, 0, 0, 0.05) !important;
@@ -62,7 +62,7 @@
 /* Filters Panel Styling */
 .filters-panel {
   padding: 20px 24px !important;
-  
+
   .filters-header {
     display: flex;
     align-items: center;
@@ -73,7 +73,7 @@
     font-weight: 700;
     text-transform: uppercase;
     letter-spacing: 0.06em;
-    
+
     mat-icon {
       font-size: 16px;
       width: 16px;
@@ -88,15 +88,15 @@
   grid-template-columns: 2fr 1.2fr 1.2fr auto;
   gap: 16px;
   align-items: center;
-  
+
   .mat-mdc-form-field {
     width: 100%;
     margin-bottom: 0 !important;
-    
+
     ::ng-deep .mat-mdc-text-field-wrapper {
       background-color: rgba(255, 255, 255, 0.02) !important;
       backdrop-filter: blur(4px);
-      
+
       body.light-theme & {
         background-color: rgba(0, 0, 0, 0.01) !important;
       }
@@ -112,17 +112,17 @@
   border-radius: 8px !important;
   font-weight: 600 !important;
   transition: all 0.2s var(--transition-curve) !important;
-  
+
   body.light-theme & {
     background: rgba(0, 0, 0, 0.01) !important;
   }
-  
+
   mat-icon {
     font-size: 18px;
     width: 18px;
     height: 18px;
   }
-  
+
   &:hover:not([disabled]) {
     background-color: var(--accent-light) !important;
     color: var(--accent-color) !important;
@@ -168,23 +168,23 @@
   text-transform: uppercase !important;
   letter-spacing: 0.06em !important;
   border-bottom: none !important;
-  padding: 8px 16px !important;
+  padding: 8px 10px !important;
 }
 
 .mat-mdc-row {
   background: rgba(255, 255, 255, 0.02) !important;
   border: none !important;
   transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1) !important;
-  
+
   body.light-theme & {
     background: rgba(255, 255, 255, 0.6) !important;
   }
-  
+
   &:hover {
     background: rgba(99, 102, 241, 0.07) !important;
     transform: translateY(-2px);
     box-shadow: 0 6px 16px rgba(0, 0, 0, 0.12);
-    
+
     body.light-theme & {
       background: rgba(255, 255, 255, 0.9) !important;
       box-shadow: 0 6px 16px rgba(99, 102, 241, 0.06);
@@ -194,16 +194,16 @@
 
 .mat-mdc-cell {
   border: none !important;
-  padding: 12px 16px !important;
+  padding: 12px 10px !important;
   color: var(--text-primary) !important;
   font-size: 13.5px !important;
   background: transparent !important;
-  
+
   &:first-child {
     border-top-left-radius: 12px;
     border-bottom-left-radius: 12px;
   }
-  
+
   &:last-child {
     border-top-right-radius: 12px;
     border-bottom-right-radius: 12px;
@@ -223,25 +223,25 @@
   border: 2px solid rgba(99, 102, 241, 0.2);
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
   transition: all 0.25s ease;
-  
+
   body.light-theme & {
     background-color: rgba(0, 0, 0, 0.03);
     border: 2px solid rgba(99, 102, 241, 0.15);
   }
-  
+
   img {
     width: 100%;
     height: 100%;
     object-fit: cover;
   }
-  
+
   .def-icon {
     color: var(--text-secondary);
     font-size: 18px;
     width: 18px;
     height: 18px;
   }
-  
+
   &:hover {
     border-color: var(--accent-color);
     transform: scale(1.1);
@@ -274,12 +274,12 @@
   display: flex;
   flex-direction: column;
   gap: 2px;
-  
+
   .plan-name-txt {
     font-weight: 600;
     color: var(--text-primary);
   }
-  
+
   .plan-balance {
     font-size: 10px;
     font-weight: 700;
@@ -297,8 +297,10 @@
 .actions-wrapper {
   display: flex;
   justify-content: center;
+  align-items: center;
   gap: 6px;
-  
+  flex-wrap: nowrap;
+
   button {
     width: 32px !important;
     height: 32px !important;
@@ -311,51 +313,58 @@
     display: inline-flex !important;
     align-items: center;
     justify-content: center;
-    
+    flex-shrink: 0 !important;
+
     body.light-theme & {
       background: rgba(0, 0, 0, 0.02) !important;
       border: 1px solid rgba(0, 0, 0, 0.04) !important;
     }
-    
+
     mat-icon {
       font-size: 16px !important;
       width: 16px !important;
       height: 16px !important;
       margin: 0 !important;
     }
-    
+
     &:hover {
       transform: translateY(-2px);
       box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
     }
-    
+
     &.mat-primary {
       color: #3b82f6 !important;
+
       &:hover {
         background: rgba(59, 130, 246, 0.12) !important;
         border-color: rgba(59, 130, 246, 0.2) !important;
       }
     }
-    
+
     &.mat-accent {
-      color: #10b981 !important; /* WhatsApp Green */
+      color: #10b981 !important;
+
+      /* WhatsApp Green */
       &:hover {
         background: rgba(16, 185, 129, 0.12) !important;
         border-color: rgba(16, 185, 129, 0.2) !important;
       }
-      
+
       /* Second accent button is Edit Profile */
       &:nth-of-type(3) {
-        color: #8b5cf6 !important; /* Indigo/Purple */
+        color: #8b5cf6 !important;
+
+        /* Indigo/Purple */
         &:hover {
           background: rgba(139, 92, 246, 0.12) !important;
           border-color: rgba(139, 92, 246, 0.2) !important;
         }
       }
     }
-    
+
     &.mat-warn {
       color: #ef4444 !important;
+
       &:hover {
         background: rgba(239, 68, 68, 0.12) !important;
         border-color: rgba(239, 68, 68, 0.2) !important;
@@ -373,7 +382,7 @@
   padding: 48px 24px;
   text-align: center;
   color: var(--text-muted);
-  
+
   mat-icon {
     font-size: 48px;
     width: 48px;
@@ -381,14 +390,14 @@
     margin-bottom: 16px;
     color: var(--text-muted);
   }
-  
+
   h3 {
     font-size: 18px;
     font-weight: 700;
     margin-bottom: 8px;
     color: var(--text-primary);
   }
-  
+
   p {
     font-size: 14px;
     margin-bottom: 24px;
@@ -398,26 +407,35 @@
 
 /* Responsive Table Columns */
 @media (max-width: 1200px) {
-  .mat-column-id, .mat-mdc-column-id,
-  .mat-column-phone, .mat-mdc-column-phone {
+
+  .mat-column-id,
+  .mat-mdc-column-id,
+  .mat-column-phone,
+  .mat-mdc-column-phone {
     display: none !important;
   }
 }
 
 @media (max-width: 992px) {
-  .mat-column-startDate, .mat-mdc-column-startDate,
-  .mat-column-email, .mat-mdc-column-email {
+
+  .mat-column-startDate,
+  .mat-mdc-column-startDate,
+  .mat-column-email,
+  .mat-mdc-column-email {
     display: none !important;
   }
 }
 
 @media (max-width: 768px) {
-  .mat-column-endDate, .mat-mdc-column-endDate {
+
+  .mat-column-endDate,
+  .mat-mdc-column-endDate {
     display: none !important;
   }
-  
+
   .actions-wrapper {
     gap: 3px;
+
     button {
       width: 28px !important;
       height: 28px !important;
@@ -430,11 +448,11 @@
 @media (max-width: 959.98px) {
   .filters-grid {
     grid-template-columns: 1fr 1fr;
-    
+
     .search-field {
       grid-column: span 2;
     }
-    
+
     .reset-btn {
       grid-column: span 2;
       width: 100%;
@@ -445,13 +463,20 @@
 @media (max-width: 599.98px) {
   .filters-grid {
     grid-template-columns: 1fr;
-    
+
     .search-field {
       grid-column: span 1;
     }
-    
+
     .reset-btn {
       grid-column: span 1;
     }
   }
+}
+
+/* Custom override to optimize space for actions column */
+::ng-deep .mat-column-actions {
+  padding-left: 8px !important;
+  padding-right: 8px !important;
+  text-align: center !important;
 }

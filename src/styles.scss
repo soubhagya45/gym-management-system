@@ -481,7 +481,8 @@ h1, h2, h3, h4, h5, h6 {
 }
 
 /* Buttons */
-.mat-flat-button.mat-primary, .mat-raised-button.mat-primary {
+.mat-flat-button.mat-primary, .mat-raised-button.mat-primary,
+.mat-mdc-flat-button.mat-primary, .mat-mdc-raised-button.mat-primary {
   background: var(--accent-gradient) !important;
   color: #ffffff !important;
   border-radius: 8px !important;

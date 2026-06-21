@@ -8,14 +8,17 @@ import { MatTableModule } from '@angular/material/table';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatInputModule } from '@angular/material/input';
 import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
+import { MatMenuModule } from '@angular/material/menu';
+import { MatTabsModule } from '@angular/material/tabs';
+
 import { MemberState } from '../../presentation/state/member.state';
 import { AttendanceState } from '../../presentation/state/attendance.state';
+import { EmployeeState } from '../../presentation/state/employee.state';
 import { Member } from '../../core/models/member.entity';
 import { Attendance } from '../../core/models/attendance.entity';
-import { Observable, combineLatest } from 'rxjs';
+import { Observable, combineLatest, of } from 'rxjs';
 import { map, take } from 'rxjs/operators';
 import { ExportService } from '../../domain/export/export.service';
-import { MatMenuModule } from '@angular/material/menu';
 
 interface RosterItem {
   memberId: string;
@@ -25,6 +28,16 @@ interface RosterItem {
   planName: string;
   timeIn: string;
   status: 'present' | 'absent' | 'unmarked';
+}
+
+interface EmployeeRosterItem {
+  employeeId: string;
+  name: string;
+  email: string;
+  role: string;
+  timeIn: string;
+  timeOut: string;
+  status: 'Present' | 'Absent' | 'Leave' | 'Half Day' | 'Unmarked';
 }
 
 @Component({
@@ -40,31 +53,48 @@ interface RosterItem {
     MatFormFieldModule,
     MatInputModule,
     MatSnackBarModule,
-    MatMenuModule
+    MatMenuModule,
+    MatTabsModule
   ],
   templateUrl: './attendance.component.html',
   styleUrls: ['./attendance.component.scss']
 })
 export class AttendanceComponent implements OnInit {
-  // Roster listing
+  // Members Roster listing
   roster$: Observable<RosterItem[]> | undefined;
   filteredRoster$: Observable<RosterItem[]> | undefined;
   
-  // Stats
+  // Employees Roster listing
+  employeesRoster$: Observable<EmployeeRosterItem[]> | undefined;
+  filteredEmployeesRoster$: Observable<EmployeeRosterItem[]> | undefined;
+
+  // Tabs tracking
+  activeTab = 0; // 0 for members, 1 for employees
+  
+  // Members Stats
   presentCount$ = new Observable<number>();
   absentCount$ = new Observable<number>();
   attendanceRate$ = new Observable<number>();
   totalEligible$ = new Observable<number>();
 
+  // Employees Stats
+  employeePresentCount$ = new Observable<number>();
+  employeeAbsentCount$ = new Observable<number>();
+  employeeAttendanceRate$ = new Observable<number>();
+  employeeTotalEligible$ = new Observable<number>();
+
   // Filter queries
   searchQuery = '';
+  employeeSearchQuery = '';
   todayString = '';
 
   displayedColumns = ['photo', 'name', 'plan', 'time', 'status', 'actions'];
+  displayedEmployeeColumns = ['photo', 'name', 'role', 'timeIn', 'timeOut', 'status', 'actions'];
 
   constructor(
     private memberState: MemberState,
     private attendanceState: AttendanceState,
+    private employeeState: EmployeeState,
     private snackBar: MatSnackBar,
     private exportService: ExportService
   ) {
@@ -75,6 +105,7 @@ export class AttendanceComponent implements OnInit {
   ngOnInit(): void {
     const todayStr = new Date().toISOString().split('T')[0];
     
+    // --- Members Roster Init ---
     this.roster$ = combineLatest([
       this.memberState.members$,
       this.attendanceState.attendance$
@@ -97,7 +128,6 @@ export class AttendanceComponent implements OnInit {
       })
     );
 
-    // 2. Setup statistics calculations
     this.presentCount$ = this.roster$.pipe(
       map(items => items.filter(i => i.status === 'present').length)
     );
@@ -114,8 +144,47 @@ export class AttendanceComponent implements OnInit {
       map(([present, total]) => total > 0 ? Math.round((present / total) * 100) : 0)
     );
 
-    // 3. Setup reactive filter bindings
     this.applySearchFilter();
+
+    // --- Employees Roster Init ---
+    this.employeesRoster$ = combineLatest([
+      this.employeeState.employees$,
+      this.employeeState.attendance$
+    ]).pipe(
+      map(([employees, attendanceList]) => {
+        const eligibleEmployees = employees.filter(e => e.accountStatus !== 'Inactive');
+        return eligibleEmployees.map(e => {
+          const checkin = attendanceList.find(a => a.employeeId === e.id && a.date === todayStr);
+          return {
+            employeeId: e.id,
+            name: e.fullName,
+            email: e.email,
+            role: e.role,
+            timeIn: checkin ? (checkin.checkInTime || '') : '',
+            timeOut: checkin ? (checkin.checkOutTime || '') : '',
+            status: checkin ? (checkin.status || 'Unmarked') : 'Unmarked'
+          };
+        });
+      })
+    );
+
+    this.employeePresentCount$ = this.employeesRoster$.pipe(
+      map(items => items.filter(i => i.status === 'Present').length)
+    );
+
+    this.employeeAbsentCount$ = this.employeesRoster$.pipe(
+      map(items => items.filter(i => i.status === 'Absent').length)
+    );
+
+    this.employeeTotalEligible$ = this.employeesRoster$.pipe(
+      map(items => items.length)
+    );
+
+    this.employeeAttendanceRate$ = combineLatest([this.employeePresentCount$, this.employeeTotalEligible$]).pipe(
+      map(([present, total]) => total > 0 ? Math.round((present / total) * 100) : 0)
+    );
+
+    this.applyEmployeeSearchFilter();
   }
 
   applySearchFilter() {
@@ -128,6 +197,19 @@ export class AttendanceComponent implements OnInit {
       );
     }
   }
+
+  applyEmployeeSearchFilter() {
+    if (this.employeesRoster$) {
+      this.filteredEmployeesRoster$ = this.employeesRoster$.pipe(
+        map(items => items.filter(item => 
+          item.name.toLowerCase().includes(this.employeeSearchQuery.trim().toLowerCase()) ||
+          item.email.toLowerCase().includes(this.employeeSearchQuery.trim().toLowerCase())
+        ))
+      );
+    }
+  }
+
+  // --- Members Mark Actions ---
 
   markPresent(item: RosterItem) {
     this.attendanceState.markAttendance(item.memberId, 'present').subscribe(() => {
@@ -145,34 +227,135 @@ export class AttendanceComponent implements OnInit {
     });
   }
 
-  exportData(format: 'csv' | 'excel'): void {
-    if (!this.filteredRoster$) return;
+  // --- Employees Mark Actions ---
 
-    this.filteredRoster$.pipe(take(1)).subscribe(roster => {
-      if (roster.length === 0) {
-        this.snackBar.open('No roster data to export.', 'Close', { duration: 3000 });
-        return;
-      }
-
-      this.snackBar.open(`Roster report generated! Downloading ${format.toUpperCase()}...`, 'Dismiss', {
-        duration: 3000
+  markEmployeePresent(item: EmployeeRosterItem) {
+    const todayStr = new Date().toISOString().split('T')[0];
+    const checkInTime = new Date().toLocaleTimeString('en-US', { hour12: false, hour: '2-digit', minute: '2-digit' });
+    this.employeeState.markAttendance({
+      employeeId: item.employeeId,
+      employeeName: item.name,
+      role: item.role as any,
+      date: todayStr,
+      status: 'Present',
+      checkInTime,
+      notes: 'Manual Check-in'
+    }).subscribe(() => {
+      this.snackBar.open(`${item.name} checked in successfully at ${checkInTime}.`, 'Dismiss', {
+        duration: 2000
       });
-
-      const exportData = roster.map(r => ({
-        MemberID: r.memberId,
-        Name: r.name,
-        Email: r.email,
-        PlanName: r.planName,
-        CheckInTime: r.timeIn || '—',
-        Status: r.status.toUpperCase()
-      }));
-
-      const filename = `attendance_roster_${new Date().toISOString().split('T')[0]}`;
-      if (format === 'csv') {
-        this.exportService.exportToCsv(filename, exportData);
-      } else {
-        this.exportService.exportToExcel(filename, exportData);
-      }
     });
+  }
+
+  markEmployeeAbsent(item: EmployeeRosterItem) {
+    const todayStr = new Date().toISOString().split('T')[0];
+    this.employeeState.markAttendance({
+      employeeId: item.employeeId,
+      employeeName: item.name,
+      role: item.role as any,
+      date: todayStr,
+      status: 'Absent',
+      notes: 'Manual Absent'
+    }).subscribe(() => {
+      this.snackBar.open(`${item.name} marked absent today.`, 'Dismiss', {
+        duration: 2000
+      });
+    });
+  }
+
+  markEmployeeCheckedOut(item: EmployeeRosterItem) {
+    const todayStr = new Date().toISOString().split('T')[0];
+    const checkOutTime = new Date().toLocaleTimeString('en-US', { hour12: false, hour: '2-digit', minute: '2-digit' });
+    
+    this.employeeState.markAttendance({
+      employeeId: item.employeeId,
+      employeeName: item.name,
+      role: item.role as any,
+      date: todayStr,
+      status: 'Present',
+      checkInTime: item.timeIn,
+      checkOutTime,
+      notes: 'Manual Check-out'
+    }).subscribe(() => {
+      this.snackBar.open(`${item.name} checked out successfully at ${checkOutTime}.`, 'Dismiss', {
+        duration: 2000
+      });
+    });
+  }
+
+  getRoleLabel(role: string): string {
+    switch (role) {
+      case 'super_admin': return 'Super Admin';
+      case 'gym_owner': return 'Gym Owner';
+      case 'branch_manager': return 'Branch Manager';
+      case 'trainer': return 'Trainer';
+      case 'staff': return 'Staff';
+      default: return role;
+    }
+  }
+
+  // --- Export Actions ---
+
+  exportData(format: 'csv' | 'excel'): void {
+    if (this.activeTab === 0) {
+      if (!this.filteredRoster$) return;
+
+      this.filteredRoster$.pipe(take(1)).subscribe(roster => {
+        if (roster.length === 0) {
+          this.snackBar.open('No member roster data to export.', 'Close', { duration: 3000 });
+          return;
+        }
+
+        this.snackBar.open(`Member roster report generated! Downloading ${format.toUpperCase()}...`, 'Dismiss', {
+          duration: 3000
+        });
+
+        const exportData = roster.map(r => ({
+          MemberID: r.memberId,
+          Name: r.name,
+          Email: r.email,
+          PlanName: r.planName,
+          CheckInTime: r.timeIn || '—',
+          Status: r.status.toUpperCase()
+        }));
+
+        const filename = `members_attendance_roster_${new Date().toISOString().split('T')[0]}`;
+        if (format === 'csv') {
+          this.exportService.exportToCsv(filename, exportData);
+        } else {
+          this.exportService.exportToExcel(filename, exportData);
+        }
+      });
+    } else {
+      if (!this.filteredEmployeesRoster$) return;
+
+      this.filteredEmployeesRoster$.pipe(take(1)).subscribe(roster => {
+        if (roster.length === 0) {
+          this.snackBar.open('No employee roster data to export.', 'Close', { duration: 3000 });
+          return;
+        }
+
+        this.snackBar.open(`Employee roster report generated! Downloading ${format.toUpperCase()}...`, 'Dismiss', {
+          duration: 3000
+        });
+
+        const exportData = roster.map(r => ({
+          EmployeeID: r.employeeId,
+          Name: r.name,
+          Email: r.email,
+          Role: this.getRoleLabel(r.role),
+          CheckInTime: r.timeIn || '—',
+          CheckOutTime: r.timeOut || '—',
+          Status: r.status.toUpperCase()
+        }));
+
+        const filename = `employees_attendance_roster_${new Date().toISOString().split('T')[0]}`;
+        if (format === 'csv') {
+          this.exportService.exportToCsv(filename, exportData);
+        } else {
+          this.exportService.exportToExcel(filename, exportData);
+        }
+      });
+    }
   }
 }

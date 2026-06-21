@@ -91,7 +91,9 @@
   height: 48px !important;
   border-radius: 10px !important;
   margin-bottom: 6px !important;
-  display: block;
+  display: flex !important;
+  align-items: center !important;
+  position: relative !important;
   transition: all 0.2s var(--transition-curve) !important;
   
   .nav-label {
@@ -143,11 +145,15 @@
     }
   }
 
-  ::ng-deep .mat-list-item-content {
-    padding: 0 16px !important;
-    height: 100%;
-    display: flex;
-    align-items: center;
+  ::ng-deep {
+    .mat-list-item-content,
+    .mdc-list-item__content {
+      padding: 0 16px !important;
+      height: 100% !important;
+      display: flex !important;
+      align-items: center !important;
+      width: 100%;
+    }
   }
 }
 
@@ -222,6 +228,11 @@
 .submenu-item {
   height: 38px !important;
   margin-bottom: 4px !important;
+  
+  &.active-link::after {
+    top: 8px !important;
+    height: 22px !important;
+  }
   
   .submenu-label {
     font-size: 13px !important;

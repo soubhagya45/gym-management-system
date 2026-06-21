@@ -405,6 +405,41 @@
     </div>
   </div>
 
+  <!-- Attendance Devices Status Widget Banner -->
+  <div class="pt-kpi-banner glass-panel" style="margin-top: 24px;" *ngIf="deviceStats$ | async as dStats">
+    <div class="pt-kpi-header">
+      <mat-icon class="pt-icon" style="background: rgba(16, 185, 129, 0.1); color: var(--success); display: flex; align-items: center; justify-content: center;">devices</mat-icon>
+      <div class="pt-title-group">
+        <h3>Attendance Hardware & APIs Integration Status</h3>
+        <p>Operational health of biometrics, face scanners, RFID readers, and QR endpoints linked to this branch.</p>
+      </div>
+      <div class="spacer" style="flex: 1"></div>
+      <button mat-stroked-button color="accent" routerLink="/settings" [queryParams]="{ tab: 'attendance-devices' }">
+        <mat-icon>settings</mat-icon>
+        <span>Manage Hardware</span>
+      </button>
+    </div>
+    
+    <div class="pt-kpi-cards-grid">
+      <div class="pt-kpi-card">
+        <span class="label">Online Devices</span>
+        <strong class="value text-success" style="color: var(--success);">{{ dStats.online }} <small style="font-size: 11px; font-weight: 500; opacity: 0.8;">active</small></strong>
+      </div>
+      <div class="pt-kpi-card">
+        <span class="label">Offline Devices</span>
+        <strong class="value" [style.color]="dStats.offline > 0 ? 'var(--danger)' : 'var(--text-primary)'">{{ dStats.offline }}</strong>
+      </div>
+      <div class="pt-kpi-card">
+        <span class="label">Last Sync Time</span>
+        <strong class="value" style="font-size: 16px;">{{ dStats.lastSync }}</strong>
+      </div>
+      <div class="pt-kpi-card">
+        <span class="label">Pending Logs Queue</span>
+        <strong class="value" [style.color]="dStats.pendingLogs > 0 ? 'var(--warning)' : 'var(--text-primary)'">{{ dStats.pendingLogs }} logs</strong>
+      </div>
+    </div>
+  </div>
+
   <!-- Row 1: Charts Section -->
   <div class="charts-row-container" style="position: relative;">
     <!-- Locked Analytics Overlay -->
