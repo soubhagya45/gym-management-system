@@ -367,5 +367,11 @@ service cloud.firestore {
       allow write: if isActive() && (isSuperAdmin() || getUserData().gymId == request.resource.data.gymId);
       allow delete: if isActive() && (isSuperAdmin() || ((getUserData().role == 'gym_owner' || getUserData().role == 'branch_manager') && resource.data.gymId == getUserData().gymId));
     }
+
+    match /paymentSettings/{id} {
+      allow read: if isActive() && (isSuperAdmin() || getUserData().gymId == resource.data.gymId);
+      allow write: if isActive() && (isSuperAdmin() || ((getUserData().role == 'gym_owner' || getUserData().role == 'branch_manager') && request.resource.data.gymId == getUserData().gymId));
+      allow delete: if isActive() && (isSuperAdmin() || ((getUserData().role == 'gym_owner' || getUserData().role == 'branch_manager') && resource.data.gymId == getUserData().gymId));
+    }
   }
 }

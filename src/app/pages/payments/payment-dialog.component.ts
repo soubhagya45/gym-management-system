@@ -1,7 +1,7 @@
 import { Component, Inject, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormBuilder, FormGroup, Validators, ReactiveFormsModule } from '@angular/forms';
-import { MatDialogRef, MAT_DIALOG_DATA, MatDialogModule } from '@angular/material/dialog';
+import { MatDialogRef, MAT_DIALOG_DATA, MatDialogModule, MatDialog } from '@angular/material/dialog';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatInputModule } from '@angular/material/input';
 import { MatSelectModule } from '@angular/material/select';
@@ -10,12 +10,14 @@ import { MatDatepickerModule } from '@angular/material/datepicker';
 import { MatNativeDateModule } from '@angular/material/core';
 import { MatIconModule } from '@angular/material/icon';
 import { MatDividerModule } from '@angular/material/divider';
+import { MatSnackBar } from '@angular/material/snack-bar';
 import { MemberState } from '../../presentation/state/member.state';
 import { Member } from '../../core/models/member.entity';
 import { SubmissionGuardService } from '../../services/submission-guard.service';
 import { PAYMENT_SETTINGS_REPOSITORY_TOKEN, IPaymentSettingsRepository } from '../../core/interfaces/repository.interfaces';
 import { TenantContextService } from '../../domain/tenancy/tenant-context.service';
 import { BillingCalculationService } from '../../services/billing-calculation.service';
+import { PaymentGatewayModalComponent } from '../../shared/components/payment-gateway-modal/payment-gateway-modal.component';
 
 @Component({
   selector: 'app-payment-dialog',
@@ -257,7 +259,9 @@ export class PaymentDialogComponent implements OnInit {
     private billingCalc: BillingCalculationService,
     @Inject(PAYMENT_SETTINGS_REPOSITORY_TOKEN) private settingsRepo: IPaymentSettingsRepository,
     private dialogRef: MatDialogRef<PaymentDialogComponent>,
-    public submissionGuard: SubmissionGuardService
+    public submissionGuard: SubmissionGuardService,
+    private dialog: MatDialog,
+    private snackBar: MatSnackBar
   ) {}
 
   ngOnInit(): void {
@@ -375,26 +379,59 @@ export class PaymentDialogComponent implements OnInit {
       const formValue = this.paymentForm.getRawValue();
       const member = this.members.find(m => m.id === formValue.memberId);
       const calc = this.calculations;
-      
-      const paymentResult = {
-        memberId: formValue.memberId,
-        memberName: member ? member.name : 'Unknown Member',
-        amount: calc.originalAmount,
-        paidAmount: calc.paidAmount,
-        dueAmount: calc.pendingAmount,
-        dueDate: this.formatDate(formValue.dueDate || new Date()),
-        date: this.formatDate(formValue.date),
-        status: calc.paymentStatus,
-        planName: member ? member.planName : 'Custom Plan',
-        paymentMethod: calc.paidAmount > 0 ? (formValue.paymentMethod || 'Cash') : 'Pending',
-        collectedBy: 'Sophia Chen',
-        discountType: calc.discountType,
-        discountValue: calc.discountValue,
-        notes: formValue.notes
+      const paidNow = Number(calc.paidAmount) || 0;
+      const paymentMethod = paidNow > 0 ? (formValue.paymentMethod || 'Cash') : 'Cash';
+      const gymId = this.tenantContext.getTenantId() || undefined;
+
+      const completePayment = (gatewayTransactionId?: string) => {
+        const paymentResult = {
+          memberId: formValue.memberId,
+          memberName: member ? member.name : 'Unknown Member',
+          amount: calc.originalAmount,
+          paidAmount: calc.paidAmount,
+          dueAmount: calc.pendingAmount,
+          dueDate: this.formatDate(formValue.dueDate || new Date()),
+          date: this.formatDate(formValue.date),
+          status: calc.paymentStatus,
+          planName: member ? member.planName : 'Custom Plan',
+          paymentMethod: calc.paidAmount > 0 ? paymentMethod : 'Pending',
+          collectedBy: 'Sophia Chen',
+          discountType: calc.discountType,
+          discountValue: calc.discountValue,
+          notes: formValue.notes,
+          gatewayTransactionId: gatewayTransactionId || ''
+        };
+
+        this.dialogRef.close(paymentResult);
+        this.submissionGuard.end('payment-record');
       };
 
-      this.dialogRef.close(paymentResult);
-      this.submissionGuard.end('payment-record');
+      if (paidNow > 0) {
+        const gwRef = this.dialog.open(PaymentGatewayModalComponent, {
+          width: '500px',
+          maxWidth: '98vw',
+          disableClose: true,
+          data: {
+            amount: paidNow,
+            paymentMethod,
+            memberName: member ? member.name : 'Member',
+            planName: member ? member.planName : 'Gym Plan',
+            invoiceRef: `INV-${Date.now()}`,
+            gymId
+          }
+        });
+
+        gwRef.afterClosed().subscribe(gwResult => {
+          if (!gwResult || !gwResult.success) {
+            this.submissionGuard.end('payment-record');
+            this.snackBar.open('Payment cancelled. Reference was not recorded.', 'Dismiss', { duration: 4000 });
+            return;
+          }
+          completePayment(gwResult.transactionId);
+        });
+      } else {
+        completePayment();
+      }
     }
   }
 
