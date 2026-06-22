@@ -1,7 +1,7 @@
-import { Component, OnInit } from '@angular/core';
+import { Component, Inject, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormBuilder, FormGroup, Validators, ReactiveFormsModule } from '@angular/forms';
-import { MatDialogRef, MatDialogModule } from '@angular/material/dialog';
+import { MatDialogRef, MAT_DIALOG_DATA, MatDialogModule } from '@angular/material/dialog';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatInputModule } from '@angular/material/input';
 import { MatSelectModule } from '@angular/material/select';
@@ -9,9 +9,13 @@ import { MatButtonModule } from '@angular/material/button';
 import { MatDatepickerModule } from '@angular/material/datepicker';
 import { MatNativeDateModule } from '@angular/material/core';
 import { MatIconModule } from '@angular/material/icon';
+import { MatDividerModule } from '@angular/material/divider';
 import { MemberState } from '../../presentation/state/member.state';
 import { Member } from '../../core/models/member.entity';
 import { SubmissionGuardService } from '../../services/submission-guard.service';
+import { PAYMENT_SETTINGS_REPOSITORY_TOKEN, IPaymentSettingsRepository } from '../../core/interfaces/repository.interfaces';
+import { TenantContextService } from '../../domain/tenancy/tenant-context.service';
+import { BillingCalculationService } from '../../services/billing-calculation.service';
 
 @Component({
   selector: 'app-payment-dialog',
@@ -26,7 +30,8 @@ import { SubmissionGuardService } from '../../services/submission-guard.service'
     MatButtonModule,
     MatDatepickerModule,
     MatNativeDateModule,
-    MatIconModule
+    MatIconModule,
+    MatDividerModule
   ],
   template: `
     <h2 mat-dialog-title class="gradient-text dialogue-title">Record Payment Invoice</h2>
@@ -45,31 +50,56 @@ import { SubmissionGuardService } from '../../services/submission-guard.service'
             <mat-error *ngIf="paymentForm.get('memberId')?.hasError('required')">Member selection is required</mat-error>
           </mat-form-field>
 
-          <!-- Total Amount -->
+          <!-- Original/Total Amount -->
           <mat-form-field appearance="outline">
-            <mat-label>Total Amount (₹)</mat-label>
-            <input matInput type="number" formControlName="amount" placeholder="0.00" (input)="updateDueCalculations()">
+            <mat-label>Original Amount (₹)</mat-label>
+            <input matInput type="number" formControlName="amount" placeholder="0.00">
             <mat-error *ngIf="paymentForm.get('amount')?.hasError('required')">Amount is required</mat-error>
             <mat-error *ngIf="paymentForm.get('amount')?.hasError('min')">Amount must be greater than 0</mat-error>
+          </mat-form-field>
+
+          <!-- Discount Type -->
+          <mat-form-field appearance="outline">
+            <mat-label>Discount Type</mat-label>
+            <mat-select formControlName="discountType">
+              <mat-option value="none">No Discount</mat-option>
+              <mat-option value="flat">Flat Discount (₹)</mat-option>
+              <mat-option value="percentage">Percentage Discount (%)</mat-option>
+            </mat-select>
+          </mat-form-field>
+
+          <!-- Discount Value -->
+          <mat-form-field appearance="outline" *ngIf="paymentForm.get('discountType')?.value !== 'none'">
+            <mat-label>{{ paymentForm.get('discountType')?.value === 'flat' ? 'Discount Amount (₹)' : 'Discount Percentage (%)' }}</mat-label>
+            <input matInput type="number" formControlName="discountValue">
+            <mat-error *ngIf="paymentForm.get('discountValue')?.hasError('min')">Value must be greater than 0</mat-error>
           </mat-form-field>
 
           <!-- Paid Amount -->
           <mat-form-field appearance="outline">
             <mat-label>Paid Amount (₹)</mat-label>
-            <input matInput type="number" formControlName="paidAmount" placeholder="0.00" (input)="updateDueCalculations()">
+            <input matInput type="number" formControlName="paidAmount" placeholder="0.00">
             <mat-error *ngIf="paymentForm.get('paidAmount')?.hasError('required')">Paid amount is required</mat-error>
             <mat-error *ngIf="paymentForm.get('paidAmount')?.hasError('min')">Paid amount must be 0 or greater</mat-error>
-            <mat-error *ngIf="paymentForm.get('paidAmount')?.hasError('max')">Paid amount cannot exceed total amount</mat-error>
           </mat-form-field>
 
-          <!-- Due Amount (Read-only) -->
-          <mat-form-field appearance="outline" class="full-width">
-            <mat-label>Due Amount (₹)</mat-label>
-            <input matInput type="number" formControlName="dueAmount" [readonly]="true">
+          <!-- Outstanding Amount (Read-only representation) -->
+          <mat-form-field appearance="outline">
+            <mat-label>Outstanding Amount (₹)</mat-label>
+            <input matInput type="number" [value]="calculations.pendingAmount" [disabled]="true">
+          </mat-form-field>
+
+          <!-- Payment Method (shown only if paidAmount > 0) -->
+          <mat-form-field appearance="outline" *ngIf="paymentForm.get('paidAmount')?.value > 0">
+            <mat-label>Payment Method</mat-label>
+            <mat-select formControlName="paymentMethod">
+              <mat-option *ngFor="let method of availablePaymentMethods" [value]="method">{{ method }}</mat-option>
+            </mat-select>
+            <mat-error *ngIf="paymentForm.get('paymentMethod')?.hasError('required')">Payment method is required</mat-error>
           </mat-form-field>
 
           <!-- Invoice Date -->
-          <mat-form-field appearance="outline" class="full-width">
+          <mat-form-field appearance="outline">
             <mat-label>Invoice/Billing Date</mat-label>
             <input matInput [matDatepicker]="datePicker" formControlName="date">
             <mat-datepicker-toggle matSuffix [for]="datePicker"></mat-datepicker-toggle>
@@ -77,37 +107,60 @@ import { SubmissionGuardService } from '../../services/submission-guard.service'
             <mat-error *ngIf="paymentForm.get('date')?.hasError('required')">Invoice date is required</mat-error>
           </mat-form-field>
 
-          <!-- Due Date (shown only if dueAmount > 0) -->
-          <mat-form-field appearance="outline" class="full-width" *ngIf="showDueDateField">
+          <!-- Due Date (shown only if outstanding balance > 0) -->
+          <mat-form-field appearance="outline" *ngIf="calculations.pendingAmount > 0">
             <mat-label>Payment Due Date</mat-label>
             <input matInput [matDatepicker]="dueDatePicker" formControlName="dueDate">
             <mat-datepicker-toggle matSuffix [for]="dueDatePicker"></mat-datepicker-toggle>
             <mat-datepicker #dueDatePicker></mat-datepicker>
-            <mat-error *ngIf="paymentForm.get('dueDate')?.hasError('required')">Due date is required for pending balance</mat-error>
+            <mat-error *ngIf="paymentForm.get('dueDate')?.hasError('required')">Due date is required</mat-error>
           </mat-form-field>
 
-          <!-- Select Status -->
+          <!-- Notes -->
           <mat-form-field appearance="outline" class="full-width">
-            <mat-label>Invoice Status</mat-label>
-            <mat-select formControlName="status" (selectionChange)="updateDueCalculations()">
-              <mat-option value="paid">Paid / Settled</mat-option>
-              <mat-option value="pending">Pending</mat-option>
-              <mat-option value="overdue">Overdue</mat-option>
-            </mat-select>
-            <mat-error *ngIf="paymentForm.get('status')?.hasError('required')">Status is required</mat-error>
+            <mat-label>Notes / Memo</mat-label>
+            <textarea matInput formControlName="notes" rows="2" placeholder="Record comments or memo..."></textarea>
           </mat-form-field>
+        </div>
 
-          <!-- Payment Method -->
-          <mat-form-field appearance="outline" class="full-width" *ngIf="paymentForm.get('paidAmount')?.value > 0 || paymentForm.get('status')?.value === 'paid'">
-            <mat-label>Payment Method</mat-label>
-            <mat-select formControlName="paymentMethod">
-              <mat-option value="UPI">UPI</mat-option>
-              <mat-option value="Cash">Cash</mat-option>
-              <mat-option value="Card">Card</mat-option>
-              <mat-option value="Net Banking">Net Banking</mat-option>
-            </mat-select>
-            <mat-error *ngIf="paymentForm.get('paymentMethod')?.hasError('required')">Payment method is required</mat-error>
-          </mat-form-field>
+        <!-- Live Billing Summary -->
+        <div class="billing-summary" *ngIf="calculations.originalAmount > 0">
+          <h4>Live Billing Summary</h4>
+          <div class="summary-row">
+            <span>Original Amount:</span>
+            <span>₹{{ calculations.originalAmount | number:'1.2-2' }}</span>
+          </div>
+          <div class="summary-row" *ngIf="calculations.discountAmount > 0">
+            <span>Discount:</span>
+            <span class="danger-text">-₹{{ calculations.discountAmount | number:'1.2-2' }}</span>
+          </div>
+          <div class="summary-row">
+            <span>Subtotal:</span>
+            <span>₹{{ calculations.subtotal | number:'1.2-2' }}</span>
+          </div>
+          <div class="summary-row">
+            <span>Tax (GST 18% inclusive):</span>
+            <span>₹{{ calculations.taxAmount | number:'1.2-2' }}</span>
+          </div>
+          <mat-divider></mat-divider>
+          <div class="summary-row total">
+            <span>Final Amount (Payable):</span>
+            <strong>₹{{ calculations.finalAmount | number:'1.2-2' }}</strong>
+          </div>
+          <div class="summary-row paid-row">
+            <span>Paid Amount Now:</span>
+            <span class="success-text">₹{{ calculations.paidAmount | number:'1.2-2' }}</span>
+          </div>
+          <div class="summary-row pending-row">
+            <span>Outstanding Balance:</span>
+            <strong [class.danger-text]="calculations.pendingAmount > 0" [class.success-text]="calculations.pendingAmount === 0">
+              ₹{{ calculations.pendingAmount | number:'1.2-2' }}
+            </strong>
+          </div>
+          <div class="summary-row">
+            <span>Invoice Status:</span>
+            <strong style="text-transform: capitalize;">{{ calculations.paymentStatus }}</strong>
+          </div>
         </div>
       </mat-dialog-content>
       
@@ -131,6 +184,8 @@ import { SubmissionGuardService } from '../../services/submission-guard.service'
       flex-direction: column;
       gap: 16px;
       padding-top: 10px !important;
+      max-height: 60vh;
+      overflow-y: auto;
     }
     .form-grid {
       display: grid;
@@ -139,6 +194,41 @@ import { SubmissionGuardService } from '../../services/submission-guard.service'
     }
     .full-width {
       grid-column: span 2;
+    }
+    .billing-summary {
+      background: rgba(255, 255, 255, 0.03);
+      border: 1px solid var(--border-color);
+      padding: 16px;
+      border-radius: 12px;
+      margin-top: 8px;
+
+      h4 {
+        margin-bottom: 12px;
+        color: var(--accent-hover);
+        font-size: 15px;
+      }
+    }
+    .summary-row {
+      display: flex;
+      justify-content: space-between;
+      font-size: 13.5px;
+      margin-bottom: 8px;
+      color: var(--text-secondary);
+
+      &.total {
+        margin-top: 8px;
+        padding-top: 8px;
+        font-size: 15px;
+        color: var(--text-primary);
+      }
+    }
+    .success-text {
+      color: var(--success);
+      font-weight: 600;
+    }
+    .danger-text {
+      color: var(--warn, #f43f5e);
+      font-weight: 600;
     }
     .dialog-actions {
       padding: 16px 0 0 0 !important;
@@ -158,11 +248,14 @@ import { SubmissionGuardService } from '../../services/submission-guard.service'
 export class PaymentDialogComponent implements OnInit {
   paymentForm!: FormGroup;
   members: Member[] = [];
-  showDueDateField = false;
+  availablePaymentMethods: string[] = ['Cash'];
 
   constructor(
     private fb: FormBuilder,
     private memberState: MemberState,
+    private tenantContext: TenantContextService,
+    private billingCalc: BillingCalculationService,
+    @Inject(PAYMENT_SETTINGS_REPOSITORY_TOKEN) private settingsRepo: IPaymentSettingsRepository,
     private dialogRef: MatDialogRef<PaymentDialogComponent>,
     public submissionGuard: SubmissionGuardService
   ) {}
@@ -173,15 +266,66 @@ export class PaymentDialogComponent implements OnInit {
       this.members = members.filter(m => m.status !== 'inactive');
     });
 
+    const gymId = this.tenantContext.getTenantId();
+    if (gymId) {
+      this.settingsRepo.getSettings(gymId).subscribe(settings => {
+        const enabled = settings.filter(s => s.enabled).map(s => s.provider as string);
+        this.availablePaymentMethods = ['Cash', ...enabled.filter(p => p !== 'Cash')];
+      });
+    }
+
     this.paymentForm = this.fb.group({
       memberId: ['', [Validators.required]],
       amount: ['', [Validators.required, Validators.min(1)]],
-      paidAmount: ['', [Validators.required, Validators.min(0)]],
-      dueAmount: [{ value: 0, disabled: true }],
-      dueDate: [new Date()],
+      discountType: ['none', [Validators.required]],
+      discountValue: [0, [Validators.min(0)]],
+      paidAmount: [0, [Validators.required, Validators.min(0)]],
+      dueDate: [new Date(), [Validators.required]],
       date: [new Date(), [Validators.required]],
-      status: ['paid', [Validators.required]],
-      paymentMethod: ['UPI']
+      paymentMethod: ['Cash'],
+      notes: ['']
+    });
+
+    // Subscriptions to monitor values and perform validation/capping
+    this.paymentForm.get('amount')?.valueChanges.subscribe(() => {
+      setTimeout(() => {
+        const finalTotal = this.calculations.finalAmount;
+        this.paymentForm.get('paidAmount')?.setValue(finalTotal, { emitEvent: false });
+      });
+    });
+
+    this.paymentForm.get('paidAmount')?.valueChanges.subscribe(val => {
+      const finalTotal = this.calculations.finalAmount;
+      if (val > finalTotal) {
+        this.paymentForm.get('paidAmount')?.setValue(finalTotal, { emitEvent: false });
+      }
+    });
+
+    this.paymentForm.get('discountType')?.valueChanges.subscribe(type => {
+      const discountValCtrl = this.paymentForm.get('discountValue');
+      if (type === 'none') {
+        discountValCtrl?.setValue(0);
+        discountValCtrl?.clearValidators();
+      } else {
+        discountValCtrl?.setValidators([Validators.required, Validators.min(0.01)]);
+      }
+      discountValCtrl?.updateValueAndValidity();
+      
+      setTimeout(() => {
+        const finalTotal = this.calculations.finalAmount;
+        if (this.paymentForm.get('paidAmount')?.value > finalTotal) {
+          this.paymentForm.get('paidAmount')?.setValue(finalTotal, { emitEvent: false });
+        }
+      });
+    });
+
+    this.paymentForm.get('discountValue')?.valueChanges.subscribe(() => {
+      setTimeout(() => {
+        const finalTotal = this.calculations.finalAmount;
+        if (this.paymentForm.get('paidAmount')?.value > finalTotal) {
+          this.paymentForm.get('paidAmount')?.setValue(finalTotal, { emitEvent: false });
+        }
+      });
     });
   }
 
@@ -190,49 +334,33 @@ export class PaymentDialogComponent implements OnInit {
     if (selectedMember) {
       const price = selectedMember.balance > 0 ? selectedMember.balance : 1500;
       this.paymentForm.get('amount')?.setValue(price);
-      this.paymentForm.get('paidAmount')?.setValue(price);
-      this.updateDueCalculations();
+      this.paymentForm.get('paidAmount')?.setValue(price, { emitEvent: false });
     }
   }
 
-  updateDueCalculations(): void {
-    const amount = Number(this.paymentForm.get('amount')?.value || 0);
-    const paid = Number(this.paymentForm.get('paidAmount')?.value || 0);
-    const status = this.paymentForm.get('status')?.value;
-
-    this.paymentForm.get('paidAmount')?.setValidators([
-      Validators.required,
-      Validators.min(0),
-      Validators.max(amount)
-    ]);
-    this.paymentForm.get('paidAmount')?.updateValueAndValidity({ emitEvent: false });
-
-    const due = Math.max(0, amount - paid);
-    this.paymentForm.get('dueAmount')?.setValue(due);
-
-    if (due > 0) {
-      this.showDueDateField = true;
-      this.paymentForm.get('dueDate')?.setValidators([Validators.required]);
-      if (status === 'paid') {
-        this.paymentForm.get('status')?.setValue('pending');
-      }
-    } else {
-      this.showDueDateField = false;
-      this.paymentForm.get('dueDate')?.clearValidators();
-      if (status !== 'paid') {
-        this.paymentForm.get('status')?.setValue('paid');
-      }
+  get calculations() {
+    if (!this.paymentForm) {
+      return {
+        originalAmount: 0,
+        discountType: 'none' as const,
+        discountValue: 0,
+        discountAmount: 0,
+        subtotal: 0,
+        taxAmount: 0,
+        finalAmount: 0,
+        paidAmount: 0,
+        pendingAmount: 0,
+        paymentStatus: 'pending' as const
+      };
     }
-
-    if (this.paymentForm.get('status')?.value === 'paid' || paid > 0) {
-      this.paymentForm.get('paymentMethod')?.setValidators([Validators.required]);
-    } else {
-      this.paymentForm.get('paymentMethod')?.clearValidators();
-    }
-
-    this.paymentForm.get('dueDate')?.updateValueAndValidity();
-    this.paymentForm.get('status')?.updateValueAndValidity();
-    this.paymentForm.get('paymentMethod')?.updateValueAndValidity();
+    const formValue = this.paymentForm.getRawValue();
+    return this.billingCalc.calculate({
+      originalAmount: formValue.amount || 0,
+      discountType: formValue.discountType || 'none',
+      discountValue: formValue.discountValue || 0,
+      paidAmount: formValue.paidAmount || 0,
+      dueDate: this.formatDate(formValue.dueDate || new Date())
+    });
   }
 
   onCancel(): void {
@@ -246,19 +374,23 @@ export class PaymentDialogComponent implements OnInit {
       }
       const formValue = this.paymentForm.getRawValue();
       const member = this.members.find(m => m.id === formValue.memberId);
+      const calc = this.calculations;
       
       const paymentResult = {
         memberId: formValue.memberId,
         memberName: member ? member.name : 'Unknown Member',
-        amount: formValue.amount,
-        paidAmount: formValue.paidAmount,
-        dueAmount: formValue.dueAmount,
+        amount: calc.originalAmount,
+        paidAmount: calc.paidAmount,
+        dueAmount: calc.pendingAmount,
         dueDate: this.formatDate(formValue.dueDate || new Date()),
         date: this.formatDate(formValue.date),
-        status: formValue.status,
+        status: calc.paymentStatus,
         planName: member ? member.planName : 'Custom Plan',
-        paymentMethod: formValue.paidAmount > 0 || formValue.status === 'paid' ? (formValue.paymentMethod || 'UPI') : 'Pending',
-        collectedBy: 'Sophia Chen'
+        paymentMethod: calc.paidAmount > 0 ? (formValue.paymentMethod || 'Cash') : 'Pending',
+        collectedBy: 'Sophia Chen',
+        discountType: calc.discountType,
+        discountValue: calc.discountValue,
+        notes: formValue.notes
       };
 
       this.dialogRef.close(paymentResult);

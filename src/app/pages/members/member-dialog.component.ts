@@ -1,7 +1,7 @@
 import { Component, Inject, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormBuilder, FormGroup, Validators, ReactiveFormsModule } from '@angular/forms';
-import { MatDialogRef, MAT_DIALOG_DATA, MatDialogModule } from '@angular/material/dialog';
+import { MatDialog, MatDialogRef, MAT_DIALOG_DATA, MatDialogModule } from '@angular/material/dialog';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatInputModule } from '@angular/material/input';
 import { MatSelectModule } from '@angular/material/select';
@@ -11,6 +11,7 @@ import { MatNativeDateModule } from '@angular/material/core';
 import { MatIconModule } from '@angular/material/icon';
 import { MatTooltipModule } from '@angular/material/tooltip';
 import { MatDividerModule } from '@angular/material/divider';
+import { MatSnackBar } from '@angular/material/snack-bar';
 import { MembershipPlanState } from '../../presentation/state/membership-plan.state';
 import { PTState } from '../../presentation/state/pt.state';
 import { TrainerState } from '../../presentation/state/trainer.state';
@@ -22,6 +23,10 @@ import { Trainer } from '../../core/models/trainer.entity';
 import { Employee } from '../../core/models/employee.entity';
 import { FILE_STORAGE_REPOSITORY_TOKEN, IFileStorageRepository } from '../../core/interfaces/file-storage-repository.interface';
 import { SubmissionGuardService } from '../../services/submission-guard.service';
+import { PAYMENT_SETTINGS_REPOSITORY_TOKEN, IPaymentSettingsRepository } from '../../core/interfaces/repository.interfaces';
+import { TenantContextService } from '../../domain/tenancy/tenant-context.service';
+import { BillingCalculationService } from '../../services/billing-calculation.service';
+import { PaymentGatewayModalComponent } from '../../shared/components/payment-gateway-modal/payment-gateway-modal.component';
 
 @Component({
   selector: 'app-member-dialog',
@@ -261,16 +266,10 @@ import { SubmissionGuardService } from '../../services/submission-guard.service'
               <mat-error *ngIf="memberForm.get('paidAmount')?.hasError('min')">Paid amount cannot be negative</mat-error>
             </mat-form-field>
 
-            <!-- Payment Method (Only if Paid > 0) -->
             <mat-form-field appearance="outline" *ngIf="memberForm.get('paidAmount')?.value > 0">
               <mat-label>Payment Method</mat-label>
               <mat-select formControlName="paymentMethod">
-                <mat-option value="Cash">Cash</mat-option>
-                <mat-option value="UPI">UPI / GPay / PhonePe</mat-option>
-                <mat-option value="Razorpay">Razorpay Gateway</mat-option>
-                <mat-option value="Credit Card">Credit Card</mat-option>
-                <mat-option value="Debit Card">Debit Card</mat-option>
-                <mat-option value="Net Banking">Net Banking</mat-option>
+                <mat-option *ngFor="let method of availablePaymentMethods" [value]="method">{{ method }}</mat-option>
               </mat-select>
             </mat-form-field>
 
@@ -306,7 +305,7 @@ import { SubmissionGuardService } from '../../services/submission-guard.service'
 
           <div class="summary-row">
             <span>GST Tax (18% inclusive):</span>
-            <span>₹{{ (calculations.finalTotal * 0.18) | number:'1.2-2' }}</span>
+            <span>₹{{ calculations.taxAmount | number:'1.2-2' }}</span>
           </div>
 
           <mat-divider></mat-divider>
@@ -436,18 +435,31 @@ export class MemberDialogComponent implements OnInit {
   employees: Employee[] = [];
   selectedAvatarUrl = '';
   isUploading = false;
+  availablePaymentMethods: string[] = ['Cash'];
+  private _matDialog!: MatDialog;
+  private snackBar!: MatSnackBar;
 
   constructor(
+    private dialogRef: MatDialogRef<MemberDialogComponent>,
+    @Inject(MAT_DIALOG_DATA) public data: Member | null,
     private fb: FormBuilder,
     private planState: MembershipPlanState,
     private ptState: PTState,
     private trainerState: TrainerState,
     private employeeState: EmployeeState,
-    private dialogRef: MatDialogRef<MemberDialogComponent>,
     public submissionGuard: SubmissionGuardService,
-    @Inject(MAT_DIALOG_DATA) public data: Member | null,
-    @Inject(FILE_STORAGE_REPOSITORY_TOKEN) private fileStorage: IFileStorageRepository
-  ) {}
+    private tenantContext: TenantContextService,
+    private billingCalc: BillingCalculationService,
+    @Inject(PAYMENT_SETTINGS_REPOSITORY_TOKEN) private settingsRepo: IPaymentSettingsRepository,
+    @Inject(FILE_STORAGE_REPOSITORY_TOKEN) private fileStorage: IFileStorageRepository,
+    matDialog: MatDialog,
+    snackBar: MatSnackBar
+  ) {
+    this._matDialog = matDialog;
+    this.snackBar = snackBar;
+    this.isEdit = !!data;
+    this.selectedAvatarUrl = this.data?.avatarUrl || '';
+  }
 
   onMemberPhotoUpload(event: Event): void {
     const input = event.target as HTMLInputElement;
@@ -471,6 +483,14 @@ export class MemberDialogComponent implements OnInit {
   ngOnInit(): void {
     this.isEdit = !!this.data;
     this.selectedAvatarUrl = this.data?.avatarUrl || '';
+
+    const gymId = this.tenantContext.getTenantId();
+    if (gymId) {
+      this.settingsRepo.getSettings(gymId).subscribe(settings => {
+        const enabled = settings.filter(s => s.enabled).map(s => s.provider as string);
+        this.availablePaymentMethods = ['Cash', ...enabled.filter(p => p !== 'Cash')];
+      });
+    }
 
     // Load static data references
     this.planState.plans$.subscribe(plans => {
@@ -592,7 +612,12 @@ export class MemberDialogComponent implements OnInit {
         originalTotal: 0,
         discountAmount: 0,
         finalTotal: 0,
-        pendingAmount: 0
+        taxAmount: 0,
+        pendingAmount: 0,
+        membershipDiscount: 0,
+        ptDiscount: 0,
+        membershipFinal: 0,
+        ptFinal: 0
       };
     }
 
@@ -604,42 +629,32 @@ export class MemberDialogComponent implements OnInit {
     const ptPrice = ptPlan ? ptPlan.price : 0;
     const originalTotal = membershipPrice + ptPrice;
 
-    const discountType = formValue.discountType || 'none';
-    const discountValue = formValue.discountValue || 0;
-    let discountAmount = 0;
+    const result = this.billingCalc.calculate({
+      originalAmount: originalTotal,
+      discountType: formValue.discountType || 'none',
+      discountValue: formValue.discountValue || 0,
+      paidAmount: formValue.paidAmount || 0,
+      dueDate: new Date().toISOString().split('T')[0]
+    });
 
     let membershipDiscount = 0;
     let ptDiscount = 0;
-
-    if (discountType === 'percentage') {
-      membershipDiscount = membershipPrice * (discountValue / 100);
-      ptDiscount = ptPrice * (discountValue / 100);
-      discountAmount = membershipDiscount + ptDiscount;
-    } else if (discountType === 'flat') {
-      discountAmount = discountValue;
-      if (originalTotal > 0) {
-        membershipDiscount = discountValue * (membershipPrice / originalTotal);
-        ptDiscount = discountValue - membershipDiscount;
-      }
+    if (originalTotal > 0) {
+      membershipDiscount = Math.round((result.discountAmount * (membershipPrice / originalTotal)) * 100) / 100;
+      ptDiscount = Math.round((result.discountAmount - membershipDiscount) * 100) / 100;
     }
-
-    membershipDiscount = Math.round(membershipDiscount * 100) / 100;
-    ptDiscount = Math.round(ptDiscount * 100) / 100;
 
     const membershipFinal = Math.max(0, membershipPrice - membershipDiscount);
     const ptFinal = Math.max(0, ptPrice - ptDiscount);
-    const finalTotal = membershipFinal + ptFinal;
-
-    const paidAmount = formValue.paidAmount || 0;
-    const pendingAmount = Math.max(0, finalTotal - paidAmount);
 
     return {
       membershipPrice,
       ptPrice,
       originalTotal,
-      discountAmount: Math.round(discountAmount * 100) / 100,
-      finalTotal,
-      pendingAmount,
+      discountAmount: result.discountAmount,
+      finalTotal: result.finalAmount,
+      taxAmount: result.taxAmount,
+      pendingAmount: result.pendingAmount,
       membershipDiscount,
       ptDiscount,
       membershipFinal,
@@ -699,7 +714,7 @@ export class MemberDialogComponent implements OnInit {
       const selectedPTPlan = this.ptPlans.find(p => p.id === formValue.ptPlanId);
       const selectedTrainer = this.trainers.find(t => t.id === formValue.preferredTrainerId);
       const salesperson = this.employees.find(e => e.id === formValue.salespersonId);
-      
+
       const memberDetails = {
         name: formValue.name,
         email: formValue.email,
@@ -720,13 +735,20 @@ export class MemberDialogComponent implements OnInit {
       };
 
       if (this.isEdit && this.data) {
+        this.submissionGuard.end('member-dialog-submit');
         this.dialogRef.close({
           ...this.data,
           ...memberDetails
         });
-      } else {
-        const finalCalculations = this.calculations;
+        return;
+      }
 
+      // ── New Registration: open Payment Gateway if paidAmount > 0 ──
+      const finalCalculations = this.calculations;
+      const paidNow = Number(formValue.paidAmount) || 0;
+      const paymentMethod = paidNow > 0 ? formValue.paymentMethod : 'Cash';
+
+      const completeRegistration = (gatewayTransactionId?: string) => {
         const conversionDetails = {
           convertedBy: salesperson ? salesperson.fullName : 'System',
           salespersonId: salesperson ? salesperson.id : '',
@@ -734,12 +756,11 @@ export class MemberDialogComponent implements OnInit {
           revenueGenerated: finalCalculations.finalTotal,
           commissionPercent: 10,
           paymentStatus: finalCalculations.pendingAmount === 0 ? 'paid' : formValue.paymentStatus,
-          paymentMethod: formValue.paidAmount > 0 ? formValue.paymentMethod : 'Pending',
-          paidAmount: formValue.paidAmount,
+          paymentMethod: paidNow > 0 ? paymentMethod : 'Pending',
+          paidAmount: paidNow,
           discountType: formValue.discountType,
           discountValue: formValue.discountValue,
-          
-          // PT Additions
+          gatewayTransactionId: gatewayTransactionId || '',
           interestedInPT: formValue.interestedInPT === 'Yes',
           ptPlanId: formValue.ptPlanId || undefined,
           preferredTrainerId: formValue.preferredTrainerId || undefined,
@@ -751,13 +772,43 @@ export class MemberDialogComponent implements OnInit {
           ptSessionsTotal: selectedPTPlan ? selectedPTPlan.numberOfSessions : 0
         };
 
+        this.submissionGuard.end('member-dialog-submit');
         this.dialogRef.close({
           memberData: memberDetails,
           membershipPlanPrice: selectedPlan ? selectedPlan.price : 0,
           conversionDetails
         });
+      };
+
+      if (paidNow > 0) {
+        // Open payment gateway modal
+        const gymId = this.tenantContext.getTenantId() || undefined;
+        const gwRef = this._matDialog.open(PaymentGatewayModalComponent, {
+          width: '500px',
+          maxWidth: '98vw',
+          disableClose: true,
+          data: {
+            amount: paidNow,
+            paymentMethod,
+            memberName: formValue.name,
+            planName: selectedPlan ? selectedPlan.name : 'Membership',
+            invoiceRef: `REG-${Date.now()}`,
+            gymId
+          }
+        });
+
+        gwRef.afterClosed().subscribe(gwResult => {
+          if (!gwResult || !gwResult.success) {
+            this.submissionGuard.end('member-dialog-submit');
+            this.snackBar.open('Payment cancelled. Member registration not completed.', 'Dismiss', { duration: 4000 });
+            return;
+          }
+          completeRegistration(gwResult.transactionId);
+        });
+      } else {
+        // No payment now — skip gateway
+        completeRegistration();
       }
-      this.submissionGuard.end('member-dialog-submit');
     }
   }
 

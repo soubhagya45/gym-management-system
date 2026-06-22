@@ -1,7 +1,7 @@
 import { Component, Inject, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormBuilder, FormGroup, Validators, ReactiveFormsModule } from '@angular/forms';
-import { MatDialogRef, MAT_DIALOG_DATA, MatDialogModule } from '@angular/material/dialog';
+import { MatDialog, MatDialogRef, MAT_DIALOG_DATA, MatDialogModule } from '@angular/material/dialog';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatInputModule } from '@angular/material/input';
 import { MatSelectModule } from '@angular/material/select';
@@ -10,6 +10,7 @@ import { MatDatepickerModule } from '@angular/material/datepicker';
 import { MatNativeDateModule } from '@angular/material/core';
 import { MatIconModule } from '@angular/material/icon';
 import { MatDividerModule } from '@angular/material/divider';
+import { MatSnackBar } from '@angular/material/snack-bar';
 import { Lead } from '../../core/models/lead.entity';
 import { MembershipPlan } from '../../core/models/membership-plan.entity';
 import { Member } from '../../core/models/member.entity';
@@ -21,6 +22,10 @@ import { EmployeeState } from '../../presentation/state/employee.state';
 import { PTState } from '../../presentation/state/pt.state';
 import { TrainerState } from '../../presentation/state/trainer.state';
 import { SubmissionGuardService } from '../../services/submission-guard.service';
+import { PAYMENT_SETTINGS_REPOSITORY_TOKEN, IPaymentSettingsRepository } from '../../core/interfaces/repository.interfaces';
+import { TenantContextService } from '../../domain/tenancy/tenant-context.service';
+import { BillingCalculationService } from '../../services/billing-calculation.service';
+import { PaymentGatewayModalComponent } from '../../shared/components/payment-gateway-modal/payment-gateway-modal.component';
 
 @Component({
   selector: 'app-convert-dialog',
@@ -196,16 +201,10 @@ import { SubmissionGuardService } from '../../services/submission-guard.service'
             <mat-error *ngIf="convertForm.get('paidAmount')?.hasError('min')">Paid amount cannot be negative</mat-error>
           </mat-form-field>
 
-          <!-- Payment Method (Only if Paid Amount > 0) -->
           <mat-form-field appearance="outline" *ngIf="convertForm.get('paidAmount')?.value > 0">
             <mat-label>Payment Method</mat-label>
             <mat-select formControlName="paymentMethod">
-              <mat-option value="Cash">Cash</mat-option>
-              <mat-option value="UPI">UPI / GPay / PhonePe</mat-option>
-              <mat-option value="Razorpay">Razorpay Gateway</mat-option>
-              <mat-option value="Credit Card">Credit Card</mat-option>
-              <mat-option value="Debit Card">Debit Card</mat-option>
-              <mat-option value="Net Banking">Net Banking</mat-option>
+              <mat-option *ngFor="let method of availablePaymentMethods" [value]="method">{{ method }}</mat-option>
             </mat-select>
           </mat-form-field>
 
@@ -240,7 +239,7 @@ import { SubmissionGuardService } from '../../services/submission-guard.service'
 
           <div class="summary-row">
             <span>GST Tax (18% inclusive):</span>
-            <span>₹{{ (calculations.finalTotal * 0.18) | number:'1.2-2' }}</span>
+            <span>₹{{ calculations.taxAmount | number:'1.2-2' }}</span>
           </div>
 
           <mat-divider></mat-divider>
@@ -352,6 +351,8 @@ export class ConvertDialogComponent implements OnInit {
   employees: Employee[] = [];
   ptPlans: PTPlan[] = [];
   trainers: Trainer[] = [];
+  availablePaymentMethods: string[] = ['Cash'];
+  private _matDialog!: MatDialog;
 
   fitnessGoalOptions: string[] = [
     'Weight Loss',
@@ -383,10 +384,25 @@ export class ConvertDialogComponent implements OnInit {
     private trainerState: TrainerState,
     private dialogRef: MatDialogRef<ConvertDialogComponent>,
     public submissionGuard: SubmissionGuardService,
-    @Inject(MAT_DIALOG_DATA) public data: Lead
-  ) {}
+    private tenantContext: TenantContextService,
+    private billingCalc: BillingCalculationService,
+    private snackBar: MatSnackBar,
+    @Inject(PAYMENT_SETTINGS_REPOSITORY_TOKEN) private settingsRepo: IPaymentSettingsRepository,
+    @Inject(MAT_DIALOG_DATA) public data: Lead,
+    matDialog: MatDialog
+  ) {
+    this._matDialog = matDialog;
+  }
 
   ngOnInit(): void {
+    const gymId = this.tenantContext.getTenantId();
+    if (gymId) {
+      this.settingsRepo.getSettings(gymId).subscribe(settings => {
+        const enabled = settings.filter(s => s.enabled).map(s => s.provider as string);
+        this.availablePaymentMethods = ['Cash', ...enabled.filter(p => p !== 'Cash')];
+      });
+    }
+
     this.planState.plans$.subscribe(plans => {
       this.plans = plans;
       this.initFormAndListeners();
@@ -523,6 +539,7 @@ export class ConvertDialogComponent implements OnInit {
         originalTotal: 0,
         discountAmount: 0,
         finalTotal: 0,
+        taxAmount: 0,
         pendingAmount: 0,
         membershipDiscount: 0,
         ptDiscount: 0,
@@ -539,42 +556,32 @@ export class ConvertDialogComponent implements OnInit {
     const ptPrice = ptPlan ? ptPlan.price : 0;
     const originalTotal = membershipPrice + ptPrice;
 
-    const discountType = formValue.discountType || 'none';
-    const discountValue = formValue.discountValue || 0;
-    let discountAmount = 0;
+    const result = this.billingCalc.calculate({
+      originalAmount: originalTotal,
+      discountType: formValue.discountType || 'none',
+      discountValue: formValue.discountValue || 0,
+      paidAmount: formValue.paidAmount || 0,
+      dueDate: new Date().toISOString().split('T')[0]
+    });
 
     let membershipDiscount = 0;
     let ptDiscount = 0;
-
-    if (discountType === 'percentage') {
-      membershipDiscount = membershipPrice * (discountValue / 100);
-      ptDiscount = ptPrice * (discountValue / 100);
-      discountAmount = membershipDiscount + ptDiscount;
-    } else if (discountType === 'flat') {
-      discountAmount = discountValue;
-      if (originalTotal > 0) {
-        membershipDiscount = discountValue * (membershipPrice / originalTotal);
-        ptDiscount = discountValue - membershipDiscount;
-      }
+    if (originalTotal > 0) {
+      membershipDiscount = Math.round((result.discountAmount * (membershipPrice / originalTotal)) * 100) / 100;
+      ptDiscount = Math.round((result.discountAmount - membershipDiscount) * 100) / 100;
     }
-
-    membershipDiscount = Math.round(membershipDiscount * 100) / 100;
-    ptDiscount = Math.round(ptDiscount * 100) / 100;
 
     const membershipFinal = Math.max(0, membershipPrice - membershipDiscount);
     const ptFinal = Math.max(0, ptPrice - ptDiscount);
-    const finalTotal = membershipFinal + ptFinal;
-
-    const paidAmount = formValue.paidAmount || 0;
-    const pendingAmount = Math.max(0, finalTotal - paidAmount);
 
     return {
       membershipPrice,
       ptPrice,
       originalTotal,
-      discountAmount: Math.round(discountAmount * 100) / 100,
-      finalTotal,
-      pendingAmount,
+      discountAmount: result.discountAmount,
+      finalTotal: result.finalAmount,
+      taxAmount: result.taxAmount,
+      pendingAmount: result.pendingAmount,
       membershipDiscount,
       ptDiscount,
       membershipFinal,
@@ -624,7 +631,7 @@ export class ConvertDialogComponent implements OnInit {
       const selectedPTPlan = this.ptPlans.find(p => p.id === formValue.ptPlanId);
       const selectedTrainer = this.trainers.find(t => t.id === formValue.preferredTrainerId);
       const salesperson = this.employees.find(e => e.id === formValue.salespersonId);
-      
+
       const memberDetails: Omit<Member, 'id' | 'attendanceCount' | 'balance' | 'gymId'> = {
         name: this.data.name,
         email: this.data.email,
@@ -643,36 +650,64 @@ export class ConvertDialogComponent implements OnInit {
       };
 
       const finalCalculations = this.calculations;
+      const paidNow = Number(formValue.paidAmount) || 0;
+      const paymentMethod = paidNow > 0 ? formValue.paymentMethod : 'Cash';
 
-      const conversionDetails = {
-        convertedBy: salesperson ? salesperson.fullName : 'System',
-        salespersonId: salesperson ? salesperson.id : '',
-        salespersonName: salesperson ? salesperson.fullName : 'System',
-        revenueGenerated: finalCalculations.finalTotal,
-        commissionPercent: formValue.commissionPercent,
-        paymentStatus: finalCalculations.pendingAmount === 0 ? 'paid' : formValue.paymentStatus,
-        paymentMethod: formValue.paidAmount > 0 ? formValue.paymentMethod : 'Pending',
-        paidAmount: formValue.paidAmount,
-        discountType: formValue.discountType,
-        discountValue: formValue.discountValue,
-        
-        // PT Additions
-        interestedInPT: formValue.interestedInPT === 'Yes',
-        ptPlanId: formValue.ptPlanId || undefined,
-        preferredTrainerId: formValue.preferredTrainerId || undefined,
-        ptGoal: formValue.ptGoal,
-        ptPlanPrice: selectedPTPlan ? selectedPTPlan.price : 0,
-        ptPlanName: selectedPTPlan ? selectedPTPlan.name : '',
-        trainerName: selectedTrainer ? selectedTrainer.name : '',
-        ptPlanDuration: selectedPTPlan ? selectedPTPlan.duration : 1,
-        ptSessionsTotal: selectedPTPlan ? selectedPTPlan.numberOfSessions : 0
+      const completeConversion = (gatewayTransactionId?: string) => {
+        const conversionDetails = {
+          convertedBy: salesperson ? salesperson.fullName : 'System',
+          salespersonId: salesperson ? salesperson.id : '',
+          salespersonName: salesperson ? salesperson.fullName : 'System',
+          revenueGenerated: finalCalculations.finalTotal,
+          commissionPercent: formValue.commissionPercent,
+          paymentStatus: finalCalculations.pendingAmount === 0 ? 'paid' : formValue.paymentStatus,
+          paymentMethod: paidNow > 0 ? paymentMethod : 'Pending',
+          paidAmount: paidNow,
+          discountType: formValue.discountType,
+          discountValue: formValue.discountValue,
+          gatewayTransactionId: gatewayTransactionId || '',
+          interestedInPT: formValue.interestedInPT === 'Yes',
+          ptPlanId: formValue.ptPlanId || undefined,
+          preferredTrainerId: formValue.preferredTrainerId || undefined,
+          ptGoal: formValue.ptGoal,
+          ptPlanPrice: selectedPTPlan ? selectedPTPlan.price : 0,
+          ptPlanName: selectedPTPlan ? selectedPTPlan.name : '',
+          trainerName: selectedTrainer ? selectedTrainer.name : '',
+          ptPlanDuration: selectedPTPlan ? selectedPTPlan.duration : 1,
+          ptSessionsTotal: selectedPTPlan ? selectedPTPlan.numberOfSessions : 0
+        };
+
+        this.submissionGuard.end('lead-convert');
+        this.dialogRef.close({ memberDetails, conversionDetails });
       };
 
-      this.dialogRef.close({
-        memberDetails,
-        conversionDetails
-      });
-      this.submissionGuard.end('lead-convert');
+      if (paidNow > 0) {
+        const gymId = this.tenantContext.getTenantId() || undefined;
+        const gwRef = this._matDialog.open(PaymentGatewayModalComponent, {
+          width: '500px',
+          maxWidth: '98vw',
+          disableClose: true,
+          data: {
+            amount: paidNow,
+            paymentMethod,
+            memberName: this.data.name,
+            planName: selectedPlan ? selectedPlan.name : 'Membership',
+            invoiceRef: `CONV-${Date.now()}`,
+            gymId
+          }
+        });
+
+        gwRef.afterClosed().subscribe(gwResult => {
+          if (!gwResult || !gwResult.success) {
+            this.submissionGuard.end('lead-convert');
+            this.snackBar.open('Payment cancelled. Lead conversion not completed.', 'Dismiss', { duration: 4000 });
+            return;
+          }
+          completeConversion(gwResult.transactionId);
+        });
+      } else {
+        completeConversion();
+      }
     }
   }
 

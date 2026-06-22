@@ -499,7 +499,7 @@ export class DashboardComponent implements OnInit {
 
   onRenewMembership(member: Member): void {
     const dialogRef = this.dialog.open(RenewDialogComponent, {
-      width: '550px',
+      width: '600px',
       data: { member }
     });
 
@@ -511,14 +511,18 @@ export class DashboardComponent implements OnInit {
         this.memberState.renewMembership(
           result.memberId,
           result.planId,
-          result.planName,
+          result.planName || 'Membership Plan',
           result.startDate,
-          this.addMonths(result.startDate, result.durationMonths || 1),
+          result.endDate || result.startDate,
           result.price,
           result.paidAmount,
           result.dueAmount,
           result.dueDate,
-          result.paymentStatus
+          result.paymentStatus,
+          result.paymentMethod,
+          result.discountType,
+          result.discountValue,
+          result.originalAmount
         ).subscribe({
           next: () => {
             this.submissionGuard.end('membership-renew');

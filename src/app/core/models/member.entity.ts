@@ -32,4 +32,8 @@ export interface Member {
   ptSessionsTotal?: number;
   ptSessionsCompleted?: number;
   ptSessionsRemaining?: number;
+
+  // Enterprise additions
+  membershipFreezeStatus?: 'active' | 'frozen';
+  queuedActivationInvoiceId?: string;
 }

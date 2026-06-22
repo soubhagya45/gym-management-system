@@ -1,19 +1,24 @@
 import { Component, Inject, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormBuilder, FormGroup, Validators, ReactiveFormsModule } from '@angular/forms';
-import { MatDialogRef, MAT_DIALOG_DATA, MatDialogModule } from '@angular/material/dialog';
+import { MatDialog, MatDialogRef, MAT_DIALOG_DATA, MatDialogModule } from '@angular/material/dialog';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatInputModule } from '@angular/material/input';
 import { MatSelectModule } from '@angular/material/select';
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
 import { MatDividerModule } from '@angular/material/divider';
+import { MatSnackBar } from '@angular/material/snack-bar';
 import { Member } from '../../core/models/member.entity';
 import { PTPlan } from '../../core/models/pt-plan.entity';
 import { Trainer } from '../../core/models/trainer.entity';
 import { MemberPTPlan } from '../../core/models/member-pt-plan.entity';
 import { PTState } from '../../presentation/state/pt.state';
 import { TrainerState } from '../../presentation/state/trainer.state';
+import { PAYMENT_SETTINGS_REPOSITORY_TOKEN, IPaymentSettingsRepository } from '../../core/interfaces/repository.interfaces';
+import { TenantContextService } from '../../domain/tenancy/tenant-context.service';
+import { BillingCalculationService } from '../../services/billing-calculation.service';
+import { PaymentGatewayModalComponent } from '../../shared/components/payment-gateway-modal/payment-gateway-modal.component';
 
 export interface PTActionDialogData {
   action: 'purchase' | 'change_trainer' | 'upgrade' | 'add_sessions';
@@ -73,24 +78,6 @@ export interface PTActionDialogData {
                 <mat-option *ngFor="let goal of ptGoalOptions" [value]="goal">{{ goal }}</mat-option>
               </mat-select>
             </mat-form-field>
-
-            <mat-form-field appearance="outline">
-              <mat-label>Payment Status</mat-label>
-              <mat-select formControlName="paymentStatus">
-                <mat-option value="paid">Paid immediately</mat-option>
-                <mat-option value="pending">Pay Later / Bill</mat-option>
-              </mat-select>
-            </mat-form-field>
-
-            <mat-form-field appearance="outline" *ngIf="actionForm.get('paymentStatus')?.value === 'paid'">
-              <mat-label>Payment Method</mat-label>
-              <mat-select formControlName="paymentMethod">
-                <mat-option value="UPI">UPI / GPay</mat-option>
-                <mat-option value="Card">Credit/Debit Card</mat-option>
-                <mat-option value="Cash">Cash</mat-option>
-                <mat-option value="NetBanking">Net Banking</mat-option>
-              </mat-select>
-            </mat-form-field>
           </ng-container>
 
           <!-- Action: change_trainer -->
@@ -122,16 +109,6 @@ export interface PTActionDialogData {
               </mat-select>
               <mat-error *ngIf="actionForm.get('ptPlanId')?.hasError('required')">Plan selection is required</mat-error>
             </mat-form-field>
-
-            <mat-form-field appearance="outline">
-              <mat-label>Payment Method</mat-label>
-              <mat-select formControlName="paymentMethod">
-                <mat-option value="UPI">UPI / GPay</mat-option>
-                <mat-option value="Card">Credit/Debit Card</mat-option>
-                <mat-option value="Cash">Cash</mat-option>
-                <mat-option value="NetBanking">Net Banking</mat-option>
-              </mat-select>
-            </mat-form-field>
           </ng-container>
 
           <!-- Action: add_sessions -->
@@ -149,22 +126,52 @@ export interface PTActionDialogData {
               <mat-error *ngIf="actionForm.get('price')?.hasError('required')">Price is required</mat-error>
               <mat-error *ngIf="actionForm.get('price')?.hasError('min')">Must be at least 0</mat-error>
             </mat-form-field>
+          </ng-container>
+
+          <!-- Shared Billing Form Fields (only if action is not change_trainer) -->
+          <ng-container *ngIf="data.action !== 'change_trainer'">
+            <mat-form-field appearance="outline">
+              <mat-label>Discount Type</mat-label>
+              <mat-select formControlName="discountType">
+                <mat-option value="none">No Discount</mat-option>
+                <mat-option value="flat">Flat Discount (₹)</mat-option>
+                <mat-option value="percentage">Percentage Discount (%)</mat-option>
+              </mat-select>
+            </mat-form-field>
+
+            <mat-form-field appearance="outline" *ngIf="actionForm.get('discountType')?.value !== 'none'">
+              <mat-label>{{ actionForm.get('discountType')?.value === 'flat' ? 'Discount Amount (₹)' : 'Discount Percentage (%)' }}</mat-label>
+              <input matInput type="number" formControlName="discountValue">
+              <mat-error *ngIf="actionForm.get('discountValue')?.hasError('min')">Value must be greater than 0</mat-error>
+            </mat-form-field>
 
             <mat-form-field appearance="outline">
+              <mat-label>Paid Amount (₹)</mat-label>
+              <input matInput type="number" formControlName="paidAmount">
+              <mat-error *ngIf="actionForm.get('paidAmount')?.hasError('required')">Paid amount is required</mat-error>
+              <mat-error *ngIf="actionForm.get('paidAmount')?.hasError('min')">Paid amount cannot be negative</mat-error>
+            </mat-form-field>
+
+            <mat-form-field appearance="outline" *ngIf="actionForm.get('paidAmount')?.value > 0">
               <mat-label>Payment Method</mat-label>
               <mat-select formControlName="paymentMethod">
-                <mat-option value="UPI">UPI / GPay</mat-option>
-                <mat-option value="Card">Credit/Debit Card</mat-option>
-                <mat-option value="Cash">Cash</mat-option>
-                <mat-option value="NetBanking">Net Banking</mat-option>
+                <mat-option *ngFor="let method of availablePaymentMethods" [value]="method">{{ method }}</mat-option>
+              </mat-select>
+            </mat-form-field>
+
+            <mat-form-field appearance="outline" *ngIf="calculations.pendingAmount > 0">
+              <mat-label>Outstanding Due Status</mat-label>
+              <mat-select formControlName="paymentStatus">
+                <mat-option value="pending">Pending (Standard)</mat-option>
+                <mat-option value="overdue">Overdue (Immediate Action)</mat-option>
               </mat-select>
             </mat-form-field>
           </ng-container>
         </div>
 
-        <!-- Billing Summary -->
+        <!-- Live Billing Summary -->
         <div class="billing-summary" *ngIf="showSummary()">
-          <h4>Billing Summary</h4>
+          <h4>Live Billing Summary</h4>
           <div class="summary-row" *ngIf="data.action === 'purchase' && selectedPlan">
             <span>PT Package:</span>
             <strong>{{ selectedPlan.name }}</strong>
@@ -177,22 +184,54 @@ export interface PTActionDialogData {
             <span>Extra Sessions:</span>
             <strong>{{ actionForm.get('additionalSessions')?.value }} sessions</strong>
           </div>
+
           <div class="summary-row">
-            <span>Base Amount:</span>
-            <span>₹{{ (getAmount() / 1.18) | number:'1.2-2' }}</span>
+            <span>Original Amount:</span>
+            <span>₹{{ calculations.originalAmount | number:'1.2-2' }}</span>
           </div>
+
+          <div class="summary-row" *ngIf="calculations.discountAmount > 0">
+            <span>Discount:</span>
+            <span class="danger-text">-₹{{ calculations.discountAmount | number:'1.2-2' }}</span>
+          </div>
+
           <div class="summary-row">
-            <span>GST (18%):</span>
-            <span>₹{{ (getAmount() - (getAmount() / 1.18)) | number:'1.2-2' }}</span>
+            <span>Subtotal:</span>
+            <span>₹{{ calculations.subtotal | number:'1.2-2' }}</span>
           </div>
+
+          <div class="summary-row">
+            <span>Tax (GST 18% inclusive):</span>
+            <span>₹{{ calculations.taxAmount | number:'1.2-2' }}</span>
+          </div>
+
           <mat-divider></mat-divider>
+
           <div class="summary-row total">
-            <span>Total Amount:</span>
-            <strong>₹{{ getAmount() | number:'1.2-2' }}</strong>
+            <span>Final Amount (Payable):</span>
+            <strong>₹{{ calculations.finalAmount | number:'1.2-2' }}</strong>
           </div>
-          <div class="summary-row commission" *ngIf="getTrainerName()">
+
+          <div class="summary-row paid-row">
+            <span>Paid Amount Now:</span>
+            <span class="success-text">₹{{ calculations.paidAmount | number:'1.2-2' }}</span>
+          </div>
+
+          <div class="summary-row pending-row">
+            <span>Outstanding Balance:</span>
+            <strong [class.danger-text]="calculations.pendingAmount > 0" [class.success-text]="calculations.pendingAmount === 0">
+              ₹{{ calculations.pendingAmount | number:'1.2-2' }}
+            </strong>
+          </div>
+
+          <div class="summary-row">
+            <span>Invoice Status:</span>
+            <strong style="text-transform: capitalize;">{{ calculations.paymentStatus }}</strong>
+          </div>
+
+          <div class="summary-row commission" *ngIf="getTrainerName() && data.action === 'purchase'">
             <span>Trainer Commission (10%):</span>
-            <span class="success-text">₹{{ (getAmount() * 0.10) | number:'1.2-2' }}</span>
+            <span class="success-text">₹{{ (calculations.finalAmount * 0.10) | number:'1.2-2' }}</span>
           </div>
         </div>
       </mat-dialog-content>
@@ -267,6 +306,10 @@ export interface PTActionDialogData {
       color: var(--success);
       font-weight: 600;
     }
+    .danger-text {
+      color: var(--warn, #f43f5e);
+      font-weight: 600;
+    }
     .dialog-actions {
       padding: 16px 0 0 0 !important;
       gap: 8px;
@@ -287,7 +330,9 @@ export class PTActionDialogComponent implements OnInit {
   ptPlans: PTPlan[] = [];
   trainers: Trainer[] = [];
   upgradePlans: PTPlan[] = [];
-  
+  availablePaymentMethods: string[] = ['Cash'];
+  private _matDialog!: MatDialog;
+
   selectedPlan: PTPlan | undefined;
   selectedUpgradePlan: PTPlan | undefined;
 
@@ -305,8 +350,15 @@ export class PTActionDialogComponent implements OnInit {
     private ptState: PTState,
     private trainerState: TrainerState,
     private dialogRef: MatDialogRef<PTActionDialogComponent>,
-    @Inject(MAT_DIALOG_DATA) public data: PTActionDialogData
-  ) {}
+    private billingCalc: BillingCalculationService,
+    private tenantContext: TenantContextService,
+    private snackBar: MatSnackBar,
+    @Inject(PAYMENT_SETTINGS_REPOSITORY_TOKEN) private settingsRepo: IPaymentSettingsRepository,
+    @Inject(MAT_DIALOG_DATA) public data: PTActionDialogData,
+    matDialog: MatDialog
+  ) {
+    this._matDialog = matDialog;
+  }
 
   ngOnInit(): void {
     this.ptState.ptPlans$.subscribe(plans => {
@@ -326,6 +378,14 @@ export class PTActionDialogComponent implements OnInit {
       }
     });
 
+    const gymId = this.tenantContext.getTenantId();
+    if (gymId) {
+      this.settingsRepo.getSettings(gymId).subscribe(settings => {
+        const enabled = settings.filter(s => s.enabled).map(s => s.provider as string);
+        this.availablePaymentMethods = ['Cash', ...enabled.filter(p => p !== 'Cash')];
+      });
+    }
+
     this.initForm();
   }
 
@@ -335,12 +395,18 @@ export class PTActionDialogComponent implements OnInit {
         ptPlanId: ['', Validators.required],
         trainerId: ['', Validators.required],
         ptGoal: ['General Fitness', Validators.required],
-        paymentStatus: ['paid', Validators.required],
-        paymentMethod: ['UPI', Validators.required]
+        discountType: ['none', Validators.required],
+        discountValue: [0, [Validators.min(0)]],
+        paidAmount: [0, [Validators.required, Validators.min(0)]],
+        paymentStatus: ['pending', Validators.required],
+        paymentMethod: ['Cash', Validators.required]
       });
 
       this.actionForm.get('ptPlanId')?.valueChanges.subscribe(planId => {
         this.selectedPlan = this.ptPlans.find(p => p.id === planId);
+        setTimeout(() => {
+          this.actionForm.get('paidAmount')?.setValue(this.calculations.finalAmount, { emitEvent: false });
+        });
       });
     } else if (this.data.action === 'change_trainer') {
       this.actionForm = this.fb.group({
@@ -350,17 +416,70 @@ export class PTActionDialogComponent implements OnInit {
     } else if (this.data.action === 'upgrade') {
       this.actionForm = this.fb.group({
         ptPlanId: ['', Validators.required],
-        paymentMethod: ['UPI', Validators.required]
+        discountType: ['none', Validators.required],
+        discountValue: [0, [Validators.min(0)]],
+        paidAmount: [0, [Validators.required, Validators.min(0)]],
+        paymentStatus: ['pending', Validators.required],
+        paymentMethod: ['Cash', Validators.required]
       });
 
       this.actionForm.get('ptPlanId')?.valueChanges.subscribe(planId => {
         this.selectedUpgradePlan = this.ptPlans.find(p => p.id === planId);
+        setTimeout(() => {
+          this.actionForm.get('paidAmount')?.setValue(this.calculations.finalAmount, { emitEvent: false });
+        });
       });
     } else if (this.data.action === 'add_sessions') {
       this.actionForm = this.fb.group({
         additionalSessions: [5, [Validators.required, Validators.min(1)]],
         price: [2500, [Validators.required, Validators.min(0)]],
-        paymentMethod: ['UPI', Validators.required]
+        discountType: ['none', Validators.required],
+        discountValue: [0, [Validators.min(0)]],
+        paidAmount: [2500, [Validators.required, Validators.min(0)]],
+        paymentStatus: ['pending', Validators.required],
+        paymentMethod: ['Cash', Validators.required]
+      });
+
+      this.actionForm.get('price')?.valueChanges.subscribe(() => {
+        setTimeout(() => {
+          this.actionForm.get('paidAmount')?.setValue(this.calculations.finalAmount, { emitEvent: false });
+        });
+      });
+    }
+
+    if (this.data.action !== 'change_trainer') {
+      this.actionForm.get('paidAmount')?.valueChanges.subscribe(val => {
+        const finalTotal = this.calculations.finalAmount;
+        if (val > finalTotal) {
+          this.actionForm.get('paidAmount')?.setValue(finalTotal, { emitEvent: false });
+        }
+      });
+
+      this.actionForm.get('discountType')?.valueChanges.subscribe(type => {
+        const discountValCtrl = this.actionForm.get('discountValue');
+        if (type === 'none') {
+          discountValCtrl?.setValue(0);
+          discountValCtrl?.clearValidators();
+        } else {
+          discountValCtrl?.setValidators([Validators.required, Validators.min(0.01)]);
+        }
+        discountValCtrl?.updateValueAndValidity();
+        
+        setTimeout(() => {
+          const finalTotal = this.calculations.finalAmount;
+          if (this.actionForm.get('paidAmount')?.value > finalTotal) {
+            this.actionForm.get('paidAmount')?.setValue(finalTotal, { emitEvent: false });
+          }
+        });
+      });
+
+      this.actionForm.get('discountValue')?.valueChanges.subscribe(() => {
+        setTimeout(() => {
+          const finalTotal = this.calculations.finalAmount;
+          if (this.actionForm.get('paidAmount')?.value > finalTotal) {
+            this.actionForm.get('paidAmount')?.setValue(finalTotal, { emitEvent: false });
+          }
+        });
       });
     }
   }
@@ -419,9 +538,37 @@ export class PTActionDialogComponent implements OnInit {
       return 0;
     }
     if (this.data.action === 'add_sessions') {
-      return this.actionForm.get('price')?.value || 0;
+      return this.actionForm ? (this.actionForm.get('price')?.value || 0) : 2500;
     }
     return 0;
+  }
+
+  get calculations() {
+    const basePrice = this.getAmount();
+
+    if (!this.actionForm) {
+      return {
+        originalAmount: basePrice,
+        discountType: 'none' as const,
+        discountValue: 0,
+        discountAmount: 0,
+        subtotal: basePrice,
+        taxAmount: 0,
+        finalAmount: basePrice,
+        paidAmount: basePrice,
+        pendingAmount: 0,
+        paymentStatus: 'paid' as const
+      };
+    }
+
+    const formValue = this.actionForm.value;
+    return this.billingCalc.calculate({
+      originalAmount: basePrice,
+      discountType: formValue.discountType || 'none',
+      discountValue: formValue.discountValue || 0,
+      paidAmount: formValue.paidAmount || 0,
+      dueDate: new Date().toISOString().split('T')[0]
+    });
   }
 
   getTrainerName(): string {
@@ -441,37 +588,75 @@ export class PTActionDialogComponent implements OnInit {
 
     const formValue = this.actionForm.value;
 
-    if (this.data.action === 'purchase') {
-      const plan = this.ptPlans.find(p => p.id === formValue.ptPlanId)!;
+    // change_trainer has no payment — close directly
+    if (this.data.action === 'change_trainer') {
       const trainer = this.trainers.find(t => t.id === formValue.trainerId)!;
-      
-      const payload = {
-        plan,
-        trainer,
-        ptGoal: formValue.ptGoal,
-        paymentStatus: formValue.paymentStatus,
-        paymentMethod: formValue.paymentMethod
+      this.dialogRef.close({ trainer, notes: formValue.notes });
+      return;
+    }
+
+    const paidNow = Number(this.calculations.paidAmount) || 0;
+    const paymentMethod = paidNow > 0 ? formValue.paymentMethod : 'Cash';
+    const gymId = this.tenantContext.getTenantId() || undefined;
+    const memberName = this.data.member.name;
+
+    const buildPayload = (gatewayTransactionId?: string) => {
+      const base = {
+        paymentMethod: paidNow > 0 ? paymentMethod : 'Pending',
+        paidAmount: this.calculations.paidAmount,
+        pendingAmount: this.calculations.pendingAmount,
+        discountType: formValue.discountType,
+        discountValue: formValue.discountValue,
+        originalAmount: this.calculations.originalAmount,
+        finalAmount: this.calculations.finalAmount,
+        paymentStatus: this.calculations.paymentStatus,
+        gatewayTransactionId: gatewayTransactionId || ''
       };
-      this.dialogRef.close(payload);
-    } else if (this.data.action === 'change_trainer') {
-      const trainer = this.trainers.find(t => t.id === formValue.trainerId)!;
-      this.dialogRef.close({
-        trainer,
-        notes: formValue.notes
+
+      if (this.data.action === 'purchase') {
+        const plan = this.ptPlans.find(p => p.id === formValue.ptPlanId)!;
+        const trainer = this.trainers.find(t => t.id === formValue.trainerId)!;
+        return { ...base, plan, trainer, ptGoal: formValue.ptGoal };
+      } else if (this.data.action === 'upgrade') {
+        const plan = this.ptPlans.find(p => p.id === formValue.ptPlanId)!;
+        return { ...base, plan, priceDifference: this.calculations.finalAmount };
+      } else if (this.data.action === 'add_sessions') {
+        return { ...base, additionalSessions: formValue.additionalSessions, price: this.calculations.finalAmount };
+      }
+      return base;
+    };
+
+    if (paidNow > 0) {
+      const planName = this.data.action === 'purchase'
+        ? (this.selectedPlan?.name || 'PT Plan')
+        : this.data.action === 'upgrade'
+          ? (this.selectedUpgradePlan?.name || 'PT Upgrade')
+          : 'Extra PT Sessions';
+
+      const gwRef = this._matDialog.open(PaymentGatewayModalComponent, {
+        width: '500px',
+        maxWidth: '98vw',
+        disableClose: true,
+        data: {
+          amount: paidNow,
+          paymentMethod,
+          memberName,
+          planName,
+          invoiceRef: `PT-${Date.now()}`,
+          gymId
+        }
       });
-    } else if (this.data.action === 'upgrade') {
-      const plan = this.ptPlans.find(p => p.id === formValue.ptPlanId)!;
-      this.dialogRef.close({
-        plan,
-        paymentMethod: formValue.paymentMethod,
-        priceDifference: this.getAmount()
+
+      gwRef.afterClosed().subscribe(gwResult => {
+        if (!gwResult || !gwResult.success) {
+          this.snackBar.open('Payment cancelled. PT action not completed.', 'Dismiss', { duration: 4000 });
+          return;
+        }
+        this.dialogRef.close(buildPayload(gwResult.transactionId));
       });
-    } else if (this.data.action === 'add_sessions') {
-      this.dialogRef.close({
-        additionalSessions: formValue.additionalSessions,
-        price: formValue.price,
-        paymentMethod: formValue.paymentMethod
-      });
+    } else {
+      // No payment needed
+      this.dialogRef.close(buildPayload());
     }
   }
 }

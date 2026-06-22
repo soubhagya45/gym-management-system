@@ -27,9 +27,11 @@ import {
   IWhatsAppRepository,
   IBodyProgressRepository,
   IFinanceRepository,
-  IAuditLogRepository
+  IAuditLogRepository,
+  IPaymentSettingsRepository
 } from '../../../core/interfaces/repository.interfaces';
 import { AuditLog } from '../../../core/models/audit-log.model';
+import { PaymentSettings } from '../../../core/models/payment-settings.model';
 import { Expense, Invoice, Collection } from '../../../core/models/finance.entity';
 import { Employee, EmployeeAttendance, EmployeePayroll, EmployeePerformance } from '../../../core/models/employee.entity';
 import { IEmployeeRepository } from '../../../core/interfaces/repository.interfaces';
@@ -102,6 +104,13 @@ export class SupabasePaymentRepository implements IPaymentRepository {
   getPayments(gymId: string): Observable<Payment[]> { return throwError(() => new Error('Supabase integration is not enabled.')); }
   addPayment(gymId: string, payment: Omit<Payment, 'id'>): Observable<Payment> { return throwError(() => new Error('Supabase integration is not enabled.')); }
   confirmPayment(gymId: string, paymentId: string): Observable<void> { return throwError(() => new Error('Supabase integration is not enabled.')); }
+}
+
+@Injectable({ providedIn: 'root' })
+export class SupabasePaymentSettingsRepository implements IPaymentSettingsRepository {
+  getSettings(gymId: string): Observable<PaymentSettings[]> { return throwError(() => new Error('Supabase integration is not enabled.')); }
+  getSettingsByProvider(gymId: string, provider: string): Observable<PaymentSettings | null> { return throwError(() => new Error('Supabase integration is not enabled.')); }
+  saveSettings(gymId: string, settings: PaymentSettings): Observable<void> { return throwError(() => new Error('Supabase integration is not enabled.')); }
 }
 
 @Injectable({ providedIn: 'root' })

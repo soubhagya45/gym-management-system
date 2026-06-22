@@ -31,7 +31,9 @@ import {
   IPersonalTrainingRepository,
   PERSONAL_TRAINING_REPOSITORY_TOKEN,
   IAuditLogRepository,
-  AUDIT_LOG_REPOSITORY_TOKEN
+  AUDIT_LOG_REPOSITORY_TOKEN,
+  IPaymentSettingsRepository,
+  PAYMENT_SETTINGS_REPOSITORY_TOKEN
 } from '../../core/interfaces/repository.interfaces';
 import { IOnboardingRepository, ONBOARDING_REPOSITORY_TOKEN } from '../../core/interfaces/onboarding-repository.interface';
 import { MockOnboardingRepository } from '../repositories/mock/mock-onboarding.repository';
@@ -60,7 +62,8 @@ import {
   MockFinanceRepository,
   MockEmployeeRepository,
   MockPersonalTrainingRepository,
-  MockAuditLogRepository
+  MockAuditLogRepository,
+  MockPaymentSettingsRepository
 } from '../repositories/mock/mock-repositories';
 
 
@@ -79,7 +82,8 @@ import {
   FirebaseFinanceRepository,
   FirebaseEmployeeRepository,
   FirebasePersonalTrainingRepository,
-  FirebaseAuditLogRepository
+  FirebaseAuditLogRepository,
+  FirebasePaymentSettingsRepository
 } from '../repositories/firebase/firebase-repositories';
 
 
@@ -97,7 +101,8 @@ import {
   SupabaseBodyProgressRepository,
   SupabaseFinanceRepository,
   SupabaseEmployeeRepository,
-  SupabaseAuditLogRepository
+  SupabaseAuditLogRepository,
+  SupabasePaymentSettingsRepository
 } from '../repositories/supabase/supabase-repositories';
 
 
@@ -115,7 +120,8 @@ import {
   ApiBodyProgressRepository,
   ApiFinanceRepository,
   ApiEmployeeRepository,
-  ApiAuditLogRepository
+  ApiAuditLogRepository,
+  ApiPaymentSettingsRepository
 } from '../repositories/api/api-repositories';
 
 
@@ -289,6 +295,16 @@ export function fileStorageRepositoryFactory(configService: AppConfigService, in
   }
 }
 
+export function paymentSettingsRepositoryFactory(configService: AppConfigService, injector: Injector): IPaymentSettingsRepository {
+  switch (configService.provider) {
+    case ProviderType.Firebase: return injector.get(FirebasePaymentSettingsRepository);
+    case ProviderType.Supabase: return injector.get(SupabasePaymentSettingsRepository);
+    case ProviderType.REST: return injector.get(ApiPaymentSettingsRepository);
+    case ProviderType.Mock:
+    default: return injector.get(MockPaymentSettingsRepository);
+  }
+}
+
 
 export const REPOSITORY_PROVIDERS = [
   {
@@ -374,6 +390,11 @@ export const REPOSITORY_PROVIDERS = [
   {
     provide: AUDIT_LOG_REPOSITORY_TOKEN,
     useFactory: auditLogRepositoryFactory,
+    deps: [AppConfigService, Injector]
+  },
+  {
+    provide: PAYMENT_SETTINGS_REPOSITORY_TOKEN,
+    useFactory: paymentSettingsRepositoryFactory,
     deps: [AppConfigService, Injector]
   }
 ];

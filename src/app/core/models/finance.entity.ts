@@ -54,9 +54,31 @@ export interface Invoice {
   salespersonName?: string;
   
   // PT Additions
-  type?: 'membership' | 'pt';
+  type?: 'membership' | 'renewal' | 'pt' | 'diet' | 'product' | 'custom';
   trainerId?: string;
   trainerName?: string;
+
+  // Enterprise additions
+  receiptNumber?: string;
+  billingCycle?: 'monthly' | 'quarterly' | 'half-yearly' | 'annual';
+  autoRenewEnabled?: boolean;
+  paymentLinkId?: string;
+  paymentHistory?: {
+    paymentId: string;
+    amount: number;
+    date: string;
+    method: string;
+    status: string;
+    transactionId?: string;
+  }[];
+  subtotal?: number;
+  taxAmount?: number;
+  locked?: boolean;
+  refundAmount?: number;
+  refundReason?: string;
+  refundDate?: string;
+  refundBy?: string;
+  leadOwnerId?: string;
 }
 
 export interface Collection {

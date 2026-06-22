@@ -14,8 +14,10 @@ import { MatProgressBarModule } from '@angular/material/progress-bar';
 import { MatDividerModule } from '@angular/material/divider';
 import { MatTabsModule } from '@angular/material/tabs';
 import { MatDialog, MatDialogModule, MatDialogRef, MAT_DIALOG_DATA } from '@angular/material/dialog';
-import { Subject } from 'rxjs';
-import { takeUntil, distinctUntilChanged } from 'rxjs/operators';
+import { Subject, forkJoin, Observable } from 'rxjs';
+import { takeUntil, distinctUntilChanged, switchMap } from 'rxjs/operators';
+import { PAYMENT_SETTINGS_REPOSITORY_TOKEN, IPaymentSettingsRepository } from '../../../core/interfaces/repository.interfaces';
+import { PaymentSettings } from '../../../core/models/payment-settings.model';
 import { GymState } from '../../../presentation/state/gym.state';
 import { Gym } from '../../../core/models/gym.entity';
 import { SubscriptionService, PLAN_PRICES, PLAN_FEATURES } from '../../../domain/subscription/subscription.service';
@@ -150,6 +152,175 @@ const PLAN_LABEL_MAP: Record<SubscriptionPlan, string> = {
                           <mat-label>IFSC Code</mat-label>
                           <input matInput formControlName="bankIfsc" placeholder="HDFC0000123">
                         </mat-form-field>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                <div class="settings-col full-width" formGroupName="providers">
+                  <div class="mat-card settings-card mt-4">
+                    <div class="card-title-row">
+                      <mat-icon class="title-icon">settings_input_component</mat-icon>
+                      <h2>Enterprise Payment Gateway Configurations</h2>
+                    </div>
+                    <p class="section-desc">Manage keys, credentials, and custom parameters for the runtime Provider Factory.</p>
+                    
+                    <div class="providers-grid">
+                      <!-- 1. Manual UPI -->
+                      <div class="provider-card" formGroupName="manualUPI" [class.enabled]="paymentForm.get('providers.manualUPI.enabled')?.value">
+                        <div class="provider-header">
+                          <div class="provider-info-row">
+                            <mat-icon class="provider-logo manual-upi-icon">qr_code_2</mat-icon>
+                            <div>
+                              <h3>Manual UPI QR Code</h3>
+                              <p>Direct peer-to-peer bank transfers via UPI QR</p>
+                            </div>
+                          </div>
+                          <mat-slide-toggle formControlName="enabled"></mat-slide-toggle>
+                        </div>
+                        
+                        <div class="provider-fields" *ngIf="paymentForm.get('providers.manualUPI.enabled')?.value">
+                          <mat-divider class="my-3"></mat-divider>
+                          <div class="fields-stack">
+                            <mat-form-field appearance="outline">
+                              <mat-label>UPI ID (VPA)</mat-label>
+                              <input matInput formControlName="upiId" placeholder="e.g. apexfit@upi">
+                            </mat-form-field>
+                            
+                            <mat-form-field appearance="outline">
+                              <mat-label>Business Name (Payee Name)</mat-label>
+                              <input matInput formControlName="businessName" placeholder="e.g. ApexFit Gym Downtown">
+                            </mat-form-field>
+                            
+                            <div class="form-row">
+                              <mat-form-field appearance="outline">
+                                <mat-label>Support Contact (WhatsApp/Phone)</mat-label>
+                                <input matInput formControlName="supportContact" placeholder="e.g. +91 99887 76655">
+                              </mat-form-field>
+                              
+                              <div class="toggle-inside-field">
+                                <span class="lbl">Auto-generate Dynamic QR</span>
+                                <mat-slide-toggle formControlName="autoGenerateQR"></mat-slide-toggle>
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+
+                      <!-- 2. Razorpay -->
+                      <div class="provider-card" formGroupName="razorpay" [class.enabled]="paymentForm.get('providers.razorpay.enabled')?.value">
+                        <div class="provider-header">
+                          <div class="provider-info-row">
+                            <mat-icon class="provider-logo razorpay-icon">payment</mat-icon>
+                            <div>
+                              <h3>Razorpay Gateway</h3>
+                              <p>Cards, Netbanking, UPI, and Auto-debits (Sandbox Mock)</p>
+                            </div>
+                          </div>
+                          <mat-slide-toggle formControlName="enabled"></mat-slide-toggle>
+                        </div>
+                        
+                        <div class="provider-fields" *ngIf="paymentForm.get('providers.razorpay.enabled')?.value">
+                          <mat-divider class="my-3"></mat-divider>
+                          <div class="fields-stack">
+                            <mat-form-field appearance="outline">
+                              <mat-label>Key ID</mat-label>
+                              <input matInput formControlName="keyId" placeholder="rzp_test_...">
+                            </mat-form-field>
+                            
+                            <mat-form-field appearance="outline">
+                              <mat-label>Key Secret</mat-label>
+                              <input matInput type="password" formControlName="keySecret" placeholder="••••••••••••••••">
+                            </mat-form-field>
+                          </div>
+                        </div>
+                      </div>
+
+                      <!-- 3. Cashfree -->
+                      <div class="provider-card" formGroupName="cashfree" [class.enabled]="paymentForm.get('providers.cashfree.enabled')?.value">
+                        <div class="provider-header">
+                          <div class="provider-info-row">
+                            <mat-icon class="provider-logo cashfree-icon">account_balance_wallet</mat-icon>
+                            <div>
+                              <h3>Cashfree Payments</h3>
+                              <p>Instant UPI, Cards, and Netbanking settlements (Sandbox Mock)</p>
+                            </div>
+                          </div>
+                          <mat-slide-toggle formControlName="enabled"></mat-slide-toggle>
+                        </div>
+                        
+                        <div class="provider-fields" *ngIf="paymentForm.get('providers.cashfree.enabled')?.value">
+                          <mat-divider class="my-3"></mat-divider>
+                          <div class="fields-stack">
+                            <mat-form-field appearance="outline">
+                              <mat-label>App ID (Client ID)</mat-label>
+                              <input matInput formControlName="keyId" placeholder="cf_test_...">
+                            </mat-form-field>
+                            
+                            <mat-form-field appearance="outline">
+                              <mat-label>Secret Key</mat-label>
+                              <input matInput type="password" formControlName="keySecret" placeholder="••••••••••••••••">
+                            </mat-form-field>
+                          </div>
+                        </div>
+                      </div>
+
+                      <!-- 4. Stripe -->
+                      <div class="provider-card" formGroupName="stripe" [class.enabled]="paymentForm.get('providers.stripe.enabled')?.value">
+                        <div class="provider-header">
+                          <div class="provider-info-row">
+                            <mat-icon class="provider-logo stripe-icon">account_balance</mat-icon>
+                            <div>
+                              <h3>Stripe Checkout</h3>
+                              <p>International credit card processing and auto-renewals (Sandbox Mock)</p>
+                            </div>
+                          </div>
+                          <mat-slide-toggle formControlName="enabled"></mat-slide-toggle>
+                        </div>
+                        
+                        <div class="provider-fields" *ngIf="paymentForm.get('providers.stripe.enabled')?.value">
+                          <mat-divider class="my-3"></mat-divider>
+                          <div class="fields-stack">
+                            <mat-form-field appearance="outline">
+                              <mat-label>Publishable Key</mat-label>
+                              <input matInput formControlName="keyId" placeholder="pk_test_...">
+                            </mat-form-field>
+                            
+                            <mat-form-field appearance="outline">
+                              <mat-label>Secret Key</mat-label>
+                              <input matInput type="password" formControlName="keySecret" placeholder="••••••••••••••••">
+                            </mat-form-field>
+                          </div>
+                        </div>
+                      </div>
+
+                      <!-- 5. Paytm -->
+                      <div class="provider-card" formGroupName="paytm" [class.enabled]="paymentForm.get('providers.paytm.enabled')?.value">
+                        <div class="provider-header">
+                          <div class="provider-info-row">
+                            <mat-icon class="provider-logo paytm-icon">account_box</mat-icon>
+                            <div>
+                              <h3>Paytm Gateway</h3>
+                              <p>Direct Paytm wallet and UPI integration (Sandbox Mock)</p>
+                            </div>
+                          </div>
+                          <mat-slide-toggle formControlName="enabled"></mat-slide-toggle>
+                        </div>
+                        
+                        <div class="provider-fields" *ngIf="paymentForm.get('providers.paytm.enabled')?.value">
+                          <mat-divider class="my-3"></mat-divider>
+                          <div class="fields-stack">
+                            <mat-form-field appearance="outline">
+                              <mat-label>Merchant ID</mat-label>
+                              <input matInput formControlName="merchantId" placeholder="MID_...">
+                            </mat-form-field>
+                            
+                            <mat-form-field appearance="outline">
+                              <mat-label>Merchant Key</mat-label>
+                              <input matInput type="password" formControlName="keySecret" placeholder="••••••••••••••••">
+                            </mat-form-field>
+                          </div>
+                        </div>
                       </div>
                     </div>
                   </div>
@@ -759,6 +930,92 @@ const PLAN_LABEL_MAP: Record<SubscriptionPlan, string> = {
       .plans-comparison-grid { grid-template-columns: 1fr; }
       .form-row { grid-template-columns: 1fr; }
     }
+
+    .full-width {
+      grid-column: 1 / -1;
+    }
+    .providers-grid {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 20px;
+      margin-top: 20px;
+    }
+    @media (max-width: 959.98px) {
+      .providers-grid {
+        grid-template-columns: 1fr;
+      }
+    }
+    .provider-card {
+      border: 1px solid var(--border-color);
+      border-radius: 12px;
+      padding: 20px;
+      background: rgba(255, 255, 255, 0.01);
+      transition: all 0.25s ease;
+      display: flex;
+      flex-direction: column;
+      &.enabled {
+        border-color: var(--accent-color);
+        background: rgba(99, 102, 241, 0.02);
+        box-shadow: 0 4px 20px rgba(99, 102, 241, 0.05);
+      }
+      &:hover {
+        border-color: rgba(99, 102, 241, 0.4);
+      }
+    }
+    .provider-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 16px;
+    }
+    .provider-info-row {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      h3 {
+        font-size: 15px;
+        font-weight: 700;
+        margin: 0;
+        color: var(--text-primary);
+      }
+      p {
+        font-size: 11.5px;
+        margin: 0;
+        color: var(--text-muted);
+        line-height: 1.3;
+      }
+    }
+    .provider-logo {
+      font-size: 28px;
+      width: 28px;
+      height: 28px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      &.manual-upi-icon { color: #22c55e; }
+      &.razorpay-icon { color: #3b82f6; }
+      &.cashfree-icon { color: #a855f7; }
+      &.stripe-icon { color: #635bff; }
+      &.paytm-icon { color: #00baf2; }
+    }
+    .toggle-inside-field {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      border: 1px solid var(--border-color);
+      border-radius: 8px;
+      padding: 0 16px;
+      height: 56px;
+      .lbl {
+        font-size: 13.5px;
+        font-weight: 500;
+        color: var(--text-secondary);
+      }
+    }
+    .my-3 {
+      margin-top: 16px !important;
+      margin-bottom: 16px !important;
+    }
   `]
 })
 export class PaymentSettingsComponent implements OnInit, OnDestroy {
@@ -782,6 +1039,7 @@ export class PaymentSettingsComponent implements OnInit, OnDestroy {
   ];
   readonly planLabels: Record<any, any> = PLAN_LABEL_MAP;
   planPriceTexts: Record<string, string> = {};
+  providerSettings: PaymentSettings[] = [];
 
   constructor(
     private fb: FormBuilder,
@@ -791,7 +1049,8 @@ export class PaymentSettingsComponent implements OnInit, OnDestroy {
     private trainerState: TrainerState,
     private dialog: MatDialog,
     private snackBar: MatSnackBar,
-    private cdr: ChangeDetectorRef
+    private cdr: ChangeDetectorRef,
+    @Inject(PAYMENT_SETTINGS_REPOSITORY_TOKEN) private settingsRepo: IPaymentSettingsRepository
   ) { }
 
   ngOnInit(): void {
@@ -804,7 +1063,36 @@ export class PaymentSettingsComponent implements OnInit, OnDestroy {
       bankHolderName: [''],
       bankName: [''],
       bankAccountNo: [''],
-      bankIfsc: ['']
+      bankIfsc: [''],
+      providers: this.fb.group({
+        manualUPI: this.fb.group({
+          enabled: [true],
+          upiId: [''],
+          businessName: [''],
+          autoGenerateQR: [true],
+          supportContact: ['']
+        }),
+        razorpay: this.fb.group({
+          enabled: [false],
+          keyId: [''],
+          keySecret: ['']
+        }),
+        cashfree: this.fb.group({
+          enabled: [false],
+          keyId: [''],
+          keySecret: ['']
+        }),
+        stripe: this.fb.group({
+          enabled: [false],
+          keyId: [''],
+          keySecret: ['']
+        }),
+        paytm: this.fb.group({
+          enabled: [false],
+          merchantId: [''],
+          keySecret: ['']
+        })
+      })
     });
 
     this.gymState.activeGym$.pipe(
@@ -822,6 +1110,13 @@ export class PaymentSettingsComponent implements OnInit, OnDestroy {
           bankAccountNo: gym.paymentSettings?.bankAccountNo || '',
           bankIfsc: gym.paymentSettings?.bankIfsc || ''
         });
+
+        this.settingsRepo.getSettings(gym.gymId).subscribe(settings => {
+          this.providerSettings = settings;
+          this.patchProviderForms();
+          this.cdr.markForCheck();
+        });
+
         this.refreshPlanStatus(null, null);
         this.cdr.markForCheck();
       }
@@ -900,6 +1195,32 @@ export class PaymentSettingsComponent implements OnInit, OnDestroy {
     this.cdr.markForCheck();
   }
 
+  patchProviderForms(): void {
+    const providersGroup = this.paymentForm.get('providers') as FormGroup;
+    if (!providersGroup) return;
+
+    const providersMap: Record<string, string> = {
+      'Manual UPI': 'manualUPI',
+      'Razorpay': 'razorpay',
+      'Cashfree': 'cashfree',
+      'Stripe': 'stripe',
+      'Paytm': 'paytm'
+    };
+
+    this.providerSettings.forEach(s => {
+      const groupName = providersMap[s.provider];
+      if (groupName) {
+        const group = providersGroup.get(groupName) as FormGroup;
+        if (group) {
+          group.patchValue({
+            enabled: s.enabled,
+            ...s.gatewayConfig
+          });
+        }
+      }
+    });
+  }
+
   onSavePaymentSettings(): void {
     if (this.paymentForm.valid && this.activeGym) {
       const updated: Gym = {
@@ -916,9 +1237,49 @@ export class PaymentSettingsComponent implements OnInit, OnDestroy {
         }
       };
 
-      this.gymState.updateGym(updated).pipe(takeUntil(this.destroy$)).subscribe({
+      const providersGroup = this.paymentForm.get('providers') as FormGroup;
+      const saveOps: Observable<void>[] = [];
+
+      const providersMap: Record<string, { name: 'Manual UPI' | 'Razorpay' | 'Cashfree' | 'Stripe' | 'Paytm', keys: string[] }> = {
+        manualUPI: { name: 'Manual UPI', keys: ['upiId', 'businessName', 'autoGenerateQR', 'supportContact'] },
+        razorpay: { name: 'Razorpay', keys: ['keyId', 'keySecret'] },
+        cashfree: { name: 'Cashfree', keys: ['keyId', 'keySecret'] },
+        stripe: { name: 'Stripe', keys: ['keyId', 'keySecret'] },
+        paytm: { name: 'Paytm', keys: ['merchantId', 'keySecret'] }
+      };
+
+      for (const key of Object.keys(providersMap)) {
+        const group = providersGroup.get(key) as FormGroup;
+        if (group) {
+          const config = providersMap[key];
+          const formValue = group.value;
+          
+          const existing = this.providerSettings.find(s => s.provider === config.name);
+          const gatewayConfig: any = {};
+          config.keys.forEach(k => {
+            gatewayConfig[k] = formValue[k];
+          });
+
+          const updatedSettings: PaymentSettings = {
+            id: existing?.id,
+            gymId: this.activeGym.gymId,
+            provider: config.name,
+            enabled: !!formValue.enabled,
+            gatewayConfig,
+            createdAt: existing?.createdAt || new Date().toISOString(),
+            updatedAt: new Date().toISOString()
+          };
+
+          saveOps.push(this.settingsRepo.saveSettings(this.activeGym.gymId, updatedSettings));
+        }
+      }
+
+      this.gymState.updateGym(updated).pipe(
+        switchMap(() => forkJoin(saveOps)),
+        takeUntil(this.destroy$)
+      ).subscribe({
         next: () => {
-          this.snackBar.open('Payment and bank details updated successfully!', 'Dismiss', { duration: 3000 });
+          this.snackBar.open('Payment configurations and bank details updated successfully!', 'Dismiss', { duration: 3000 });
         },
         error: (err) => {
           this.snackBar.open(`Failed to save settings: ${err.message || err}`, 'Dismiss', { duration: 4000 });

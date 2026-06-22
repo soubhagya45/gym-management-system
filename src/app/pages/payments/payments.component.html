@@ -234,37 +234,51 @@
         <div class="tab-content">
           <div class="table-scroll-wrapper">
             <table mat-table [dataSource]="pendingDataSource" class="w-100">
+              <!-- Invoice Number Column -->
+              <ng-container matColumnDef="invoiceNumber">
+                <th mat-header-cell *matHeaderCellDef> Invoice No </th>
+                <td mat-cell *matCellDef="let element" class="font-semibold invoice-num">
+                  {{ element.invoiceNumber }}
+                </td>
+              </ng-container>
+
               <!-- Member Column -->
-              <ng-container matColumnDef="name">
+              <ng-container matColumnDef="memberName">
                 <th mat-header-cell *matHeaderCellDef> Member Name </th>
                 <td mat-cell *matCellDef="let element" class="font-semibold text-primary">
                   {{ element.memberName }}
                 </td>
               </ng-container>
 
-              <!-- Plan Column -->
-              <ng-container matColumnDef="plan">
-                <th mat-header-cell *matHeaderCellDef> Plan </th>
-                <td mat-cell *matCellDef="let element"> {{ element.planName }} </td>
+              <!-- Mobile Number Column -->
+              <ng-container matColumnDef="mobileNumber">
+                <th mat-header-cell *matHeaderCellDef> Mobile Number </th>
+                <td mat-cell *matCellDef="let element"> {{ getMemberPhone(element.memberId) }} </td>
               </ng-container>
 
-              <!-- Total Amount Column -->
-              <ng-container matColumnDef="amount">
-                <th mat-header-cell *matHeaderCellDef class="hide-xs"> Total Amount </th>
-                <td mat-cell *matCellDef="let element" class="font-semibold hide-xs"> ₹{{ element.amount }} </td>
-              </ng-container>
-
-              <!-- Due Amount Column -->
-              <ng-container matColumnDef="dueAmount">
-                <th mat-header-cell *matHeaderCellDef> Due Amount </th>
-                <td mat-cell *matCellDef="let element" class="text-danger font-semibold"> ₹{{ element.dueAmount }} </td>
+              <!-- Invoice Date Column -->
+              <ng-container matColumnDef="invoiceDate">
+                <th mat-header-cell *matHeaderCellDef> Invoice Date </th>
+                <td mat-cell *matCellDef="let element"> {{ element.invoiceDate | date:'mediumDate' }} </td>
               </ng-container>
 
               <!-- Due Date Column -->
               <ng-container matColumnDef="dueDate">
-                <th mat-header-cell *matHeaderCellDef class="hide-sm"> Due Date </th>
-                <td mat-cell *matCellDef="let element" class="font-semibold hide-sm">
-                  {{ element.dueDate | date:'mediumDate' }}
+                <th mat-header-cell *matHeaderCellDef> Due Date </th>
+                <td mat-cell *matCellDef="let element"> {{ element.dueDate | date:'mediumDate' }} </td>
+              </ng-container>
+
+              <!-- Amount Column -->
+              <ng-container matColumnDef="amount">
+                <th mat-header-cell *matHeaderCellDef> Total Amount </th>
+                <td mat-cell *matCellDef="let element" class="font-semibold"> ₹{{ element.finalAmount }} </td>
+              </ng-container>
+
+              <!-- Outstanding Amount Column -->
+              <ng-container matColumnDef="outstandingAmount">
+                <th mat-header-cell *matHeaderCellDef> Outstanding </th>
+                <td mat-cell *matCellDef="let element" class="text-danger font-semibold">
+                  ₹{{ element.pendingAmount ?? (element.finalAmount - (element.amountPaid ?? 0)) }}
                 </td>
               </ng-container>
 
@@ -276,24 +290,33 @@
                 </td>
               </ng-container>
 
-              <!-- Actions Column -->
+              <!-- Days Overdue Column -->
+              <ng-container matColumnDef="daysOverdue">
+                <th mat-header-cell *matHeaderCellDef> Days Overdue </th>
+                <td mat-cell *matCellDef="let element" class="text-danger font-semibold">
+                  {{ element.status === 'overdue' ? getDaysOverdue(element.dueDate) + ' days' : '—' }}
+                </td>
+              </ng-container>
+
+              <!-- Branch Column -->
+              <ng-container matColumnDef="branch">
+                <th mat-header-cell *matHeaderCellDef> Branch </th>
+                <td mat-cell *matCellDef="let element"> {{ getBranchName(element.branchId) }} </td>
+              </ng-container>
+
+              <!-- Created By Column -->
+              <ng-container matColumnDef="createdBy">
+                <th mat-header-cell *matHeaderCellDef> Created By </th>
+                <td mat-cell *matCellDef="let element"> {{ element.createdBy || 'System' }} </td>
+              </ng-container>
+
+              <!-- Actions Column (14 actions menu) -->
               <ng-container matColumnDef="actions">
-                <th mat-header-cell *matHeaderCellDef style="width: 160px; text-align: center"> Actions </th>
+                <th mat-header-cell *matHeaderCellDef style="width: 80px; text-align: center"> Actions </th>
                 <td mat-cell *matCellDef="let element" style="text-align: center">
-                  <div class="actions-wrapper">
-                    <!-- Mark Paid Action -->
-                    <button mat-icon-button color="primary" (click)="markAsPaid(element)" matTooltip="Mark as Paid">
-                      <mat-icon>check_circle</mat-icon>
-                    </button>
-                    <!-- WhatsApp Preview/Send Action -->
-                    <button mat-icon-button color="accent" (click)="openWhatsAppPaymentDialog(element)" matTooltip="WhatsApp Reminder Center">
-                      <mat-icon>chat</mat-icon>
-                    </button>
-                    <!-- Send Reminder Action -->
-                    <button mat-icon-button color="accent" (click)="sendReminder(element)" matTooltip="Send Payment Reminder">
-                      <mat-icon>notification_important</mat-icon>
-                    </button>
-                  </div>
+                  <button mat-icon-button [matMenuTriggerFor]="actionMenu" [matMenuTriggerData]="{invoice: element}">
+                    <mat-icon>more_vert</mat-icon>
+                  </button>
                 </td>
               </ng-container>
 
@@ -402,4 +425,92 @@
 
     </mat-tab-group>
   </div>
+
+  <mat-menu #actionMenu="matMenu">
+    <ng-template matMenuContent let-invoice="invoice">
+      <!-- 1. View Invoice PDF/details -->
+      <button mat-menu-item (click)="viewInvoice(invoice)">
+        <mat-icon>visibility</mat-icon>
+        <span>View Details</span>
+      </button>
+
+      <!-- 2. Pay Now -->
+      <button mat-menu-item (click)="payNow(invoice)" [disabled]="invoice.status === 'paid'">
+        <mat-icon>payment</mat-icon>
+        <span>Pay Now (Checkout)</span>
+      </button>
+
+      <!-- 3. Generate QR -->
+      <button mat-menu-item (click)="generateInvoiceQR(invoice)" [disabled]="invoice.status === 'paid'">
+        <mat-icon>qr_code_2</mat-icon>
+        <span>Generate UPI QR</span>
+      </button>
+
+      <!-- 4. Send Payment Link -->
+      <button mat-menu-item (click)="sendPaymentLink(invoice)" [disabled]="invoice.status === 'paid'">
+        <mat-icon>link</mat-icon>
+        <span>Copy Payment Link</span>
+      </button>
+
+      <!-- 5. Share WhatsApp -->
+      <button mat-menu-item (click)="shareWhatsApp(invoice)">
+        <mat-icon>chat</mat-icon>
+        <span>Share via WhatsApp</span>
+      </button>
+
+      <!-- 6. Share SMS -->
+      <button mat-menu-item (click)="shareSMS(invoice)">
+        <mat-icon>sms</mat-icon>
+        <span>Share via SMS</span>
+      </button>
+
+      <!-- 7. Share Email -->
+      <button mat-menu-item (click)="shareEmail(invoice)">
+        <mat-icon>email</mat-icon>
+        <span>Share via Email</span>
+      </button>
+
+      <!-- 8. Record Cash/Bank -->
+      <button mat-menu-item (click)="recordManualCollection(invoice)" [disabled]="invoice.status === 'paid'">
+        <mat-icon>add_card</mat-icon>
+        <span>Record Cash/Bank</span>
+      </button>
+
+      <!-- 9. Mark Paid -->
+      <button mat-menu-item (click)="instantMarkPaid(invoice)" [disabled]="invoice.status === 'paid'">
+        <mat-icon>check_circle</mat-icon>
+        <span>Mark Settled (Paid)</span>
+      </button>
+
+      <!-- 10. Add Reminder -->
+      <button mat-menu-item (click)="addReminder(invoice)">
+        <mat-icon>notification_important</mat-icon>
+        <span>Add Reminder</span>
+      </button>
+
+      <!-- 11. Create Follow-up -->
+      <button mat-menu-item (click)="createFollowUp(invoice)">
+        <mat-icon>event_note</mat-icon>
+        <span>Create Follow-up</span>
+      </button>
+
+      <!-- 12. View Receipts -->
+      <button mat-menu-item (click)="viewReceipts(invoice)">
+        <mat-icon>receipt</mat-icon>
+        <span>View Receipts</span>
+      </button>
+
+      <!-- 13. Refund -->
+      <button mat-menu-item (click)="refundInvoice(invoice)" [disabled]="invoice.status !== 'paid' && invoice.status !== 'refunded'">
+        <mat-icon>settings_backup_restore</mat-icon>
+        <span>Refund Transaction</span>
+      </button>
+
+      <!-- 14. Lock/Unlock -->
+      <button mat-menu-item (click)="toggleInvoiceLock(invoice)">
+        <mat-icon>{{ invoice.locked ? 'lock_open' : 'lock' }}</mat-icon>
+        <span>{{ invoice.locked ? 'Unlock Invoice' : 'Lock Invoice' }}</span>
+      </button>
+    </ng-template>
+  </mat-menu>
 </div>

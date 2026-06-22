@@ -439,7 +439,7 @@ export class MemberProfileComponent implements OnInit {
           trainerName: result.trainer.name,
           planId: result.plan.id,
           planName: result.plan.name,
-          price: result.plan.price,
+          price: result.finalAmount,
           totalSessions: result.plan.numberOfSessions,
           completedSessions: 0,
           remainingSessions: result.plan.numberOfSessions,
@@ -457,7 +457,7 @@ export class MemberProfileComponent implements OnInit {
             planName: result.plan.name,
             notes: 'PT Package Purchased manually from profile'
           }]
-        }, result.paymentStatus, result.paymentMethod).subscribe(() => {
+        }, result.paymentStatus, result.paymentMethod, result.paidAmount, result.pendingAmount, result.discountType, result.discountValue, result.originalAmount).subscribe(() => {
           this.snackBar.open('PT package purchased successfully!', 'Close', { duration: 3000 });
         });
       } else if (action === 'change_trainer') {
@@ -475,7 +475,13 @@ export class MemberProfileComponent implements OnInit {
           result.plan.id,
           result.plan.name,
           result.priceDifference,
-          result.paymentMethod
+          result.paymentMethod,
+          result.paidAmount,
+          result.pendingAmount,
+          result.discountType,
+          result.discountValue,
+          result.originalAmount,
+          result.paymentStatus
         ).subscribe(() => {
           this.snackBar.open(`PT package upgraded to ${result.plan.name} successfully!`, 'Close', { duration: 3000 });
         });
@@ -484,7 +490,13 @@ export class MemberProfileComponent implements OnInit {
           this.ptWallet!.id,
           result.additionalSessions,
           result.price,
-          result.paymentMethod
+          result.paymentMethod,
+          result.paidAmount,
+          result.pendingAmount,
+          result.discountType,
+          result.discountValue,
+          result.originalAmount,
+          result.paymentStatus
         ).subscribe(() => {
           this.snackBar.open(`Added ${result.additionalSessions} extra sessions to wallet.`, 'Close', { duration: 3000 });
         });

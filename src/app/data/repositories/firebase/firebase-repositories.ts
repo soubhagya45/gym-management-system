@@ -37,9 +37,11 @@ import {
   IFinanceRepository,
   IEmployeeRepository,
   IPersonalTrainingRepository,
-  IAuditLogRepository
+  IAuditLogRepository,
+  IPaymentSettingsRepository
 } from '../../../core/interfaces/repository.interfaces';
 import { AuditLog } from '../../../core/models/audit-log.model';
+import { PaymentSettings } from '../../../core/models/payment-settings.model';
 
 import { PTPlan } from '../../../core/models/pt-plan.entity';
 import { PTSession } from '../../../core/models/pt-session.entity';
@@ -926,6 +928,55 @@ export class FirebasePaymentRepository implements IPaymentRepository {
         );
       }),
       catchError(err => throwError(() => new Error(err.message || 'Failed to confirm payment.')))
+    );
+  }
+}
+
+@Injectable({ providedIn: 'root' })
+export class FirebasePaymentSettingsRepository implements IPaymentSettingsRepository {
+  constructor(
+    private firebaseService: FirebaseService,
+    private injector: Injector
+  ) { }
+
+  getSettings(gymId: string): Observable<PaymentSettings[]> {
+    return from(getDocs(getBranchFilteredQuery(this.injector, this.firebaseService, 'paymentSettings', gymId))).pipe(
+      map(snap => snap.docs.map(d => d.data() as PaymentSettings)),
+      catchError(err => throwError(() => new Error(err.message || 'Failed to get payment settings.')))
+    );
+  }
+
+  getSettingsByProvider(gymId: string, provider: string): Observable<PaymentSettings | null> {
+    const db = this.firebaseService.getDb();
+    const q = query(
+      collection(db, 'paymentSettings'),
+      where('gymId', '==', gymId),
+      where('provider', '==', provider)
+    );
+    return from(getDocs(q)).pipe(
+      map(snap => {
+        if (snap.empty) return null;
+        return snap.docs[0].data() as PaymentSettings;
+      }),
+      catchError(err => throwError(() => new Error(err.message || 'Failed to get settings by provider.')))
+    );
+  }
+
+  saveSettings(gymId: string, settings: PaymentSettings): Observable<void> {
+    const db = this.firebaseService.getDb();
+    const id = settings.id || 'ps_' + Math.random().toString(36).substring(2, 9);
+    const updated: PaymentSettings = {
+      ...settings,
+      id,
+      gymId,
+      updatedAt: new Date().toISOString()
+    };
+    if (!settings.id) {
+      updated.createdAt = new Date().toISOString();
+    }
+    return from(setDoc(doc(db, 'paymentSettings', id), updated)).pipe(
+      map(() => undefined),
+      catchError(err => throwError(() => new Error(err.message || 'Failed to save payment settings.')))
     );
   }
 }

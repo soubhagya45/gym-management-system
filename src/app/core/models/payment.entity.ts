@@ -36,11 +36,19 @@ export interface Payment {
   salespersonName?: string;
 
   // PT Additions
-  type?: 'membership' | 'pt';
+  type?: 'membership' | 'renewal' | 'pt' | 'diet' | 'product' | 'custom';
   trainerId?: string;
   trainerName?: string;
 
   // Razorpay Integration Security
   transactionId?: string;
   gatewayResponse?: any;
+
+  // Enterprise additions
+  idempotencyKey?: string;
+  gatewayTransactionId?: string;
+  provider?: string;
+  tax?: number;
+  invoiceId?: string;
+  leadOwnerId?: string;
 }

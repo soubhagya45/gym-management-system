@@ -345,7 +345,16 @@ export class PTState {
   }
 
   // Member PT Wallet operations
-  addMemberPTPlan(memberPlan: Omit<MemberPTPlan, 'id' | 'gymId' | 'branchId'>, paymentStatus: 'paid' | 'pending', paymentMethod: string): Observable<MemberPTPlan> {
+  addMemberPTPlan(
+    memberPlan: Omit<MemberPTPlan, 'id' | 'gymId' | 'branchId'>,
+    paymentStatus: 'paid' | 'partially_paid' | 'pending' | 'overdue',
+    paymentMethod: string,
+    paidAmount?: number,
+    dueAmount?: number,
+    discountType?: 'flat' | 'percentage' | 'none',
+    discountValue?: number,
+    originalAmount?: number
+  ): Observable<MemberPTPlan> {
     const gymId = this.tenantContext.getTenantId();
     const branchId = this.tenantContext.getBranchId() || 'br-1';
     if (!gymId) throw new Error('No active tenant selected');
@@ -397,19 +406,24 @@ export class PTState {
         this.paymentState.addPayment({
           memberId: memberPlan.memberId,
           memberName: memberPlan.memberName,
-          amount: memberPlan.price,
-          paidAmount: paymentStatus === 'paid' ? memberPlan.price : 0,
-          dueAmount: paymentStatus === 'paid' ? 0 : memberPlan.price,
+          amount: originalAmount !== undefined ? originalAmount : memberPlan.price,
+          paidAmount: paidAmount !== undefined ? paidAmount : (paymentStatus === 'paid' ? memberPlan.price : 0),
+          dueAmount: dueAmount !== undefined ? dueAmount : (paymentStatus === 'paid' ? 0 : memberPlan.price),
           dueDate: memberPlan.startDate,
           date: new Date().toISOString().split('T')[0],
           status: paymentStatus,
           planName: memberPlan.planName,
-          paymentMethod: paymentStatus === 'paid' ? paymentMethod : undefined,
+          paymentMethod: paymentMethod,
           type: 'pt',
           trainerId: memberPlan.trainerId,
-          trainerName: memberPlan.trainerName
+          trainerName: memberPlan.trainerName,
+          originalAmount: originalAmount !== undefined ? originalAmount : memberPlan.price,
+          discountType: discountType,
+          discountValue: discountValue,
+          finalAmount: memberPlan.price
         }).subscribe(newPayment => {
-          if (paymentStatus === 'paid') {
+          const actualPaid = paidAmount !== undefined ? paidAmount : (paymentStatus === 'paid' ? memberPlan.price : 0);
+          if (actualPaid > 0) {
             this.ptRepository.addTrainerRevenue(gymId, {
               gymId,
               branchId,
@@ -417,7 +431,7 @@ export class PTState {
               trainerName: memberPlan.trainerName,
               memberId: memberPlan.memberId,
               memberName: memberPlan.memberName,
-              amount: memberPlan.price,
+              amount: actualPaid,
               date: new Date().toISOString().split('T')[0],
               invoiceId: newPayment.id,
               ptPlanName: memberPlan.planName,
@@ -500,7 +514,18 @@ export class PTState {
   }
 
   // Add extra sessions
-  addExtraSessions(memberPTPlanId: string, additionalSessions: number, price: number, paymentMethod: string): Observable<void> {
+  addExtraSessions(
+    memberPTPlanId: string,
+    additionalSessions: number,
+    price: number,
+    paymentMethod: string,
+    paidAmount?: number,
+    dueAmount?: number,
+    discountType?: 'flat' | 'percentage' | 'none',
+    discountValue?: number,
+    originalAmount?: number,
+    paymentStatus?: 'paid' | 'partially_paid' | 'pending' | 'overdue'
+  ): Observable<void> {
     const gymId = this.tenantContext.getTenantId();
     if (!gymId) throw new Error('No active tenant selected');
 
@@ -535,32 +560,40 @@ export class PTState {
           this.paymentState.addPayment({
             memberId: wallet.memberId,
             memberName: wallet.memberName,
-            amount: price,
-            paidAmount: price,
-            dueAmount: 0,
+            amount: originalAmount !== undefined ? originalAmount : price,
+            paidAmount: paidAmount !== undefined ? paidAmount : price,
+            dueAmount: dueAmount !== undefined ? dueAmount : 0,
             dueDate: date,
             date,
-            status: 'paid',
+            status: paymentStatus as any || 'paid',
             planName: `Extra Sessions (${additionalSessions})`,
             paymentMethod,
             type: 'pt',
             trainerId: wallet.trainerId,
-            trainerName: wallet.trainerName
+            trainerName: wallet.trainerName,
+            originalAmount: originalAmount !== undefined ? originalAmount : price,
+            discountType: discountType,
+            discountValue: discountValue,
+            finalAmount: price
           })
         ]).pipe(
           switchMap(([_, newPayment]) => {
-            return this.ptRepository.addTrainerRevenue(gymId, {
-              gymId,
-              branchId: wallet.branchId,
-              trainerId: wallet.trainerId,
-              trainerName: wallet.trainerName,
-              memberId: wallet.memberId,
-              memberName: wallet.memberName,
-              amount: price,
-              date,
-              invoiceId: newPayment.id,
-              ptPlanName: `Extra Sessions (${additionalSessions})`
-            });
+            const actualPaid = paidAmount !== undefined ? paidAmount : price;
+            if (actualPaid > 0) {
+              return this.ptRepository.addTrainerRevenue(gymId, {
+                gymId,
+                branchId: wallet.branchId,
+                trainerId: wallet.trainerId,
+                trainerName: wallet.trainerName,
+                memberId: wallet.memberId,
+                memberName: wallet.memberName,
+                amount: actualPaid,
+                date,
+                invoiceId: newPayment.id,
+                ptPlanName: `Extra Sessions (${additionalSessions})`
+              });
+            }
+            return of(undefined);
           }),
           tap(() => {
             this.memberState.members$.pipe(take(1)).subscribe(members => {
@@ -584,7 +617,19 @@ export class PTState {
   }
 
   // Upgrade Plan
-  upgradePTPlan(memberPTPlanId: string, newPlanId: string, newPlanName: string, priceDifference: number, paymentMethod: string): Observable<void> {
+  upgradePTPlan(
+    memberPTPlanId: string,
+    newPlanId: string,
+    newPlanName: string,
+    priceDifference: number,
+    paymentMethod: string,
+    paidAmount?: number,
+    dueAmount?: number,
+    discountType?: 'flat' | 'percentage' | 'none',
+    discountValue?: number,
+    originalAmount?: number,
+    paymentStatus?: 'paid' | 'partially_paid' | 'pending' | 'overdue'
+  ): Observable<void> {
     const gymId = this.tenantContext.getTenantId();
     if (!gymId) throw new Error('No active tenant selected');
 
@@ -631,17 +676,21 @@ export class PTState {
         const paymentObs = priceDifference > 0 ? this.paymentState.addPayment({
           memberId: wallet.memberId,
           memberName: wallet.memberName,
-          amount: priceDifference,
-          paidAmount: priceDifference,
-          dueAmount: 0,
+          amount: originalAmount !== undefined ? originalAmount : priceDifference,
+          paidAmount: paidAmount !== undefined ? paidAmount : priceDifference,
+          dueAmount: dueAmount !== undefined ? dueAmount : 0,
           dueDate: date,
           date,
-          status: 'paid',
+          status: paymentStatus as any || 'paid',
           planName: `PT Upgrade: ${newPlanName}`,
           paymentMethod,
           type: 'pt',
           trainerId: wallet.trainerId,
-          trainerName: wallet.trainerName
+          trainerName: wallet.trainerName,
+          originalAmount: originalAmount !== undefined ? originalAmount : priceDifference,
+          discountType: discountType,
+          discountValue: discountValue,
+          finalAmount: priceDifference
         }) : of(null);
 
         return combineLatest([
@@ -649,7 +698,8 @@ export class PTState {
           paymentObs
         ]).pipe(
           switchMap(([_, newPayment]) => {
-            if (newPayment && priceDifference > 0) {
+            const actualPaid = paidAmount !== undefined ? paidAmount : priceDifference;
+            if (newPayment && actualPaid > 0) {
               return this.ptRepository.addTrainerRevenue(gymId, {
                 gymId,
                 branchId: wallet.branchId,
@@ -657,7 +707,7 @@ export class PTState {
                 trainerName: wallet.trainerName,
                 memberId: wallet.memberId,
                 memberName: wallet.memberName,
-                amount: priceDifference,
+                amount: actualPaid,
                 date,
                 invoiceId: newPayment.id,
                 ptPlanName: `PT Upgrade: ${newPlanName}`

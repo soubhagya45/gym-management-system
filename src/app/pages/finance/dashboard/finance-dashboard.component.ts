@@ -35,6 +35,11 @@ export class FinanceDashboardComponent implements OnInit {
   dailyRevenueTrend$: Observable<any> | undefined;
   monthlyRevenueTrend$: Observable<any> | undefined;
 
+  topOutstandingMembers$: Observable<any[]> | undefined;
+  branchPerformance$: Observable<any[]> | undefined;
+  staffPerformance$: Observable<any[]> | undefined;
+  trainerPerformance$: Observable<any[]> | undefined;
+
   constructor(
     private paymentState: PaymentState,
     private memberState: MemberState,
@@ -51,9 +56,10 @@ export class FinanceDashboardComponent implements OnInit {
     this.kpis$ = combineLatest([
       this.paymentState.payments$,
       this.financeState.expenses$,
-      this.memberState.members$
+      this.memberState.members$,
+      this.financeState.invoices$
     ]).pipe(
-      map(([payments, expenses, members]) => {
+      map(([payments, expenses, members, invoices]) => {
         // Today's collections
         const todayCollection = payments
           .filter(p => p.status === 'paid' && p.date === todayStr)
@@ -134,6 +140,48 @@ export class FinanceDashboardComponent implements OnInit {
           return sum + price;
         }, 0);
 
+        // Collection Rate %: (Total Collections / Total Invoiced) * 100
+        const nonCancelledInvoices = invoices.filter(i => i.status !== 'cancelled');
+        const totalInvoiced = nonCancelledInvoices.reduce((sum, i) => sum + (i.finalAmount ?? i.amount ?? 0), 0);
+        const totalCollections = nonCancelledInvoices.reduce((sum, i) => sum + (i.amountPaid ?? 0), 0);
+        const collectionRate = totalInvoiced > 0 ? (totalCollections / totalInvoiced) * 100 : 0;
+
+        // Recovery Rate %: (Paid Amount on Overdue Invoices / Total Overdue Invoiced) * 100
+        const overdueInvoices = invoices.filter(i => {
+          if (i.status === 'cancelled') return false;
+          if (i.status === 'overdue') return true;
+          if (i.dueDate && i.dueDate < todayStr && i.status !== 'paid') return true;
+          return false;
+        });
+        const totalOverdueInvoiced = overdueInvoices.reduce((sum, i) => sum + (i.finalAmount ?? i.amount ?? 0), 0);
+        const paidAmountOnOverdueInvoices = overdueInvoices.reduce((sum, i) => sum + (i.amountPaid ?? 0), 0);
+        const recoveryRate = totalOverdueInvoiced > 0 ? (paidAmountOnOverdueInvoices / totalOverdueInvoiced) * 100 : 0;
+
+        // Average Days to Collect: Average difference between paymentHistory.date and invoiceDate for settled installments.
+        let totalDays = 0;
+        let installmentCount = 0;
+        invoices.forEach(i => {
+          if (i.invoiceDate && i.paymentHistory && i.paymentHistory.length > 0) {
+            const invDate = new Date(i.invoiceDate);
+            invDate.setHours(0, 0, 0, 0);
+            i.paymentHistory.forEach(ph => {
+              const payDate = new Date(ph.date);
+              payDate.setHours(0, 0, 0, 0);
+              const diffTime = payDate.getTime() - invDate.getTime();
+              const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24));
+              if (diffDays >= 0) {
+                totalDays += diffDays;
+                installmentCount++;
+              }
+            });
+          }
+        });
+        const avgDaysToCollect = installmentCount > 0 ? (totalDays / installmentCount) : 0;
+
+        // MRR & Projected Revenue
+        const mrr = Math.round(activeMembershipRevenue);
+        const projectedRevenue = mrr + overdueAmount + totalPendingAmount;
+
         return {
           todayCollection,
           weeklyCollection,
@@ -149,7 +197,11 @@ export class FinanceDashboardComponent implements OnInit {
           overdueAmount,
           totalExpenses,
           netProfit,
-          activeMembershipRevenue: Math.round(activeMembershipRevenue)
+          activeMembershipRevenue: Math.round(activeMembershipRevenue),
+          collectionRate,
+          recoveryRate,
+          avgDaysToCollect,
+          projectedRevenue
         };
       })
     );
@@ -359,6 +411,121 @@ export class FinanceDashboardComponent implements OnInit {
           expenseArea: getAreaPath('expenses'),
           profitArea: getAreaPath('profit')
         };
+      })
+    );
+
+    // Top Outstanding Members
+    this.topOutstandingMembers$ = this.financeState.invoices$.pipe(
+      map(invoices => {
+        const memberBalances: Record<string, { memberId: string; memberName: string; balance: number }> = {};
+        invoices.forEach(i => {
+          if (i.status !== 'cancelled' && i.status !== 'paid') {
+            const bal = (i.finalAmount ?? i.amount ?? 0) - (i.amountPaid ?? 0);
+            if (bal > 0) {
+              if (!memberBalances[i.memberId]) {
+                memberBalances[i.memberId] = { memberId: i.memberId, memberName: i.memberName, balance: 0 };
+              }
+              memberBalances[i.memberId].balance += bal;
+            }
+          }
+        });
+        return Object.values(memberBalances)
+          .sort((a, b) => b.balance - a.balance)
+          .slice(0, 5);
+      })
+    );
+
+    // Branch Performance Attribution
+    this.branchPerformance$ = this.financeState.invoices$.pipe(
+      map(invoices => {
+        const branchRevenueMap: Record<string, number> = {};
+        invoices.forEach(i => {
+          if (i.status === 'paid' || i.status === 'partially_paid') {
+            const paid = i.amountPaid ?? 0;
+            const branch = i.branchId || 'Main Branch';
+            branchRevenueMap[branch] = (branchRevenueMap[branch] || 0) + paid;
+          }
+        });
+        
+        const list = Object.keys(branchRevenueMap).map(branchId => {
+          let name = 'Main Branch';
+          if (branchId === 'br-1') name = 'Downtown Main Branch';
+          else if (branchId === 'br-b1') name = 'VIP Branch';
+          else if (branchId !== 'Main Branch') name = branchId;
+          return {
+            id: branchId,
+            name,
+            revenue: branchRevenueMap[branchId]
+          };
+        }).sort((a, b) => b.revenue - a.revenue);
+
+        const maxVal = list.length > 0 ? Math.max(...list.map(l => l.revenue)) : 1;
+        return list.map(l => ({
+          ...l,
+          percentage: Math.round((l.revenue / maxVal) * 100)
+        }));
+      })
+    );
+
+    // Sales Rep Performance Attribution
+    this.staffPerformance$ = this.financeState.invoices$.pipe(
+      map(invoices => {
+        const salesRevenueMap: Record<string, { name: string; revenue: number }> = {};
+        invoices.forEach(i => {
+          if (i.status === 'paid' || i.status === 'partially_paid') {
+            const paid = i.amountPaid ?? 0;
+            const spId = i.salespersonId || 'unattributed';
+            const spName = i.salespersonName || 'Direct / Unattributed';
+            if (!salesRevenueMap[spId]) {
+              salesRevenueMap[spId] = { name: spName, revenue: 0 };
+            }
+            salesRevenueMap[spId].revenue += paid;
+          }
+        });
+
+        const list = Object.keys(salesRevenueMap).map(id => ({
+          id,
+          name: salesRevenueMap[id].name,
+          revenue: salesRevenueMap[id].revenue
+        })).sort((a, b) => b.revenue - a.revenue);
+
+        const maxVal = list.length > 0 ? Math.max(...list.map(l => l.revenue)) : 1;
+        return list.map(l => ({
+          ...l,
+          percentage: Math.round((l.revenue / maxVal) * 100)
+        }));
+      })
+    );
+
+    // Trainer Performance Attribution
+    this.trainerPerformance$ = this.financeState.invoices$.pipe(
+      map(invoices => {
+        const trainerRevenueMap: Record<string, { name: string; revenue: number }> = {};
+        invoices.forEach(i => {
+          if (i.status === 'paid' || i.status === 'partially_paid') {
+            const paid = i.amountPaid ?? 0;
+            if (i.trainerId) {
+              const tId = i.trainerId;
+              const tName = i.trainerName || 'Trainer';
+              if (!trainerRevenueMap[tId]) {
+                trainerRevenueMap[tId] = { name: tName, revenue: 0 };
+              }
+              trainerRevenueMap[tId].revenue += paid;
+            }
+          }
+        });
+
+        const list = Object.keys(trainerRevenueMap).map(id => ({
+          id,
+          name: trainerRevenueMap[id].name,
+          revenue: trainerRevenueMap[id].revenue
+        })).sort((a, b) => b.revenue - a.revenue);
+
+        const maxVal = list.length > 0 ? Math.max(...list.map(l => l.revenue)) : 1;
+        return list.map(l => ({
+          ...l,
+          percentage: Math.round((l.revenue / maxVal) * 100)
+        }));
       })
     );
   }

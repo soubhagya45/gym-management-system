@@ -28,9 +28,11 @@ import {
   IWhatsAppRepository,
   IBodyProgressRepository,
   IFinanceRepository,
-  IAuditLogRepository
+  IAuditLogRepository,
+  IPaymentSettingsRepository
 } from '../../../core/interfaces/repository.interfaces';
 import { AuditLog } from '../../../core/models/audit-log.model';
+import { PaymentSettings } from '../../../core/models/payment-settings.model';
 import { Expense, Invoice, Collection } from '../../../core/models/finance.entity';
 import { Employee, EmployeeAttendance, EmployeePayroll, EmployeePerformance } from '../../../core/models/employee.entity';
 import { IEmployeeRepository } from '../../../core/interfaces/repository.interfaces';
@@ -184,6 +186,29 @@ export class ApiPaymentRepository extends BaseApiRepository implements IPaymentR
 
   confirmPayment(gymId: string, paymentId: string): Observable<void> {
     return this.post<void>(`/${paymentId}/confirm`, {}, { params: new HttpParams().set('gymId', gymId) });
+  }
+}
+
+@Injectable({ providedIn: 'root' })
+export class ApiPaymentSettingsRepository extends BaseApiRepository implements IPaymentSettingsRepository {
+  protected get endpoint(): string {
+    return '/payment-settings';
+  }
+
+  constructor(http: HttpClient, configService: AppConfigService) {
+    super(http, configService);
+  }
+
+  getSettings(gymId: string): Observable<PaymentSettings[]> {
+    return this.get<PaymentSettings[]>('', { params: new HttpParams().set('gymId', gymId) });
+  }
+
+  getSettingsByProvider(gymId: string, provider: string): Observable<PaymentSettings | null> {
+    return this.get<PaymentSettings | null>(`/provider/${provider}`, { params: new HttpParams().set('gymId', gymId) });
+  }
+
+  saveSettings(gymId: string, settings: PaymentSettings): Observable<void> {
+    return this.post<void>('/save', settings, { params: new HttpParams().set('gymId', gymId) });
   }
 }
 

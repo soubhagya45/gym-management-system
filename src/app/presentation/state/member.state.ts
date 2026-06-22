@@ -132,7 +132,11 @@ export class MemberState {
     paidAmount: number,
     dueAmount: number,
     dueDate: string,
-    paymentStatus: 'paid' | 'pending'
+    paymentStatus: 'paid' | 'pending' | 'partially_paid' | 'overdue',
+    paymentMethod: string = 'Cash',
+    discountType: 'none' | 'flat' | 'percentage' = 'none',
+    discountValue: number = 0,
+    originalAmount: number = price
   ): Observable<any> {
     const gymId = this.tenantContext.getTenantId();
     if (!gymId) return throwError(() => new Error('No active tenant selected'));
@@ -166,8 +170,12 @@ export class MemberState {
               dueAmount,
               dueDate,
               date: new Date().toISOString().split('T')[0],
-              status: paymentStatus,
-              planName
+              status: paymentStatus as any,
+              planName,
+              paymentMethod,
+              discountType: discountType as any,
+              discountValue,
+              originalAmount
             }).pipe(
               tap(() => {
                 this.paymentState.loadPayments();

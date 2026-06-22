@@ -22,6 +22,7 @@ import { SessionHistory } from '../models/session-history.entity';
 import { TrainerRevenue } from '../models/trainer-revenue.entity';
 import { MemberPTPlan } from '../models/member-pt-plan.entity';
 import { AuditLog } from '../models/audit-log.model';
+import { PaymentSettings } from '../models/payment-settings.model';
 
 // --- Interface Definitions ---
 
@@ -67,6 +68,12 @@ export interface IPaymentRepository {
   getPayments(gymId: string): Observable<Payment[]>;
   addPayment(gymId: string, payment: Omit<Payment, 'id'>): Observable<Payment>;
   confirmPayment(gymId: string, paymentId: string): Observable<void>;
+}
+
+export interface IPaymentSettingsRepository {
+  getSettings(gymId: string): Observable<PaymentSettings[]>;
+  getSettingsByProvider(gymId: string, provider: string): Observable<PaymentSettings | null>;
+  saveSettings(gymId: string, settings: PaymentSettings): Observable<void>;
 }
 
 export interface ILeadRepository {
@@ -193,6 +200,7 @@ export const AUTH_REPOSITORY_TOKEN = new InjectionToken<IAuthRepository>('AUTH_R
 export const GYM_REPOSITORY_TOKEN = new InjectionToken<IGymRepository>('GYM_REPOSITORY_TOKEN');
 export const MEMBER_REPOSITORY_TOKEN = new InjectionToken<IMemberRepository>('MEMBER_REPOSITORY_TOKEN');
 export const PAYMENT_REPOSITORY_TOKEN = new InjectionToken<IPaymentRepository>('PAYMENT_REPOSITORY_TOKEN');
+export const PAYMENT_SETTINGS_REPOSITORY_TOKEN = new InjectionToken<IPaymentSettingsRepository>('PAYMENT_SETTINGS_REPOSITORY_TOKEN');
 export const LEAD_REPOSITORY_TOKEN = new InjectionToken<ILeadRepository>('LEAD_REPOSITORY_TOKEN');
 export const TRAINER_REPOSITORY_TOKEN = new InjectionToken<ITrainerRepository>('TRAINER_REPOSITORY_TOKEN');
 export const ATTENDANCE_REPOSITORY_TOKEN = new InjectionToken<IAttendanceRepository>('ATTENDANCE_REPOSITORY_TOKEN');

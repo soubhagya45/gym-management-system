@@ -24,6 +24,7 @@
     "./src/app/services/lead.service.ts",
     "./src/app/services/member.service.ts",
     "./src/app/services/trainer.service.ts",
-    "./src/app/services/user.service.ts"
+    "./src/app/services/user.service.ts",
+    "./src/app/core/interfaces/notification-provider.interface.ts"
   ]
 }

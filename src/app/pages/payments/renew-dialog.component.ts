@@ -1,7 +1,7 @@
 import { Component, OnInit, Inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormBuilder, FormGroup, Validators, ReactiveFormsModule } from '@angular/forms';
-import { MatDialogRef, MAT_DIALOG_DATA, MatDialogModule } from '@angular/material/dialog';
+import { MatDialog, MatDialogRef, MAT_DIALOG_DATA, MatDialogModule } from '@angular/material/dialog';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatInputModule } from '@angular/material/input';
 import { MatSelectModule } from '@angular/material/select';
@@ -9,11 +9,17 @@ import { MatButtonModule } from '@angular/material/button';
 import { MatDatepickerModule } from '@angular/material/datepicker';
 import { MatNativeDateModule } from '@angular/material/core';
 import { MatIconModule } from '@angular/material/icon';
+import { MatDividerModule } from '@angular/material/divider';
+import { MatSnackBar } from '@angular/material/snack-bar';
 import { MemberState } from '../../presentation/state/member.state';
 import { MembershipPlanState } from '../../presentation/state/membership-plan.state';
 import { Member } from '../../core/models/member.entity';
 import { MembershipPlan } from '../../core/models/membership-plan.entity';
 import { SubmissionGuardService } from '../../services/submission-guard.service';
+import { PAYMENT_SETTINGS_REPOSITORY_TOKEN, IPaymentSettingsRepository } from '../../core/interfaces/repository.interfaces';
+import { TenantContextService } from '../../domain/tenancy/tenant-context.service';
+import { BillingCalculationService } from '../../services/billing-calculation.service';
+import { PaymentGatewayModalComponent } from '../../shared/components/payment-gateway-modal/payment-gateway-modal.component';
 
 @Component({
   selector: 'app-renew-dialog',
@@ -28,7 +34,8 @@ import { SubmissionGuardService } from '../../services/submission-guard.service'
     MatButtonModule,
     MatDatepickerModule,
     MatNativeDateModule,
-    MatIconModule
+    MatIconModule,
+    MatDividerModule
   ],
   template: `
     <h2 mat-dialog-title class="gradient-text dialogue-title">Renew Gym Membership</h2>
@@ -59,7 +66,7 @@ import { SubmissionGuardService } from '../../services/submission-guard.service'
             <mat-label>Select Renewal Plan</mat-label>
             <mat-select formControlName="planId" (selectionChange)="onPlanSelect($event.value)">
               <mat-option *ngFor="let plan of plans" [value]="plan.id">
-                {{ plan.name }} (₹{{ plan.price }} for {{ plan.durationMonths }} mo)
+                {{ plan.name }} (₹{{ plan.price }} for {{ plan.duration || plan.durationMonths || 1 }} mo)
               </mat-option>
             </mat-select>
             <mat-error *ngIf="renewForm.get('planId')?.hasError('required')">Membership plan is required</mat-error>
@@ -74,37 +81,96 @@ import { SubmissionGuardService } from '../../services/submission-guard.service'
             <mat-error *ngIf="renewForm.get('startDate')?.hasError('required')">Start date is required</mat-error>
           </mat-form-field>
 
-          <!-- Amount / Price -->
+          <!-- Price / Amount -->
           <mat-form-field appearance="outline">
-            <mat-label>Total Price (₹)</mat-label>
-            <input matInput type="number" formControlName="amount" placeholder="0.00" (input)="updateDueCalculations()">
-            <mat-error *ngIf="renewForm.get('amount')?.hasError('required')">Total price is required</mat-error>
+            <mat-label>Base Price (₹)</mat-label>
+            <input matInput type="number" formControlName="amount" placeholder="0.00">
+            <mat-error *ngIf="renewForm.get('amount')?.hasError('required')">Base price is required</mat-error>
             <mat-error *ngIf="renewForm.get('amount')?.hasError('min')">Must be greater than 0</mat-error>
+          </mat-form-field>
+
+          <!-- Discount Type -->
+          <mat-form-field appearance="outline">
+            <mat-label>Discount Type</mat-label>
+            <mat-select formControlName="discountType">
+              <mat-option value="none">No Discount</mat-option>
+              <mat-option value="flat">Flat Discount (₹)</mat-option>
+              <mat-option value="percentage">Percentage Discount (%)</mat-option>
+            </mat-select>
+          </mat-form-field>
+
+          <!-- Discount Value -->
+          <mat-form-field appearance="outline" *ngIf="renewForm.get('discountType')?.value !== 'none'">
+            <mat-label>{{ renewForm.get('discountType')?.value === 'flat' ? 'Discount Amount (₹)' : 'Discount Percentage (%)' }}</mat-label>
+            <input matInput type="number" formControlName="discountValue">
+            <mat-error *ngIf="renewForm.get('discountValue')?.hasError('required')">Discount value is required</mat-error>
+            <mat-error *ngIf="renewForm.get('discountValue')?.hasError('min')">Must be greater than 0</mat-error>
           </mat-form-field>
 
           <!-- Paid Amount -->
           <mat-form-field appearance="outline">
-            <mat-label>Amount Paid (₹)</mat-label>
-            <input matInput type="number" formControlName="paidAmount" placeholder="0.00" (input)="updateDueCalculations()">
+            <mat-label>Amount Paid Now (₹)</mat-label>
+            <input matInput type="number" formControlName="paidAmount" placeholder="0.00">
             <mat-error *ngIf="renewForm.get('paidAmount')?.hasError('required')">Paid amount is required</mat-error>
             <mat-error *ngIf="renewForm.get('paidAmount')?.hasError('min')">Must be 0 or greater</mat-error>
-            <mat-error *ngIf="renewForm.get('paidAmount')?.hasError('max')">Cannot exceed total price</mat-error>
           </mat-form-field>
 
-          <!-- Due Amount (Read-only) -->
-          <mat-form-field appearance="outline" class="full-width">
-            <mat-label>Remaining Balance Due (₹)</mat-label>
-            <input matInput type="number" formControlName="dueAmount" [readonly]="true">
+          <!-- Payment Method -->
+          <mat-form-field appearance="outline" *ngIf="renewForm.get('paidAmount')?.value > 0">
+            <mat-label>Payment Method</mat-label>
+            <mat-select formControlName="paymentMethod">
+              <mat-option *ngFor="let method of availablePaymentMethods" [value]="method">{{ method }}</mat-option>
+            </mat-select>
           </mat-form-field>
 
-          <!-- Due Date (required if there is remaining balance) -->
-          <mat-form-field appearance="outline" class="full-width" *ngIf="showDueDateField">
+          <!-- Due Date (shown only if remaining balance > 0) -->
+          <mat-form-field appearance="outline" class="full-width" *ngIf="calculations.pendingAmount > 0">
             <mat-label>Payment Due Date</mat-label>
             <input matInput [matDatepicker]="dueDatePicker" formControlName="dueDate">
             <mat-datepicker-toggle matSuffix [for]="dueDatePicker"></mat-datepicker-toggle>
             <mat-datepicker #dueDatePicker></mat-datepicker>
-            <mat-error *ngIf="renewForm.get('dueDate')?.hasError('required')">Due date is required for outstanding balances</mat-error>
+            <mat-error *ngIf="renewForm.get('dueDate')?.hasError('required')">Due date is required for outstanding balance</mat-error>
           </mat-form-field>
+        </div>
+
+        <!-- Live Billing Summary -->
+        <div class="billing-summary" *ngIf="calculations.originalAmount > 0">
+          <h4>Live Billing Summary</h4>
+          <div class="summary-row">
+            <span>Base Price:</span>
+            <span>₹{{ calculations.originalAmount | number:'1.2-2' }}</span>
+          </div>
+          <div class="summary-row" *ngIf="calculations.discountAmount > 0">
+            <span>Discount:</span>
+            <span class="danger-text">-₹{{ calculations.discountAmount | number:'1.2-2' }}</span>
+          </div>
+          <div class="summary-row">
+            <span>Subtotal:</span>
+            <span>₹{{ calculations.subtotal | number:'1.2-2' }}</span>
+          </div>
+          <div class="summary-row">
+            <span>Tax (GST 18% inclusive):</span>
+            <span>₹{{ calculations.taxAmount | number:'1.2-2' }}</span>
+          </div>
+          <mat-divider></mat-divider>
+          <div class="summary-row total">
+            <span>Final Amount (Payable):</span>
+            <strong>₹{{ calculations.finalAmount | number:'1.2-2' }}</strong>
+          </div>
+          <div class="summary-row paid-row">
+            <span>Paid Amount Now:</span>
+            <span class="success-text">₹{{ calculations.paidAmount | number:'1.2-2' }}</span>
+          </div>
+          <div class="summary-row pending-row">
+            <span>Outstanding Balance:</span>
+            <strong [class.danger-text]="calculations.pendingAmount > 0" [class.success-text]="calculations.pendingAmount === 0">
+              ₹{{ calculations.pendingAmount | number:'1.2-2' }}
+            </strong>
+          </div>
+          <div class="summary-row">
+            <span>Invoice Status:</span>
+            <strong style="text-transform: capitalize;">{{ calculations.paymentStatus }}</strong>
+          </div>
         </div>
       </mat-dialog-content>
       
@@ -128,6 +194,8 @@ import { SubmissionGuardService } from '../../services/submission-guard.service'
       flex-direction: column;
       gap: 16px;
       padding-top: 10px !important;
+      max-height: 60vh;
+      overflow-y: auto;
     }
     .form-grid {
       display: grid;
@@ -161,6 +229,42 @@ import { SubmissionGuardService } from '../../services/submission-guard.service'
         margin-top: 4px;
       }
     }
+    .billing-summary {
+      background: rgba(255, 255, 255, 0.03);
+      border: 1px dashed rgba(99, 102, 241, 0.4);
+      padding: 16px;
+      border-radius: 12px;
+      margin-top: 8px;
+
+      h4 {
+        margin-bottom: 12px;
+        color: #6366f1;
+        font-size: 15px;
+        font-weight: 600;
+      }
+    }
+    .summary-row {
+      display: flex;
+      justify-content: space-between;
+      font-size: 13.5px;
+      margin-bottom: 8px;
+      color: var(--text-secondary);
+
+      &.total {
+        margin-top: 8px;
+        padding-top: 8px;
+        font-size: 15px;
+        color: var(--text-primary);
+      }
+    }
+    .danger-text {
+      color: #ef4444;
+      font-weight: 600;
+    }
+    .success-text {
+      color: #10b981;
+      font-weight: 600;
+    }
     .dialog-actions {
       padding: 16px 0 0 0 !important;
       gap: 8px;
@@ -181,16 +285,23 @@ export class RenewDialogComponent implements OnInit {
   members: Member[] = [];
   plans: MembershipPlan[] = [];
   preselectedMember: Member | null = null;
-  showDueDateField = false;
+  availablePaymentMethods: string[] = ['Cash'];
+  private _matDialog!: MatDialog;
 
   constructor(
     private fb: FormBuilder,
     private memberState: MemberState,
     private planState: MembershipPlanState,
+    private tenantContext: TenantContextService,
+    private billingCalc: BillingCalculationService,
+    private snackBar: MatSnackBar,
+    @Inject(PAYMENT_SETTINGS_REPOSITORY_TOKEN) private settingsRepo: IPaymentSettingsRepository,
     private dialogRef: MatDialogRef<RenewDialogComponent>,
     public submissionGuard: SubmissionGuardService,
-    @Inject(MAT_DIALOG_DATA) public data: { member?: Member } | null
+    @Inject(MAT_DIALOG_DATA) public data: { member?: Member } | null,
+    matDialog: MatDialog
   ) {
+    this._matDialog = matDialog;
     if (data && data.member) {
       this.preselectedMember = data.member;
     }
@@ -208,18 +319,93 @@ export class RenewDialogComponent implements OnInit {
       });
     }
 
+    const gymId = this.tenantContext.getTenantId();
+    if (gymId) {
+      this.settingsRepo.getSettings(gymId).subscribe(settings => {
+        const enabled = settings.filter(s => s.enabled).map(s => s.provider as string);
+        this.availablePaymentMethods = ['Cash', ...enabled.filter(p => p !== 'Cash')];
+      });
+    }
+
     // 2. Build form
     this.renewForm = this.fb.group({
       memberId: [this.preselectedMember ? this.preselectedMember.id : '', this.preselectedMember ? [] : [Validators.required]],
       planId: ['', [Validators.required]],
       startDate: [this.calculateDefaultStartDate(), [Validators.required]],
       amount: [0, [Validators.required, Validators.min(1)]],
+      discountType: ['none', [Validators.required]],
+      discountValue: [0, [Validators.min(0)]],
       paidAmount: [0, [Validators.required, Validators.min(0)]],
-      dueAmount: [{ value: 0, disabled: true }],
-      dueDate: [new Date()]
+      paymentMethod: ['Cash'],
+      dueDate: [new Date(), [Validators.required]]
     });
 
-    this.updateDueCalculations();
+    // Auto-update paid amount to total plan price initially, and handle bounds
+    this.renewForm.get('planId')?.valueChanges.subscribe(planId => {
+      const plan = this.plans.find(p => p.id === planId);
+      if (plan) {
+        this.renewForm.patchValue({
+          amount: plan.price
+        });
+        setTimeout(() => {
+          this.renewForm.patchValue({
+            paidAmount: this.calculations.finalAmount
+          });
+        });
+      }
+    });
+
+    this.renewForm.get('amount')?.valueChanges.subscribe(() => {
+      setTimeout(() => {
+        this.renewForm.patchValue({
+          paidAmount: this.calculations.finalAmount
+        });
+      });
+    });
+
+    this.renewForm.get('paidAmount')?.valueChanges.subscribe(val => {
+      const finalTotal = this.calculations.finalAmount;
+      if (val > finalTotal) {
+        this.renewForm.get('paidAmount')?.setValue(finalTotal, { emitEvent: false });
+      }
+    });
+
+    this.renewForm.get('discountType')?.valueChanges.subscribe(type => {
+      const discountValCtrl = this.renewForm.get('discountValue');
+      if (type === 'none') {
+        discountValCtrl?.setValue(0);
+        discountValCtrl?.clearValidators();
+      } else {
+        discountValCtrl?.setValidators([Validators.required, Validators.min(0.01)]);
+      }
+      discountValCtrl?.updateValueAndValidity();
+    });
+  }
+
+  get calculations() {
+    if (!this.renewForm) {
+      return {
+        originalAmount: 0,
+        discountType: 'none' as const,
+        discountValue: 0,
+        discountAmount: 0,
+        subtotal: 0,
+        taxAmount: 0,
+        finalAmount: 0,
+        paidAmount: 0,
+        pendingAmount: 0,
+        paymentStatus: 'pending' as const
+      };
+    }
+
+    const formValue = this.renewForm.getRawValue();
+    return this.billingCalc.calculate({
+      originalAmount: formValue.amount || 0,
+      discountType: formValue.discountType || 'none',
+      discountValue: formValue.discountValue || 0,
+      paidAmount: formValue.paidAmount || 0,
+      dueDate: this.formatDate(formValue.dueDate || new Date())
+    });
   }
 
   private calculateDefaultStartDate(): Date {
@@ -251,32 +437,7 @@ export class RenewDialogComponent implements OnInit {
     if (plan) {
       this.renewForm.get('amount')?.setValue(plan.price);
       this.renewForm.get('paidAmount')?.setValue(plan.price);
-      this.updateDueCalculations();
     }
-  }
-
-  updateDueCalculations(): void {
-    const amount = Number(this.renewForm.get('amount')?.value || 0);
-    const paid = Number(this.renewForm.get('paidAmount')?.value || 0);
-    
-    this.renewForm.get('paidAmount')?.setValidators([
-      Validators.required,
-      Validators.min(0),
-      Validators.max(amount)
-    ]);
-    this.renewForm.get('paidAmount')?.updateValueAndValidity({ emitEvent: false });
-
-    const due = Math.max(0, amount - paid);
-    this.renewForm.get('dueAmount')?.setValue(due);
-
-    if (due > 0) {
-      this.showDueDateField = true;
-      this.renewForm.get('dueDate')?.setValidators([Validators.required]);
-    } else {
-      this.showDueDateField = false;
-      this.renewForm.get('dueDate')?.clearValidators();
-    }
-    this.renewForm.get('dueDate')?.updateValueAndValidity();
   }
 
   onCancel(): void {
@@ -290,20 +451,68 @@ export class RenewDialogComponent implements OnInit {
       }
       const formValue = this.renewForm.getRawValue();
       const finalMemberId = this.preselectedMember ? this.preselectedMember.id : formValue.memberId;
-      
-      const renewalResult = {
-        memberId: finalMemberId,
-        planId: formValue.planId,
-        startDate: this.formatDate(formValue.startDate),
-        price: formValue.amount,
-        paidAmount: formValue.paidAmount,
-        dueAmount: formValue.dueAmount,
-        dueDate: this.formatDate(formValue.dueDate || new Date()),
-        paymentStatus: formValue.dueAmount > 0 ? 'pending' : 'paid'
+      const plan = this.plans.find(p => p.id === formValue.planId);
+      const planName = plan ? plan.name : 'Membership Plan';
+      const durationMonths = plan ? (plan.duration || plan.durationMonths || 1) : 1;
+
+      const start = new Date(formValue.startDate);
+      start.setMonth(start.getMonth() + durationMonths);
+      const calculatedEndDate = start;
+      const calc = this.calculations;
+
+      const paidNow = Number(calc.paidAmount) || 0;
+      const paymentMethod = paidNow > 0 ? (formValue.paymentMethod || 'Cash') : 'Cash';
+      const gymId = this.tenantContext.getTenantId() || undefined;
+
+      const completeRenewal = (gatewayTransactionId?: string) => {
+        const renewalResult = {
+          memberId: finalMemberId,
+          planId: formValue.planId,
+          planName,
+          durationMonths,
+          startDate: this.formatDate(formValue.startDate),
+          endDate: this.formatDate(calculatedEndDate),
+          price: calc.finalAmount,
+          paidAmount: paidNow,
+          dueAmount: calc.pendingAmount,
+          dueDate: this.formatDate(formValue.dueDate || new Date()),
+          paymentStatus: calc.paymentStatus,
+          paymentMethod: paidNow > 0 ? paymentMethod : 'Pending',
+          discountType: formValue.discountType,
+          discountValue: formValue.discountValue,
+          originalAmount: calc.originalAmount,
+          gatewayTransactionId: gatewayTransactionId || ''
+        };
+        this.submissionGuard.end('renew-dialog-submit');
+        this.dialogRef.close(renewalResult);
       };
 
-      this.dialogRef.close(renewalResult);
-      this.submissionGuard.end('renew-dialog-submit');
+      if (paidNow > 0) {
+        const gwRef = this._matDialog.open(PaymentGatewayModalComponent, {
+          width: '500px',
+          maxWidth: '98vw',
+          disableClose: true,
+          data: {
+            amount: paidNow,
+            paymentMethod,
+            memberName: this.preselectedMember?.name || 'Member',
+            planName,
+            invoiceRef: `RNW-${Date.now()}`,
+            gymId
+          }
+        });
+
+        gwRef.afterClosed().subscribe(gwResult => {
+          if (!gwResult || !gwResult.success) {
+            this.submissionGuard.end('renew-dialog-submit');
+            this.snackBar.open('Payment cancelled. Renewal not completed.', 'Dismiss', { duration: 4000 });
+            return;
+          }
+          completeRenewal(gwResult.transactionId);
+        });
+      } else {
+        completeRenewal();
+      }
     }
   }
 

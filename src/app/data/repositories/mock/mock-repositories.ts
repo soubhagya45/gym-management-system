@@ -21,11 +21,12 @@ import {
   IFinanceRepository,
   IEmployeeRepository,
   IPersonalTrainingRepository,
-  IAuditLogRepository
+  IAuditLogRepository,
+  IPaymentSettingsRepository
 } from '../../../core/interfaces/repository.interfaces';
 import { AuditLog } from '../../../core/models/audit-log.model';
-
-
+import { PaymentSettings } from '../../../core/models/payment-settings.model';
+import { BillingCalculationService } from '../../../services/billing-calculation.service';
 import { UserProfile } from '../../../core/models/user.model';
 import { Gym } from '../../../core/models/gym.entity';
 import { Member } from '../../../core/models/member.entity';
@@ -321,6 +322,61 @@ const dbPayments: Payment[] = [
   // Gym B Payments
   { id: 'pay-b1', gymId: 'gym-b', memberId: 'mem-b1', memberName: 'John Connor', amount: 18000, paidAmount: 18000, dueAmount: 0, dueDate: '2026-03-01', date: '2026-03-01', status: 'paid', planName: 'VIP Year Pass' },
   { id: 'pay-b2', gymId: 'gym-b', memberId: 'mem-b2', memberName: 'Marcus Wright', amount: 2000, paidAmount: 0, dueAmount: 2000, dueDate: '2026-06-15', date: '2026-05-15', status: 'pending', planName: 'Standard Month Pass' }
+];
+
+const dbPaymentSettings: PaymentSettings[] = [
+  {
+    id: 'ps-1',
+    gymId: 'gym-a',
+    provider: 'Manual UPI',
+    enabled: true,
+    gatewayConfig: {
+      upiId: 'apexfit@upi',
+      businessName: 'ApexFit Gym Downtown',
+      autoGenerateQR: true,
+      supportContact: '+91 99887 76655'
+    },
+    createdAt: new Date().toISOString(),
+    updatedAt: new Date().toISOString()
+  },
+  {
+    id: 'ps-2',
+    gymId: 'gym-a',
+    provider: 'Razorpay',
+    enabled: false,
+    gatewayConfig: {
+      keyId: 'rzp_test_12345',
+      keySecret: 'sec_test_67890'
+    },
+    createdAt: new Date().toISOString(),
+    updatedAt: new Date().toISOString()
+  },
+  {
+    id: 'ps-3',
+    gymId: 'gym-a',
+    provider: 'Cashfree',
+    enabled: false,
+    gatewayConfig: {
+      keyId: 'cf_test_12345',
+      keySecret: 'cf_sec_test_67890'
+    },
+    createdAt: new Date().toISOString(),
+    updatedAt: new Date().toISOString()
+  },
+  {
+    id: 'ps-4',
+    gymId: 'gym-b',
+    provider: 'Manual UPI',
+    enabled: true,
+    gatewayConfig: {
+      upiId: 'apexfitb@upi',
+      businessName: 'ApexFit Gym Extension',
+      autoGenerateQR: true,
+      supportContact: '+91 99887 76688'
+    },
+    createdAt: new Date().toISOString(),
+    updatedAt: new Date().toISOString()
+  }
 ];
 
 const dbAttendance: Attendance[] = [
@@ -1432,23 +1488,63 @@ export class MockPaymentRepository implements IPaymentRepository {
   }
 
   addPayment(gymId: string, payment: Omit<Payment, 'id'>): Observable<Payment> {
+    // 1. Idempotency protection check: Gateway transaction ID cannot be reused
+    if (payment.gatewayTransactionId) {
+      const dup = dbPayments.find(p => p.gymId === gymId && p.gatewayTransactionId === payment.gatewayTransactionId);
+      if (dup) {
+        return throwError(() => new Error('Duplicate Payment: The Gateway Transaction ID has already been logged.'));
+      }
+    }
+    // 1b. Idempotency protection check: Idempotency Key cannot be reused
+    if (payment.idempotencyKey) {
+      const dup = dbPayments.find(p => p.gymId === gymId && p.idempotencyKey === payment.idempotencyKey);
+      if (dup) {
+        return throwError(() => new Error('Duplicate Payment: The Idempotency Key has already been processed.'));
+      }
+    }
+
+    // 2. Invoice locking & overpayment checks
+    if (payment.invoiceId) {
+      const invoice = dbInvoices.find(i => i.gymId === gymId && i.id === payment.invoiceId);
+      if (invoice) {
+        if (invoice.locked) {
+          return throwError(() => new Error('Invoice Locked: This invoice is already paid and editing/payments are locked.'));
+        }
+        const outstanding = (invoice.finalAmount ?? invoice.amount) - (invoice.amountPaid ?? 0);
+        if (payment.amount > outstanding + 0.01) {
+          return throwError(() => new Error(`Overpayment Blocked: Payment amount ₹${payment.amount} exceeds remaining outstanding due of ₹${outstanding}.`));
+        }
+      }
+    }
+
     const today = new Date().toISOString().split('T')[0];
+    const billingCalc = new BillingCalculationService();
+    const calculations = billingCalc.calculate({
+      originalAmount: payment.originalAmount || payment.amount,
+      discountType: payment.discountType as any || 'none',
+      discountValue: payment.discountValue || 0,
+      paidAmount: payment.paidAmount || 0,
+      dueDate: payment.dueDate || today
+    });
+
     const newPayment: Payment = {
       ...payment,
       id: 'pay-' + Math.random().toString(36).substring(2, 9),
-      gymId
+      gymId,
+      amount: calculations.finalAmount,
+      paidAmount: calculations.paidAmount,
+      dueAmount: calculations.pendingAmount,
+      status: calculations.paymentStatus as any
     };
     dbPayments.unshift(newPayment);
 
     const member = dbMembers.find(m => m.gymId === gymId && m.id === payment.memberId);
     if (member) {
-      member.balance = payment.dueAmount;
+      member.balance = calculations.pendingAmount;
     }
 
     // Create Invoice
     const invoiceId = 'inv-mock-' + Math.random().toString(36).substring(2, 9);
-    const gst = Math.round(payment.amount * 0.18 * 100) / 100;
-    const baseAmount = payment.amount - gst;
     dbInvoices.unshift({
       id: invoiceId,
       gymId,
@@ -1456,22 +1552,29 @@ export class MockPaymentRepository implements IPaymentRepository {
       memberId: payment.memberId,
       memberName: payment.memberName,
       membershipPlan: payment.planName,
-      amount: Number(baseAmount.toFixed(2)),
-      gst: Number(gst.toFixed(2)),
-      discount: 0,
-      finalAmount: payment.amount,
-      paymentMethod: payment.paidAmount > 0 || payment.status === 'paid' ? (payment.paymentMethod || 'UPI') : 'Pending',
+      amount: calculations.subtotal,
+      gst: calculations.taxAmount,
+      discount: calculations.discountAmount,
+      finalAmount: calculations.finalAmount,
+      paymentMethod: calculations.paidAmount > 0 ? (payment.paymentMethod || 'Cash') : 'Pending',
       invoiceDate: payment.date || today,
-      status: payment.status === 'paid' ? 'paid' : 'pending',
+      status: calculations.paymentStatus as any,
       collectedBy: payment.collectedBy || 'Sophia Chen',
       createdBy: payment.collectedBy || 'Sophia Chen',
       type: (payment as any).type || 'membership',
       trainerId: (payment as any).trainerId,
-      trainerName: (payment as any).trainerName
+      trainerName: (payment as any).trainerName,
+      originalAmount: calculations.originalAmount,
+      discountType: calculations.discountType,
+      discountValue: calculations.discountValue,
+      amountPaid: calculations.paidAmount,
+      pendingAmount: calculations.pendingAmount,
+      dueDate: payment.dueDate || today,
+      receiptNumber: calculations.paymentStatus === 'paid' ? `REC-${new Date().getFullYear()}-${Math.floor(1000 + Math.random() * 9000)}` : undefined
     });
 
-    // Create Collection if status is paid
-    if (payment.status === 'paid') {
+    // Create Collection if paid amount is greater than 0
+    if (calculations.paidAmount > 0) {
       dbCollections.unshift({
         id: 'col-mock-' + Math.random().toString(36).substring(2, 9),
         gymId,
@@ -1479,8 +1582,8 @@ export class MockPaymentRepository implements IPaymentRepository {
         memberId: payment.memberId,
         memberName: payment.memberName,
         membershipPlan: payment.planName,
-        amount: payment.paidAmount || payment.amount,
-        paymentMethod: payment.paymentMethod || 'UPI',
+        amount: calculations.paidAmount,
+        paymentMethod: payment.paymentMethod || 'Cash',
         date: payment.date || today,
         collectedBy: payment.collectedBy || 'Sophia Chen',
         type: (payment as any).type || 'membership',
@@ -1495,6 +1598,19 @@ export class MockPaymentRepository implements IPaymentRepository {
   confirmPayment(gymId: string, paymentId: string): Observable<void> {
     const payment = dbPayments.find(p => p.gymId === gymId && p.id === paymentId);
     if (payment) {
+      // Idempotent: if already paid, do nothing
+      if (payment.status === 'paid') {
+        return of(undefined);
+      }
+
+      // Check if invoice is locked
+      if (payment.invoiceId) {
+        const inv = dbInvoices.find(i => i.gymId === gymId && i.id === payment.invoiceId);
+        if (inv && inv.locked) {
+          return throwError(() => new Error('Invoice Locked: Invoice editing/payments are locked.'));
+        }
+      }
+
       payment.status = 'paid';
       payment.paidAmount = payment.amount;
       payment.dueAmount = 0;
@@ -1578,6 +1694,35 @@ export class MockPaymentRepository implements IPaymentRepository {
 }
 
 @Injectable({ providedIn: 'root' })
+export class MockPaymentSettingsRepository implements IPaymentSettingsRepository {
+  getSettings(gymId: string): Observable<PaymentSettings[]> {
+    return of(dbPaymentSettings.filter(s => s.gymId === gymId)).pipe(delay(200));
+  }
+
+  getSettingsByProvider(gymId: string, provider: string): Observable<PaymentSettings | null> {
+    const settings = dbPaymentSettings.find(s => s.gymId === gymId && s.provider === provider);
+    return of(settings || null).pipe(delay(200));
+  }
+
+  saveSettings(gymId: string, settings: PaymentSettings): Observable<void> {
+    const idx = dbPaymentSettings.findIndex(s => s.gymId === gymId && s.provider === settings.provider);
+    const updated: PaymentSettings = {
+      ...settings,
+      gymId,
+      updatedAt: new Date().toISOString()
+    };
+    if (idx !== -1) {
+      dbPaymentSettings[idx] = updated;
+    } else {
+      updated.id = 'ps-' + Math.random().toString(36).substring(2, 9);
+      updated.createdAt = new Date().toISOString();
+      dbPaymentSettings.push(updated);
+    }
+    return of(undefined).pipe(delay(200));
+  }
+}
+
+@Injectable({ providedIn: 'root' })
 export class MockLeadRepository implements ILeadRepository {
   getLeads(gymId: string): Observable<Lead[]> {
     return of(dbLeads.filter(l => l.gymId === gymId)).pipe(delay(300));
@@ -1623,55 +1768,66 @@ export class MockLeadRepository implements ILeadRepository {
     const hasPT   = conversionDetails.interestedInPT && !!conversionDetails.ptPlanId;
     const ptPlanPrice = hasPT ? (conversionDetails.ptPlanPrice || 0) : 0;
 
-    // ── Proportional Discount Allocation ──
+    // ── Unified Calculations ──
     const discountType = conversionDetails.discountType || 'none';
     const discountValue = conversionDetails.discountValue || 0;
+    const paidAmount = conversionDetails.paidAmount || 0;
+
+    const billingCalc = new BillingCalculationService();
+
+    // Overall Calculation
+    const overallCalc = billingCalc.calculate({
+      originalAmount: membershipPlanPrice + ptPlanPrice,
+      discountType: discountType as any,
+      discountValue: discountValue,
+      paidAmount: paidAmount,
+      dueDate: today
+    });
+
     let mDiscount = 0;
     let ptDiscount = 0;
-
-    if (discountType === 'percentage') {
-      mDiscount = membershipPlanPrice * (discountValue / 100);
-      if (hasPT) {
-        ptDiscount = ptPlanPrice * (discountValue / 100);
-      }
-    } else if (discountType === 'flat') {
-      const totalOrig = membershipPlanPrice + ptPlanPrice;
-      if (totalOrig > 0) {
-        mDiscount = discountValue * (membershipPlanPrice / totalOrig);
-        ptDiscount = discountValue - mDiscount;
-      }
+    const totalOrig = membershipPlanPrice + ptPlanPrice;
+    if (totalOrig > 0) {
+      mDiscount = Math.round((overallCalc.discountAmount * (membershipPlanPrice / totalOrig)) * 100) / 100;
+      ptDiscount = Math.round((overallCalc.discountAmount - mDiscount) * 100) / 100;
     }
-
-    mDiscount = Math.round(mDiscount * 100) / 100;
-    ptDiscount = Math.round(ptDiscount * 100) / 100;
 
     const mFinal = Math.max(0, membershipPlanPrice - mDiscount);
     const ptFinal = Math.max(0, ptPlanPrice - ptDiscount);
-    const totalFinal = mFinal + ptFinal;
 
-    // ── Proportional Paid Allocation ──
-    const paidAmount = conversionDetails.paidAmount || 0;
     let mPaid = 0;
     let ptPaid = 0;
-
-    if (paidAmount >= totalFinal) {
-      mPaid = mFinal;
-      ptPaid = ptFinal;
-    } else if (totalFinal > 0) {
-      mPaid = paidAmount * (mFinal / totalFinal);
-      ptPaid = paidAmount - mPaid;
+    if (overallCalc.finalAmount > 0) {
+      mPaid = Math.round((overallCalc.paidAmount * (mFinal / overallCalc.finalAmount)) * 100) / 100;
+      ptPaid = Math.round((overallCalc.paidAmount - mPaid) * 100) / 100;
     }
 
-    mPaid = Math.round(mPaid * 100) / 100;
-    ptPaid = Math.round(ptPaid * 100) / 100;
+    // Proportional calculation for membership
+    const mCalc = billingCalc.calculate({
+      originalAmount: membershipPlanPrice,
+      discountType: 'flat',
+      discountValue: mDiscount,
+      paidAmount: mPaid,
+      dueDate: today
+    });
 
-    const mDue = Math.max(0, mFinal - mPaid);
-    const ptDue = Math.max(0, ptFinal - ptPaid);
-    const totalDue = mDue + ptDue;
+    // Proportional calculation for PT
+    const ptCalc = billingCalc.calculate({
+      originalAmount: ptPlanPrice,
+      discountType: 'flat',
+      discountValue: ptDiscount,
+      paidAmount: ptPaid,
+      dueDate: today
+    });
 
-    const mStatus = mDue === 0 ? 'paid' : (mPaid > 0 ? 'partially_paid' : (conversionDetails.paymentStatus === 'overdue' ? 'overdue' : 'pending'));
-    const ptStatus = ptDue === 0 ? 'paid' : (ptPaid > 0 ? 'partially_paid' : (conversionDetails.paymentStatus === 'overdue' ? 'overdue' : 'pending'));
-    const overallStatus = totalDue === 0 ? 'paid' : (paidAmount > 0 ? 'partially_paid' : (conversionDetails.paymentStatus === 'overdue' ? 'overdue' : 'pending'));
+    const mDue = mCalc.pendingAmount;
+    const ptDue = ptCalc.pendingAmount;
+    const totalDue = overallCalc.pendingAmount;
+
+    const mStatus = mCalc.paymentStatus;
+    const ptStatus = ptCalc.paymentStatus;
+    const overallStatus = overallCalc.paymentStatus;
+    const totalFinal = overallCalc.finalAmount;
 
     // ── 1. Create Member ──
     const defaultExpiry = new Date();
@@ -1740,8 +1896,6 @@ export class MockLeadRepository implements ILeadRepository {
     dbPayments.unshift(mPayment);
 
     // ── 4. Unified Invoice ──
-    const gst = Math.round(totalFinal * 0.18 * 100) / 100;
-    const baseAmount = totalFinal - gst;
     const newInvoice: Invoice = {
       id: invoiceId,
       gymId,
@@ -1750,11 +1904,11 @@ export class MockLeadRepository implements ILeadRepository {
       memberId,
       memberName: memberData.name,
       membershipPlan: memberData.planName,
-      amount: Number(baseAmount.toFixed(2)),
-      gst: Number(gst.toFixed(2)),
-      discount: mDiscount + ptDiscount,
-      finalAmount: totalFinal,
-      paymentMethod: paidAmount > 0 ? conversionDetails.paymentMethod : 'Pending',
+      amount: overallCalc.subtotal,
+      gst: overallCalc.taxAmount,
+      discount: overallCalc.discountAmount,
+      finalAmount: overallCalc.finalAmount,
+      paymentMethod: overallCalc.paidAmount > 0 ? (conversionDetails.paymentMethod || 'Cash') : 'Pending',
       invoiceDate: today,
       status: overallStatus as any,
       collectedBy: conversionDetails.convertedBy,
@@ -1762,12 +1916,13 @@ export class MockLeadRepository implements ILeadRepository {
       type: hasPT ? 'pt' : 'membership',
       membershipPlanId: memberData.planId,
       ptPlanId: conversionDetails.ptPlanId,
-      originalAmount: membershipPlanPrice + ptPlanPrice,
+      originalAmount: overallCalc.originalAmount,
       discountType: discountType as any,
-      discountValue: mDiscount + ptDiscount,
-      amountPaid: paidAmount,
-      pendingAmount: totalDue,
-      dueDate: today
+      discountValue: discountValue,
+      amountPaid: overallCalc.paidAmount,
+      pendingAmount: overallCalc.pendingAmount,
+      dueDate: today,
+      receiptNumber: overallStatus === 'paid' ? 'RCT-MOCK-' + Date.now().toString().slice(-6) : undefined
     };
     dbInvoices.unshift(newInvoice);
 
