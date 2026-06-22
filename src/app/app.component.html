@@ -121,8 +121,8 @@
             </button>
           </mat-menu>
 
-          <!-- Database Backend Swapper -->
-          <button mat-icon-button [matMenuTriggerFor]="providerMenu" class="action-btn" matTooltip="Active Database Provider">
+          <!-- Database Backend Swapper (Only visible on localhost) -->
+          <button mat-icon-button [matMenuTriggerFor]="providerMenu" class="action-btn" matTooltip="Active Database Provider" *ngIf="isLocalhost">
             <mat-icon>storage</mat-icon>
           </button>
           <mat-menu #providerMenu="matMenu" class="premium-menu">

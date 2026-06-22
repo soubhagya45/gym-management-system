@@ -28,6 +28,36 @@
           <mat-progress-bar mode="indeterminate" class="cyber-progress"></mat-progress-bar>
         </div>
 
+        <!-- Database Provider Swapper (Only visible on localhost) -->
+        <div class="provider-selector-container" *ngIf="isLocalhost">
+          <span class="provider-label">DATABASE:</span>
+          <button type="button" class="provider-badge-btn" [matMenuTriggerFor]="loginProviderMenu" [disabled]="isLoading">
+            <mat-icon class="provider-icon-badge">{{ getProviderIcon() }}</mat-icon>
+            <span class="provider-name-badge">{{ getProviderName() }}</span>
+            <mat-icon class="dropdown-arrow-badge">expand_more</mat-icon>
+          </button>
+          
+          <mat-menu #loginProviderMenu="matMenu" class="premium-menu">
+            <div class="menu-header">Select Database Provider</div>
+            <button mat-menu-item (click)="switchProvider('MOCK')">
+              <mat-icon [color]="appConfig.provider === 'MOCK' ? 'primary' : ''">dns</mat-icon>
+              <span>Mock Database (Local)</span>
+            </button>
+            <button mat-menu-item (click)="switchProvider('FIREBASE')">
+              <mat-icon [color]="appConfig.provider === 'FIREBASE' ? 'primary' : ''">cloud</mat-icon>
+              <span>Firebase Firestore</span>
+            </button>
+            <button mat-menu-item (click)="switchProvider('SUPABASE')">
+              <mat-icon [color]="appConfig.provider === 'SUPABASE' ? 'primary' : ''">bolt</mat-icon>
+              <span>Supabase PostgreSQL</span>
+            </button>
+            <button mat-menu-item (click)="switchProvider('REST')">
+              <mat-icon [color]="appConfig.provider === 'REST' ? 'primary' : ''">api</mat-icon>
+              <span>Node.js / .NET REST API</span>
+            </button>
+          </mat-menu>
+        </div>
+
         <form [formGroup]="loginForm" (ngSubmit)="onSubmit()" class="login-form">
           <!-- Email / Username Input -->
           <div class="form-group">

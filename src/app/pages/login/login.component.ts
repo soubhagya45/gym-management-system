@@ -17,6 +17,7 @@ import { MatIconModule } from '@angular/material/icon';
 import { MatProgressBarModule } from '@angular/material/progress-bar';
 import { MatDialog, MatDialogModule } from '@angular/material/dialog';
 import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
+import { MatMenuModule } from '@angular/material/menu';
 
 @Component({
   selector: 'app-login',
@@ -32,7 +33,8 @@ import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
     MatIconModule,
     MatProgressBarModule,
     MatDialogModule,
-    MatSnackBarModule
+    MatSnackBarModule,
+    MatMenuModule
   ],
   templateUrl: './login.component.html',
   styleUrls: ['./login.component.scss']
@@ -56,12 +58,41 @@ export class LoginComponent implements OnInit, OnDestroy {
     private router: Router,
     private dialog: MatDialog,
     private snackBar: MatSnackBar,
-    private appConfig: AppConfigService
+    public appConfig: AppConfigService
   ) {}
 
   /** True when app is running against live Firebase */
   get isFirebaseMode(): boolean {
     return this.appConfig.provider === ProviderType.Firebase;
+  }
+
+  getProviderIcon(): string {
+    switch (this.appConfig.provider) {
+      case ProviderType.Firebase: return 'cloud';
+      case ProviderType.Supabase: return 'bolt';
+      case ProviderType.REST: return 'api';
+      case ProviderType.Mock:
+      default: return 'dns';
+    }
+  }
+
+  getProviderName(): string {
+    switch (this.appConfig.provider) {
+      case ProviderType.Firebase: return 'Firebase Firestore';
+      case ProviderType.Supabase: return 'Supabase PostgreSQL';
+      case ProviderType.REST: return 'REST API';
+      case ProviderType.Mock:
+      default: return 'Mock Database';
+    }
+  }
+
+  switchProvider(provider: string): void {
+    this.appConfig.setProvider(provider as ProviderType);
+  }
+
+  get isLocalhost(): boolean {
+    const host = window.location.hostname;
+    return host === 'localhost' || host === '127.0.0.1' || host.startsWith('192.168.');
   }
 
   ngOnInit(): void {

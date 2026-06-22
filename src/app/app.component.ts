@@ -220,6 +220,11 @@ export class AppComponent implements OnInit {
     this.configService.setProvider(provider as ProviderType);
   }
 
+  get isLocalhost(): boolean {
+    const host = window.location.hostname;
+    return host === 'localhost' || host === '127.0.0.1' || host.startsWith('192.168.');
+  }
+
   onLogout(): void {
     this.authState.logout();
   }
