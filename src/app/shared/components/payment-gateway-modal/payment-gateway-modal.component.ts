@@ -73,249 +73,254 @@ export interface PaymentGatewayResult {
 
       <mat-divider></mat-divider>
 
-      <!-- Order Summary Card -->
-      <div class="pgm-order-summary">
-        <div class="pgm-summary-row">
-          <span class="pgm-lbl">Member</span>
-          <span class="pgm-val">{{ data.memberName }}</span>
+      <!-- Body wrapper (Scrollable) -->
+      <div class="pgm-body">
+        <!-- Order Summary Card -->
+        <div class="pgm-order-summary">
+          <div class="pgm-summary-row">
+            <span class="pgm-lbl">Member</span>
+            <span class="pgm-val">{{ data.memberName }}</span>
+          </div>
+          <div class="pgm-summary-row" *ngIf="data.planName">
+            <span class="pgm-lbl">Plan / Service</span>
+            <span class="pgm-val">{{ data.planName }}</span>
+          </div>
+          <div class="pgm-summary-row" *ngIf="data.invoiceRef">
+            <span class="pgm-lbl">Reference</span>
+            <span class="pgm-val monospace">{{ data.invoiceRef }}</span>
+          </div>
+          <div class="pgm-summary-row amount-row">
+            <span class="pgm-lbl">Amount Due</span>
+            <span class="pgm-amount">₹{{ data.amount | number:'1.2-2' }}</span>
+          </div>
         </div>
-        <div class="pgm-summary-row" *ngIf="data.planName">
-          <span class="pgm-lbl">Plan / Service</span>
-          <span class="pgm-val">{{ data.planName }}</span>
-        </div>
-        <div class="pgm-summary-row" *ngIf="data.invoiceRef">
-          <span class="pgm-lbl">Reference</span>
-          <span class="pgm-val monospace">{{ data.invoiceRef }}</span>
-        </div>
-        <div class="pgm-summary-row amount-row">
-          <span class="pgm-lbl">Amount Due</span>
-          <span class="pgm-amount">₹{{ data.amount | number:'1.2-2' }}</span>
-        </div>
+
+        <!-- ════════ UPI PROVIDER ════════ -->
+        <ng-container *ngIf="resolvedMethod === 'Manual UPI'">
+          <div class="pgm-provider-card upi-card">
+            <div class="upi-provider-badge">
+              <span class="upi-badge-icon">⬡</span>
+              <span>UPI Payment</span>
+            </div>
+
+            <p class="upi-instruction">
+              Scan the QR code below using any UPI app (Google Pay, PhonePe, Paytm, BHIM)
+            </p>
+
+            <!-- QR Code Canvas -->
+            <div class="qr-wrapper" *ngIf="qrDataUrl">
+              <div class="qr-frame">
+                <img [src]="qrDataUrl" alt="UPI QR Code" class="qr-img">
+              </div>
+              <p class="qr-amount-label">Pay ₹{{ data.amount | number:'1.2-2' }}</p>
+            </div>
+
+            <div class="qr-generating" *ngIf="!qrDataUrl && isGeneratingQr">
+              <mat-spinner diameter="40"></mat-spinner>
+              <span>Generating QR…</span>
+            </div>
+
+            <!-- UPI Details -->
+            <div class="upi-details-box" *ngIf="upiConfig">
+              <div class="upi-detail-row">
+                <span class="upi-detail-label">UPI ID</span>
+                <span class="upi-detail-val monospace">{{ upiConfig.upiId }}</span>
+                <button mat-icon-button type="button" (click)="copyText(upiConfig.upiId)" matTooltip="Copy UPI ID">
+                  <mat-icon class="copy-icon">content_copy</mat-icon>
+                </button>
+              </div>
+              <div class="upi-detail-row">
+                <span class="upi-detail-label">Payee</span>
+                <span class="upi-detail-val">{{ upiConfig.businessName }}</span>
+              </div>
+              <div class="upi-detail-row">
+                <span class="upi-detail-label">Amount</span>
+                <span class="upi-detail-val font-bold accent-color">₹{{ data.amount | number:'1.2-2' }}</span>
+              </div>
+            </div>
+
+            <!-- UTR Input -->
+            <form [formGroup]="upiForm" class="utr-form">
+              <mat-form-field appearance="outline" class="w-full">
+                <mat-label>UTR / Transaction Reference</mat-label>
+                <input matInput formControlName="utr" placeholder="e.g. 312547896541" autocomplete="off">
+                <mat-hint>Enter the 12-digit UTR from your UPI app after payment</mat-hint>
+                <mat-error *ngIf="upiForm.get('utr')?.hasError('required')">UTR is required</mat-error>
+                <mat-error *ngIf="upiForm.get('utr')?.hasError('minlength')">UTR must be at least 6 characters</mat-error>
+              </mat-form-field>
+
+              <button
+                mat-flat-button
+                class="pgm-confirm-btn upi-confirm"
+                type="button"
+                [disabled]="upiForm.invalid || isProcessing"
+                (click)="confirmUPI()">
+                <mat-icon *ngIf="!isProcessing">check_circle</mat-icon>
+                <mat-spinner *ngIf="isProcessing" diameter="20"></mat-spinner>
+                <span>{{ isProcessing ? 'Processing…' : 'Payment Done — Confirm' }}</span>
+              </button>
+            </form>
+          </div>
+        </ng-container>
+
+        <!-- ════════ CASH PROVIDER ════════ -->
+        <ng-container *ngIf="resolvedMethod === 'Cash'">
+          <div class="pgm-provider-card cash-card">
+            <div class="cash-icon-row">
+              <div class="cash-icon">
+                <mat-icon>payments</mat-icon>
+              </div>
+              <div>
+                <h3 class="cash-title">Cash Collection</h3>
+                <p class="cash-sub">Collect payment in person from the member</p>
+              </div>
+            </div>
+
+            <div class="cash-amount-box">
+              <span class="cash-amount-label">Collect from {{ data.memberName }}</span>
+              <span class="cash-amount-value">₹{{ data.amount | number:'1.2-2' }}</span>
+            </div>
+
+            <form [formGroup]="cashForm" class="cash-form">
+              <mat-form-field appearance="outline" class="w-full">
+                <mat-label>Receipt Reference (Optional)</mat-label>
+                <input matInput formControlName="receiptRef" placeholder="e.g. RCP-001">
+              </mat-form-field>
+
+              <mat-form-field appearance="outline" class="w-full">
+                <mat-label>Notes (Optional)</mat-label>
+                <textarea matInput formControlName="notes" rows="2" placeholder="Any collection notes..."></textarea>
+              </mat-form-field>
+
+              <button
+                mat-flat-button
+                class="pgm-confirm-btn cash-confirm"
+                type="button"
+                [disabled]="isProcessing"
+                (click)="confirmCash()">
+                <mat-icon *ngIf="!isProcessing">task_alt</mat-icon>
+                <mat-spinner *ngIf="isProcessing" diameter="20"></mat-spinner>
+                <span>{{ isProcessing ? 'Processing…' : 'Confirm Cash Collection' }}</span>
+              </button>
+            </form>
+          </div>
+        </ng-container>
+
+        <!-- ════════ RAZORPAY PLACEHOLDER ════════ -->
+        <ng-container *ngIf="resolvedMethod === 'Razorpay'">
+          <div class="pgm-provider-card rzp-card">
+            <div class="rzp-header">
+              <div class="rzp-logo">
+                <span class="rzp-logo-text">Razorpay</span>
+              </div>
+              <span class="rzp-secure-badge">
+                <mat-icon>verified_user</mat-icon> Secure
+              </span>
+            </div>
+
+            <div class="rzp-order-info">
+              <span class="rzp-order-id monospace">Order ID: {{ mockOrderId }}</span>
+            </div>
+
+            <div class="rzp-amount-display">
+              <span class="rzp-currency">₹</span>
+              <span class="rzp-amount-num">{{ data.amount | number:'1.2-2' }}</span>
+            </div>
+
+            <p class="rzp-description">
+              Complete this payment using Razorpay. After completing payment, enter the Transaction ID below.
+            </p>
+
+            <form [formGroup]="rzpForm" class="rzp-form">
+              <mat-form-field appearance="outline" class="w-full">
+                <mat-label>Razorpay Transaction ID</mat-label>
+                <input matInput formControlName="txnId" placeholder="e.g. pay_OEaawKQDwzxPGS">
+              </mat-form-field>
+
+              <button
+                mat-flat-button
+                class="pgm-confirm-btn rzp-confirm"
+                type="button"
+                [disabled]="rzpForm.invalid || isProcessing"
+                (click)="confirmRazorpay()">
+                <mat-icon *ngIf="!isProcessing">payments</mat-icon>
+                <mat-spinner *ngIf="isProcessing" diameter="20"></mat-spinner>
+                <span>{{ isProcessing ? 'Verifying…' : 'Complete Razorpay Payment' }}</span>
+              </button>
+            </form>
+          </div>
+        </ng-container>
+
+        <!-- ════════ CASHFREE PLACEHOLDER ════════ -->
+        <ng-container *ngIf="resolvedMethod === 'Cashfree'">
+          <div class="pgm-provider-card cf-card">
+            <div class="cf-header">
+              <div class="cf-logo">
+                <span class="cf-logo-text">Cashfree</span>
+                <span class="cf-logo-sub">Payments</span>
+              </div>
+              <span class="cf-secure-badge">
+                <mat-icon>lock</mat-icon> PCI DSS
+              </span>
+            </div>
+
+            <div class="cf-order-info">
+              <span class="cf-order-id monospace">Order: {{ mockOrderId }}</span>
+            </div>
+
+            <div class="cf-amount-display">
+              <span class="cf-currency">INR</span>
+              <span class="cf-amount-num">₹{{ data.amount | number:'1.2-2' }}</span>
+            </div>
+
+            <form [formGroup]="cfForm" class="cf-form">
+              <mat-form-field appearance="outline" class="w-full">
+                <mat-label>Cashfree Transaction ID</mat-label>
+                <input matInput formControlName="txnId" placeholder="e.g. CF-TXN-2024-XXXXXX">
+              </mat-form-field>
+
+              <button
+                mat-flat-button
+                class="pgm-confirm-btn cf-confirm"
+                type="button"
+                [disabled]="cfForm.invalid || isProcessing"
+                (click)="confirmCashfree()">
+                <mat-icon *ngIf="!isProcessing">credit_card</mat-icon>
+                <mat-spinner *ngIf="isProcessing" diameter="20"></mat-spinner>
+                <span>{{ isProcessing ? 'Verifying…' : 'Complete Cashfree Payment' }}</span>
+              </button>
+            </form>
+          </div>
+        </ng-container>
+
+        <!-- ════════ GENERIC FALLBACK ════════ -->
+        <ng-container *ngIf="resolvedMethod === 'generic'">
+          <div class="pgm-provider-card generic-card">
+            <div class="generic-icon"><mat-icon>account_balance_wallet</mat-icon></div>
+            <h3>Record Payment — {{ data.paymentMethod }}</h3>
+            <p>Enter a transaction reference to confirm this payment.</p>
+
+            <form [formGroup]="genericForm" class="generic-form">
+              <mat-form-field appearance="outline" class="w-full">
+                <mat-label>Transaction Reference</mat-label>
+                <input matInput formControlName="txnRef" placeholder="Transaction ID / Reference">
+              </mat-form-field>
+
+              <button
+                mat-flat-button
+                class="pgm-confirm-btn generic-confirm"
+                type="button"
+                [disabled]="genericForm.invalid || isProcessing"
+                (click)="confirmGeneric()">
+                <mat-icon>check</mat-icon>
+                <span>Confirm Payment</span>
+              </button>
+            </form>
+          </div>
+        </ng-container>
       </div>
 
-      <!-- ════════ UPI PROVIDER ════════ -->
-      <ng-container *ngIf="resolvedMethod === 'Manual UPI'">
-        <div class="pgm-provider-card upi-card">
-          <div class="upi-provider-badge">
-            <span class="upi-badge-icon">⬡</span>
-            <span>UPI Payment</span>
-          </div>
-
-          <p class="upi-instruction">
-            Scan the QR code below using any UPI app (Google Pay, PhonePe, Paytm, BHIM)
-          </p>
-
-          <!-- QR Code Canvas -->
-          <div class="qr-wrapper" *ngIf="qrDataUrl">
-            <div class="qr-frame">
-              <img [src]="qrDataUrl" alt="UPI QR Code" class="qr-img">
-            </div>
-            <p class="qr-amount-label">Pay ₹{{ data.amount | number:'1.2-2' }}</p>
-          </div>
-
-          <div class="qr-generating" *ngIf="!qrDataUrl && isGeneratingQr">
-            <mat-spinner diameter="40"></mat-spinner>
-            <span>Generating QR…</span>
-          </div>
-
-          <!-- UPI Details -->
-          <div class="upi-details-box" *ngIf="upiConfig">
-            <div class="upi-detail-row">
-              <span class="upi-detail-label">UPI ID</span>
-              <span class="upi-detail-val monospace">{{ upiConfig.upiId }}</span>
-              <button mat-icon-button type="button" (click)="copyText(upiConfig.upiId)" matTooltip="Copy UPI ID">
-                <mat-icon class="copy-icon">content_copy</mat-icon>
-              </button>
-            </div>
-            <div class="upi-detail-row">
-              <span class="upi-detail-label">Payee</span>
-              <span class="upi-detail-val">{{ upiConfig.businessName }}</span>
-            </div>
-            <div class="upi-detail-row">
-              <span class="upi-detail-label">Amount</span>
-              <span class="upi-detail-val font-bold accent-color">₹{{ data.amount | number:'1.2-2' }}</span>
-            </div>
-          </div>
-
-          <!-- UTR Input -->
-          <form [formGroup]="upiForm" class="utr-form">
-            <mat-form-field appearance="outline" class="w-full">
-              <mat-label>UTR / Transaction Reference</mat-label>
-              <input matInput formControlName="utr" placeholder="e.g. 312547896541" autocomplete="off">
-              <mat-hint>Enter the 12-digit UTR from your UPI app after payment</mat-hint>
-              <mat-error *ngIf="upiForm.get('utr')?.hasError('required')">UTR is required</mat-error>
-              <mat-error *ngIf="upiForm.get('utr')?.hasError('minlength')">UTR must be at least 6 characters</mat-error>
-            </mat-form-field>
-
-            <button
-              mat-flat-button
-              class="pgm-confirm-btn upi-confirm"
-              type="button"
-              [disabled]="upiForm.invalid || isProcessing"
-              (click)="confirmUPI()">
-              <mat-icon *ngIf="!isProcessing">check_circle</mat-icon>
-              <mat-spinner *ngIf="isProcessing" diameter="20"></mat-spinner>
-              <span>{{ isProcessing ? 'Processing…' : 'Payment Done — Confirm' }}</span>
-            </button>
-          </form>
-        </div>
-      </ng-container>
-
-      <!-- ════════ CASH PROVIDER ════════ -->
-      <ng-container *ngIf="resolvedMethod === 'Cash'">
-        <div class="pgm-provider-card cash-card">
-          <div class="cash-icon-row">
-            <div class="cash-icon">
-              <mat-icon>payments</mat-icon>
-            </div>
-            <div>
-              <h3 class="cash-title">Cash Collection</h3>
-              <p class="cash-sub">Collect payment in person from the member</p>
-            </div>
-          </div>
-
-          <div class="cash-amount-box">
-            <span class="cash-amount-label">Collect from {{ data.memberName }}</span>
-            <span class="cash-amount-value">₹{{ data.amount | number:'1.2-2' }}</span>
-          </div>
-
-          <form [formGroup]="cashForm" class="cash-form">
-            <mat-form-field appearance="outline" class="w-full">
-              <mat-label>Receipt Reference (Optional)</mat-label>
-              <input matInput formControlName="receiptRef" placeholder="e.g. RCP-001">
-            </mat-form-field>
-
-            <mat-form-field appearance="outline" class="w-full">
-              <mat-label>Notes (Optional)</mat-label>
-              <textarea matInput formControlName="notes" rows="2" placeholder="Any collection notes..."></textarea>
-            </mat-form-field>
-
-            <button
-              mat-flat-button
-              class="pgm-confirm-btn cash-confirm"
-              type="button"
-              [disabled]="isProcessing"
-              (click)="confirmCash()">
-              <mat-icon *ngIf="!isProcessing">task_alt</mat-icon>
-              <mat-spinner *ngIf="isProcessing" diameter="20"></mat-spinner>
-              <span>{{ isProcessing ? 'Processing…' : 'Confirm Cash Collection' }}</span>
-            </button>
-          </form>
-        </div>
-      </ng-container>
-
-      <!-- ════════ RAZORPAY PLACEHOLDER ════════ -->
-      <ng-container *ngIf="resolvedMethod === 'Razorpay'">
-        <div class="pgm-provider-card rzp-card">
-          <div class="rzp-header">
-            <div class="rzp-logo">
-              <span class="rzp-logo-text">Razorpay</span>
-            </div>
-            <span class="rzp-secure-badge">
-              <mat-icon>verified_user</mat-icon> Secure
-            </span>
-          </div>
-
-          <div class="rzp-order-info">
-            <span class="rzp-order-id monospace">Order ID: {{ mockOrderId }}</span>
-          </div>
-
-          <div class="rzp-amount-display">
-            <span class="rzp-currency">₹</span>
-            <span class="rzp-amount-num">{{ data.amount | number:'1.2-2' }}</span>
-          </div>
-
-          <p class="rzp-description">
-            Complete this payment using Razorpay. After completing payment, enter the Transaction ID below.
-          </p>
-
-          <form [formGroup]="rzpForm" class="rzp-form">
-            <mat-form-field appearance="outline" class="w-full">
-              <mat-label>Razorpay Transaction ID</mat-label>
-              <input matInput formControlName="txnId" placeholder="e.g. pay_OEaawKQDwzxPGS">
-            </mat-form-field>
-
-            <button
-              mat-flat-button
-              class="pgm-confirm-btn rzp-confirm"
-              type="button"
-              [disabled]="rzpForm.invalid || isProcessing"
-              (click)="confirmRazorpay()">
-              <mat-icon *ngIf="!isProcessing">payments</mat-icon>
-              <mat-spinner *ngIf="isProcessing" diameter="20"></mat-spinner>
-              <span>{{ isProcessing ? 'Verifying…' : 'Complete Razorpay Payment' }}</span>
-            </button>
-          </form>
-        </div>
-      </ng-container>
-
-      <!-- ════════ CASHFREE PLACEHOLDER ════════ -->
-      <ng-container *ngIf="resolvedMethod === 'Cashfree'">
-        <div class="pgm-provider-card cf-card">
-          <div class="cf-header">
-            <div class="cf-logo">
-              <span class="cf-logo-text">Cashfree</span>
-              <span class="cf-logo-sub">Payments</span>
-            </div>
-            <span class="cf-secure-badge">
-              <mat-icon>lock</mat-icon> PCI DSS
-            </span>
-          </div>
-
-          <div class="cf-order-info">
-            <span class="cf-order-id monospace">Order: {{ mockOrderId }}</span>
-          </div>
-
-          <div class="cf-amount-display">
-            <span class="cf-currency">INR</span>
-            <span class="cf-amount-num">₹{{ data.amount | number:'1.2-2' }}</span>
-          </div>
-
-          <form [formGroup]="cfForm" class="cf-form">
-            <mat-form-field appearance="outline" class="w-full">
-              <mat-label>Cashfree Transaction ID</mat-label>
-              <input matInput formControlName="txnId" placeholder="e.g. CF-TXN-2024-XXXXXX">
-            </mat-form-field>
-
-            <button
-              mat-flat-button
-              class="pgm-confirm-btn cf-confirm"
-              type="button"
-              [disabled]="cfForm.invalid || isProcessing"
-              (click)="confirmCashfree()">
-              <mat-icon *ngIf="!isProcessing">credit_card</mat-icon>
-              <mat-spinner *ngIf="isProcessing" diameter="20"></mat-spinner>
-              <span>{{ isProcessing ? 'Verifying…' : 'Complete Cashfree Payment' }}</span>
-            </button>
-          </form>
-        </div>
-      </ng-container>
-
-      <!-- ════════ GENERIC FALLBACK ════════ -->
-      <ng-container *ngIf="resolvedMethod === 'generic'">
-        <div class="pgm-provider-card generic-card">
-          <div class="generic-icon"><mat-icon>account_balance_wallet</mat-icon></div>
-          <h3>Record Payment — {{ data.paymentMethod }}</h3>
-          <p>Enter a transaction reference to confirm this payment.</p>
-
-          <form [formGroup]="genericForm" class="generic-form">
-            <mat-form-field appearance="outline" class="w-full">
-              <mat-label>Transaction Reference</mat-label>
-              <input matInput formControlName="txnRef" placeholder="Transaction ID / Reference">
-            </mat-form-field>
-
-            <button
-              mat-flat-button
-              class="pgm-confirm-btn generic-confirm"
-              type="button"
-              [disabled]="genericForm.invalid || isProcessing"
-              (click)="confirmGeneric()">
-              <mat-icon>check</mat-icon>
-              <span>Confirm Payment</span>
-            </button>
-          </form>
-        </div>
-      </ng-container>
+      <mat-divider></mat-divider>
 
       <!-- Footer -->
       <div class="pgm-footer">
@@ -340,10 +345,33 @@ export interface PaymentGatewayResult {
       padding: 0;
       width: 100%;
       max-width: 480px;
+      max-height: 85vh; /* Limit dialog size to prevent screen overflow */
+      display: flex;
+      flex-direction: column;
       background: var(--card-background, #1e1e2d);
       color: var(--text-primary, #f1f5f9);
       border-radius: 16px;
       overflow: hidden;
+    }
+
+    .pgm-body {
+      flex: 1;
+      overflow-y: auto; /* Internal scrolling if body overflows */
+      padding: 0;
+    }
+
+    .pgm-body::-webkit-scrollbar {
+      width: 6px;
+    }
+    .pgm-body::-webkit-scrollbar-track {
+      background: transparent;
+    }
+    .pgm-body::-webkit-scrollbar-thumb {
+      background: rgba(255, 255, 255, 0.1);
+      border-radius: 3px;
+    }
+    .pgm-body::-webkit-scrollbar-thumb:hover {
+      background: rgba(255, 255, 255, 0.2);
     }
 
     /* ─── Header ─── */
@@ -351,7 +379,7 @@ export interface PaymentGatewayResult {
       display: flex;
       justify-content: space-between;
       align-items: center;
-      padding: 20px 20px 16px;
+      padding: 16px 20px 12px;
       background: linear-gradient(135deg, rgba(99,102,241,0.12), rgba(168,85,247,0.08));
     }
     .pgm-header-left {
@@ -396,7 +424,7 @@ export interface PaymentGatewayResult {
 
     /* ─── Order Summary ─── */
     .pgm-order-summary {
-      margin: 16px 20px;
+      margin: 12px 20px;
       background: rgba(255,255,255,0.03);
       border: 1px solid rgba(255,255,255,0.08);
       border-radius: 12px;
@@ -439,9 +467,9 @@ export interface PaymentGatewayResult {
 
     /* ─── Provider Cards ─── */
     .pgm-provider-card {
-      margin: 0 20px 16px;
+      margin: 0 20px 12px;
       border-radius: 14px;
-      padding: 20px;
+      padding: 16px;
       border: 1px solid rgba(255,255,255,0.08);
     }
 
@@ -461,36 +489,36 @@ export interface PaymentGatewayResult {
       font-size: 12px;
       font-weight: 600;
       color: #10b981;
-      margin-bottom: 14px;
+      margin-bottom: 8px;
       .upi-badge-icon { font-size: 14px; }
     }
     .upi-instruction {
       font-size: 12.5px;
       color: var(--text-muted, #94a3b8);
-      margin-bottom: 16px;
+      margin-bottom: 10px;
       line-height: 1.5;
     }
     .qr-wrapper {
       display: flex;
       flex-direction: column;
       align-items: center;
-      margin-bottom: 16px;
+      margin-bottom: 10px;
     }
     .qr-frame {
       background: #fff;
-      padding: 10px;
+      padding: 8px;
       border-radius: 12px;
       box-shadow: 0 6px 24px rgba(0,0,0,0.4), 0 0 0 1px rgba(255,255,255,0.1);
       display: inline-block;
     }
     .qr-img {
-      width: 200px;
-      height: 200px;
+      width: 150px;
+      height: 150px;
       display: block;
     }
     .qr-amount-label {
-      margin-top: 10px;
-      font-size: 15px;
+      margin-top: 8px;
+      font-size: 14.5px;
       font-weight: 700;
       color: #10b981;
     }
@@ -499,18 +527,18 @@ export interface PaymentGatewayResult {
       align-items: center;
       gap: 12px;
       justify-content: center;
-      padding: 24px 0;
+      padding: 16px 0;
       color: var(--text-muted, #94a3b8);
       font-size: 13px;
     }
     .upi-details-box {
       background: rgba(0,0,0,0.25);
       border-radius: 10px;
-      padding: 12px 14px;
-      margin-bottom: 16px;
+      padding: 8px 12px;
+      margin-bottom: 12px;
       display: flex;
       flex-direction: column;
-      gap: 8px;
+      gap: 6px;
     }
     .upi-detail-row {
       display: flex;
@@ -519,21 +547,21 @@ export interface PaymentGatewayResult {
     }
     .upi-detail-label {
       color: var(--text-muted, #94a3b8);
-      font-size: 12px;
+      font-size: 11.5px;
       min-width: 60px;
     }
     .upi-detail-val {
       flex: 1;
-      font-size: 13px;
+      font-size: 12.5px;
       font-weight: 600;
       overflow: hidden;
       text-overflow: ellipsis;
       white-space: nowrap;
     }
     .copy-icon {
-      font-size: 16px;
-      width: 16px;
-      height: 16px;
+      font-size: 15px;
+      width: 15px;
+      height: 15px;
       color: #6366f1;
       cursor: pointer;
     }
@@ -548,11 +576,11 @@ export interface PaymentGatewayResult {
       display: flex;
       align-items: center;
       gap: 14px;
-      margin-bottom: 16px;
+      margin-bottom: 12px;
     }
     .cash-icon {
-      width: 48px;
-      height: 48px;
+      width: 44px;
+      height: 44px;
       border-radius: 12px;
       background: rgba(245,158,11,0.15);
       display: flex;
@@ -560,34 +588,34 @@ export interface PaymentGatewayResult {
       justify-content: center;
       mat-icon {
         color: #f59e0b;
-        font-size: 26px;
-        width: 26px;
-        height: 26px;
+        font-size: 24px;
+        width: 24px;
+        height: 24px;
       }
     }
     .cash-title {
       margin: 0;
-      font-size: 16px;
+      font-size: 15px;
       font-weight: 700;
       color: #f59e0b;
     }
     .cash-sub {
-      margin: 3px 0 0;
-      font-size: 12px;
+      margin: 2px 0 0;
+      font-size: 11.5px;
       color: var(--text-muted, #94a3b8);
     }
     .cash-amount-box {
       background: rgba(245,158,11,0.1);
       border: 1px solid rgba(245,158,11,0.25);
       border-radius: 12px;
-      padding: 14px 16px;
-      margin-bottom: 16px;
+      padding: 10px 12px;
+      margin-bottom: 12px;
       display: flex;
       justify-content: space-between;
       align-items: center;
     }
     .cash-amount-label {
-      font-size: 13px;
+      font-size: 12.5px;
       color: var(--text-muted, #94a3b8);
       max-width: 160px;
       overflow: hidden;
@@ -595,7 +623,7 @@ export interface PaymentGatewayResult {
       white-space: nowrap;
     }
     .cash-amount-value {
-      font-size: 22px;
+      font-size: 20px;
       font-weight: 800;
       color: #f59e0b;
     }
@@ -610,16 +638,16 @@ export interface PaymentGatewayResult {
       display: flex;
       justify-content: space-between;
       align-items: center;
-      margin-bottom: 16px;
+      margin-bottom: 12px;
     }
     .rzp-logo {
       background: #2563eb;
-      padding: 6px 14px;
+      padding: 4px 12px;
       border-radius: 6px;
     }
     .rzp-logo-text {
       color: #fff;
-      font-size: 14px;
+      font-size: 13px;
       font-weight: 800;
       letter-spacing: 0.5px;
     }
@@ -632,7 +660,7 @@ export interface PaymentGatewayResult {
       mat-icon { font-size: 14px; width: 14px; height: 14px; }
     }
     .rzp-order-info {
-      margin-bottom: 12px;
+      margin-bottom: 10px;
     }
     .rzp-order-id {
       font-size: 11px;
@@ -640,22 +668,22 @@ export interface PaymentGatewayResult {
     }
     .rzp-amount-display {
       text-align: center;
-      margin: 16px 0;
+      margin: 10px 0;
     }
     .rzp-currency {
-      font-size: 20px;
+      font-size: 18px;
       color: var(--text-muted, #94a3b8);
       margin-right: 4px;
     }
     .rzp-amount-num {
-      font-size: 36px;
+      font-size: 28px;
       font-weight: 800;
       color: #2563eb;
     }
     .rzp-description {
       font-size: 12px;
       color: var(--text-muted, #94a3b8);
-      margin-bottom: 12px;
+      margin-bottom: 10px;
       line-height: 1.5;
     }
     .rzp-form { margin-top: 4px; }
@@ -669,19 +697,19 @@ export interface PaymentGatewayResult {
       display: flex;
       justify-content: space-between;
       align-items: center;
-      margin-bottom: 16px;
+      margin-bottom: 12px;
     }
     .cf-logo {
       display: flex;
       flex-direction: column;
     }
     .cf-logo-text {
-      font-size: 16px;
+      font-size: 15px;
       font-weight: 800;
       color: #0ea5e9;
     }
     .cf-logo-sub {
-      font-size: 10px;
+      font-size: 9px;
       color: var(--text-muted, #94a3b8);
       letter-spacing: 1px;
       text-transform: uppercase;
@@ -694,19 +722,19 @@ export interface PaymentGatewayResult {
       color: #22c55e;
       mat-icon { font-size: 14px; width: 14px; height: 14px; }
     }
-    .cf-order-info { margin-bottom: 12px; }
+    .cf-order-info { margin-bottom: 10px; }
     .cf-order-id { font-size: 11px; color: var(--text-muted, #94a3b8); }
     .cf-amount-display {
       text-align: center;
-      margin: 16px 0;
+      margin: 10px 0;
     }
     .cf-currency {
-      font-size: 12px;
+      font-size: 11px;
       color: var(--text-muted, #94a3b8);
       margin-right: 4px;
     }
     .cf-amount-num {
-      font-size: 36px;
+      font-size: 28px;
       font-weight: 800;
       color: #0ea5e9;
     }
@@ -718,17 +746,17 @@ export interface PaymentGatewayResult {
       text-align: center;
     }
     .generic-icon {
-      margin-bottom: 12px;
-      mat-icon { font-size: 48px; width: 48px; height: 48px; color: #6366f1; }
+      margin-bottom: 10px;
+      mat-icon { font-size: 40px; width: 40px; height: 40px; color: #6366f1; }
     }
-    .generic-form { margin-top: 12px; text-align: left; }
+    .generic-form { margin-top: 10px; text-align: left; }
 
     /* ─── Confirm Buttons ─── */
     .pgm-confirm-btn {
       width: 100%;
-      height: 50px;
+      height: 46px;
       margin-top: 8px;
-      font-size: 14px;
+      font-size: 13.5px;
       font-weight: 700;
       border-radius: 10px !important;
       display: flex;
@@ -780,7 +808,7 @@ export interface PaymentGatewayResult {
     .pgm-cancel-row {
       display: flex;
       justify-content: center;
-      padding: 8px 20px 14px;
+      padding: 6px 20px 12px;
     }
     .pgm-cancel-link {
       color: var(--text-muted, #94a3b8);

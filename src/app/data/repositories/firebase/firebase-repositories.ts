@@ -946,7 +946,18 @@ export class FirebasePaymentSettingsRepository implements IPaymentSettingsReposi
       where('gymId', '==', gymId)
     );
     return from(getDocs(q)).pipe(
-      map(snap => snap.docs.map(d => d.data() as PaymentSettings)),
+      map(snap => {
+        const list = snap.docs.map(d => d.data() as PaymentSettings);
+        // Group by provider and take the latest one (updatedAt or createdAt) to filter out duplicates
+        const map = new Map<string, PaymentSettings>();
+        list.forEach(item => {
+          const existing = map.get(item.provider);
+          if (!existing || (item.updatedAt && existing.updatedAt && item.updatedAt > existing.updatedAt)) {
+            map.set(item.provider, item);
+          }
+        });
+        return Array.from(map.values());
+      }),
       catchError(err => throwError(() => new Error(err.message || 'Failed to get payment settings.')))
     );
   }
@@ -961,7 +972,14 @@ export class FirebasePaymentSettingsRepository implements IPaymentSettingsReposi
     return from(getDocs(q)).pipe(
       map(snap => {
         if (snap.empty) return null;
-        return snap.docs[0].data() as PaymentSettings;
+        const list = snap.docs.map(d => d.data() as PaymentSettings);
+        // Sort by updatedAt descending to retrieve the latest one
+        list.sort((a, b) => {
+          const timeA = a.updatedAt ? new Date(a.updatedAt).getTime() : 0;
+          const timeB = b.updatedAt ? new Date(b.updatedAt).getTime() : 0;
+          return timeB - timeA;
+        });
+        return list[0];
       }),
       catchError(err => throwError(() => new Error(err.message || 'Failed to get settings by provider.')))
     );
@@ -969,7 +987,8 @@ export class FirebasePaymentSettingsRepository implements IPaymentSettingsReposi
 
   saveSettings(gymId: string, settings: PaymentSettings): Observable<void> {
     const db = this.firebaseService.getDb();
-    const id = settings.id || 'ps_' + Math.random().toString(36).substring(2, 9);
+    const providerKey = settings.provider.replace(/[^a-zA-Z0-9]/g, '_');
+    const id = settings.id || `ps_${gymId}_${providerKey}`;
     const updated: PaymentSettings = {
       ...settings,
       id,

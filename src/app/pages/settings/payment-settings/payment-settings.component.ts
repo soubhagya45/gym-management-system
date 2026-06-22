@@ -1276,10 +1276,14 @@ export class PaymentSettingsComponent implements OnInit, OnDestroy {
 
       this.gymState.updateGym(updated).pipe(
         switchMap(() => forkJoin(saveOps)),
+        switchMap(() => this.settingsRepo.getSettings(this.activeGym!.gymId)),
         takeUntil(this.destroy$)
       ).subscribe({
-        next: () => {
+        next: (settings) => {
+          this.providerSettings = settings;
+          this.patchProviderForms();
           this.snackBar.open('Payment configurations and bank details updated successfully!', 'Dismiss', { duration: 3000 });
+          this.cdr.markForCheck();
         },
         error: (err) => {
           this.snackBar.open(`Failed to save settings: ${err.message || err}`, 'Dismiss', { duration: 4000 });
