@@ -940,7 +940,12 @@ export class FirebasePaymentSettingsRepository implements IPaymentSettingsReposi
   ) { }
 
   getSettings(gymId: string): Observable<PaymentSettings[]> {
-    return from(getDocs(getBranchFilteredQuery(this.injector, this.firebaseService, 'paymentSettings', gymId))).pipe(
+    const db = this.firebaseService.getDb();
+    const q = query(
+      collection(db, 'paymentSettings'),
+      where('gymId', '==', gymId)
+    );
+    return from(getDocs(q)).pipe(
       map(snap => snap.docs.map(d => d.data() as PaymentSettings)),
       catchError(err => throwError(() => new Error(err.message || 'Failed to get payment settings.')))
     );
