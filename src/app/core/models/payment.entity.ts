@@ -18,7 +18,9 @@ export interface Payment {
   dueAmount: number;
   dueDate: string;
   date: string;
-  status: 'paid' | 'partially_paid' | 'pending' | 'overdue';
+  status: 'paid' | 'partially_paid' | 'pending' | 'overdue' | 'cancelled' | 'refunded';
+  outstandingAmount?: number;
+  overdueDays?: number;
   planName: string;
   paymentMethod?: PaymentMethod | string;
   collectedBy?: string;

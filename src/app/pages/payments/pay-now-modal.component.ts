@@ -15,6 +15,8 @@ import { Invoice, Collection } from '../../core/models/finance.entity';
 import { PaymentSettings } from '../../core/models/payment-settings.model';
 import { TenantContextService } from '../../domain/tenancy/tenant-context.service';
 import { FinanceState } from '../../presentation/state/finance.state';
+import { PaymentState } from '../../presentation/state/payment.state';
+import { MemberState } from '../../presentation/state/member.state';
 import { Payment } from '../../core/models/payment.entity';
 import { auditLogRepositoryFactory } from '../../data/providers/repository.providers';
 import { AuditLoggerService } from '../../services/audit-logger.service';
@@ -319,7 +321,9 @@ export class PayNowModalComponent implements OnInit {
     @Inject(PAYMENT_SETTINGS_REPOSITORY_TOKEN) private settingsRepo: IPaymentSettingsRepository,
     @Inject(MEMBER_REPOSITORY_TOKEN) private memberRepo: IMemberRepository,
     @Inject(FINANCE_REPOSITORY_TOKEN) private financeRepo: IFinanceRepository,
-    private auditLogger: AuditLoggerService
+    private auditLogger: AuditLoggerService,
+    private paymentState: PaymentState,
+    private memberState: MemberState
   ) {
     if (data && data.invoice) {
       this.invoice = data.invoice;
@@ -511,6 +515,8 @@ export class PayNowModalComponent implements OnInit {
                       );
                       this.snackBar.open('Invoice settled! Membership activation queued until freeze period ends.', 'Dismiss', { duration: 5000 });
                       this.financeState.loadFinanceData();
+                      this.paymentState.loadPayments();
+                      this.memberState.loadMembers();
                       this.dialogRef.close(true);
                     });
                   } else {
@@ -541,6 +547,8 @@ export class PayNowModalComponent implements OnInit {
                       );
                       this.snackBar.open('Invoice settled! Membership activated successfully.', 'Dismiss', { duration: 4000 });
                       this.financeState.loadFinanceData();
+                      this.paymentState.loadPayments();
+                      this.memberState.loadMembers();
                       this.dialogRef.close(true);
                     });
                   }
@@ -554,6 +562,8 @@ export class PayNowModalComponent implements OnInit {
                   );
                   this.snackBar.open(`Partial payment of ₹${amountPaid} logged. Outstanding: ₹${remainingDue}`, 'Dismiss', { duration: 4000 });
                   this.financeState.loadFinanceData();
+                  this.paymentState.loadPayments();
+                  this.memberState.loadMembers();
                   this.dialogRef.close(true);
                 }
 

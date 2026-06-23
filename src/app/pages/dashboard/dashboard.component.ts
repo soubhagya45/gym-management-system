@@ -307,7 +307,7 @@ export class DashboardComponent implements OnInit {
 
         // Dynamic widget counts
         const dueTodayCount = payments.filter(p => p.status !== 'paid' && p.dueDate === todayStr).length;
-        const overdueCount = payments.filter(p => p.status === 'overdue' || (p.status === 'pending' && p.dueDate < todayStr)).length;
+        const overdueCount = payments.filter(p => p.status === 'overdue' || ((p.status === 'pending' || p.status === 'partially_paid') && p.dueDate < todayStr)).length;
         
         const { start, end } = this.getStartAndEndOfWeek();
         const renewalsThisWeekCount = members.filter(m => {
@@ -408,7 +408,7 @@ export class DashboardComponent implements OnInit {
     );
 
     this.overduePaymentsList$ = this.paymentState.payments$.pipe(
-      map(payments => payments.filter(p => p.status === 'overdue' || (p.status === 'pending' && p.dueDate < todayStr)))
+      map(payments => payments.filter(p => p.status === 'overdue' || ((p.status === 'pending' || p.status === 'partially_paid') && p.dueDate < todayStr)))
     );
 
     const { start, end } = this.getStartAndEndOfWeek();

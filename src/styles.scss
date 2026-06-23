@@ -516,7 +516,19 @@ h1, h2, h3, h4, h5, h6 {
     background-color: var(--danger-glow);
     color: var(--danger);
   }
+
+  &.partially_paid {
+    background-color: rgba(59, 130, 246, 0.12);
+    color: #3b82f6;
+  }
+
+  &.cancelled {
+    background-color: rgba(148, 163, 184, 0.12);
+    color: #94a3b8;
+    text-decoration: line-through;
+  }
 }
+
 
 /* Premium utility classes */
 .gradient-text {

@@ -103,6 +103,12 @@ const routes: Routes = [
         data: { permission: 'view:payments' }
       },
       {
+        path: 'finance/payments',
+        loadComponent: () => import('./pages/payments/payments.component').then(m => m.PaymentsComponent),
+        canActivate: [authGuard, permissionGuard, branchGuard],
+        data: { permission: 'view:payments' }
+      },
+      {
         path: 'finance/dashboard',
         loadComponent: () => import('./pages/finance/dashboard/finance-dashboard.component').then(m => m.FinanceDashboardComponent),
         canActivate: [authGuard, permissionGuard, roleGuard, branchGuard],

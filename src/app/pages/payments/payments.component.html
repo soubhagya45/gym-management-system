@@ -88,9 +88,11 @@
         <mat-label>Transaction Status</mat-label>
         <mat-select [(ngModel)]="selectedStatus" (selectionChange)="applyFilters()">
           <mat-option value="all">All Invoices</mat-option>
-          <mat-option value="paid">Paid / Settled</mat-option>
+          <mat-option value="paid">Paid</mat-option>
           <mat-option value="pending">Pending</mat-option>
+          <mat-option value="partially_paid">Partially Paid</mat-option>
           <mat-option value="overdue">Overdue</mat-option>
+          <mat-option value="cancelled">Cancelled</mat-option>
         </mat-select>
       </mat-form-field>
 
@@ -100,6 +102,7 @@
         <mat-select [(ngModel)]="selectedPendingStatus" (selectionChange)="applyFilters()">
           <mat-option value="all">All Unresolved</mat-option>
           <mat-option value="pending">Pending</mat-option>
+          <mat-option value="partially_paid">Partially Paid</mat-option>
           <mat-option value="overdue">Overdue</mat-option>
         </mat-select>
       </mat-form-field>
@@ -186,19 +189,31 @@
 
               <!-- Status Column -->
               <ng-container matColumnDef="status">
-                <th mat-header-cell *matHeaderCellDef style="width: 110px"> Status </th>
+                <th mat-header-cell *matHeaderCellDef style="width: 150px"> Status </th>
                 <td mat-cell *matCellDef="let element">
-                  <span class="status-badge" [ngClass]="element.status">{{ element.status }}</span>
+                  <div style="display: flex; flex-direction: column; gap: 4px; align-items: flex-start; padding: 4px 0;">
+                    <span class="status-badge partially_paid" *ngIf="(element.paidAmount ?? 0) > 0 && (element.dueAmount ?? 0) > 0">partially paid</span>
+                    <span class="status-badge overdue" *ngIf="element.status === 'overdue'">overdue</span>
+                    <span class="status-badge pending" *ngIf="element.status === 'pending' && !(element.paidAmount > 0)">pending</span>
+                    <span class="status-badge paid" *ngIf="element.status === 'paid'">paid</span>
+                    <span class="status-badge cancelled" *ngIf="element.status === 'cancelled'">cancelled</span>
+                    <span class="status-badge refunded" *ngIf="element.status === 'refunded'">refunded</span>
+                  </div>
                 </td>
               </ng-container>
 
               <!-- Actions Column -->
               <ng-container matColumnDef="actions">
-                <th mat-header-cell *matHeaderCellDef style="width: 140px; text-align: center"> Actions </th>
+                <th mat-header-cell *matHeaderCellDef style="width: 180px; text-align: center"> Actions </th>
                 <td mat-cell *matCellDef="let element" style="text-align: center">
-                  <div class="actions-wrapper">
+                  <div class="actions-wrapper" style="display: flex; gap: 4px; justify-content: center;">
+                    <!-- Pay Outstanding Balance -->
+                    <button mat-icon-button color="primary" *ngIf="element.status !== 'paid' && element.status !== 'cancelled' && element.status !== 'refunded'"
+                            (click)="payNowFromPayment(element)" matTooltip="Pay Outstanding Balance (Checkout)">
+                      <mat-icon>payment</mat-icon>
+                    </button>
                     <!-- Mark Paid Action -->
-                    <button mat-icon-button color="primary" *ngIf="element.status !== 'paid'"
+                    <button mat-icon-button color="primary" *ngIf="element.status !== 'paid' && element.status !== 'cancelled' && element.status !== 'refunded'"
                             (click)="markAsPaid(element)" matTooltip="Mark as Paid">
                       <mat-icon>check_circle</mat-icon>
                     </button>
@@ -274,6 +289,14 @@
                 <td mat-cell *matCellDef="let element" class="font-semibold"> ₹{{ element.finalAmount }} </td>
               </ng-container>
 
+              <!-- Amount Paid Column -->
+              <ng-container matColumnDef="amountPaid">
+                <th mat-header-cell *matHeaderCellDef> Amount Paid </th>
+                <td mat-cell *matCellDef="let element" class="text-success font-semibold">
+                  ₹{{ element.amountPaid ?? 0 }}
+                </td>
+              </ng-container>
+
               <!-- Outstanding Amount Column -->
               <ng-container matColumnDef="outstandingAmount">
                 <th mat-header-cell *matHeaderCellDef> Outstanding </th>
@@ -284,9 +307,16 @@
 
               <!-- Status Column -->
               <ng-container matColumnDef="status">
-                <th mat-header-cell *matHeaderCellDef style="width: 110px"> Status </th>
-                <td mat-cell *matCellDef="let element">
-                  <span class="status-badge" [ngClass]="element.status">{{ element.status }}</span>
+                <th mat-header-cell *matHeaderCellDef style="width: 150px"> Status </th>
+                <td mat-cell *matCellDef="let element" style="white-space: normal;">
+                  <div style="display: flex; flex-direction: column; gap: 4px; align-items: flex-start; padding: 4px 0;">
+                    <span class="status-badge partially_paid" *ngIf="(element.amountPaid ?? 0) > 0 && (element.pendingAmount ?? 0) > 0">partially paid</span>
+                    <span class="status-badge overdue" *ngIf="element.status === 'overdue'">overdue</span>
+                    <span class="status-badge pending" *ngIf="element.status === 'pending' && !(element.amountPaid > 0)">pending</span>
+                    <span class="status-badge paid" *ngIf="element.status === 'paid'">paid</span>
+                    <span class="status-badge cancelled" *ngIf="element.status === 'cancelled'">cancelled</span>
+                    <span class="status-badge refunded" *ngIf="element.status === 'refunded'">refunded</span>
+                  </div>
                 </td>
               </ng-container>
 

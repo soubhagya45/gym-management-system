@@ -14,6 +14,8 @@ import { MatTooltipModule } from '@angular/material/tooltip';
 import { RouterModule } from '@angular/router';
 import { Invoice } from '../../../core/models/finance.entity';
 import { FinanceState } from '../../../presentation/state/finance.state';
+import { MemberState } from '../../../presentation/state/member.state';
+import { take } from 'rxjs/operators';
 import { InvoiceViewDialogComponent } from './invoice-view-dialog.component';
 import { ExportService } from '../../../domain/export/export.service';
 import { MatMenuModule } from '@angular/material/menu';
@@ -44,11 +46,16 @@ export class InvoicesComponent implements OnInit {
   displayedColumns = [
     'invoiceNumber',
     'memberName',
-    'membershipPlan',
-    'finalAmount',
-    'paymentMethod',
+    'phone',
     'invoiceDate',
+    'dueDate',
+    'amount',
+    'amountPaid',
+    'outstandingAmount',
     'status',
+    'daysOverdue',
+    'branch',
+    'createdBy',
     'actions'
   ];
   dataSource = new MatTableDataSource<Invoice>();
@@ -58,6 +65,7 @@ export class InvoicesComponent implements OnInit {
 
   constructor(
     private financeState: FinanceState,
+    private memberState: MemberState,
     private dialog: MatDialog,
     private snackBar: MatSnackBar,
     private exportService: ExportService
@@ -70,6 +78,24 @@ export class InvoicesComponent implements OnInit {
     });
   }
 
+  getMemberPhone(memberId: string): string {
+    let phone = '+91 99887 76655';
+    this.memberState.members$.pipe(take(1)).subscribe(members => {
+      const found = members.find(m => m.id === memberId);
+      if (found) {
+        phone = found.phone;
+      }
+    });
+    return phone;
+  }
+
+  getBranchName(branchId?: string): string {
+    if (!branchId) return 'Main Branch';
+    if (branchId === 'br-1') return 'Downtown Main Branch';
+    if (branchId === 'br-2') return 'Koramangala Extension';
+    return branchId;
+  }
+
   applyFilters(): void {
     const query = this.searchQuery.trim().toLowerCase();
     
@@ -77,7 +103,12 @@ export class InvoicesComponent implements OnInit {
       const matchesSearch = data.memberName.toLowerCase().includes(query) ||
                             data.invoiceNumber.toLowerCase().includes(query) ||
                             data.membershipPlan.toLowerCase().includes(query);
-      const matchesStatus = this.selectedStatus === 'all' || data.status === this.selectedStatus;
+      const matchesStatus = this.selectedStatus === 'all' || 
+                            (this.selectedStatus === 'pending' ?
+                             (data.status === 'pending' || data.status === 'partially_paid' || ((data.amountPaid ?? 0) > 0 && (data.pendingAmount ?? 0) > 0)) :
+                             (this.selectedStatus === 'partially_paid' ?
+                              (data.status === 'partially_paid' || (data.status === 'overdue' && (data.amountPaid ?? 0) > 0)) :
+                              data.status === this.selectedStatus));
       return matchesSearch && matchesStatus;
     };
     this.dataSource.filter = query + '_' + this.selectedStatus;

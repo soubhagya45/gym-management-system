@@ -10,6 +10,7 @@ import {
 import { Expense, Invoice, Collection } from '../../core/models/finance.entity';
 import { TenantContextService } from '../../domain/tenancy/tenant-context.service';
 import { AuthState } from './auth.state';
+import { InvoiceStatusService } from '../../services/invoice-status.service';
 
 @Injectable({
   providedIn: 'root'
@@ -28,7 +29,8 @@ export class FinanceState {
     @Inject(FINANCE_REPOSITORY_TOKEN) private financeRepository: IFinanceRepository,
     @Inject(ACTIVITY_LOG_REPOSITORY_TOKEN) private logRepository: IActivityLogRepository,
     private tenantContext: TenantContextService,
-    private authState: AuthState
+    private authState: AuthState,
+    private invoiceStatusService: InvoiceStatusService
   ) {
     // Listen to active gym and branch changes and load raw finance data.
     combineLatest([
@@ -61,9 +63,28 @@ export class FinanceState {
         );
       })
     ).subscribe(({ invoices, expenses, collections }) => {
-      this.invoicesSubject.next(invoices);
+      this.invoicesSubject.next(this.augmentInvoices(invoices));
       this.expensesSubject.next(expenses);
       this.collectionsSubject.next(collections);
+    });
+  }
+
+  private augmentInvoices(invoices: Invoice[]): Invoice[] {
+    return invoices.map(invoice => {
+      const finalAmt = invoice.finalAmount !== undefined ? Number(invoice.finalAmount) : (invoice.amount !== undefined ? Number(invoice.amount) : 0);
+      const paidAmt = invoice.amountPaid ?? 0;
+      const pendingAmt = invoice.pendingAmount !== undefined ? Number(invoice.pendingAmount) : (finalAmt - paidAmt);
+      
+      const status = this.invoiceStatusService.calculateInvoiceStatus(invoice);
+      const daysOverdue = this.invoiceStatusService.calculateDaysOverdue(invoice);
+      
+      return {
+        ...invoice,
+        pendingAmount: pendingAmt,
+        amountPaid: paidAmt,
+        status,
+        daysOverdue
+      };
     });
   }
 
@@ -75,7 +96,7 @@ export class FinanceState {
         this.financeRepository.getExpenses(gymId),
         this.financeRepository.getCollections(gymId)
       ]).subscribe(([invoices, expenses, collections]) => {
-        this.invoicesSubject.next(invoices);
+        this.invoicesSubject.next(this.augmentInvoices(invoices));
         this.expensesSubject.next(expenses);
         this.collectionsSubject.next(collections);
       });

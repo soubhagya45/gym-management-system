@@ -71,6 +71,8 @@
         <mat-option value="all">All Invoices</mat-option>
         <mat-option value="paid">Paid</mat-option>
         <mat-option value="pending">Pending</mat-option>
+        <mat-option value="partially_paid">Partially Paid</mat-option>
+        <mat-option value="overdue">Overdue</mat-option>
         <mat-option value="cancelled">Cancelled</mat-option>
       </mat-select>
     </mat-form-field>
@@ -88,63 +90,104 @@
     <!-- Invoice Number -->
     <ng-container matColumnDef="invoiceNumber">
       <th mat-header-cell *matHeaderCellDef class="min-width-120">Invoice #</th>
-      <td mat-cell *matCellDef="let element">{{ element.invoiceNumber }}</td>
+      <td mat-cell *matCellDef="let element" class="font-semibold invoice-num">{{ element.invoiceNumber }}</td>
     </ng-container>
 
     <!-- Member Name -->
     <ng-container matColumnDef="memberName">
       <th mat-header-cell *matHeaderCellDef>Member Name</th>
-      <td mat-cell *matCellDef="let element">{{ element.memberName }}</td>
+      <td mat-cell *matCellDef="let element" class="font-semibold text-primary">{{ element.memberName }}</td>
     </ng-container>
 
-    <!-- Membership Plan -->
-    <ng-container matColumnDef="membershipPlan">
-      <th mat-header-cell *matHeaderCellDef class="hide-on-mobile">Plan</th>
-      <td mat-cell *matCellDef="let element" class="hide-on-mobile">{{ element.membershipPlan }}</td>
-    </ng-container>
-
-    <!-- Final Amount -->
-    <ng-container matColumnDef="finalAmount">
-      <th mat-header-cell *matHeaderCellDef>Amount</th>
-      <td mat-cell *matCellDef="let element" class="amount-cell">₹{{ element.finalAmount | number:'1.2-2' }}</td>
-    </ng-container>
-
-    <!-- Payment Method -->
-    <ng-container matColumnDef="paymentMethod">
-      <th mat-header-cell *matHeaderCellDef class="hide-on-mobile">Method</th>
-      <td mat-cell *matCellDef="let element" class="hide-on-mobile">{{ element.paymentMethod }}</td>
+    <!-- Phone -->
+    <ng-container matColumnDef="phone">
+      <th mat-header-cell *matHeaderCellDef>Phone</th>
+      <td mat-cell *matCellDef="let element">{{ getMemberPhone(element.memberId) }}</td>
     </ng-container>
 
     <!-- Invoice Date -->
     <ng-container matColumnDef="invoiceDate">
-      <th mat-header-cell *matHeaderCellDef class="hide-on-mobile">Billing Date</th>
-      <td mat-cell *matCellDef="let element" class="hide-on-mobile">{{ element.invoiceDate | date:'mediumDate' }}</td>
+      <th mat-header-cell *matHeaderCellDef>Invoice Date</th>
+      <td mat-cell *matCellDef="let element">{{ element.invoiceDate | date:'mediumDate' }}</td>
+    </ng-container>
+
+    <!-- Due Date -->
+    <ng-container matColumnDef="dueDate">
+      <th mat-header-cell *matHeaderCellDef>Due Date</th>
+      <td mat-cell *matCellDef="let element">{{ element.dueDate ? (element.dueDate | date:'mediumDate') : '—' }}</td>
+    </ng-container>
+
+    <!-- Amount -->
+    <ng-container matColumnDef="amount">
+      <th mat-header-cell *matHeaderCellDef>Amount</th>
+      <td mat-cell *matCellDef="let element" class="font-semibold">₹{{ element.finalAmount | number:'1.2-2' }}</td>
+    </ng-container>
+
+    <!-- Amount Paid -->
+    <ng-container matColumnDef="amountPaid">
+      <th mat-header-cell *matHeaderCellDef>Amount Paid</th>
+      <td mat-cell *matCellDef="let element" class="text-success font-semibold">₹{{ element.amountPaid ?? 0 | number:'1.2-2' }}</td>
+    </ng-container>
+
+    <!-- Outstanding Amount -->
+    <ng-container matColumnDef="outstandingAmount">
+      <th mat-header-cell *matHeaderCellDef>Outstanding</th>
+      <td mat-cell *matCellDef="let element" class="text-danger font-semibold">₹{{ element.pendingAmount ?? 0 | number:'1.2-2' }}</td>
     </ng-container>
 
     <!-- Status -->
     <ng-container matColumnDef="status">
       <th mat-header-cell *matHeaderCellDef>Status</th>
       <td mat-cell *matCellDef="let element">
-        <span class="status-badge" [class]="element.status">{{ element.status }}</span>
+        <div style="display: flex; flex-direction: column; gap: 4px; align-items: flex-start; padding: 4px 0;">
+          <span class="status-badge partially_paid" *ngIf="(element.amountPaid ?? 0) > 0 && (element.pendingAmount ?? 0) > 0">partially paid</span>
+          <span class="status-badge overdue" *ngIf="element.status === 'overdue'">overdue</span>
+          <span class="status-badge pending" *ngIf="element.status === 'pending' && !(element.amountPaid > 0)">pending</span>
+          <span class="status-badge paid" *ngIf="element.status === 'paid'">paid</span>
+          <span class="status-badge cancelled" *ngIf="element.status === 'cancelled'">cancelled</span>
+          <span class="status-badge refunded" *ngIf="element.status === 'refunded'">refunded</span>
+        </div>
       </td>
+    </ng-container>
+
+    <!-- Days Overdue -->
+    <ng-container matColumnDef="daysOverdue">
+      <th mat-header-cell *matHeaderCellDef>Days Overdue</th>
+      <td mat-cell *matCellDef="let element" class="text-danger font-semibold">
+        {{ element.status === 'overdue' ? element.daysOverdue + ' days' : '—' }}
+      </td>
+    </ng-container>
+
+    <!-- Branch -->
+    <ng-container matColumnDef="branch">
+      <th mat-header-cell *matHeaderCellDef>Branch</th>
+      <td mat-cell *matCellDef="let element">{{ getBranchName(element.branchId) }}</td>
+    </ng-container>
+
+    <!-- Created By -->
+    <ng-container matColumnDef="createdBy">
+      <th mat-header-cell *matHeaderCellDef>Created By</th>
+      <td mat-cell *matCellDef="let element">{{ element.createdBy || 'System' }}</td>
     </ng-container>
 
     <!-- Actions -->
     <ng-container matColumnDef="actions">
-      <th mat-header-cell *matHeaderCellDef class="actions-header-cell">Actions</th>
-      <td mat-cell *matCellDef="let element" class="actions-cell">
-        <button mat-icon-button color="accent" matTooltip="View Invoice" (click)="viewInvoice(element)">
-          <mat-icon>visibility</mat-icon>
-        </button>
-        <button mat-icon-button color="primary" matTooltip="Download PDF" (click)="downloadInvoice(element)">
-          <mat-icon>file_download</mat-icon>
-        </button>
-        <button mat-icon-button color="accent" matTooltip="Print Invoice" (click)="printInvoice(element)">
-          <mat-icon>print</mat-icon>
-        </button>
-        <button mat-icon-button color="primary" matTooltip="Send Receipt" (click)="sendInvoice(element)">
-          <mat-icon>send</mat-icon>
-        </button>
+      <th mat-header-cell *matHeaderCellDef class="actions-header-cell" style="width: 140px; text-align: center">Actions</th>
+      <td mat-cell *matCellDef="let element" class="actions-cell" style="text-align: center">
+        <div class="actions-wrapper">
+          <button mat-icon-button color="accent" matTooltip="View Invoice" (click)="viewInvoice(element)">
+            <mat-icon>visibility</mat-icon>
+          </button>
+          <button mat-icon-button color="primary" matTooltip="Download PDF" (click)="downloadInvoice(element)">
+            <mat-icon>file_download</mat-icon>
+          </button>
+          <button mat-icon-button color="accent" matTooltip="Print Invoice" (click)="printInvoice(element)">
+            <mat-icon>print</mat-icon>
+          </button>
+          <button mat-icon-button color="primary" matTooltip="Send Receipt" (click)="sendInvoice(element)">
+            <mat-icon>send</mat-icon>
+          </button>
+        </div>
       </td>
     </ng-container>
 

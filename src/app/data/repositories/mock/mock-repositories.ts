@@ -312,16 +312,18 @@ const dbMembers: Member[] = [
 ];
 
 const dbPayments: Payment[] = [
-  { id: 'pay-1', gymId: 'gym-a', memberId: 'mem-2', memberName: 'Priya Patel', amount: 15000, paidAmount: 15000, dueAmount: 0, dueDate: '2026-01-15', date: '2026-01-15', status: 'paid', planName: 'Annual' },
-  { id: 'pay-2', gymId: 'gym-a', memberId: 'mem-1', memberName: 'Amit Sharma', amount: 5000, paidAmount: 5000, dueAmount: 0, dueDate: '2026-04-10', date: '2026-04-10', status: 'paid', planName: 'Quarterly' },
-  { id: 'pay-3', gymId: 'gym-a', memberId: 'mem-4', memberName: 'Anjali Rao', amount: 5000, paidAmount: 5000, dueAmount: 0, dueDate: '2026-05-01', date: '2026-05-01', status: 'paid', planName: 'Quarterly' },
-  { id: 'pay-4', gymId: 'gym-a', memberId: 'mem-6', memberName: 'Neha Gupta', amount: 15000, paidAmount: 15000, dueAmount: 0, dueDate: '2026-03-20', date: '2026-03-20', status: 'paid', planName: 'Annual' },
-  { id: 'pay-5', gymId: 'gym-a', memberId: 'mem-3', memberName: 'Rajesh Kumar', amount: 2000, paidAmount: 0, dueAmount: 2000, dueDate: '2026-06-08', date: '2026-05-08', status: 'pending', planName: 'Monthly' },
-  { id: 'pay-6', gymId: 'gym-a', memberId: 'mem-7', memberName: 'Rohan Mehta', amount: 5000, paidAmount: 0, dueAmount: 5000, dueDate: '2026-06-05', date: '2026-03-10', status: 'overdue', planName: 'Quarterly' },
-  { id: 'pay-h1', gymId: 'gym-a', memberId: 'mem-1', memberName: 'Amit Sharma', amount: 5000, paidAmount: 5000, dueAmount: 0, dueDate: '2026-01-10', date: '2026-01-10', status: 'paid', planName: 'Quarterly' },
+  { id: 'pay-1', gymId: 'gym-a', memberId: 'mem-2', memberName: 'Priya Patel', amount: 15000, paidAmount: 15000, dueAmount: 0, dueDate: '2026-01-15', date: '2026-01-15', status: 'paid', planName: 'Annual', invoiceId: 'inv-1' },
+  { id: 'pay-2', gymId: 'gym-a', memberId: 'mem-1', memberName: 'Amit Sharma', amount: 4000, paidAmount: 4000, dueAmount: 0, dueDate: '2026-04-10', date: '2026-04-10', status: 'paid', planName: 'Quarterly', invoiceId: 'inv-2' },
+  { id: 'pay-3', gymId: 'gym-a', memberId: 'mem-4', memberName: 'Anjali Rao', amount: 4000, paidAmount: 4000, dueAmount: 0, dueDate: '2026-05-01', date: '2026-05-01', status: 'paid', planName: 'Quarterly', invoiceId: 'inv-3' },
+  { id: 'pay-4', gymId: 'gym-a', memberId: 'mem-6', memberName: 'Neha Gupta', amount: 15000, paidAmount: 15000, dueAmount: 0, dueDate: '2026-03-20', date: '2026-03-20', status: 'paid', planName: 'Annual', invoiceId: 'inv-4' },
+  { id: 'pay-5', gymId: 'gym-a', memberId: 'mem-3', memberName: 'Rajesh Kumar', amount: 1500, paidAmount: 0, dueAmount: 1500, dueDate: '2026-07-20', date: '2026-05-08', status: 'pending', planName: 'Monthly', invoiceId: 'inv-5' },
+  { id: 'pay-6', gymId: 'gym-a', memberId: 'mem-7', memberName: 'Rohan Mehta', amount: 4000, paidAmount: 0, dueAmount: 4000, dueDate: '2026-06-10', date: '2026-03-10', status: 'overdue', planName: 'Quarterly', invoiceId: 'inv-6' },
+  { id: 'pay-7', gymId: 'gym-a', memberId: 'mem-1', memberName: 'Amit Sharma', amount: 4000, paidAmount: 4000, dueAmount: 0, dueDate: '2026-01-10', date: '2026-01-10', status: 'paid', planName: 'Quarterly', invoiceId: 'inv-7' },
+  { id: 'pay-8', gymId: 'gym-a', memberId: 'mem-2', memberName: 'Priya Patel', amount: 4000, paidAmount: 1500, dueAmount: 2500, dueDate: '2026-07-15', date: '2026-06-20', status: 'partially_paid', planName: 'Quarterly', invoiceId: 'inv-8' },
+  { id: 'pay-9', gymId: 'gym-a', memberId: 'mem-3', memberName: 'Rajesh Kumar', amount: 4000, paidAmount: 1000, dueAmount: 3000, dueDate: '2026-06-05', date: '2026-05-01', status: 'overdue', planName: 'Quarterly', invoiceId: 'inv-9' },
   // Gym B Payments
-  { id: 'pay-b1', gymId: 'gym-b', memberId: 'mem-b1', memberName: 'John Connor', amount: 18000, paidAmount: 18000, dueAmount: 0, dueDate: '2026-03-01', date: '2026-03-01', status: 'paid', planName: 'VIP Year Pass' },
-  { id: 'pay-b2', gymId: 'gym-b', memberId: 'mem-b2', memberName: 'Marcus Wright', amount: 2000, paidAmount: 0, dueAmount: 2000, dueDate: '2026-06-15', date: '2026-05-15', status: 'pending', planName: 'Standard Month Pass' }
+  { id: 'pay-b1', gymId: 'gym-b', memberId: 'mem-b1', memberName: 'John Connor', amount: 18000, paidAmount: 18000, dueAmount: 0, dueDate: '2026-03-01', date: '2026-03-01', status: 'paid', planName: 'VIP Year Pass', invoiceId: 'inv-b1' },
+  { id: 'pay-b2', gymId: 'gym-b', memberId: 'mem-b2', memberName: 'Marcus Wright', amount: 2000, paidAmount: 0, dueAmount: 2000, dueDate: '2026-06-15', date: '2026-05-15', status: 'pending', planName: 'Standard Month Pass', invoiceId: 'inv-b2' }
 ];
 
 const dbPaymentSettings: PaymentSettings[] = [
@@ -812,15 +814,17 @@ const dbExpenses: Expense[] = [
 ];
 
 const dbInvoices: Invoice[] = [
-  { id: 'inv-1', gymId: 'gym-a', invoiceNumber: 'INV-2026-0001', memberId: 'mem-2', memberName: 'Priya Patel', membershipPlan: 'Elite Annual Platinum', amount: 12711.86, gst: 2288.14, discount: 0, finalAmount: 15000, paymentMethod: 'UPI', invoiceDate: '2026-01-15', status: 'paid', collectedBy: 'Sophia Chen', createdBy: 'Sophia Chen' },
-  { id: 'inv-2', gymId: 'gym-a', invoiceNumber: 'INV-2026-0002', memberId: 'mem-1', memberName: 'Amit Sharma', membershipPlan: 'Premium Quarterly', amount: 3389.83, gst: 610.17, discount: 0, finalAmount: 4000, paymentMethod: 'Card', invoiceDate: '2026-04-10', status: 'paid', collectedBy: 'Sophia Chen', createdBy: 'Sophia Chen' },
-  { id: 'inv-3', gymId: 'gym-a', invoiceNumber: 'INV-2026-0003', memberId: 'mem-4', memberName: 'Anjali Rao', membershipPlan: 'Premium Quarterly', amount: 3389.83, gst: 610.17, discount: 0, finalAmount: 4000, paymentMethod: 'Cash', invoiceDate: '2026-05-01', status: 'paid', collectedBy: 'Sophia Chen', createdBy: 'Sophia Chen' },
-  { id: 'inv-4', gymId: 'gym-a', invoiceNumber: 'INV-2026-0004', memberId: 'mem-6', memberName: 'Neha Gupta', membershipPlan: 'Elite Annual Platinum', amount: 12711.86, gst: 2288.14, discount: 0, finalAmount: 15000, paymentMethod: 'UPI', invoiceDate: '2026-03-20', status: 'paid', collectedBy: 'Kavita Patel', createdBy: 'Kavita Patel' },
-  { id: 'inv-5', gymId: 'gym-a', invoiceNumber: 'INV-2026-0005', memberId: 'mem-3', memberName: 'Rajesh Kumar', membershipPlan: 'Essential Monthly', amount: 1271.19, gst: 228.81, discount: 0, finalAmount: 1500, paymentMethod: 'UPI', invoiceDate: '2026-05-08', status: 'pending' },
-  { id: 'inv-6', gymId: 'gym-a', invoiceNumber: 'INV-2026-0006', memberId: 'mem-7', memberName: 'Rohan Mehta', membershipPlan: 'Premium Quarterly', amount: 3389.83, gst: 610.17, discount: 0, finalAmount: 4000, paymentMethod: 'UPI', invoiceDate: '2026-03-10', status: 'pending' },
-  { id: 'inv-7', gymId: 'gym-a', invoiceNumber: 'INV-2026-0007', memberId: 'mem-1', memberName: 'Amit Sharma', membershipPlan: 'Premium Quarterly', amount: 3389.83, gst: 610.17, discount: 0, finalAmount: 4000, paymentMethod: 'UPI', invoiceDate: '2026-01-10', status: 'paid', collectedBy: 'Sophia Chen', createdBy: 'Sophia Chen' },
-  { id: 'inv-b1', gymId: 'gym-b', invoiceNumber: 'INV-2026-0008', memberId: 'mem-b1', memberName: 'John Connor', membershipPlan: 'VIP Year Pass', amount: 15254.24, gst: 2745.76, discount: 0, finalAmount: 18000, paymentMethod: 'UPI', invoiceDate: '2026-03-01', status: 'paid', collectedBy: 'Kyle Reese', createdBy: 'Kyle Reese' },
-  { id: 'inv-b2', gymId: 'gym-b', invoiceNumber: 'INV-2026-0009', memberId: 'mem-b2', memberName: 'Marcus Wright', membershipPlan: 'Standard Month Pass', amount: 1694.92, gst: 305.08, discount: 0, finalAmount: 2000, paymentMethod: 'UPI', invoiceDate: '2026-05-15', status: 'pending' }
+  { id: 'inv-1', gymId: 'gym-a', invoiceNumber: 'INV-2026-0001', memberId: 'mem-2', memberName: 'Priya Patel', membershipPlan: 'Elite Annual Platinum', amount: 12711.86, gst: 2288.14, discount: 0, finalAmount: 15000, paymentMethod: 'UPI', invoiceDate: '2026-01-15', status: 'paid', amountPaid: 15000, pendingAmount: 0, dueDate: '2026-01-15', collectedBy: 'Sophia Chen', createdBy: 'Sophia Chen' },
+  { id: 'inv-2', gymId: 'gym-a', invoiceNumber: 'INV-2026-0002', memberId: 'mem-1', memberName: 'Amit Sharma', membershipPlan: 'Premium Quarterly', amount: 3389.83, gst: 610.17, discount: 0, finalAmount: 4000, paymentMethod: 'Card', invoiceDate: '2026-04-10', status: 'paid', amountPaid: 4000, pendingAmount: 0, dueDate: '2026-04-10', collectedBy: 'Sophia Chen', createdBy: 'Sophia Chen' },
+  { id: 'inv-3', gymId: 'gym-a', invoiceNumber: 'INV-2026-0003', memberId: 'mem-4', memberName: 'Anjali Rao', membershipPlan: 'Premium Quarterly', amount: 3389.83, gst: 610.17, discount: 0, finalAmount: 4000, paymentMethod: 'Cash', invoiceDate: '2026-05-01', status: 'paid', amountPaid: 4000, pendingAmount: 0, dueDate: '2026-05-01', collectedBy: 'Sophia Chen', createdBy: 'Sophia Chen' },
+  { id: 'inv-4', gymId: 'gym-a', invoiceNumber: 'INV-2026-0004', memberId: 'mem-6', memberName: 'Neha Gupta', membershipPlan: 'Elite Annual Platinum', amount: 12711.86, gst: 2288.14, discount: 0, finalAmount: 15000, paymentMethod: 'UPI', invoiceDate: '2026-03-20', status: 'paid', amountPaid: 15000, pendingAmount: 0, dueDate: '2026-03-20', collectedBy: 'Kavita Patel', createdBy: 'Kavita Patel' },
+  { id: 'inv-5', gymId: 'gym-a', invoiceNumber: 'INV-2026-0005', memberId: 'mem-3', memberName: 'Rajesh Kumar', membershipPlan: 'Essential Monthly', amount: 1271.19, gst: 228.81, discount: 0, finalAmount: 1500, paymentMethod: 'UPI', invoiceDate: '2026-05-08', status: 'pending', amountPaid: 0, pendingAmount: 1500, dueDate: '2026-07-20' },
+  { id: 'inv-6', gymId: 'gym-a', invoiceNumber: 'INV-2026-0006', memberId: 'mem-7', memberName: 'Rohan Mehta', membershipPlan: 'Premium Quarterly', amount: 3389.83, gst: 610.17, discount: 0, finalAmount: 4000, paymentMethod: 'UPI', invoiceDate: '2026-03-10', status: 'overdue', amountPaid: 0, pendingAmount: 4000, dueDate: '2026-06-10' },
+  { id: 'inv-7', gymId: 'gym-a', invoiceNumber: 'INV-2026-0007', memberId: 'mem-1', memberName: 'Amit Sharma', membershipPlan: 'Premium Quarterly', amount: 3389.83, gst: 610.17, discount: 0, finalAmount: 4000, paymentMethod: 'UPI', invoiceDate: '2026-01-10', status: 'paid', amountPaid: 4000, pendingAmount: 0, dueDate: '2026-01-10', collectedBy: 'Sophia Chen', createdBy: 'Sophia Chen' },
+  { id: 'inv-8', gymId: 'gym-a', invoiceNumber: 'INV-2026-0008', memberId: 'mem-2', memberName: 'Priya Patel', membershipPlan: 'Premium Quarterly', amount: 3389.83, gst: 610.17, discount: 0, finalAmount: 4000, paymentMethod: 'UPI', invoiceDate: '2026-06-20', status: 'partially_paid', amountPaid: 1500, pendingAmount: 2500, dueDate: '2026-07-15' },
+  { id: 'inv-9', gymId: 'gym-a', invoiceNumber: 'INV-2026-0009', memberId: 'mem-3', memberName: 'Rajesh Kumar', membershipPlan: 'Premium Quarterly', amount: 3389.83, gst: 610.17, discount: 0, finalAmount: 4000, paymentMethod: 'UPI', invoiceDate: '2026-05-01', status: 'overdue', amountPaid: 1000, pendingAmount: 3000, dueDate: '2026-06-05' },
+  { id: 'inv-b1', gymId: 'gym-b', invoiceNumber: 'INV-2026-0010', memberId: 'mem-b1', memberName: 'John Connor', membershipPlan: 'VIP Year Pass', amount: 15254.24, gst: 2745.76, discount: 0, finalAmount: 18000, paymentMethod: 'UPI', invoiceDate: '2026-03-01', status: 'paid', amountPaid: 18000, pendingAmount: 0, dueDate: '2026-03-01', collectedBy: 'Kyle Reese', createdBy: 'Kyle Reese' },
+  { id: 'inv-b2', gymId: 'gym-b', invoiceNumber: 'INV-2026-0011', memberId: 'mem-b2', memberName: 'Marcus Wright', membershipPlan: 'Standard Month Pass', amount: 1694.92, gst: 305.08, discount: 0, finalAmount: 2000, paymentMethod: 'UPI', invoiceDate: '2026-05-15', status: 'overdue', amountPaid: 0, pendingAmount: 2000, dueDate: '2026-05-15' }
 ];
 
 const dbCollections: Collection[] = [
@@ -1527,6 +1531,9 @@ export class MockPaymentRepository implements IPaymentRepository {
       dueDate: payment.dueDate || today
     });
 
+    // Create Invoice
+    const invoiceId = 'inv-mock-' + Math.random().toString(36).substring(2, 9);
+
     const newPayment: Payment = {
       ...payment,
       id: 'pay-' + Math.random().toString(36).substring(2, 9),
@@ -1534,7 +1541,8 @@ export class MockPaymentRepository implements IPaymentRepository {
       amount: calculations.finalAmount,
       paidAmount: calculations.paidAmount,
       dueAmount: calculations.pendingAmount,
-      status: calculations.paymentStatus as any
+      status: calculations.paymentStatus as any,
+      invoiceId: invoiceId
     };
     dbPayments.unshift(newPayment);
 
@@ -1542,9 +1550,6 @@ export class MockPaymentRepository implements IPaymentRepository {
     if (member) {
       member.balance = calculations.pendingAmount;
     }
-
-    // Create Invoice
-    const invoiceId = 'inv-mock-' + Math.random().toString(36).substring(2, 9);
     dbInvoices.unshift({
       id: invoiceId,
       gymId,
@@ -1617,13 +1622,8 @@ export class MockPaymentRepository implements IPaymentRepository {
       const today = new Date().toISOString().split('T')[0];
       payment.date = today;
 
-      const member = dbMembers.find(m => m.gymId === gymId && m.id === payment.memberId);
-      if (member) {
-        member.balance = 0;
-      }
-
       // Check if invoice already exists
-      const existingInv = dbInvoices.find(inv => inv.gymId === gymId && inv.memberId === payment.memberId && Math.abs(inv.finalAmount - payment.amount) < 0.01);
+      const existingInv = dbInvoices.find(inv => inv.gymId === gymId && (inv.id === payment.invoiceId || (inv.memberId === payment.memberId && Math.abs(inv.finalAmount - payment.amount) < 0.01)));
       if (!existingInv) {
         const invoiceId = 'inv-mock-' + Math.random().toString(36).substring(2, 9);
         const gst = Math.round(payment.amount * 0.18 * 100) / 100;
@@ -1646,8 +1646,24 @@ export class MockPaymentRepository implements IPaymentRepository {
           createdBy: payment.collectedBy || 'Sophia Chen',
           type: (payment as any).type || 'membership',
           trainerId: (payment as any).trainerId,
-          trainerName: (payment as any).trainerName
+          trainerName: (payment as any).trainerName,
+          amountPaid: payment.amount,
+          pendingAmount: 0,
+          dueDate: payment.dueDate || today
         });
+        payment.invoiceId = invoiceId;
+      } else {
+        existingInv.status = 'paid';
+        existingInv.amountPaid = payment.amount;
+        existingInv.pendingAmount = 0;
+        existingInv.paymentMethod = payment.paymentMethod || 'UPI';
+      }
+
+      // Recalculate member balance
+      const member = dbMembers.find(m => m.gymId === gymId && m.id === payment.memberId);
+      if (member) {
+        const memberInvoices = dbInvoices.filter(i => i.gymId === gymId && i.memberId === payment.memberId && i.status !== 'cancelled' && i.status !== 'paid');
+        member.balance = memberInvoices.reduce((sum, inv) => sum + (inv.pendingAmount ?? ((inv.finalAmount ?? inv.amount ?? 0) - (inv.amountPaid ?? 0))), 0);
       }
 
       // Check if collection already exists
@@ -1891,7 +1907,8 @@ export class MockLeadRepository implements ILeadRepository {
       discountGivenBy: conversionDetails.convertedBy,
       discountDate: today,
       salespersonId: conversionDetails.salespersonId || '',
-      salespersonName: conversionDetails.salespersonName || ''
+      salespersonName: conversionDetails.salespersonName || '',
+      invoiceId: invoiceId
     };
     dbPayments.unshift(mPayment);
 
@@ -2019,7 +2036,8 @@ export class MockLeadRepository implements ILeadRepository {
         discountGivenBy: conversionDetails.convertedBy,
         discountDate: today,
         salespersonId: conversionDetails.salespersonId || '',
-        salespersonName: conversionDetails.salespersonName || ''
+        salespersonName: conversionDetails.salespersonName || '',
+        invoiceId: invoiceId
       };
       dbPayments.unshift(ptPayment);
 
@@ -2382,6 +2400,24 @@ export class MockFinanceRepository implements IFinanceRepository {
     const idx = dbInvoices.findIndex(i => i.gymId === gymId && i.id === invoice.id);
     if (idx !== -1) {
       dbInvoices[idx] = invoice;
+
+      // Keep dbPayments in sync!
+      const payment = dbPayments.find(p => p.gymId === gymId && p.invoiceId === invoice.id);
+      if (payment) {
+        payment.paidAmount = invoice.amountPaid ?? 0;
+        payment.dueAmount = invoice.pendingAmount ?? 0;
+        payment.status = invoice.status;
+        if (invoice.paymentMethod) {
+          payment.paymentMethod = invoice.paymentMethod;
+        }
+      }
+
+      // Update Member Balance!
+      const member = dbMembers.find(m => m.gymId === gymId && m.id === invoice.memberId);
+      if (member) {
+        const memberInvoices = dbInvoices.filter(i => i.gymId === gymId && i.memberId === invoice.memberId && i.status !== 'cancelled' && i.status !== 'paid');
+        member.balance = memberInvoices.reduce((sum, inv) => sum + (inv.pendingAmount ?? ((inv.finalAmount ?? inv.amount ?? 0) - (inv.amountPaid ?? 0))), 0);
+      }
     }
     return of(undefined).pipe(delay(200));
   }

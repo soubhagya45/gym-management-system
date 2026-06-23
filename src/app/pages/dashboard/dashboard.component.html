@@ -288,7 +288,7 @@
     </div>
 
     <!-- Card 3: Renewals This Week -->
-    <div class="mat-card interactive warning-glow stat-card" routerLink="/payments" [queryParams]="{ tab: 2 }">
+    <div class="mat-card interactive warning-glow stat-card" routerLink="/finance/payments" [queryParams]="{ tab: 2 }">
       <div class="stat-header">
         <div class="stat-icon-wrapper warning">
           <mat-icon>history</mat-icon>
@@ -308,7 +308,7 @@
     </div>
 
     <!-- Card 4: Payments Due Today -->
-    <div class="mat-card interactive info-glow stat-card" routerLink="/payments" [queryParams]="{ tab: 1, status: 'pending' }">
+    <div class="mat-card interactive info-glow stat-card" routerLink="/finance/payments" [queryParams]="{ tab: 1, status: 'pending' }">
       <div class="stat-header">
         <div class="stat-icon-wrapper info">
           <mat-icon>hourglass_empty</mat-icon>
@@ -328,7 +328,7 @@
     </div>
 
     <!-- Card 5: Overdue Payments -->
-    <div class="mat-card interactive danger-glow stat-card" routerLink="/payments" [queryParams]="{ tab: 1, status: 'overdue' }">
+    <div class="mat-card interactive danger-glow stat-card" routerLink="/finance/payments" [queryParams]="{ tab: 1, status: 'overdue' }">
       <div class="stat-header">
         <div class="stat-icon-wrapper danger">
           <mat-icon>money_off</mat-icon>
@@ -348,7 +348,7 @@
     </div>
 
     <!-- Card 6: Monthly Revenue -->
-    <div class="mat-card interactive success-glow stat-card" routerLink="/payments" [queryParams]="{ tab: 0 }">
+    <div class="mat-card interactive success-glow stat-card" routerLink="/finance/payments" [queryParams]="{ tab: 0 }">
       <div class="stat-header">
         <div class="stat-icon-wrapper success">
           <mat-icon>payments</mat-icon>

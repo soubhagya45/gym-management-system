@@ -31,6 +31,9 @@ import { MemberDialogComponent } from './member-dialog.component';
 import { LogBodyProgressDialogComponent } from './log-body-progress-dialog.component';
 import { PTActionDialogComponent } from './pt-action-dialog.component';
 import { SubmissionGuardService } from '../../services/submission-guard.service';
+import { PayNowModalComponent } from '../payments/pay-now-modal.component';
+import { WhatsAppPreviewModalComponent } from '../whatsapp/whatsapp-preview-modal.component';
+import { InvoiceStatusService } from '../../services/invoice-status.service';
 
 @Component({
   selector: 'app-member-profile',
@@ -67,9 +70,10 @@ export class MemberProfileComponent implements OnInit {
   trainersList: Trainer[] = [];
   assignedTrainer: Trainer | undefined;
 
-  attendanceColumns = ['date', 'timeIn', 'status'];
+   attendanceColumns = ['date', 'timeIn', 'status'];
   paymentColumns = ['id', 'planName', 'date', 'amount', 'status'];
   invoiceColumns = ['invoiceNumber', 'invoiceDate', 'finalAmount', 'paymentMethod', 'status'];
+  outstandingColumns = ['invoiceNumber', 'outstandingAmount', 'dueDate', 'status', 'daysOverdue', 'actions'];
   progressColumns = ['date', 'weight', 'bodyFat', 'bmi', 'notes', 'actions'];
   
   // PT columns
@@ -91,7 +95,8 @@ export class MemberProfileComponent implements OnInit {
     private trainerState: TrainerState,
     private dialog: MatDialog,
     private snackBar: MatSnackBar,
-    public submissionGuard: SubmissionGuardService
+    public submissionGuard: SubmissionGuardService,
+    public invoiceStatusService: InvoiceStatusService
   ) {}
 
   ngOnInit(): void {
@@ -510,5 +515,54 @@ export class MemberProfileComponent implements OnInit {
     } else {
       this.assignedTrainer = undefined;
     }
+  }
+
+  getOutstandingInvoices(): Invoice[] {
+    return this.invoices.filter(inv => {
+      const status = this.invoiceStatusService.calculateInvoiceStatus(inv);
+      return status === 'pending' || status === 'partially_paid' || status === 'overdue';
+    });
+  }
+
+  payInvoice(invoice: Invoice): void {
+    const dialogRef = this.dialog.open(PayNowModalComponent, {
+      width: '550px',
+      data: { invoice }
+    });
+    dialogRef.afterClosed().subscribe(res => {
+      if (res) {
+        this.financeState.loadFinanceData();
+      }
+    });
+  }
+
+  generateQR(invoice: Invoice): void {
+    const dialogRef = this.dialog.open(PayNowModalComponent, {
+      width: '550px',
+      data: { invoice }
+    });
+    dialogRef.afterClosed().subscribe(res => {
+      if (res) {
+        this.financeState.loadFinanceData();
+      }
+    });
+  }
+
+  sendReminder(invoice: Invoice): void {
+    const phone = this.member?.phone || '';
+    this.dialog.open(WhatsAppPreviewModalComponent, {
+      width: '800px',
+      data: {
+        name: invoice.memberName,
+        phone,
+        recipientType: 'payment',
+        variables: {
+          planName: invoice.membershipPlan,
+          amount: invoice.pendingAmount ?? invoice.amount,
+          dueDate: invoice.dueDate || '',
+          gymName: 'Apex Fit Downtown'
+        }
+      }
+    });
   }
 }

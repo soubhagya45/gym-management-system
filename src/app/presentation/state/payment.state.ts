@@ -10,6 +10,7 @@ import {
 import { Payment } from '../../core/models/payment.entity';
 import { TenantContextService } from '../../domain/tenancy/tenant-context.service';
 import { FinanceState } from './finance.state';
+import { InvoiceStatusService } from '../../services/invoice-status.service';
 
 @Injectable({
   providedIn: 'root'
@@ -22,7 +23,8 @@ export class PaymentState {
     @Inject(PAYMENT_REPOSITORY_TOKEN) private paymentRepository: IPaymentRepository,
     @Inject(ACTIVITY_LOG_REPOSITORY_TOKEN) private logRepository: IActivityLogRepository,
     private tenantContext: TenantContextService,
-    private financeState: FinanceState
+    private financeState: FinanceState,
+    private invoiceStatusService: InvoiceStatusService
   ) {
     combineLatest([
       this.tenantContext.activeGymId$,
@@ -38,7 +40,27 @@ export class PaymentState {
         );
       })
     ).subscribe(payments => {
-      this.paymentsSubject.next(payments);
+      this.paymentsSubject.next(this.augmentPayments(payments));
+    });
+  }
+
+  private augmentPayments(payments: Payment[]): Payment[] {
+    return payments.map(payment => {
+      const finalAmt = payment.amount !== undefined ? Number(payment.amount) : 0;
+      const paidAmt = payment.paidAmount ?? 0;
+      const pendingAmt = payment.dueAmount !== undefined ? Number(payment.dueAmount) : (finalAmt - paidAmt);
+      
+      const status = this.invoiceStatusService.calculateInvoiceStatus(payment);
+      const overdueDays = this.invoiceStatusService.calculateDaysOverdue(payment);
+      
+      return {
+        ...payment,
+        dueAmount: pendingAmt,
+        paidAmount: paidAmt,
+        status,
+        overdueDays,
+        outstandingAmount: pendingAmt
+      };
     });
   }
 
@@ -46,7 +68,7 @@ export class PaymentState {
     const gymId = this.tenantContext.getTenantId();
     if (gymId) {
       this.paymentRepository.getPayments(gymId).subscribe(payments => {
-        this.paymentsSubject.next(payments);
+        this.paymentsSubject.next(this.augmentPayments(payments));
       });
     }
   }

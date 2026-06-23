@@ -526,7 +526,14 @@
                   <ng-container matColumnDef="status">
                     <th mat-header-cell *matHeaderCellDef> Status </th>
                     <td mat-cell *matCellDef="let element">
-                      <span class="status-badge" [ngClass]="element.status">{{ element.status }}</span>
+                      <div style="display: flex; flex-direction: column; gap: 4px; align-items: flex-start; padding: 4px 0;">
+                        <span class="status-badge partially_paid" *ngIf="(element.paidAmount ?? 0) > 0 && (element.dueAmount ?? 0) > 0">partially paid</span>
+                        <span class="status-badge overdue" *ngIf="element.status === 'overdue'">overdue</span>
+                        <span class="status-badge pending" *ngIf="element.status === 'pending' && !(element.paidAmount > 0)">pending</span>
+                        <span class="status-badge paid" *ngIf="element.status === 'paid'">paid</span>
+                        <span class="status-badge cancelled" *ngIf="element.status === 'cancelled'">cancelled</span>
+                        <span class="status-badge refunded" *ngIf="element.status === 'refunded'">refunded</span>
+                      </div>
                     </td>
                   </ng-container>
 
@@ -582,7 +589,14 @@
                   <ng-container matColumnDef="status">
                     <th mat-header-cell *matHeaderCellDef> Status </th>
                     <td mat-cell *matCellDef="let element">
-                      <span class="status-badge" [ngClass]="element.status">{{ element.status }}</span>
+                      <div style="display: flex; flex-direction: column; gap: 4px; align-items: flex-start; padding: 4px 0;">
+                        <span class="status-badge partially_paid" *ngIf="(element.amountPaid ?? 0) > 0 && (element.pendingAmount ?? 0) > 0">partially paid</span>
+                        <span class="status-badge overdue" *ngIf="element.status === 'overdue'">overdue</span>
+                        <span class="status-badge pending" *ngIf="element.status === 'pending' && !(element.amountPaid > 0)">pending</span>
+                        <span class="status-badge paid" *ngIf="element.status === 'paid'">paid</span>
+                        <span class="status-badge cancelled" *ngIf="element.status === 'cancelled'">cancelled</span>
+                        <span class="status-badge refunded" *ngIf="element.status === 'refunded'">refunded</span>
+                      </div>
                     </td>
                   </ng-container>
 
@@ -598,7 +612,94 @@
                 </div>
               </ng-template>
             </div>
-          </mat-tab>          <!-- Tab 4: Fitness Progress -->
+          </mat-tab>
+
+          <!-- Tab 3c: Outstanding Dues -->
+          <mat-tab>
+            <ng-template mat-tab-label>
+              <mat-icon class="tab-icon">money_off</mat-icon>
+              <span>Outstanding Dues</span>
+            </ng-template>
+            
+            <div class="tab-content outstanding-dues-tab">
+              <div class="section-summary-header">
+                <h3>Unresolved Invoices & Balances</h3>
+                <span class="metric-tag warning-glow" style="color: var(--warning)">Unresolved: {{ getOutstandingInvoices().length }}</span>
+              </div>
+
+              <div class="table-scroll-wrapper" *ngIf="getOutstandingInvoices().length > 0; else noOutstanding">
+                <table mat-table [dataSource]="getOutstandingInvoices()" class="w-100">
+                  <ng-container matColumnDef="invoiceNumber">
+                    <th mat-header-cell *matHeaderCellDef> Invoice # </th>
+                    <td mat-cell *matCellDef="let element" class="invoice-id"> {{ element.invoiceNumber }} </td>
+                  </ng-container>
+
+                  <ng-container matColumnDef="outstandingAmount">
+                    <th mat-header-cell *matHeaderCellDef> Outstanding Amount </th>
+                    <td mat-cell *matCellDef="let element" class="text-danger font-semibold"> ₹{{ element.pendingAmount ?? (element.finalAmount - (element.amountPaid ?? 0)) | number:'1.2-2' }} </td>
+                  </ng-container>
+
+                  <ng-container matColumnDef="dueDate">
+                    <th mat-header-cell *matHeaderCellDef> Due Date </th>
+                    <td mat-cell *matCellDef="let element"> {{ element.dueDate | date:'mediumDate' }} </td>
+                  </ng-container>
+
+                  <ng-container matColumnDef="status">
+                    <th mat-header-cell *matHeaderCellDef> Status </th>
+                    <td mat-cell *matCellDef="let element">
+                      <div style="display: flex; flex-direction: column; gap: 4px; align-items: flex-start; padding: 4px 0;">
+                        <span class="status-badge partially_paid" *ngIf="(element.amountPaid ?? 0) > 0 && (element.pendingAmount ?? 0) > 0">partially paid</span>
+                        <span class="status-badge overdue" *ngIf="element.status === 'overdue'">overdue</span>
+                        <span class="status-badge pending" *ngIf="element.status === 'pending' && !(element.amountPaid > 0)">pending</span>
+                        <span class="status-badge paid" *ngIf="element.status === 'paid'">paid</span>
+                        <span class="status-badge cancelled" *ngIf="element.status === 'cancelled'">cancelled</span>
+                        <span class="status-badge refunded" *ngIf="element.status === 'refunded'">refunded</span>
+                      </div>
+                    </td>
+                  </ng-container>
+
+                  <ng-container matColumnDef="daysOverdue">
+                    <th mat-header-cell *matHeaderCellDef> Days Overdue </th>
+                    <td mat-cell *matCellDef="let element" class="text-danger font-semibold">
+                      {{ element.status === 'overdue' ? (invoiceStatusService.calculateDaysOverdue(element) + ' days') : '—' }}
+                    </td>
+                  </ng-container>
+
+                  <ng-container matColumnDef="actions">
+                    <th mat-header-cell *matHeaderCellDef style="text-align: center"> Actions </th>
+                    <td mat-cell *matCellDef="let element" style="text-align: center">
+                      <div class="actions-wrapper" style="display: flex; gap: 8px; justify-content: center;">
+                        <button mat-flat-button color="primary" size="small" (click)="payInvoice(element)">
+                          <mat-icon>payment</mat-icon>
+                          <span>Pay Now</span>
+                        </button>
+                        <button mat-stroked-button color="accent" size="small" (click)="generateQR(element)">
+                          <mat-icon>qr_code</mat-icon>
+                          <span>Generate QR</span>
+                        </button>
+                        <button mat-stroked-button color="primary" size="small" (click)="sendReminder(element)">
+                          <mat-icon>send</mat-icon>
+                          <span>Send Reminder</span>
+                        </button>
+                      </div>
+                    </td>
+                  </ng-container>
+
+                  <tr mat-header-row *matHeaderRowDef="outstandingColumns"></tr>
+                  <tr mat-row *matRowDef="let row; columns: outstandingColumns;"></tr>
+                </table>
+              </div>
+              <ng-template #noOutstanding>
+                <div class="empty-tab-state">
+                  <mat-icon>check_circle</mat-icon>
+                  <h4 style="color: var(--success)">All Dues Settled</h4>
+                  <p>There are no outstanding invoices for this member.</p>
+                </div>
+              </ng-template>
+            </div>
+          </mat-tab>
+
+          <!-- Tab 4: Fitness Progress -->
           <mat-tab>
             <ng-template mat-tab-label>
               <mat-icon class="tab-icon">fitness_center</mat-icon>

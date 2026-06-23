@@ -52,6 +52,7 @@ export interface Invoice {
   dueDate?: string;
   salespersonId?: string;
   salespersonName?: string;
+  daysOverdue?: number;
   
   // PT Additions
   type?: 'membership' | 'renewal' | 'pt' | 'diet' | 'product' | 'custom';

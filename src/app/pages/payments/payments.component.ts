@@ -131,7 +131,7 @@ interface PaymentStats {
 })
 export class PaymentsComponent implements OnInit {
   historyColumns = ['name', 'plan', 'amount', 'paidAmount', 'dueAmount', 'date', 'dueDate', 'status', 'actions'];
-  pendingColumns = ['invoiceNumber', 'memberName', 'mobileNumber', 'invoiceDate', 'dueDate', 'amount', 'outstandingAmount', 'status', 'daysOverdue', 'branch', 'createdBy', 'actions'];
+  pendingColumns = ['invoiceNumber', 'memberName', 'mobileNumber', 'invoiceDate', 'dueDate', 'amount', 'amountPaid', 'outstandingAmount', 'status', 'daysOverdue', 'branch', 'createdBy', 'actions'];
   renewalColumns = ['name', 'plan', 'endDate', 'daysRemaining', 'status', 'actions'];
 
   dataSource = new MatTableDataSource<Payment>();
@@ -164,7 +164,6 @@ export class PaymentsComponent implements OnInit {
   ) {}
 
   ngOnInit(): void {
-    // 1. Subscribe to payments list
     this.paymentState.payments$.subscribe(payments => {
       this.dataSource.data = payments;
       this.applyFilters();
@@ -235,7 +234,12 @@ export class PaymentsComponent implements OnInit {
     this.dataSource.filterPredicate = (data: Payment, filter: string) => {
       const matchesSearch = data.memberName.toLowerCase().includes(query) ||
                             data.planName.toLowerCase().includes(query);
-      const matchesStatus = this.selectedStatus === 'all' || data.status === this.selectedStatus;
+      const matchesStatus = this.selectedStatus === 'all' || 
+                            (this.selectedStatus === 'pending' ? 
+                             (data.status === 'pending' || data.status === 'partially_paid' || ((data.paidAmount ?? 0) > 0 && (data.dueAmount ?? 0) > 0)) : 
+                             (this.selectedStatus === 'partially_paid' ?
+                              (data.status === 'partially_paid' || (data.status === 'overdue' && (data.paidAmount ?? 0) > 0)) :
+                              data.status === this.selectedStatus));
       return matchesSearch && matchesStatus;
     };
     this.dataSource.filter = query + '_' + this.selectedStatus;
@@ -245,7 +249,11 @@ export class PaymentsComponent implements OnInit {
                             data.membershipPlan.toLowerCase().includes(query);
       const matchesStatus = this.selectedPendingStatus === 'all' ?
                             (data.status === 'pending' || data.status === 'overdue' || data.status === 'partially_paid') :
-                            data.status === this.selectedPendingStatus;
+                            (this.selectedPendingStatus === 'pending' ?
+                             (data.status === 'pending' || data.status === 'partially_paid' || ((data.amountPaid ?? 0) > 0 && (data.pendingAmount ?? 0) > 0)) :
+                             (this.selectedPendingStatus === 'partially_paid' ?
+                              (data.status === 'partially_paid' || (data.status === 'overdue' && (data.amountPaid ?? 0) > 0)) :
+                              data.status === this.selectedPendingStatus));
       return matchesSearch && matchesStatus;
     };
     this.pendingDataSource.filter = query + '_' + this.selectedPendingStatus;
@@ -280,6 +288,7 @@ export class PaymentsComponent implements OnInit {
         this.paymentState.addPayment(result).subscribe({
           next: () => {
             this.submissionGuard.end('payment-add');
+            this.memberState.loadMembers();
             this.snackBar.open('Invoice recorded successfully!', 'Dismiss', {
               duration: 3000
             });
@@ -332,6 +341,7 @@ export class PaymentsComponent implements OnInit {
 
   markAsPaid(payment: Payment) {
     this.paymentState.confirmPayment(payment.id).subscribe(() => {
+      this.memberState.loadMembers();
       this.snackBar.open(`Payment of ₹${payment.amount} from ${payment.memberName} marked as PAID.`, 'Dismiss', {
         duration: 3000
       });
@@ -479,6 +489,34 @@ export class PaymentsComponent implements OnInit {
     });
   }
 
+  payNowFromPayment(payment: Payment) {
+    this.financeState.invoices$.pipe(take(1)).subscribe(invoices => {
+      const invoice = invoices.find(inv => inv.id === payment.invoiceId || (inv.memberId === payment.memberId && Math.abs(inv.finalAmount - payment.amount) < 0.01));
+      if (invoice) {
+        this.payNow(invoice);
+      } else {
+        const tempInvoice: Invoice = {
+          id: payment.invoiceId || 'inv-' + payment.id,
+          gymId: payment.gymId,
+          invoiceNumber: 'INV-' + payment.id.toUpperCase(),
+          memberId: payment.memberId,
+          memberName: payment.memberName,
+          membershipPlan: payment.planName,
+          amount: payment.amount,
+          finalAmount: payment.amount,
+          amountPaid: payment.paidAmount,
+          pendingAmount: payment.dueAmount,
+          dueDate: payment.dueDate,
+          status: payment.status as any,
+          invoiceDate: payment.date,
+          discount: payment.discountValue ?? 0,
+          paymentMethod: payment.paymentMethod ?? 'Pending'
+        };
+        this.payNow(tempInvoice);
+      }
+    });
+  }
+
   generateInvoiceQR(invoice: Invoice) {
     this.dialog.open(PayNowModalComponent, {
       width: '550px',
@@ -551,6 +589,8 @@ export class PaymentsComponent implements OnInit {
     };
 
     this.financeState.updateInvoice(updated).subscribe(() => {
+      this.paymentState.loadPayments();
+      this.memberState.loadMembers();
       this.snackBar.open(`Invoice ${invoice.invoiceNumber} successfully marked as PAID. Receipt ${receiptNumber} generated.`, 'Dismiss', { duration: 4000 });
     });
   }
@@ -582,6 +622,8 @@ export class PaymentsComponent implements OnInit {
       refundBy: 'Sophia Chen'
     };
     this.financeState.updateInvoice(updated).subscribe(() => {
+      this.paymentState.loadPayments();
+      this.memberState.loadMembers();
       this.snackBar.open(`Refund of ₹${updated.refundAmount} processed successfully for ${invoice.invoiceNumber}.`, 'Dismiss', { duration: 4000 });
     });
   }
