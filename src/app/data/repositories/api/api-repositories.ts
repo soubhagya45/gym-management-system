@@ -9,6 +9,8 @@ import { Payment } from '../../../core/models/payment.entity';
 import { Lead, LeadConversionPayload, LeadConversionResult } from '../../../core/models/lead.entity';
 import { Trainer } from '../../../core/models/trainer.entity';
 import { Attendance } from '../../../core/models/attendance.entity';
+import { DeviceConfiguration } from '../../../core/models/device-configuration.model';
+import { AttendanceMapping } from '../../../core/models/attendance-mapping.model';
 import { MembershipPlan } from '../../../core/models/membership-plan.entity';
 import { ActivityLog } from '../../../core/models/activity-log.entity';
 import { WhatsAppTemplate } from '../../../core/models/whatsapp-template.entity';
@@ -101,6 +103,18 @@ export class ApiAuthRepository extends BaseApiRepository implements IAuthReposit
 
   clearFirstLoginFlag(email: string): Observable<void> {
     return this.post<void>('/clear-first-login', { email });
+  }
+
+  getUsers(): Observable<UserProfile[]> {
+    return this.get<UserProfile[]>('/users');
+  }
+
+  updateUserRole(userId: string, role: UserRole): Observable<void> {
+    return this.post<void>(`/users/${userId}/role`, { role });
+  }
+
+  waitForAuthResolution(): Promise<boolean> {
+    return Promise.resolve(true);
   }
 }
 
@@ -286,6 +300,34 @@ export class ApiAttendanceRepository extends BaseApiRepository implements IAtten
 
   markAttendance(gymId: string, memberId: string, status: 'present' | 'absent', timeIn: string): Observable<Attendance> {
     return this.post<Attendance>('/mark', { memberId, status, timeIn }, { params: new HttpParams().set('gymId', gymId) });
+  }
+
+  getDevices(gymId: string): Observable<DeviceConfiguration[]> {
+    return this.get<DeviceConfiguration[]>('/devices', { params: new HttpParams().set('gymId', gymId) });
+  }
+
+  saveDevice(gymId: string, device: DeviceConfiguration): Observable<void> {
+    return this.post<void>('/devices', device, { params: new HttpParams().set('gymId', gymId) });
+  }
+
+  deleteDevice(gymId: string, deviceId: string): Observable<void> {
+    return this.delete<void>(`/devices/${deviceId}`, { params: new HttpParams().set('gymId', gymId) });
+  }
+
+  getMappings(gymId: string): Observable<AttendanceMapping[]> {
+    return this.get<AttendanceMapping[]>('/mappings', { params: new HttpParams().set('gymId', gymId) });
+  }
+
+  saveMapping(gymId: string, mapping: AttendanceMapping): Observable<void> {
+    return this.post<void>('/mappings', mapping, { params: new HttpParams().set('gymId', gymId) });
+  }
+
+  deleteMapping(gymId: string, mappingId: string): Observable<void> {
+    return this.delete<void>(`/mappings/${mappingId}`, { params: new HttpParams().set('gymId', gymId) });
+  }
+
+  updateDeviceSyncTime(gymId: string, deviceId: string, syncTime: string): Observable<void> {
+    return this.post<void>(`/devices/${deviceId}/sync`, { syncTime }, { params: new HttpParams().set('gymId', gymId) });
   }
 }
 

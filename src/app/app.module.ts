@@ -62,7 +62,7 @@ export function initializeFirebaseApp(
       return Promise.resolve();
     }
 
-    return authState.waitForAuthResolution(firebaseService.getAuth());
+    return authState.waitForAuthResolution();
   };
 }
 

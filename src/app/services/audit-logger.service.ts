@@ -1,16 +1,14 @@
-import { Injectable, Injector } from '@angular/core';
-import { doc, setDoc } from 'firebase/firestore';
-import { FirebaseService } from '../data/repositories/firebase/firebase.service';
+import { Injectable, Injector, Inject } from '@angular/core';
 import { AuthState } from '../presentation/state/auth.state';
 import { TenantContextService } from '../domain/tenancy/tenant-context.service';
-import { AUDIT_LOG_REPOSITORY_TOKEN } from '../core/interfaces/repository.interfaces';
+import { IAuditLogRepository, AUDIT_LOG_REPOSITORY_TOKEN } from '../core/interfaces/repository.interfaces';
 
 @Injectable({
   providedIn: 'root'
 })
 export class AuditLoggerService {
   constructor(
-    private firebaseService: FirebaseService,
+    @Inject(AUDIT_LOG_REPOSITORY_TOKEN) private auditLogRepository: IAuditLogRepository,
     private injector: Injector
   ) {}
 
@@ -26,10 +24,7 @@ export class AuditLoggerService {
     const activeBranch = activeGym?.branches?.find(b => b.id === branchId);
     const branchName = activeBranch?.name || '';
 
-    const id = 'audit_' + Math.random().toString(36).substring(2, 9);
-    
     const logEntry = {
-      id,
       userId: user.id,
       userName: user.name || user.email.split('@')[0],
       role: user.role,
@@ -45,21 +40,9 @@ export class AuditLoggerService {
       ipAddress: '192.168.1.' + Math.floor(10 + Math.random() * 90)
     };
 
-    if (this.firebaseService.isInitialized()) {
-      const db = this.firebaseService.getDb();
-      setDoc(doc(db, 'auditLogs', id), logEntry)
-        .then(() => console.log(`[AuditLogger] Action logged to Firebase: ${action}`))
-        .catch(err => console.error('[AuditLogger] Action logging failed:', err));
-    } else {
-      console.log(`[AuditLogger] Action logged (console): ${action}`, logEntry);
-      try {
-        const auditLogRepo = this.injector.get(AUDIT_LOG_REPOSITORY_TOKEN);
-        if (auditLogRepo) {
-          auditLogRepo.addAuditLog(user.gymId, logEntry).subscribe();
-        }
-      } catch (err) {
-        console.warn('Could not store audit log in repository:', err);
-      }
-    }
+    this.auditLogRepository.addAuditLog(user.gymId, logEntry).subscribe({
+      next: () => console.log(`[AuditLogger] Action logged: ${action}`),
+      error: (err) => console.error('[AuditLogger] Action logging failed:', err)
+    });
   }
 }

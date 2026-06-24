@@ -1,20 +1,13 @@
-import { Injectable, Inject, Injector } from '@angular/core';
-import { BehaviorSubject, Observable, of, combineLatest, throwError } from 'rxjs';
-import { catchError, switchMap, tap, take } from 'rxjs/operators';
-import {
-  IMemberRepository,
-  MEMBER_REPOSITORY_TOKEN,
-  IActivityLogRepository,
-  ACTIVITY_LOG_REPOSITORY_TOKEN,
-  IPaymentRepository,
-  PAYMENT_REPOSITORY_TOKEN
-} from '../../core/interfaces/repository.interfaces';
+import { Injectable, Injector } from '@angular/core';
+import { BehaviorSubject, Observable, of, combineLatest } from 'rxjs';
+import { catchError, switchMap, tap } from 'rxjs/operators';
 import { Member } from '../../core/models/member.entity';
-import { LeadConversionPayload } from '../../core/models/lead.entity';
 import { TenantContextService } from '../../domain/tenancy/tenant-context.service';
 import { PaymentState } from './payment.state';
 import { FinanceState } from './finance.state';
 import { PTState } from './pt.state';
+import { MemberService } from '../../services/member.service';
+import { LeadConversionPayload } from '../../core/models/lead.entity';
 
 @Injectable({
   providedIn: 'root'
@@ -24,9 +17,7 @@ export class MemberState {
   members$ = this.membersSubject.asObservable();
 
   constructor(
-    @Inject(MEMBER_REPOSITORY_TOKEN) private memberRepository: IMemberRepository,
-    @Inject(PAYMENT_REPOSITORY_TOKEN) private paymentRepository: IPaymentRepository,
-    @Inject(ACTIVITY_LOG_REPOSITORY_TOKEN) private logRepository: IActivityLogRepository,
+    private memberService: MemberService,
     private tenantContext: TenantContextService,
     private paymentState: PaymentState,
     private financeState: FinanceState,
@@ -38,7 +29,7 @@ export class MemberState {
     ]).pipe(
       switchMap(([gymId, branchId]) => {
         if (!gymId) return of([]);
-        return this.memberRepository.getMembers(gymId).pipe(
+        return this.memberService.getMembers().pipe(
           catchError(err => {
             console.error('Error fetching members:', err);
             return of([]);
@@ -53,71 +44,38 @@ export class MemberState {
   loadMembers(): void {
     const gymId = this.tenantContext.getTenantId();
     if (gymId) {
-      this.memberRepository.getMembers(gymId).subscribe(members => {
+      this.memberService.getMembers().subscribe(members => {
         this.membersSubject.next(members);
       });
     }
   }
 
   getMemberById(id: string): Observable<Member | null> {
-    const gymId = this.tenantContext.getTenantId();
-    if (!gymId) return of(null);
-    return this.memberRepository.getMemberById(gymId, id);
+    return this.memberService.getMemberById(id);
   }
 
   addMember(member: Omit<Member, 'id' | 'attendanceCount' | 'balance' | 'gymId'>): Observable<Member> {
-    const gymId = this.tenantContext.getTenantId();
-    if (!gymId) throw new Error('No active tenant selected');
-
-    return this.memberRepository.addMember(gymId, { ...member, gymId }).pipe(
-      tap((newMember) => {
+    return this.memberService.addMember(member).pipe(
+      tap(() => {
         this.loadMembers();
-        this.logRepository.addLog(gymId, `New member ${member.name} joined the club!`, 'join').subscribe();
-
-        // Auto-create payment invoice for non-inactive members
-        if (newMember.status !== 'inactive') {
-          this.paymentRepository.addPayment(gymId, {
-            gymId,
-            memberId: newMember.id,
-            memberName: newMember.name,
-            amount: newMember.balance,
-            paidAmount: 0,
-            dueAmount: newMember.balance,
-            dueDate: new Date().toISOString().split('T')[0],
-            date: new Date().toISOString().split('T')[0],
-            status: 'pending',
-            planName: newMember.planName
-          }).subscribe(() => {
-            this.paymentState.loadPayments();
-            this.financeState.loadFinanceData();
-          });
-        }
+        this.paymentState.loadPayments();
+        this.financeState.loadFinanceData();
       })
     );
   }
 
   updateMember(member: Member): Observable<void> {
-    const gymId = this.tenantContext.getTenantId();
-    if (!gymId) throw new Error('No active tenant selected');
-
-    return this.memberRepository.updateMember(gymId, member).pipe(
+    return this.memberService.updateMember(member).pipe(
       tap(() => {
         this.loadMembers();
-        this.logRepository.addLog(gymId, `Updated details for member: ${member.name}`, 'plan-change').subscribe();
       })
     );
   }
 
   deleteMember(id: string): Observable<void> {
-    const gymId = this.tenantContext.getTenantId();
-    if (!gymId) throw new Error('No active tenant selected');
-
-    const memberName = this.membersSubject.value.find(m => m.id === id)?.name || 'Member';
-
-    return this.memberRepository.deleteMember(gymId, id).pipe(
+    return this.memberService.deleteMember(id).pipe(
       tap(() => {
         this.loadMembers();
-        this.logRepository.addLog(gymId, `Removed member profile: ${memberName}`, 'plan-change').subscribe();
       })
     );
   }
@@ -138,85 +96,43 @@ export class MemberState {
     discountValue: number = 0,
     originalAmount: number = price
   ): Observable<any> {
-    const gymId = this.tenantContext.getTenantId();
-    if (!gymId) return throwError(() => new Error('No active tenant selected'));
-
-    return this.getMemberById(memberId).pipe(
-      take(1),
-      switchMap(member => {
-        if (!member) return throwError(() => new Error('Member not found'));
-        
-        const updated: Member = {
-          ...member,
-          planId,
-          planName,
-          startDate,
-          endDate,
-          status: 'active',
-          balance: dueAmount
-        };
-
-        return this.memberRepository.updateMember(gymId, updated).pipe(
-          switchMap(() => {
-            this.loadMembers();
-            this.logRepository.addLog(gymId, `Renewed membership for ${member.name} (Plan: ${planName})`, 'plan-change').subscribe();
-
-            return this.paymentRepository.addPayment(gymId, {
-              gymId,
-              memberId,
-              memberName: member.name,
-              amount: price,
-              paidAmount,
-              dueAmount,
-              dueDate,
-              date: new Date().toISOString().split('T')[0],
-              status: paymentStatus as any,
-              planName,
-              paymentMethod,
-              discountType: discountType as any,
-              discountValue,
-              originalAmount
-            }).pipe(
-              tap(() => {
-                this.paymentState.loadPayments();
-                this.financeState.loadFinanceData();
-              })
-            );
-          })
-        );
+    return this.memberService.renewMembership(
+      memberId,
+      planId,
+      planName,
+      startDate,
+      endDate,
+      price,
+      paidAmount,
+      dueAmount,
+      dueDate,
+      paymentStatus,
+      paymentMethod,
+      discountType,
+      discountValue,
+      originalAmount
+    ).pipe(
+      tap(() => {
+        this.loadMembers();
+        this.paymentState.loadPayments();
+        this.financeState.loadFinanceData();
       })
     );
   }
 
   registerMember(payload: Omit<LeadConversionPayload, 'gymId' | 'branchId' | 'today'>): Observable<any> {
-    const gymId = this.tenantContext.getTenantId();
-    const branchId = this.tenantContext.getBranchId() || 'br-1';
-    if (!gymId) throw new Error('No active tenant selected');
-
-    const today = new Date().toISOString().split('T')[0];
-
-    const fullPayload: LeadConversionPayload = {
-      ...payload,
-      gymId,
-      branchId,
-      today
-    };
-
-    return this.memberRepository.registerMember(fullPayload).pipe(
+    return this.memberService.registerMember(payload).pipe(
       tap(() => {
         this.loadMembers();
         this.paymentState.loadPayments();
         this.financeState.loadFinanceData();
         
-        // Dynamic load PTState to avoid circular import constructor issues
         try {
           const ptState = this.injector.get(PTState);
           ptState.loadAll();
         } catch (e) {
           console.error('Failed to reload PTState:', e);
         }
-        
-        this.logRepository.addLog(gymId, `Registered new member: ${payload.memberData.name}`, 'join').subscribe();
       })
     );
   }

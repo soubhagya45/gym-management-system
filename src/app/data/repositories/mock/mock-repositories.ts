@@ -34,6 +34,8 @@ import { Payment } from '../../../core/models/payment.entity';
 import { Lead, LeadConversionPayload, LeadConversionResult } from '../../../core/models/lead.entity';
 import { Trainer } from '../../../core/models/trainer.entity';
 import { Attendance } from '../../../core/models/attendance.entity';
+import { DeviceConfiguration } from '../../../core/models/device-configuration.model';
+import { AttendanceMapping } from '../../../core/models/attendance-mapping.model';
 import { MembershipPlan } from '../../../core/models/membership-plan.entity';
 import { ActivityLog } from '../../../core/models/activity-log.entity';
 import { SubscriptionPlan } from '../../../core/enums/subscription-plans.enum';
@@ -390,6 +392,16 @@ const dbAttendance: Attendance[] = [
   { id: 'att-6', gymId: 'gym-a', memberId: 'mem-7', memberName: 'Rohan Mehta', date: '2026-06-04', timeIn: '10:00 AM', status: 'present' },
   // Gym B Attendance
   { id: 'att-b1', gymId: 'gym-b', memberId: 'mem-b1', memberName: 'John Connor', date: '2026-06-04', timeIn: '07:00 AM', status: 'present' }
+];
+
+const dbDeviceConfigurations: DeviceConfiguration[] = [
+  { id: 'dev-1', gymId: 'gym-a', branchId: 'br-1', deviceName: 'Front Gate Biometric', deviceType: 'essl_biometric', ipAddress: '192.168.1.50', port: 4370, status: 'Active', lastSyncTime: '2026-06-24T12:00:00Z', createdAt: '2026-06-24T12:00:00Z' },
+  { id: 'dev-2', gymId: 'gym-a', branchId: 'br-1', deviceName: 'Back Entrance Biometric', deviceType: 'essl_biometric', ipAddress: '192.168.1.51', port: 4370, status: 'Inactive', lastSyncTime: '2026-06-23T18:30:00Z', createdAt: '2026-06-24T12:00:00Z' }
+];
+
+const dbAttendanceMappings: AttendanceMapping[] = [
+  { id: 'map-1', gymId: 'gym-a', branchId: 'br-1', deviceUserId: '1001', mappedType: 'member', mappedId: 'mem-1', mappedName: 'Amit Sharma', createdAt: '2026-06-24T12:00:00Z' },
+  { id: 'map-2', gymId: 'gym-a', branchId: 'br-1', deviceUserId: '1002', mappedType: 'member', mappedId: 'mem-2', mappedName: 'Priya Patel', createdAt: '2026-06-24T12:00:00Z' }
 ];
 
 const dbLeads: Lead[] = [
@@ -1265,6 +1277,22 @@ export class MockAuthRepository implements IAuthRepository {
       dbMockAccounts[emailKey] = user;
     }
     return of(undefined).pipe(delay(200));
+  }
+
+  getUsers(): Observable<UserProfile[]> {
+    return of(Object.values(dbMockAccounts)).pipe(delay(200));
+  }
+
+  updateUserRole(userId: string, role: UserRole): Observable<void> {
+    const user = Object.values(dbMockAccounts).find(u => u.id === userId);
+    if (user) {
+      user.role = role;
+    }
+    return of(undefined).pipe(delay(200));
+  }
+
+  waitForAuthResolution(): Promise<boolean> {
+    return Promise.resolve(true);
   }
 }
 
@@ -2160,6 +2188,58 @@ export class MockAttendanceRepository implements IAttendanceRepository {
 
       return of(newAttendance).pipe(delay(300));
     }
+  }
+
+  getDevices(gymId: string): Observable<DeviceConfiguration[]> {
+    return of(dbDeviceConfigurations.filter(d => d.gymId === gymId)).pipe(delay(200));
+  }
+
+  saveDevice(gymId: string, device: DeviceConfiguration): Observable<void> {
+    const existingIdx = dbDeviceConfigurations.findIndex(d => d.id === device.id);
+    if (existingIdx !== -1) {
+      dbDeviceConfigurations[existingIdx] = { ...device, gymId };
+    } else {
+      dbDeviceConfigurations.push({ ...device, gymId });
+    }
+    return of(undefined).pipe(delay(200));
+  }
+
+  deleteDevice(gymId: string, deviceId: string): Observable<void> {
+    const existingIdx = dbDeviceConfigurations.findIndex(d => d.id === deviceId);
+    if (existingIdx !== -1) {
+      dbDeviceConfigurations.splice(existingIdx, 1);
+    }
+    return of(undefined).pipe(delay(200));
+  }
+
+  getMappings(gymId: string): Observable<AttendanceMapping[]> {
+    return of(dbAttendanceMappings.filter(m => m.gymId === gymId)).pipe(delay(200));
+  }
+
+  saveMapping(gymId: string, mapping: AttendanceMapping): Observable<void> {
+    const existingIdx = dbAttendanceMappings.findIndex(m => m.id === mapping.id);
+    if (existingIdx !== -1) {
+      dbAttendanceMappings[existingIdx] = { ...mapping, gymId };
+    } else {
+      dbAttendanceMappings.push({ ...mapping, gymId });
+    }
+    return of(undefined).pipe(delay(200));
+  }
+
+  deleteMapping(gymId: string, mappingId: string): Observable<void> {
+    const existingIdx = dbAttendanceMappings.findIndex(m => m.id === mappingId);
+    if (existingIdx !== -1) {
+      dbAttendanceMappings.splice(existingIdx, 1);
+    }
+    return of(undefined).pipe(delay(200));
+  }
+
+  updateDeviceSyncTime(gymId: string, deviceId: string, syncTime: string): Observable<void> {
+    const device = dbDeviceConfigurations.find(d => d.id === deviceId);
+    if (device) {
+      device.lastSyncTime = syncTime;
+    }
+    return of(undefined).pipe(delay(200));
   }
 }
 

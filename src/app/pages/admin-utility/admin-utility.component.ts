@@ -8,8 +8,7 @@ import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
 import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
 import { MatTableModule } from '@angular/material/table';
-import { FirebaseService } from '../../data/repositories/firebase/firebase.service';
-import { collection, getDocs, doc, updateDoc } from 'firebase/firestore';
+import { AuthService } from '../../services/auth.service';
 import { UserProfile } from '../../core/models/user.model';
 import { UserRole } from '../../core/enums/roles.enum';
 
@@ -37,7 +36,7 @@ export class AdminUtilityComponent implements OnInit {
   isLoading = false;
 
   constructor(
-    private firebaseService: FirebaseService,
+    private authService: AuthService,
     private snackBar: MatSnackBar
   ) {}
 
@@ -47,16 +46,17 @@ export class AdminUtilityComponent implements OnInit {
 
   loadUsers(): void {
     this.isLoading = true;
-    const db = this.firebaseService.getDb();
-    getDocs(collection(db, 'users'))
-      .then(snap => {
-        this.users = snap.docs.map(d => d.data() as UserProfile);
-        this.isLoading = false;
-      })
-      .catch(err => {
-        console.error(err);
-        this.snackBar.open('Failed to load user directories.', 'Close', { duration: 5000 });
-        this.isLoading = false;
+    this.authService.getUsers()
+      .subscribe({
+        next: (users) => {
+          this.users = users;
+          this.isLoading = false;
+        },
+        error: (err) => {
+          console.error(err);
+          this.snackBar.open('Failed to load user directories.', 'Close', { duration: 5000 });
+          this.isLoading = false;
+        }
       });
   }
 
@@ -74,17 +74,18 @@ export class AdminUtilityComponent implements OnInit {
     }
 
     this.isLoading = true;
-    const db = this.firebaseService.getDb();
-    updateDoc(doc(db, 'users', user.id), { role: UserRole.SuperAdmin })
-      .then(() => {
-        this.snackBar.open(`${user.name} has been promoted to Super Admin.`, 'Close', { duration: 5000 });
-        this.emailToPromote = '';
-        this.loadUsers();
-      })
-      .catch(err => {
-        console.error(err);
-        this.snackBar.open('Failed to promote user: ' + err.message, 'Close', { duration: 5000 });
-        this.isLoading = false;
+    this.authService.updateUserRole(user.id, UserRole.SuperAdmin)
+      .subscribe({
+        next: () => {
+          this.snackBar.open(`${user.name} has been promoted to Super Admin.`, 'Close', { duration: 5000 });
+          this.emailToPromote = '';
+          this.loadUsers();
+        },
+        error: (err) => {
+          console.error(err);
+          this.snackBar.open('Failed to promote user: ' + err.message, 'Close', { duration: 5000 });
+          this.isLoading = false;
+        }
       });
   }
 
@@ -92,16 +93,17 @@ export class AdminUtilityComponent implements OnInit {
     if (user.role !== UserRole.SuperAdmin) return;
     
     this.isLoading = true;
-    const db = this.firebaseService.getDb();
-    updateDoc(doc(db, 'users', user.id), { role: UserRole.Owner })
-      .then(() => {
-        this.snackBar.open(`${user.name} role reverted to Owner.`, 'Close', { duration: 5000 });
-        this.loadUsers();
-      })
-      .catch(err => {
-        console.error(err);
-        this.snackBar.open('Failed to demote user: ' + err.message, 'Close', { duration: 5000 });
-        this.isLoading = false;
+    this.authService.updateUserRole(user.id, UserRole.Owner)
+      .subscribe({
+        next: () => {
+          this.snackBar.open(`${user.name} role reverted to Owner.`, 'Close', { duration: 5000 });
+          this.loadUsers();
+        },
+        error: (err) => {
+          console.error(err);
+          this.snackBar.open('Failed to demote user: ' + err.message, 'Close', { duration: 5000 });
+          this.isLoading = false;
+        }
       });
   }
 }

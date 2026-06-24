@@ -8,6 +8,8 @@ import { Payment } from '../../../core/models/payment.entity';
 import { Lead, LeadConversionPayload, LeadConversionResult } from '../../../core/models/lead.entity';
 import { Trainer } from '../../../core/models/trainer.entity';
 import { Attendance } from '../../../core/models/attendance.entity';
+import { DeviceConfiguration } from '../../../core/models/device-configuration.model';
+import { AttendanceMapping } from '../../../core/models/attendance-mapping.model';
 import { MembershipPlan } from '../../../core/models/membership-plan.entity';
 import { ActivityLog } from '../../../core/models/activity-log.entity';
 import { WhatsAppTemplate } from '../../../core/models/whatsapp-template.entity';
@@ -79,6 +81,15 @@ export class SupabaseAuthRepository implements IAuthRepository {
   clearFirstLoginFlag(email: string): Observable<void> {
     return throwError(() => new Error('Supabase integration is not enabled.'));
   }
+  getUsers(): Observable<UserProfile[]> {
+    return throwError(() => new Error('Supabase integration is not enabled.'));
+  }
+  updateUserRole(userId: string, role: UserRole): Observable<void> {
+    return throwError(() => new Error('Supabase integration is not enabled.'));
+  }
+  waitForAuthResolution(): Promise<boolean> {
+    return Promise.reject(new Error('Supabase integration is not enabled.'));
+  }
 }
 
 @Injectable({ providedIn: 'root' })
@@ -134,6 +145,13 @@ export class SupabaseTrainerRepository implements ITrainerRepository {
 export class SupabaseAttendanceRepository implements IAttendanceRepository {
   getAttendance(gymId: string): Observable<Attendance[]> { return throwError(() => new Error('Supabase integration is not enabled.')); }
   markAttendance(gymId: string, memberId: string, status: 'present' | 'absent', timeIn: string): Observable<Attendance> { return throwError(() => new Error('Supabase integration is not enabled.')); }
+  getDevices(gymId: string): Observable<DeviceConfiguration[]> { return throwError(() => new Error('Supabase integration is not enabled.')); }
+  saveDevice(gymId: string, device: DeviceConfiguration): Observable<void> { return throwError(() => new Error('Supabase integration is not enabled.')); }
+  deleteDevice(gymId: string, deviceId: string): Observable<void> { return throwError(() => new Error('Supabase integration is not enabled.')); }
+  getMappings(gymId: string): Observable<AttendanceMapping[]> { return throwError(() => new Error('Supabase integration is not enabled.')); }
+  saveMapping(gymId: string, mapping: AttendanceMapping): Observable<void> { return throwError(() => new Error('Supabase integration is not enabled.')); }
+  deleteMapping(gymId: string, mappingId: string): Observable<void> { return throwError(() => new Error('Supabase integration is not enabled.')); }
+  updateDeviceSyncTime(gymId: string, deviceId: string, syncTime: string): Observable<void> { return throwError(() => new Error('Supabase integration is not enabled.')); }
 }
 
 @Injectable({ providedIn: 'root' })

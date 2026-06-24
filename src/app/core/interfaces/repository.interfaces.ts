@@ -23,6 +23,8 @@ import { TrainerRevenue } from '../models/trainer-revenue.entity';
 import { MemberPTPlan } from '../models/member-pt-plan.entity';
 import { AuditLog } from '../models/audit-log.model';
 import { PaymentSettings } from '../models/payment-settings.model';
+import { DeviceConfiguration } from '../models/device-configuration.model';
+import { AttendanceMapping } from '../models/attendance-mapping.model';
 
 // --- Interface Definitions ---
 
@@ -46,6 +48,9 @@ export interface IAuthRepository {
   inviteStaff(email: string, name: string, role: UserRole, gymId: string): Observable<UserProfile>;
   changePassword(email: string, newPassword: string): Observable<void>;
   clearFirstLoginFlag(email: string): Observable<void>;
+  getUsers(): Observable<UserProfile[]>;
+  updateUserRole(userId: string, role: UserRole): Observable<void>;
+  waitForAuthResolution(): Promise<boolean>;
 }
 
 export interface IGymRepository {
@@ -98,6 +103,13 @@ export interface ITrainerRepository {
 export interface IAttendanceRepository {
   getAttendance(gymId: string): Observable<Attendance[]>;
   markAttendance(gymId: string, memberId: string, status: 'present' | 'absent', timeIn: string): Observable<Attendance>;
+  getDevices(gymId: string): Observable<DeviceConfiguration[]>;
+  saveDevice(gymId: string, device: DeviceConfiguration): Observable<void>;
+  deleteDevice(gymId: string, deviceId: string): Observable<void>;
+  getMappings(gymId: string): Observable<AttendanceMapping[]>;
+  saveMapping(gymId: string, mapping: AttendanceMapping): Observable<void>;
+  deleteMapping(gymId: string, mappingId: string): Observable<void>;
+  updateDeviceSyncTime(gymId: string, deviceId: string, syncTime: string): Observable<void>;
 }
 
 export interface IMembershipPlanRepository {
@@ -212,4 +224,12 @@ export const FINANCE_REPOSITORY_TOKEN = new InjectionToken<IFinanceRepository>('
 export const EMPLOYEE_REPOSITORY_TOKEN = new InjectionToken<IEmployeeRepository>('EMPLOYEE_REPOSITORY_TOKEN');
 export const PERSONAL_TRAINING_REPOSITORY_TOKEN = new InjectionToken<IPersonalTrainingRepository>('PERSONAL_TRAINING_REPOSITORY_TOKEN');
 export const AUDIT_LOG_REPOSITORY_TOKEN = new InjectionToken<IAuditLogRepository>('AUDIT_LOG_REPOSITORY_TOKEN');
+
+// --- Enterprise Abstractions & Factories ---
+export * from './storage-provider.interface';
+export * from './job-scheduler.interface';
+export * from './unit-of-work.interface';
+export * from '../models/pagination.contracts';
+export * from '../factories/provider-factories';
+
 

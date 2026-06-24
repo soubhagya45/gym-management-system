@@ -35,4 +35,42 @@ export class AuthService {
   getUserProfile(userId: string): Observable<UserProfile | null> {
     return this.authRepository.getUserProfile(userId);
   }
+
+  register(
+    gymName: string,
+    ownerName: string,
+    email: string,
+    phone: string,
+    password?: string,
+    address?: string,
+    gstNumber?: string,
+    gymType?: string,
+    openingTime?: string,
+    closingTime?: string
+  ): Observable<UserProfile> {
+    return this.authRepository.register(
+      gymName,
+      ownerName,
+      email,
+      phone,
+      password,
+      address,
+      gstNumber,
+      gymType,
+      openingTime,
+      closingTime
+    );
+  }
+
+  getUsers(): Observable<UserProfile[]> {
+    return this.authRepository.getUsers();
+  }
+
+  updateUserRole(userId: string, role: UserRole): Observable<void> {
+    return this.authRepository.updateUserRole(userId, role);
+  }
+
+  waitForAuthResolution(): Promise<boolean> {
+    return this.authRepository.waitForAuthResolution();
+  }
 }

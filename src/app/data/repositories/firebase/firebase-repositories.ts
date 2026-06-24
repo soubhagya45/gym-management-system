@@ -21,6 +21,8 @@ import { SubscriptionPlan } from '../../../core/enums/subscription-plans.enum';
 import { AuthState } from '../../../presentation/state/auth.state';
 import { TenantContextService } from '../../../domain/tenancy/tenant-context.service';
 import { AuditLoggerService } from '../../../services/audit-logger.service';
+import { DeviceConfiguration } from '../../../core/models/device-configuration.model';
+import { AttendanceMapping } from '../../../core/models/attendance-mapping.model';
 
 import {
   IAuthRepository,
@@ -511,6 +513,36 @@ export class FirebaseAuthRepository implements IAuthRepository {
       map(() => undefined),
       catchError(err => throwError(() => new Error(err.message || 'Failed to clear first login flag.')))
     );
+  }
+
+  getUsers(): Observable<UserProfile[]> {
+    const db = this.firebaseService.getDb();
+    return from(getDocs(collection(db, 'users'))).pipe(
+      map(snap => snap.docs.map(d => d.data() as UserProfile)),
+      catchError(err => throwError(() => new Error(err.message || 'Failed to get users.')))
+    );
+  }
+
+  updateUserRole(userId: string, role: UserRole): Observable<void> {
+    const db = this.firebaseService.getDb();
+    return from(updateDoc(doc(db, 'users', userId), { role })).pipe(
+      map(() => undefined),
+      catchError(err => throwError(() => new Error(err.message || 'Failed to update user role.')))
+    );
+  }
+
+  waitForAuthResolution(): Promise<boolean> {
+    const auth = this.firebaseService.getAuth();
+    return new Promise<boolean>((resolve) => {
+      import('firebase/auth').then(({ onAuthStateChanged }) => {
+        const unsubscribe = onAuthStateChanged(auth, (firebaseUser) => {
+          unsubscribe();
+          resolve(!!firebaseUser);
+        });
+      }).catch(() => {
+        resolve(false);
+      });
+    });
   }
 }
 
@@ -1587,6 +1619,69 @@ export class FirebaseAttendanceRepository implements IAttendanceRepository {
         }
       }),
       catchError(err => throwError(() => new Error(err.message || 'Failed to mark attendance.')))
+    );
+  }
+
+  getDevices(gymId: string): Observable<DeviceConfiguration[]> {
+    const db = this.firebaseService.getDb();
+    const q = query(collection(db, 'deviceConfigurations'), where('gymId', '==', gymId));
+    return from(getDocs(q)).pipe(
+      map(snap => snap.docs.map(d => d.data() as DeviceConfiguration)),
+      catchError(err => throwError(() => new Error(err.message || 'Failed to get device configurations.')))
+    );
+  }
+
+  saveDevice(gymId: string, device: DeviceConfiguration): Observable<void> {
+    const db = this.firebaseService.getDb();
+    const deviceRef = doc(db, 'deviceConfigurations', device.id);
+    return from(setDoc(deviceRef, { ...device, gymId })).pipe(
+      map(() => undefined),
+      catchError(err => throwError(() => new Error(err.message || 'Failed to save device configuration.')))
+    );
+  }
+
+  deleteDevice(gymId: string, deviceId: string): Observable<void> {
+    const db = this.firebaseService.getDb();
+    const deviceRef = doc(db, 'deviceConfigurations', deviceId);
+    return from(deleteDoc(deviceRef)).pipe(
+      map(() => undefined),
+      catchError(err => throwError(() => new Error(err.message || 'Failed to delete device configuration.')))
+    );
+  }
+
+  getMappings(gymId: string): Observable<AttendanceMapping[]> {
+    const db = this.firebaseService.getDb();
+    const q = query(collection(db, 'attendanceMappings'), where('gymId', '==', gymId));
+    return from(getDocs(q)).pipe(
+      map(snap => snap.docs.map(d => d.data() as AttendanceMapping)),
+      catchError(err => throwError(() => new Error(err.message || 'Failed to get mappings.')))
+    );
+  }
+
+  saveMapping(gymId: string, mapping: AttendanceMapping): Observable<void> {
+    const db = this.firebaseService.getDb();
+    const mapRef = doc(db, 'attendanceMappings', mapping.id);
+    return from(setDoc(mapRef, { ...mapping, gymId })).pipe(
+      map(() => undefined),
+      catchError(err => throwError(() => new Error(err.message || 'Failed to save attendance mapping.')))
+    );
+  }
+
+  deleteMapping(gymId: string, mappingId: string): Observable<void> {
+    const db = this.firebaseService.getDb();
+    const mapRef = doc(db, 'attendanceMappings', mappingId);
+    return from(deleteDoc(mapRef)).pipe(
+      map(() => undefined),
+      catchError(err => throwError(() => new Error(err.message || 'Failed to delete mapping.')))
+    );
+  }
+
+  updateDeviceSyncTime(gymId: string, deviceId: string, syncTime: string): Observable<void> {
+    const db = this.firebaseService.getDb();
+    const deviceRef = doc(db, 'deviceConfigurations', deviceId);
+    return from(updateDoc(deviceRef, { lastSyncTime: syncTime })).pipe(
+      map(() => undefined),
+      catchError(err => throwError(() => new Error(err.message || 'Failed to update device sync time.')))
     );
   }
 }

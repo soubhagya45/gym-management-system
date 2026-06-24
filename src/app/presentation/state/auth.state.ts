@@ -1,8 +1,8 @@
-import { Injectable, Inject } from '@angular/core';
+import { Injectable } from '@angular/core';
 import { Router } from '@angular/router';
 import { BehaviorSubject, Observable } from 'rxjs';
 import { tap } from 'rxjs/operators';
-import { IAuthRepository, AUTH_REPOSITORY_TOKEN } from '../../core/interfaces/repository.interfaces';
+import { AuthService } from '../../services/auth.service';
 import { UserProfile } from '../../core/models/user.model';
 import { UserRole } from '../../core/enums/roles.enum';
 import { Permission } from '../../core/models/permission.model';
@@ -20,7 +20,7 @@ export class AuthState {
   currentUser$: Observable<UserProfile | null> = this.currentUserSubject.asObservable();
 
   constructor(
-    @Inject(AUTH_REPOSITORY_TOKEN) private authRepository: IAuthRepository,
+    private authService: AuthService,
     private tenantContext: TenantContextService,
     private sessionService: SessionService,
     private permissionService: PermissionService,
@@ -75,40 +75,21 @@ export class AuthState {
    *
    * @param firebaseAuth The Firebase Auth instance (injected by APP_INITIALIZER factory).
    */
-  waitForAuthResolution(firebaseAuth: import('firebase/auth').Auth): Promise<void> {
-    return new Promise<void>((resolve) => {
-      // Import onAuthStateChanged lazily to avoid a hard dependency in the provider-agnostic state layer.
-      import('firebase/auth').then(({ onAuthStateChanged }) => {
-        const unsubscribe = onAuthStateChanged(firebaseAuth, (firebaseUser) => {
-          // Unsubscribe immediately — we only need the first emission.
-          unsubscribe();
-
-          if (!firebaseUser) {
-            // Firebase reports no authenticated user.
-            // If we have a stale localStorage session, evict it now — before any
-            // data queries run — so the app starts in a clean unauthenticated state.
-            const hasCachedSession = !!localStorage.getItem(this.STORAGE_KEY);
-            if (hasCachedSession) {
-              console.warn('[AuthState] Firebase Auth resolved null but localStorage has a cached session. Clearing stale session.');
-              localStorage.removeItem(this.STORAGE_KEY);
-              this.currentUserSubject.next(null);
-              this.tenantContext.setTenantId(null);
-              this.sessionService.stop();
-              // Navigate to login after Angular finishes bootstrapping.
-              // Using a microtask ensures the router is fully initialised.
-              Promise.resolve().then(() => this.router.navigate(['/login']));
-            }
-          }
-          // If firebaseUser is non-null, the existing loadSession() already populated
-          // the state from localStorage. The session is valid — no action needed.
-
-          resolve();
-        });
-      }).catch(() => {
-        // If the firebase/auth import fails (e.g. Mock provider), resolve immediately
-        // so the app still boots normally in non-Firebase environments.
-        resolve();
-      });
+  waitForAuthResolution(): Promise<void> {
+    return this.authService.waitForAuthResolution().then(isResolved => {
+      if (!isResolved) {
+        const hasCachedSession = !!localStorage.getItem(this.STORAGE_KEY);
+        if (hasCachedSession) {
+          console.warn('[AuthState] Auth resolved null but localStorage has a cached session. Clearing stale session.');
+          localStorage.removeItem(this.STORAGE_KEY);
+          this.currentUserSubject.next(null);
+          this.tenantContext.setTenantId(null);
+          this.sessionService.stop();
+          Promise.resolve().then(() => this.router.navigate(['/login']));
+        }
+      }
+    }).catch(() => {
+      // resolve anyway to avoid blocking bootstrap
     });
   }
 
@@ -139,7 +120,7 @@ export class AuthState {
   }
 
   login(email: string, password: string): Observable<UserProfile> {
-    return this.authRepository.login(email, password).pipe(
+    return this.authService.login(email, password).pipe(
       tap(user => this.setSession(user))
     );
   }
@@ -157,7 +138,7 @@ export class AuthState {
     openingTime?: string,
     closingTime?: string
   ): Observable<UserProfile> {
-    return this.authRepository.register(
+    return this.authService.register(
       gymName,
       ownerName,
       email,
@@ -182,13 +163,13 @@ export class AuthState {
   }
 
   loginWithRole(role: UserRole): Observable<UserProfile> {
-    return this.authRepository.loginWithRole(role).pipe(
+    return this.authService.loginWithRole(role).pipe(
       tap(user => this.setSession(user))
     );
   }
 
   changePassword(email: string, newPassword: string): Observable<void> {
-    return this.authRepository.changePassword(email, newPassword).pipe(
+    return this.authService.changePassword(email, newPassword).pipe(
       tap(() => {
         const currentUser = this.currentUserValue;
         if (currentUser && currentUser.email.toLowerCase().trim() === email.toLowerCase().trim()) {
@@ -200,7 +181,7 @@ export class AuthState {
   }
 
   clearFirstLoginFlag(email: string): Observable<void> {
-    return this.authRepository.clearFirstLoginFlag(email).pipe(
+    return this.authService.clearFirstLoginFlag(email).pipe(
       tap(() => {
         const currentUser = this.currentUserValue;
         if (currentUser && currentUser.email.toLowerCase().trim() === email.toLowerCase().trim()) {
