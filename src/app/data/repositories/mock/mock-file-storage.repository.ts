@@ -21,4 +21,18 @@ export class MockFileStorageRepository implements IFileStorageRepository {
     }
     return of(undefined).pipe(delay(200));
   }
+
+  downloadFile(path: string): Observable<Blob> {
+    const dummyBlob = new Blob(['Mock file content for ' + path], { type: 'text/plain' });
+    return of(dummyBlob).pipe(delay(200));
+  }
+
+  getFileUrl(path: string): Observable<string> {
+    return of(path).pipe(delay(100));
+  }
+
+  moveFile(oldPath: string, newPath: string): Observable<void> {
+    console.log(`Mock storage: moved file from ${oldPath} to ${newPath}`);
+    return of(undefined).pipe(delay(150));
+  }
 }

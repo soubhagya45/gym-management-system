@@ -15,6 +15,9 @@ import { ActivityLog } from '../../../core/models/activity-log.entity';
 import { WhatsAppTemplate } from '../../../core/models/whatsapp-template.entity';
 import { WhatsAppReminder } from '../../../core/models/whatsapp-reminder.entity';
 import { BodyProgressEntry } from '../../../core/models/body-progress.entity';
+import { Product } from '../../../core/models/product.entity';
+import { ImportProfile } from '../../../core/models/import-profile.entity';
+import { ImportHistory } from '../../../core/models/import-history.entity';
 
 import {
   IAuthRepository,
@@ -30,7 +33,11 @@ import {
   IBodyProgressRepository,
   IFinanceRepository,
   IAuditLogRepository,
-  IPaymentSettingsRepository
+  IPaymentSettingsRepository,
+  IProductRepository,
+  IImportProfileRepository,
+  IImportHistoryRepository,
+  IUnitOfWork
 } from '../../../core/interfaces/repository.interfaces';
 import { AuditLog } from '../../../core/models/audit-log.model';
 import { PaymentSettings } from '../../../core/models/payment-settings.model';
@@ -221,6 +228,39 @@ export class SupabaseEmployeeRepository implements IEmployeeRepository {
 export class SupabaseAuditLogRepository implements IAuditLogRepository {
   getAuditLogs(gymId: string): Observable<AuditLog[]> { return throwError(() => new Error('Supabase integration is not enabled.')); }
   addAuditLog(gymId: string, log: Omit<AuditLog, 'id'>): Observable<AuditLog> { return throwError(() => new Error('Supabase integration is not enabled.')); }
+}
+
+@Injectable({ providedIn: 'root' })
+export class SupabaseProductRepository implements IProductRepository {
+  getProducts(gymId: string): Observable<Product[]> { return throwError(() => new Error('Supabase integration is not enabled.')); }
+  getProductById(gymId: string, id: string): Observable<Product | null> { return throwError(() => new Error('Supabase integration is not enabled.')); }
+  addProduct(gymId: string, product: Omit<Product, 'id'>): Observable<Product> { return throwError(() => new Error('Supabase integration is not enabled.')); }
+  updateProduct(gymId: string, product: Product): Observable<void> { return throwError(() => new Error('Supabase integration is not enabled.')); }
+  deleteProduct(gymId: string, id: string): Observable<void> { return throwError(() => new Error('Supabase integration is not enabled.')); }
+}
+
+@Injectable({ providedIn: 'root' })
+export class SupabaseImportProfileRepository implements IImportProfileRepository {
+  getProfiles(gymId: string): Observable<ImportProfile[]> { return throwError(() => new Error('Supabase integration is not enabled.')); }
+  getProfileById(gymId: string, id: string): Observable<ImportProfile | null> { return throwError(() => new Error('Supabase integration is not enabled.')); }
+  saveProfile(gymId: string, profile: Omit<ImportProfile, 'id'> | ImportProfile): Observable<ImportProfile> { return throwError(() => new Error('Supabase integration is not enabled.')); }
+  deleteProfile(gymId: string, id: string): Observable<void> { return throwError(() => new Error('Supabase integration is not enabled.')); }
+}
+
+@Injectable({ providedIn: 'root' })
+export class SupabaseImportHistoryRepository implements IImportHistoryRepository {
+  getHistory(gymId: string): Observable<ImportHistory[]> { return throwError(() => new Error('Supabase integration is not enabled.')); }
+  getHistoryById(gymId: string, id: string): Observable<ImportHistory | null> { return throwError(() => new Error('Supabase integration is not enabled.')); }
+  addHistory(gymId: string, history: Omit<ImportHistory, 'id'>): Observable<ImportHistory> { return throwError(() => new Error('Supabase integration is not enabled.')); }
+  updateHistory(gymId: string, history: ImportHistory): Observable<void> { return throwError(() => new Error('Supabase integration is not enabled.')); }
+}
+
+@Injectable({ providedIn: 'root' })
+export class SupabaseUnitOfWork implements IUnitOfWork {
+  begin(): void {}
+  commit(): Observable<void> { return throwError(() => new Error('Supabase integration is not enabled.')); }
+  rollback(): void {}
+  registerAddition(collectionName: string, id: string): void {}
 }
 
 

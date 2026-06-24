@@ -1,5 +1,5 @@
 import { Injectable } from '@angular/core';
-import { HttpClient } from '@angular/common/http';
+import { HttpClient, HttpParams } from '@angular/common/http';
 import { Observable } from 'rxjs';
 import { map } from 'rxjs/operators';
 import { AppConfigService } from '../../../core/config/app-config';
@@ -36,5 +36,24 @@ export class ApiFileStorageRepository extends BaseApiRepository implements IFile
 
   deleteFile(url: string): Observable<void> {
     return this.delete<void>('/delete', { body: { url } } as any);
+  }
+
+  downloadFile(path: string): Observable<Blob> {
+    const params = new HttpParams().set('path', path);
+    return this.http.get(this.getFullUrl('/download'), {
+      params,
+      responseType: 'blob'
+    });
+  }
+
+  getFileUrl(path: string): Observable<string> {
+    const params = new HttpParams().set('path', path);
+    return this.get<{ url: string }>('/url', { params }).pipe(
+      map(res => res.url)
+    );
+  }
+
+  moveFile(oldPath: string, newPath: string): Observable<void> {
+    return this.post<void>('/move', { oldPath, newPath });
   }
 }

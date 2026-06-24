@@ -50,6 +50,10 @@ import { TrainerAssignment } from '../../../core/models/trainer-assignment.entit
 import { SessionHistory } from '../../../core/models/session-history.entity';
 import { TrainerRevenue } from '../../../core/models/trainer-revenue.entity';
 import { MemberPTPlan } from '../../../core/models/member-pt-plan.entity';
+import { Product } from '../../../core/models/product.entity';
+import { ImportProfile } from '../../../core/models/import-profile.entity';
+import { ImportHistory } from '../../../core/models/import-history.entity';
+import { IProductRepository, IImportProfileRepository, IImportHistoryRepository, IUnitOfWork } from '../../../core/interfaces/repository.interfaces';
 
 
 // --- Static In-Memory Database State ---
@@ -3095,6 +3099,173 @@ export class MockAuditLogRepository implements IAuditLogRepository {
     };
     dbAuditLogs.unshift(newLog);
     return of(newLog).pipe(delay(100));
+  }
+}
+
+// --- Dynamic Mock Data Arrays ---
+export const dbProducts: Product[] = [];
+export const dbImportProfiles: ImportProfile[] = [];
+export const dbImportHistory: ImportHistory[] = [];
+
+@Injectable({ providedIn: 'root' })
+export class MockProductRepository implements IProductRepository {
+  getProducts(gymId: string): Observable<Product[]> {
+    return of(dbProducts.filter(p => p.gymId === gymId)).pipe(delay(300));
+  }
+
+  getProductById(gymId: string, id: string): Observable<Product | null> {
+    const p = dbProducts.find(prod => prod.gymId === gymId && prod.id === id);
+    return of(p || null).pipe(delay(200));
+  }
+
+  addProduct(gymId: string, product: Omit<Product, 'id'>): Observable<Product> {
+    const newP: Product = {
+      ...product,
+      id: 'prod-' + Math.random().toString(36).substring(2, 9),
+      gymId
+    };
+    dbProducts.push(newP);
+    return of(newP).pipe(delay(200));
+  }
+
+  updateProduct(gymId: string, product: Product): Observable<void> {
+    const idx = dbProducts.findIndex(p => p.gymId === gymId && p.id === product.id);
+    if (idx !== -1) {
+      dbProducts[idx] = product;
+    }
+    return of(undefined).pipe(delay(200));
+  }
+
+  deleteProduct(gymId: string, id: string): Observable<void> {
+    const idx = dbProducts.findIndex(p => p.gymId === gymId && p.id === id);
+    if (idx !== -1) {
+      dbProducts.splice(idx, 1);
+    }
+    return of(undefined).pipe(delay(200));
+  }
+}
+
+@Injectable({ providedIn: 'root' })
+export class MockImportProfileRepository implements IImportProfileRepository {
+  getProfiles(gymId: string): Observable<ImportProfile[]> {
+    return of(dbImportProfiles.filter(p => p.gymId === gymId)).pipe(delay(300));
+  }
+
+  getProfileById(gymId: string, id: string): Observable<ImportProfile | null> {
+    const p = dbImportProfiles.find(prof => prof.gymId === gymId && prof.id === id);
+    return of(p || null).pipe(delay(200));
+  }
+
+  saveProfile(gymId: string, profile: Omit<ImportProfile, 'id'> | ImportProfile): Observable<ImportProfile> {
+    const id = (profile as any).id || 'prof-' + Math.random().toString(36).substring(2, 9);
+    const existingIdx = dbImportProfiles.findIndex(p => p.gymId === gymId && p.id === id);
+    const now = new Date().toISOString();
+    
+    const newProfile: ImportProfile = {
+      ...profile,
+      id,
+      gymId,
+      createdAt: existingIdx !== -1 ? dbImportProfiles[existingIdx].createdAt : now,
+      updatedAt: now
+    } as ImportProfile;
+
+    if (existingIdx !== -1) {
+      dbImportProfiles[existingIdx] = newProfile;
+    } else {
+      dbImportProfiles.push(newProfile);
+    }
+    return of(newProfile).pipe(delay(200));
+  }
+
+  deleteProfile(gymId: string, id: string): Observable<void> {
+    const idx = dbImportProfiles.findIndex(p => p.gymId === gymId && p.id === id);
+    if (idx !== -1) {
+      dbImportProfiles.splice(idx, 1);
+    }
+    return of(undefined).pipe(delay(200));
+  }
+}
+
+@Injectable({ providedIn: 'root' })
+export class MockImportHistoryRepository implements IImportHistoryRepository {
+  getHistory(gymId: string): Observable<ImportHistory[]> {
+    return of(dbImportHistory.filter(h => h.gymId === gymId)).pipe(delay(300));
+  }
+
+  getHistoryById(gymId: string, id: string): Observable<ImportHistory | null> {
+    const h = dbImportHistory.find(hist => hist.gymId === gymId && hist.id === id);
+    return of(h || null).pipe(delay(200));
+  }
+
+  addHistory(gymId: string, history: Omit<ImportHistory, 'id'>): Observable<ImportHistory> {
+    const newHist: ImportHistory = {
+      ...history,
+      id: 'hist-' + Math.random().toString(36).substring(2, 9),
+      gymId
+    };
+    dbImportHistory.unshift(newHist);
+    return of(newHist).pipe(delay(200));
+  }
+
+  updateHistory(gymId: string, history: ImportHistory): Observable<void> {
+    const idx = dbImportHistory.findIndex(h => h.gymId === gymId && h.id === history.id);
+    if (idx !== -1) {
+      dbImportHistory[idx] = history;
+    }
+    return of(undefined).pipe(delay(200));
+  }
+}
+
+@Injectable({ providedIn: 'root' })
+export class MockUnitOfWork implements IUnitOfWork {
+  private snapshots: any = null;
+  private inTransaction = false;
+
+  begin(): void {
+    // Take a full shallow copy snapshot of all local db arrays
+    this.snapshots = {
+      members: [...dbMembers],
+      leads: [...dbLeads],
+      trainers: [...dbTrainers],
+      plans: [...dbPlans],
+      invoices: [...dbInvoices],
+      payments: [...dbPayments],
+      employees: [...dbEmployees],
+      products: [...dbProducts],
+      importProfiles: [...dbImportProfiles],
+      importHistory: [...dbImportHistory],
+      auditLogs: [...dbAuditLogs]
+    };
+    this.inTransaction = true;
+  }
+
+  commit(): Observable<void> {
+    this.inTransaction = false;
+    this.snapshots = null;
+    return of(undefined).pipe(delay(200));
+  }
+
+  rollback(): void {
+    if (this.snapshots) {
+      // Revert length and push back original snapshots
+      dbMembers.length = 0; dbMembers.push(...this.snapshots.members);
+      dbLeads.length = 0; dbLeads.push(...this.snapshots.leads);
+      dbTrainers.length = 0; dbTrainers.push(...this.snapshots.trainers);
+      dbPlans.length = 0; dbPlans.push(...this.snapshots.plans);
+      dbInvoices.length = 0; dbInvoices.push(...this.snapshots.invoices);
+      dbPayments.length = 0; dbPayments.push(...this.snapshots.payments);
+      dbEmployees.length = 0; dbEmployees.push(...this.snapshots.employees);
+      dbProducts.length = 0; dbProducts.push(...this.snapshots.products);
+      dbImportProfiles.length = 0; dbImportProfiles.push(...this.snapshots.importProfiles);
+      dbImportHistory.length = 0; dbImportHistory.push(...this.snapshots.importHistory);
+      dbAuditLogs.length = 0; dbAuditLogs.push(...this.snapshots.auditLogs);
+    }
+    this.inTransaction = false;
+    this.snapshots = null;
+  }
+
+  registerAddition(collectionName: string, id: string): void {
+    // Snapshots are used for mock rollback, no manual tracking required.
   }
 }
 

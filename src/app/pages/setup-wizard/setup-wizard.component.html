@@ -1,0 +1,650 @@
+<div class="setup-wizard-container">
+  <div class="glass-header">
+    <div class="header-logo">
+      <mat-icon class="logo-icon">auto_awesome</mat-icon>
+      <span class="logo-text">ApexFit Onboarding Setup</span>
+    </div>
+    <p class="header-desc">Welcome to your new enterprise gym platform. Configure, map, and import your business settings below.</p>
+  </div>
+
+  <mat-card class="glass-card main-stepper-card">
+    <mat-stepper #stepper linear class="onboarding-stepper">
+      <!-- Step 1: Gym Settings -->
+      <mat-step [stepControl]="gymForm">
+        <ng-template matStepLabel>Gym Profile</ng-template>
+        <div class="step-content">
+          <h3>Configure Gym Details</h3>
+          <p class="subtitle">Set up your brand and business preferences.</p>
+
+          <form [formGroup]="gymForm" class="step-form grid-2">
+            <div class="form-group">
+              <label>Gym Name *</label>
+              <input type="text" formControlName="gymName" class="form-input" placeholder="e.g. Apex Gym Bengaluru" />
+            </div>
+
+            <div class="form-group">
+              <label>Owner Full Name *</label>
+              <input type="text" formControlName="ownerName" class="form-input" placeholder="e.g. Rajesh Kumar" />
+            </div>
+
+            <div class="form-group">
+              <label>Contact Email *</label>
+              <input type="email" formControlName="email" class="form-input" placeholder="owner@gym.com" />
+            </div>
+
+            <div class="form-group">
+              <label>Contact Phone *</label>
+              <input type="text" formControlName="phone" class="form-input" placeholder="+91 XXXXX XXXXX" />
+            </div>
+
+            <div class="form-group full-width">
+              <label>Base Address *</label>
+              <input type="text" formControlName="address" class="form-input" placeholder="Street, Locality info" />
+            </div>
+
+            <div class="form-group">
+              <label>City</label>
+              <input type="text" formControlName="city" class="form-input" placeholder="e.g. Bengaluru" />
+            </div>
+
+            <div class="form-group">
+              <label>State</label>
+              <input type="text" formControlName="state" class="form-input" placeholder="e.g. Karnataka" />
+            </div>
+
+            <div class="form-group">
+              <label>GST Registration Number</label>
+              <input type="text" formControlName="gstNumber" class="form-input" placeholder="29XXXXX0000X0Z0" />
+            </div>
+
+            <div class="form-group">
+              <label>Base Currency *</label>
+              <select formControlName="currency" class="form-input">
+                <option value="INR">INR (₹)</option>
+                <option value="USD">USD ($)</option>
+                <option value="EUR">EUR (€)</option>
+                <option value="GBP">GBP (£)</option>
+              </select>
+            </div>
+          </form>
+
+          <div class="step-actions">
+            <button mat-raised-button color="primary" [disabled]="gymForm.invalid" matStepperNext (click)="saveStepSettings()">
+              <span>Next: Add Branches</span>
+              <mat-icon>arrow_forward</mat-icon>
+            </button>
+          </div>
+        </div>
+      </mat-step>
+
+      <!-- Step 2: Branch Configurations -->
+      <mat-step [stepControl]="branchForm">
+        <ng-template matStepLabel>Branches</ng-template>
+        <div class="step-content">
+          <div class="flex-header">
+            <div>
+              <h3>Configure Branches</h3>
+              <p class="subtitle">Add multiple gym outlets or locations.</p>
+            </div>
+            <button mat-flat-button color="primary" class="add-branch-btn" (click)="addBranch()">
+              <mat-icon>add</mat-icon>
+              <span>Add Branch Location</span>
+            </button>
+          </div>
+
+          <form [formGroup]="branchForm" class="step-form flex-form">
+            <div formArrayName="branches" class="branches-list">
+              <div *ngFor="let branch of branches.controls; let idx = index" [formGroupName]="idx" class="branch-card glass-panel flex-grid">
+                <div class="branch-card-header">
+                  <h4>Branch #{{ idx + 1 }}</h4>
+                  <button mat-icon-button color="warn" class="remove-branch-btn" (click)="removeBranch(idx)" *ngIf="branches.length > 1">
+                    <mat-icon>delete</mat-icon>
+                  </button>
+                </div>
+
+                <div class="grid-2">
+                  <div class="form-group">
+                    <label>Branch Name *</label>
+                    <input type="text" formControlName="name" class="form-input" placeholder="e.g. Indiranagar Branch" />
+                  </div>
+
+                  <div class="form-group">
+                    <label>Unique Code *</label>
+                    <input type="text" formControlName="code" class="form-input" placeholder="e.g. IND" />
+                  </div>
+
+                  <div class="form-group full-width">
+                    <label>Branch Address *</label>
+                    <input type="text" formControlName="address" class="form-input" placeholder="Branch location address" />
+                  </div>
+
+                  <div class="form-group">
+                    <label>Branch Manager *</label>
+                    <input type="text" formControlName="manager" class="form-input" placeholder="Manager Name" />
+                  </div>
+
+                  <div class="form-group">
+                    <label>Manager Contact Phone *</label>
+                    <input type="text" formControlName="phone" class="form-input" placeholder="Manager Mobile" />
+                  </div>
+                </div>
+              </div>
+            </div>
+          </form>
+
+          <div class="step-actions">
+            <button mat-button matStepperPrevious class="prev-btn">
+              <mat-icon>arrow_back</mat-icon>
+              <span>Back</span>
+            </button>
+            <button mat-raised-button color="primary" [disabled]="branchForm.invalid" matStepperNext (click)="saveStepSettings()">
+              <span>Next: Opening Balances</span>
+              <mat-icon>arrow_forward</mat-icon>
+            </button>
+          </div>
+        </div>
+      </mat-step>
+
+      <!-- Step 3: Ledger Balances -->
+      <mat-step [stepControl]="balanceForm">
+        <ng-template matStepLabel>Opening Balances</ng-template>
+        <div class="step-content">
+          <h3>Set Ledger Opening Balances</h3>
+          <p class="subtitle">Initialize cash-in-hand and bank balances for cash-flow ledger reporting.</p>
+
+          <form [formGroup]="balanceForm" class="step-form grid-2">
+            <div class="form-group">
+              <label>Opening Cash Balance (INR) *</label>
+              <input type="number" formControlName="openingBalanceCash" class="form-input" />
+            </div>
+
+            <div class="form-group">
+              <label>Opening Bank Account Balance (INR) *</label>
+              <input type="number" formControlName="openingBalanceBank" class="form-input" />
+            </div>
+          </form>
+
+          <div class="step-actions">
+            <button mat-button matStepperPrevious class="prev-btn">
+              <mat-icon>arrow_back</mat-icon>
+              <span>Back</span>
+            </button>
+            <button mat-raised-button color="primary" [disabled]="balanceForm.invalid" matStepperNext (click)="saveStepSettings()">
+              <span>Next: Legacy Data Import</span>
+              <mat-icon>arrow_forward</mat-icon>
+            </button>
+          </div>
+        </div>
+      </mat-step>
+
+      <!-- Step 4: Import legacy data -->
+      <mat-step>
+        <ng-template matStepLabel>Legacy Data Import</ng-template>
+        <div class="step-content flex-tabs">
+          <h3>Legacy Data Import & Schema Manager</h3>
+          <p class="subtitle">Upload, map, validate, and rollback historical spreadsheets.</p>
+
+          <mat-tab-group class="import-tabs">
+            <mat-tab>
+              <ng-template matTabLabel>
+                <mat-icon>upload_file</mat-icon>
+                <span>Upload & Map</span>
+              </ng-template>
+
+              <div class="tab-body upload-map-tab">
+
+                <!-- ── Drop Zone (always visible) ── -->
+                <div class="file-dropzone multi-drop mt-4"
+                     (click)="fileInput.click()"
+                     (drop)="onFileDropped($event)"
+                     (dragover)="onDragOver($event)">
+                  <mat-icon>cloud_upload</mat-icon>
+                  <p>Drag & drop <strong>one or multiple</strong> spreadsheets here or <span class="highlight">browse files</span></p>
+                  <p class="sub-format">Excel (.xlsx, .xls) and CSV (.csv) — auto-detected module</p>
+                  <input type="file" #fileInput multiple (change)="onFileSelected($event)"
+                         style="display:none" accept=".xlsx,.xls,.csv" />
+                </div>
+
+                <!-- ── File Ingestion Queue ── -->
+                <div class="queue-panel mt-4" *ngIf="fileQueue.length > 0">
+                  <div class="flex-header">
+                    <h4>
+                      <mat-icon>queue</mat-icon>
+                      File Ingestion Queue
+                      <span class="badge info ml-8">{{ fileQueue.length }} file(s)</span>
+                    </h4>
+                    <div class="queue-header-actions">
+                      <button mat-stroked-button class="sm-action-btn" (click)="runDryRunValidation()" [disabled]="isLoading || isProcessing">
+                        <mat-icon>play_circle</mat-icon>
+                        <span>Sandbox Dry Run (All)</span>
+                      </button>
+                      <button mat-raised-button color="primary" class="sm-action-btn pulse-glow"
+                              (click)="commitDataImport()" [disabled]="isProcessing || isLoading">
+                        <mat-icon>rocket_launch</mat-icon>
+                        <span>Commit All</span>
+                      </button>
+                    </div>
+                  </div>
+
+                  <div class="queue-list">
+                    <div *ngFor="let item of fileQueue; let i = index"
+                         class="queue-item"
+                         [class.queue-item--active]="selectedQueueItemIndex === i"
+                         [class.queue-item--success]="item.status === 'dry_run_success' || item.status === 'completed'"
+                         [class.queue-item--error]="item.status === 'dry_run_failed' || item.status === 'failed'"
+                         [class.queue-item--importing]="item.status === 'importing'"
+                         (click)="selectQueueItem(i)">
+
+                      <!-- Sequence badge -->
+                      <div class="seq-badge">
+                        <span>{{ getSequencePosition(item) }}</span>
+                      </div>
+
+                      <!-- File info -->
+                      <div class="queue-item-info">
+                        <span class="filename">{{ item.file.name }}</span>
+                        <span class="filesize">{{ item.file.size | number }} bytes &bull; {{ item.rawExcelData.length }} rows</span>
+                      </div>
+
+                      <!-- Module selector (per-item) -->
+                      <div class="queue-module-select" (click)="$event.stopPropagation()">
+                        <select class="form-input sm-input"
+                                [(ngModel)]="item.module"
+                                (change)="runAutoMapping(item)">
+                          <option value="membership-plans">Membership Plans</option>
+                          <option value="pt-plans">PT Plans</option>
+                          <option value="trainers">Trainers</option>
+                          <option value="employees">Employees</option>
+                          <option value="leads">Leads</option>
+                          <option value="members">Members</option>
+                          <option value="products">Products</option>
+                          <option value="invoices">Invoices</option>
+                          <option value="outstanding-dues">Outstanding Dues</option>
+                        </select>
+                      </div>
+
+                      <!-- Status badge -->
+                      <span class="badge" [ngClass]="item.status">{{ item.status | uppercase }}</span>
+
+                      <!-- Progress bar (while importing) -->
+                      <mat-progress-bar *ngIf="item.status === 'importing'" mode="indeterminate" class="item-prog"></mat-progress-bar>
+
+                      <!-- Remove button -->
+                      <button mat-icon-button color="warn" class="remove-btn"
+                              (click)="$event.stopPropagation(); removeQueueItem(i)"
+                              matTooltip="Remove from queue">
+                        <mat-icon>close</mat-icon>
+                      </button>
+                    </div>
+                  </div>
+
+                  <!-- Dependency auto-sequence info bar -->
+                  <div class="seq-info-bar mt-2">
+                    <mat-icon>info_outline</mat-icon>
+                    <span>Files are auto-sequenced by dependency order: Plans → Trainers → Employees → Leads → Members → Products → Invoices → Outstanding Dues</span>
+                  </div>
+                </div>
+
+                <!-- ── Mapping Panel for selected queue item ── -->
+                <div *ngIf="selectedQueueItem" class="selected-item-panel mt-4">
+
+                  <div class="selected-item-header">
+                    <mat-icon>tune</mat-icon>
+                    <span>Configuring: <strong>{{ selectedQueueItem.file.name }}</strong></span>
+                    <span class="badge info">{{ selectedQueueItem.module | uppercase }}</span>
+                    <span class="badge" [ngClass]="selectedQueueItem.status">{{ selectedQueueItem.status | uppercase }}</span>
+                  </div>
+
+                  <div class="grid-2 mt-3">
+                    <div class="form-group">
+                      <label>Apply Schema Mapping Profile</label>
+                      <select [(ngModel)]="selectedProfileId" class="form-input"
+                              (change)="applySavedProfile(selectedProfileId)">
+                        <option value="auto">Fuzzy Synonym Mapping (Auto)</option>
+                        <option *ngFor="let p of profiles" [value]="p.id">{{ p.name }}</option>
+                      </select>
+                    </div>
+
+                    <div class="form-group templates-action-inline">
+                      <label>Download blank template</label>
+                      <button mat-raised-button color="accent" (click)="downloadBlankTemplate()">
+                        <mat-icon>download</mat-icon>
+                        <span>Download {{ selectedModule }} Template</span>
+                      </button>
+                    </div>
+                  </div>
+
+                  <!-- Vendor Detection banner -->
+                  <div class="vendor-banner mt-2" *ngIf="detectedVendor !== 'Excel Generic'">
+                    <mat-icon>auto_awesome</mat-icon>
+                    <span>Vendor Format Detected: <strong>{{ detectedVendor }}</strong> — applying pre-built mapping rules</span>
+                  </div>
+
+                  <!-- Idempotency duplicate hash alert -->
+                  <div class="alert-message warning mt-3" *ngIf="isDuplicateWarning">
+                    <mat-icon>warning</mat-icon>
+                    <div>
+                      <h4>File Already Processed!</h4>
+                      <p>This exact file has been imported before (Import ID: {{ existingHashMatch }}). Re-importing may duplicate records.</p>
+                    </div>
+                  </div>
+
+                  <!-- Column Mapping Grid -->
+                  <div class="column-mapping-panel mt-4" *ngIf="fileHeaders.length > 0">
+                    <div class="flex-header">
+                      <h4>Smart Column Mapping Wizard</h4>
+                      <span class="badge info">{{ fileHeaders.length }} columns detected</span>
+                    </div>
+
+                    <div class="mapping-table-container">
+                      <table class="custom-table mapping-table">
+                        <thead>
+                          <tr>
+                            <th>Spreadsheet Column</th>
+                            <th>System Target Field</th>
+                            <th>Custom Field Name</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          <tr *ngFor="let mapping of columnMappings">
+                            <td class="excel-col">{{ mapping.excelHeader }}</td>
+                            <td>
+                              <select class="form-input sm-input"
+                                      [(ngModel)]="mapping.mappedField"
+                                      (change)="onMappingFieldChange(mapping, mapping.mappedField)">
+                                <option value="ignore">Ignore Column</option>
+                                <optgroup label="System Standard Fields">
+                                  <option *ngFor="let field of schemaFieldsMap[selectedModule]"
+                                          [value]="field.name">{{ field.name }} {{ field.required ? '*' : '' }}</option>
+                                </optgroup>
+                                <option value="custom">Create Custom Field</option>
+                              </select>
+                            </td>
+                            <td>
+                              <input type="text" class="form-input sm-input"
+                                     *ngIf="mapping.isCustom"
+                                     [value]="mapping.customFieldName"
+                                     (input)="onCustomFieldNameChange(mapping, $event)"
+                                     placeholder="e.g. blood_group" />
+                              <span class="text-muted" *ngIf="!mapping.isCustom">-</span>
+                            </td>
+                          </tr>
+                        </tbody>
+                      </table>
+                    </div>
+
+                    <div class="save-profile-card glass-panel mt-4">
+                      <div class="form-group flex-1">
+                        <label>Save mapping template for future imports</label>
+                        <input type="text" class="form-input" [(ngModel)]="customProfileName"
+                               placeholder="e.g. GymMaster India Template" />
+                      </div>
+                      <button mat-raised-button color="accent"
+                              [disabled]="!customProfileName.trim()"
+                              (click)="saveMappingAsProfile()">
+                        <mat-icon>save</mat-icon>
+                        <span>Save Mappings</span>
+                      </button>
+                    </div>
+                  </div>
+
+                  <!-- Sandbox Dry Run stats (for selected item) -->
+                  <div class="sandbox-stats-panel mt-4" *ngIf="isDryRunExecuted">
+                    <h4>Sandbox Pre-validation — {{ selectedQueueItem.file.name }}</h4>
+                    <div class="scores-grid">
+                      <div class="score-card">
+                        <span class="score-title">Completeness</span>
+                        <h3 class="score-val">{{ qualityScores.completeness }}%</h3>
+                      </div>
+                      <div class="score-card">
+                        <span class="score-title">Accuracy</span>
+                        <h3 class="score-val">{{ qualityScores.accuracy }}%</h3>
+                      </div>
+                      <div class="score-card">
+                        <span class="score-title">Duplicates</span>
+                        <h3 class="score-val">{{ qualityScores.duplicates }}%</h3>
+                      </div>
+                      <div class="score-card">
+                        <span class="score-title">Relationships</span>
+                        <h3 class="score-val">{{ qualityScores.relationships }}%</h3>
+                      </div>
+                      <div class="score-card overall">
+                        <span class="score-title">Overall Score</span>
+                        <h3 class="score-val">{{ qualityScores.overall }}%</h3>
+                      </div>
+                    </div>
+
+                    <div class="alert-info-cards mt-4">
+                      <div class="info-card">
+                        <mat-icon>storage</mat-icon>
+                        <span>Storage Footprint: ~{{ estimatedStorage }} KB</span>
+                      </div>
+                      <div class="info-card">
+                        <mat-icon>timer</mat-icon>
+                        <span>Estimated Duration: ~{{ estimatedTimeSec }}s</span>
+                      </div>
+                      <div class="info-card">
+                        <mat-icon>layers</mat-icon>
+                        <span>Duplicate Rate: {{ duplicateRate }}%</span>
+                      </div>
+                    </div>
+
+                    <!-- Staging Preview rows -->
+                    <div class="staging-records-grid mt-4">
+                      <div class="flex-header">
+                        <h4>Staging Area Preview (Top 20 rows)</h4>
+                        <button mat-stroked-button color="warn" (click)="downloadValidationErrorsReport()">
+                          <mat-icon>download</mat-icon>
+                          <span>Download Failed Rows Report</span>
+                        </button>
+                      </div>
+
+                      <div class="staging-table-container">
+                        <table class="custom-table staging-table">
+                          <thead>
+                            <tr>
+                              <th>Row #</th>
+                              <th>Status</th>
+                              <th>Target Entity Data</th>
+                              <th>Validation Errors / Relationships</th>
+                            </tr>
+                          </thead>
+                          <tbody>
+                            <tr *ngFor="let record of stagingRecords.slice(0, 20); let i = index">
+                              <td>{{ i + 1 }}</td>
+                              <td>
+                                <span class="badge" [ngClass]="record.status">{{ record.status | uppercase }}</span>
+                              </td>
+                              <td class="mapped-data-preview">
+                                <pre>{{ record.mappedData | json }}</pre>
+                              </td>
+                              <td>
+                                <div class="record-errors" *ngIf="record.validationErrors.length > 0">
+                                  <div *ngFor="let err of record.validationErrors" class="error-msg text-danger">
+                                    <mat-icon>error_outline</mat-icon>
+                                    <span>[{{ err.field }}]: {{ err.message }}</span>
+                                  </div>
+                                </div>
+
+                                <div class="record-relations" *ngIf="record.relations.length > 0">
+                                  <div *ngFor="let rel of record.relations; let relIdx = index" class="relation-item">
+                                    <span class="rel-label">Link {{ rel.entityType }}: "{{ rel.referencedName }}"</span>
+                                    <select class="form-input sm-input inline-select"
+                                            (change)="resolveMissingRelation(record, relIdx, $any($event.target).value)">
+                                      <option value="">-- Choose Option --</option>
+                                      <option value="auto_create">Auto-create new entity</option>
+                                      <option value="skip">Skip reference links</option>
+                                      <option *ngFor="let m of rel.possibleMatches" [value]="m.id">
+                                        Link to existing: {{ m.name }}
+                                      </option>
+                                    </select>
+                                  </div>
+                                </div>
+
+                                <span class="text-muted"
+                                      *ngIf="record.validationErrors.length === 0 && record.relations.length === 0">No issues</span>
+                              </td>
+                            </tr>
+                          </tbody>
+                        </table>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                <!-- Empty state when no files queued -->
+                <div class="empty-queue-hint mt-4" *ngIf="fileQueue.length === 0">
+                  <mat-icon>folder_open</mat-icon>
+                  <p>No files in the queue yet. Drop spreadsheets above to begin.</p>
+                </div>
+
+                <!-- Active background job queue tracker -->
+                <div class="background-job-tracker glass-panel mt-4" *ngIf="jobStatus !== 'idle'">
+                  <div class="job-header flex-header">
+                    <h4>Batch Queue Task (ID: {{ jobId }})</h4>
+                    <span class="badge" [ngClass]="jobStatus">{{ jobStatus | uppercase }}</span>
+                  </div>
+
+                  <mat-progress-bar mode="determinate" [value]="jobProgress" class="job-progress-bar mt-2"></mat-progress-bar>
+
+                  <div class="job-stats mt-2">
+                    <span>Progress: {{ jobProcessedRows }} / {{ jobTotalRows }} records ({{ jobProgress }}%)</span>
+                    <span>ETA: {{ jobETA }}</span>
+                  </div>
+
+                  <div class="job-actions mt-4" *ngIf="jobStatus === 'running' || jobStatus === 'paused'">
+                    <button mat-raised-button color="accent" *ngIf="jobStatus === 'running'" (click)="pauseBackgroundJob()">
+                      <mat-icon>pause</mat-icon>
+                      <span>Pause Ingestion</span>
+                    </button>
+                    <button mat-raised-button color="accent" *ngIf="jobStatus === 'paused'" (click)="resumeBackgroundJob()">
+                      <mat-icon>play_arrow</mat-icon>
+                      <span>Resume Ingestion</span>
+                    </button>
+                    <button mat-stroked-button color="warn" (click)="cancelBackgroundJob()">
+                      <mat-icon>cancel</mat-icon>
+                      <span>Cancel Job</span>
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </mat-tab>
+
+
+            <mat-tab>
+              <ng-template matTabLabel>
+                <mat-icon>history</mat-icon>
+                <span>Import History & Rollbacks</span>
+              </ng-template>
+
+              <div class="tab-body history-tab mt-4">
+                <div class="history-table-container">
+                  <table class="custom-table history-table">
+                    <thead>
+                      <tr>
+                        <th>Date</th>
+                        <th>File Name</th>
+                        <th>Module</th>
+                        <th>Import Details</th>
+                        <th>Status</th>
+                        <th>Disaster Recovery</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      <tr *ngFor="let h of historyLogs">
+                        <td>{{ h.date | date:'medium' }}</td>
+                        <td>{{ h.fileName }}</td>
+                        <td><span class="badge info">{{ h.module | uppercase }}</span></td>
+                        <td>
+                          <div class="hist-details">
+                            <span>Imported: {{ h.recordsImported }}</span>
+                            <span>Duplicates: {{ h.recordsDuplicates }}</span>
+                            <span>Failed: {{ h.recordsFailed }}</span>
+                          </div>
+                        </td>
+                        <td>
+                          <span class="badge" [ngClass]="h.status">{{ h.status | uppercase }}</span>
+                        </td>
+                        <td>
+                          <button mat-stroked-button color="warn" class="rollback-btn" *ngIf="h.status === 'completed' && h.snapshotUrl" (click)="triggerHistoryRollback(h)" [disabled]="isLoading">
+                            <mat-icon>restore</mat-icon>
+                            <span>Revert Gym State</span>
+                          </button>
+                          <span class="rolled-back-by" *ngIf="h.status === 'rolled_back'">
+                            Rolled back at {{ h.rolledBackAt | date:'short' }}
+                          </span>
+                          <span class="text-muted" *ngIf="!h.snapshotUrl && h.status !== 'rolled_back'">No Snapshot</span>
+                        </td>
+                      </tr>
+                      <tr *ngIf="historyLogs.length === 0">
+                        <td colspan="6" class="text-center text-muted">No historical imports recorded yet.</td>
+                      </tr>
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            </mat-tab>
+          </mat-tab-group>
+
+          <div class="step-actions mt-4">
+            <button mat-button matStepperPrevious class="prev-btn">
+              <mat-icon>arrow_back</mat-icon>
+              <span>Back</span>
+            </button>
+            <button mat-raised-button color="primary" matStepperNext>
+              <span>Next: Launch Platform</span>
+              <mat-icon>arrow_forward</mat-icon>
+            </button>
+          </div>
+        </div>
+      </mat-step>
+
+      <!-- Step 5: System Activation -->
+      <mat-step>
+        <ng-template matStepLabel>Launch</ng-template>
+        <div class="step-content text-center launch-step">
+          <mat-icon class="launch-icon">task_alt</mat-icon>
+          <h2>All Set! Ready to launch ApexFit</h2>
+          <p class="subtitle">Your branches, opening balance settings, and legacy databases have been fully mapped and initialized.</p>
+
+          <div class="summary-details glass-panel mt-4">
+            <h4>Gym Configuration Overview</h4>
+            <div class="summary-grid">
+              <div class="summary-item">
+                <span class="label">Gym Brand:</span>
+                <span class="value">{{ gymForm.get('gymName')?.value }}</span>
+              </div>
+              <div class="summary-item">
+                <span class="label">Total Branches:</span>
+                <span class="value">{{ branches.length }} Outlet(s)</span>
+              </div>
+              <div class="summary-item">
+                <span class="label">Currency Selected:</span>
+                <span class="value">{{ gymForm.get('currency')?.value }}</span>
+              </div>
+              <div class="summary-item">
+                <span class="label">Opening cash asset:</span>
+                <span class="value">₹{{ balanceForm.get('openingBalanceCash')?.value | number }}</span>
+              </div>
+              <div class="summary-item">
+                <span class="label">Opening bank asset:</span>
+                <span class="value">₹{{ balanceForm.get('openingBalanceBank')?.value | number }}</span>
+              </div>
+            </div>
+          </div>
+
+          <div class="step-actions mt-4 center-actions">
+            <button mat-button matStepperPrevious class="prev-btn">
+              <mat-icon>arrow_back</mat-icon>
+              <span>Back</span>
+            </button>
+            <button mat-raised-button color="primary" class="launch-btn pulse-glow" (click)="launchSystem()">
+              <mat-icon>rocket_launch</mat-icon>
+              <span>Confirm & Launch Platform</span>
+            </button>
+          </div>
+        </div>
+      </mat-step>
+    </mat-stepper>
+  </mat-card>
+</div>

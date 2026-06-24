@@ -23,6 +23,9 @@ import { TenantContextService } from '../../../domain/tenancy/tenant-context.ser
 import { AuditLoggerService } from '../../../services/audit-logger.service';
 import { DeviceConfiguration } from '../../../core/models/device-configuration.model';
 import { AttendanceMapping } from '../../../core/models/attendance-mapping.model';
+import { Product } from '../../../core/models/product.entity';
+import { ImportProfile } from '../../../core/models/import-profile.entity';
+import { ImportHistory } from '../../../core/models/import-history.entity';
 
 import {
   IAuthRepository,
@@ -40,7 +43,11 @@ import {
   IEmployeeRepository,
   IPersonalTrainingRepository,
   IAuditLogRepository,
-  IPaymentSettingsRepository
+  IPaymentSettingsRepository,
+  IProductRepository,
+  IImportProfileRepository,
+  IImportHistoryRepository,
+  IUnitOfWork
 } from '../../../core/interfaces/repository.interfaces';
 import { AuditLog } from '../../../core/models/audit-log.model';
 import { PaymentSettings } from '../../../core/models/payment-settings.model';
@@ -2724,5 +2731,207 @@ export class FirebaseAuditLogRepository implements IAuditLogRepository {
       map(() => newLog),
       catchError(err => throwError(() => new Error(err.message || 'Failed to add audit log.')))
     );
+  }
+}
+
+@Injectable({ providedIn: 'root' })
+export class FirebaseProductRepository implements IProductRepository {
+  constructor(private firebaseService: FirebaseService, private injector: Injector) {}
+
+  getProducts(gymId: string): Observable<Product[]> {
+    const db = this.firebaseService.getDb();
+    const q = query(collection(db, 'products'), where('gymId', '==', gymId));
+    return from(getDocs(q)).pipe(
+      map(snap => snap.docs.map(d => ({ ...d.data(), id: d.id } as Product))),
+      catchError(err => throwError(() => new Error(err.message || 'Failed to fetch products.')))
+    );
+  }
+
+  getProductById(gymId: string, id: string): Observable<Product | null> {
+    const db = this.firebaseService.getDb();
+    return from(getDoc(doc(db, 'products', id))).pipe(
+      map(d => d.exists() ? ({ ...d.data(), id: d.id } as Product) : null),
+      catchError(err => throwError(() => new Error(err.message || 'Failed to fetch product.')))
+    );
+  }
+
+  addProduct(gymId: string, product: Omit<Product, 'id'>): Observable<Product> {
+    const db = this.firebaseService.getDb();
+    const id = 'prod_' + Math.random().toString(36).substring(2, 9);
+    const newP = { ...product, id, gymId } as Product;
+
+    return from(setDoc(doc(db, 'products', id), newP)).pipe(
+      map(() => newP),
+      catchError(err => throwError(() => new Error(err.message || 'Failed to add product.')))
+    );
+  }
+
+  updateProduct(gymId: string, product: Product): Observable<void> {
+    const db = this.firebaseService.getDb();
+    return from(setDoc(doc(db, 'products', product.id), product)).pipe(
+      map(() => undefined),
+      catchError(err => throwError(() => new Error(err.message || 'Failed to update product.')))
+    );
+  }
+
+  deleteProduct(gymId: string, id: string): Observable<void> {
+    const db = this.firebaseService.getDb();
+    return from(deleteDoc(doc(db, 'products', id))).pipe(
+      map(() => undefined),
+      catchError(err => throwError(() => new Error(err.message || 'Failed to delete product.')))
+    );
+  }
+}
+
+@Injectable({ providedIn: 'root' })
+export class FirebaseImportProfileRepository implements IImportProfileRepository {
+  constructor(private firebaseService: FirebaseService) {}
+
+  getProfiles(gymId: string): Observable<ImportProfile[]> {
+    const db = this.firebaseService.getDb();
+    const q = query(collection(db, 'importProfiles'), where('gymId', '==', gymId));
+    return from(getDocs(q)).pipe(
+      map(snap => snap.docs.map(d => ({ ...d.data(), id: d.id } as ImportProfile))),
+      catchError(err => throwError(() => new Error(err.message || 'Failed to fetch import profiles.')))
+    );
+  }
+
+  getProfileById(gymId: string, id: string): Observable<ImportProfile | null> {
+    const db = this.firebaseService.getDb();
+    return from(getDoc(doc(db, 'importProfiles', id))).pipe(
+      map(d => d.exists() ? ({ ...d.data(), id: d.id } as ImportProfile) : null),
+      catchError(err => throwError(() => new Error(err.message || 'Failed to fetch import profile.')))
+    );
+  }
+
+  saveProfile(gymId: string, profile: Omit<ImportProfile, 'id'> | ImportProfile): Observable<ImportProfile> {
+    const db = this.firebaseService.getDb();
+    const id = (profile as any).id || 'prof_' + Math.random().toString(36).substring(2, 9);
+    const now = new Date().toISOString();
+    
+    const newProfile = {
+      ...profile,
+      id,
+      gymId,
+      createdAt: (profile as any).createdAt || now,
+      updatedAt: now
+    } as ImportProfile;
+
+    return from(setDoc(doc(db, 'importProfiles', id), newProfile)).pipe(
+      map(() => newProfile),
+      catchError(err => throwError(() => new Error(err.message || 'Failed to save import profile.')))
+    );
+  }
+
+  deleteProfile(gymId: string, id: string): Observable<void> {
+    const db = this.firebaseService.getDb();
+    return from(deleteDoc(doc(db, 'importProfiles', id))).pipe(
+      map(() => undefined),
+      catchError(err => throwError(() => new Error(err.message || 'Failed to delete import profile.')))
+    );
+  }
+}
+
+@Injectable({ providedIn: 'root' })
+export class FirebaseImportHistoryRepository implements IImportHistoryRepository {
+  constructor(private firebaseService: FirebaseService) {}
+
+  getHistory(gymId: string): Observable<ImportHistory[]> {
+    const db = this.firebaseService.getDb();
+    const q = query(collection(db, 'importHistory'), where('gymId', '==', gymId));
+    return from(getDocs(q)).pipe(
+      map(snap => {
+        const list = snap.docs.map(d => ({ ...d.data(), id: d.id } as ImportHistory));
+        return list.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+      }),
+      catchError(err => throwError(() => new Error(err.message || 'Failed to fetch import history.')))
+    );
+  }
+
+  getHistoryById(gymId: string, id: string): Observable<ImportHistory | null> {
+    const db = this.firebaseService.getDb();
+    return from(getDoc(doc(db, 'importHistory', id))).pipe(
+      map(d => d.exists() ? ({ ...d.data(), id: d.id } as ImportHistory) : null),
+      catchError(err => throwError(() => new Error(err.message || 'Failed to fetch import history record.')))
+    );
+  }
+
+  addHistory(gymId: string, history: Omit<ImportHistory, 'id'>): Observable<ImportHistory> {
+    const db = this.firebaseService.getDb();
+    const id = 'hist_' + Math.random().toString(36).substring(2, 9);
+    const newHist = { ...history, id, gymId } as ImportHistory;
+
+    return from(setDoc(doc(db, 'importHistory', id), newHist)).pipe(
+      map(() => newHist),
+      catchError(err => throwError(() => new Error(err.message || 'Failed to add import history record.')))
+    );
+  }
+
+  updateHistory(gymId: string, history: ImportHistory): Observable<void> {
+    const db = this.firebaseService.getDb();
+    return from(setDoc(doc(db, 'importHistory', history.id), history)).pipe(
+      map(() => undefined),
+      catchError(err => throwError(() => new Error(err.message || 'Failed to update import history record.')))
+    );
+  }
+}
+
+@Injectable({ providedIn: 'root' })
+export class FirebaseUnitOfWork implements IUnitOfWork {
+  private additions: { collectionName: string; id: string }[] = [];
+  private inTransaction = false;
+
+  constructor(private firebaseService: FirebaseService) {}
+
+  begin(): void {
+    this.additions = [];
+    this.inTransaction = true;
+  }
+
+  commit(): Observable<void> {
+    this.inTransaction = false;
+    this.additions = [];
+    return of(undefined);
+  }
+
+  rollback(): void {
+    if (this.additions.length === 0) {
+      this.inTransaction = false;
+      return;
+    }
+
+    const db = this.firebaseService.getDb();
+    
+    // Perform standard sequential deletion in reverse order to undo additions
+    const deleteOperations = this.additions.map(item => {
+      let firestoreCollection = item.collectionName;
+      if (firestoreCollection === 'membership-plans') firestoreCollection = 'membershipPlans';
+      if (firestoreCollection === 'pt-plans') firestoreCollection = 'ptPlans';
+      if (firestoreCollection === 'import-profiles') firestoreCollection = 'importProfiles';
+      if (firestoreCollection === 'import-history') firestoreCollection = 'importHistory';
+      
+      const docRef = doc(db, firestoreCollection, item.id);
+      return from(deleteDoc(docRef)).pipe(
+        catchError(err => {
+          console.warn(`[FirebaseUnitOfWork] Rollback failed to delete ${item.collectionName}/${item.id}:`, err);
+          return of(undefined);
+        })
+      );
+    });
+
+    this.inTransaction = false;
+    this.additions = [];
+
+    // Run delete operations concurrently
+    forkJoin(deleteOperations).subscribe({
+      next: () => console.log('[FirebaseUnitOfWork] Rollback completed successfully.'),
+      error: (e) => console.error('[FirebaseUnitOfWork] Rollback encountered errors:', e)
+    });
+  }
+
+  registerAddition(collectionName: string, id: string): void {
+    if (this.inTransaction) {
+      this.additions.push({ collectionName, id });
+    }
   }
 }

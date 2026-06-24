@@ -32,7 +32,11 @@ export type Permission =
   | 'view:pt-sessions'
   | 'manage:pt-sessions'
   | 'view:settings'
-  | 'view:audit-logs';
+  | 'view:audit-logs'
+  | 'import:upload'
+  | 'import:review'
+  | 'import:approve'
+  | 'import:rollback';
 
 
 /**
@@ -61,7 +65,11 @@ export const ROLE_PERMISSIONS: Record<UserRole, Permission[]> = {
     'view:pt-sessions',
     'manage:pt-sessions',
     'view:settings',
-    'view:audit-logs'
+    'view:audit-logs',
+    'import:upload',
+    'import:review',
+    'import:approve',
+    'import:rollback'
   ],
 
   [UserRole.Owner]: [
@@ -84,7 +92,11 @@ export const ROLE_PERMISSIONS: Record<UserRole, Permission[]> = {
     'view:pt-sessions',
     'manage:pt-sessions',
     'view:settings',
-    'view:audit-logs'
+    'view:audit-logs',
+    'import:upload',
+    'import:review',
+    'import:approve',
+    'import:rollback'
   ],
 
   [UserRole.Manager]: [
@@ -107,7 +119,9 @@ export const ROLE_PERMISSIONS: Record<UserRole, Permission[]> = {
     'view:pt-sessions',
     'manage:pt-sessions',
     'view:settings',
-    'view:audit-logs'
+    'view:audit-logs',
+    'import:upload',
+    'import:review'
   ],
 
   [UserRole.Trainer]: [
@@ -152,7 +166,8 @@ export const ROUTE_PERMISSION_MAP: Record<string, Permission> = {
   '/finance/cash-flow': 'view:finance',
   '/finance/revenue-analytics': 'view:finance',
   '/employees':     'view:employees',
-  '/pt-sessions':   'view:pt-sessions'
+  '/pt-sessions':   'view:pt-sessions',
+  '/setup-wizard':  'import:upload'
 };
 
 
@@ -190,5 +205,6 @@ export const ALL_NAV_ITEMS: NavItem[] = [
   { label: 'Trainers',         route: '/trainers',       icon: 'sports',          permission: 'view:trainers',      roles: [UserRole.SuperAdmin, UserRole.Owner, UserRole.Manager] },
   { label: 'WhatsApp Center',  route: '/whatsapp',       icon: 'chat',            permission: 'view:whatsapp',      roles: [UserRole.SuperAdmin, UserRole.Owner, UserRole.Manager] },
   { label: 'Body Progress',    route: '/body-progress',  icon: 'trending_up',     permission: 'view:body-progress', roles: [UserRole.SuperAdmin, UserRole.Owner, UserRole.Manager, UserRole.Trainer, UserRole.Staff] },
+  { label: 'Setup & Import',   route: '/setup-wizard',   icon: 'upload_file',     permission: 'import:upload',      roles: [UserRole.SuperAdmin, UserRole.Owner, UserRole.Manager] },
   { label: 'Settings',         route: '/settings',       icon: 'settings',        permission: 'view:settings',    roles: [UserRole.SuperAdmin, UserRole.Owner, UserRole.Manager] }
 ];

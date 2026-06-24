@@ -33,7 +33,16 @@ import {
   IAuditLogRepository,
   AUDIT_LOG_REPOSITORY_TOKEN,
   IPaymentSettingsRepository,
-  PAYMENT_SETTINGS_REPOSITORY_TOKEN
+  PAYMENT_SETTINGS_REPOSITORY_TOKEN,
+  IProductRepository,
+  PRODUCT_REPOSITORY_TOKEN,
+  IImportProfileRepository,
+  IMPORT_PROFILE_REPOSITORY_TOKEN,
+  IImportHistoryRepository,
+  IMPORT_HISTORY_REPOSITORY_TOKEN,
+  IUnitOfWork,
+  UNIT_OF_WORK_TOKEN,
+  BACKGROUND_JOB_PROVIDER_TOKEN
 } from '../../core/interfaces/repository.interfaces';
 import { IOnboardingRepository, ONBOARDING_REPOSITORY_TOKEN } from '../../core/interfaces/onboarding-repository.interface';
 import { MockOnboardingRepository } from '../repositories/mock/mock-onboarding.repository';
@@ -45,6 +54,7 @@ import { IFileStorageRepository, FILE_STORAGE_REPOSITORY_TOKEN } from '../../cor
 import { MockFileStorageRepository } from '../repositories/mock/mock-file-storage.repository';
 import { FirebaseStorageRepository } from '../repositories/firebase/firebase-file-storage.repository';
 import { ApiFileStorageRepository } from '../repositories/api/api-file-storage.repository';
+import { ClientBackgroundJobProvider } from '../../services/client-background-job.provider';
 
 
 import {
@@ -63,7 +73,11 @@ import {
   MockEmployeeRepository,
   MockPersonalTrainingRepository,
   MockAuditLogRepository,
-  MockPaymentSettingsRepository
+  MockPaymentSettingsRepository,
+  MockProductRepository,
+  MockImportProfileRepository,
+  MockImportHistoryRepository,
+  MockUnitOfWork
 } from '../repositories/mock/mock-repositories';
 
 
@@ -83,7 +97,11 @@ import {
   FirebaseEmployeeRepository,
   FirebasePersonalTrainingRepository,
   FirebaseAuditLogRepository,
-  FirebasePaymentSettingsRepository
+  FirebasePaymentSettingsRepository,
+  FirebaseProductRepository,
+  FirebaseImportProfileRepository,
+  FirebaseImportHistoryRepository,
+  FirebaseUnitOfWork
 } from '../repositories/firebase/firebase-repositories';
 
 
@@ -102,7 +120,11 @@ import {
   SupabaseFinanceRepository,
   SupabaseEmployeeRepository,
   SupabaseAuditLogRepository,
-  SupabasePaymentSettingsRepository
+  SupabasePaymentSettingsRepository,
+  SupabaseProductRepository,
+  SupabaseImportProfileRepository,
+  SupabaseImportHistoryRepository,
+  SupabaseUnitOfWork
 } from '../repositories/supabase/supabase-repositories';
 
 
@@ -121,7 +143,11 @@ import {
   ApiFinanceRepository,
   ApiEmployeeRepository,
   ApiAuditLogRepository,
-  ApiPaymentSettingsRepository
+  ApiPaymentSettingsRepository,
+  ApiProductRepository,
+  ApiImportProfileRepository,
+  ApiImportHistoryRepository,
+  ApiUnitOfWork
 } from '../repositories/api/api-repositories';
 
 
@@ -305,6 +331,46 @@ export function paymentSettingsRepositoryFactory(configService: AppConfigService
   }
 }
 
+export function productRepositoryFactory(configService: AppConfigService, injector: Injector): IProductRepository {
+  switch (configService.provider) {
+    case ProviderType.Firebase: return injector.get(FirebaseProductRepository);
+    case ProviderType.Supabase: return injector.get(SupabaseProductRepository);
+    case ProviderType.REST: return injector.get(ApiProductRepository);
+    case ProviderType.Mock:
+    default: return injector.get(MockProductRepository);
+  }
+}
+
+export function importProfileRepositoryFactory(configService: AppConfigService, injector: Injector): IImportProfileRepository {
+  switch (configService.provider) {
+    case ProviderType.Firebase: return injector.get(FirebaseImportProfileRepository);
+    case ProviderType.Supabase: return injector.get(SupabaseImportProfileRepository);
+    case ProviderType.REST: return injector.get(ApiImportProfileRepository);
+    case ProviderType.Mock:
+    default: return injector.get(MockImportProfileRepository);
+  }
+}
+
+export function importHistoryRepositoryFactory(configService: AppConfigService, injector: Injector): IImportHistoryRepository {
+  switch (configService.provider) {
+    case ProviderType.Firebase: return injector.get(FirebaseImportHistoryRepository);
+    case ProviderType.Supabase: return injector.get(SupabaseImportHistoryRepository);
+    case ProviderType.REST: return injector.get(ApiImportHistoryRepository);
+    case ProviderType.Mock:
+    default: return injector.get(MockImportHistoryRepository);
+  }
+}
+
+export function unitOfWorkFactory(configService: AppConfigService, injector: Injector): IUnitOfWork {
+  switch (configService.provider) {
+    case ProviderType.Firebase: return injector.get(FirebaseUnitOfWork);
+    case ProviderType.Supabase: return injector.get(SupabaseUnitOfWork);
+    case ProviderType.REST: return injector.get(ApiUnitOfWork);
+    case ProviderType.Mock:
+    default: return injector.get(MockUnitOfWork);
+  }
+}
+
 
 export const REPOSITORY_PROVIDERS = [
   {
@@ -396,6 +462,30 @@ export const REPOSITORY_PROVIDERS = [
     provide: PAYMENT_SETTINGS_REPOSITORY_TOKEN,
     useFactory: paymentSettingsRepositoryFactory,
     deps: [AppConfigService, Injector]
+  },
+  {
+    provide: PRODUCT_REPOSITORY_TOKEN,
+    useFactory: productRepositoryFactory,
+    deps: [AppConfigService, Injector]
+  },
+  {
+    provide: IMPORT_PROFILE_REPOSITORY_TOKEN,
+    useFactory: importProfileRepositoryFactory,
+    deps: [AppConfigService, Injector]
+  },
+  {
+    provide: IMPORT_HISTORY_REPOSITORY_TOKEN,
+    useFactory: importHistoryRepositoryFactory,
+    deps: [AppConfigService, Injector]
+  },
+  {
+    provide: UNIT_OF_WORK_TOKEN,
+    useFactory: unitOfWorkFactory,
+    deps: [AppConfigService, Injector]
+  },
+  {
+    provide: BACKGROUND_JOB_PROVIDER_TOKEN,
+    useClass: ClientBackgroundJobProvider
   }
 ];
 

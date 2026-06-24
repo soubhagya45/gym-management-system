@@ -25,6 +25,9 @@ import { AuditLog } from '../models/audit-log.model';
 import { PaymentSettings } from '../models/payment-settings.model';
 import { DeviceConfiguration } from '../models/device-configuration.model';
 import { AttendanceMapping } from '../models/attendance-mapping.model';
+import { Product } from '../models/product.entity';
+import { ImportProfile } from '../models/import-profile.entity';
+import { ImportHistory } from '../models/import-history.entity';
 
 // --- Interface Definitions ---
 
@@ -205,6 +208,28 @@ export interface IPersonalTrainingRepository {
   updateMemberPTPlan(gymId: string, memberPlan: MemberPTPlan): Observable<void>;
 }
 
+export interface IProductRepository {
+  getProducts(gymId: string): Observable<Product[]>;
+  getProductById(gymId: string, id: string): Observable<Product | null>;
+  addProduct(gymId: string, product: Omit<Product, 'id'>): Observable<Product>;
+  updateProduct(gymId: string, product: Product): Observable<void>;
+  deleteProduct(gymId: string, id: string): Observable<void>;
+}
+
+export interface IImportProfileRepository {
+  getProfiles(gymId: string): Observable<ImportProfile[]>;
+  getProfileById(gymId: string, id: string): Observable<ImportProfile | null>;
+  saveProfile(gymId: string, profile: Omit<ImportProfile, 'id'> | ImportProfile): Observable<ImportProfile>;
+  deleteProfile(gymId: string, id: string): Observable<void>;
+}
+
+export interface IImportHistoryRepository {
+  getHistory(gymId: string): Observable<ImportHistory[]>;
+  getHistoryById(gymId: string, id: string): Observable<ImportHistory | null>;
+  addHistory(gymId: string, history: Omit<ImportHistory, 'id'>): Observable<ImportHistory>;
+  updateHistory(gymId: string, history: ImportHistory): Observable<void>;
+}
+
 
 // --- Angular InjectionTokens ---
 
@@ -224,6 +249,9 @@ export const FINANCE_REPOSITORY_TOKEN = new InjectionToken<IFinanceRepository>('
 export const EMPLOYEE_REPOSITORY_TOKEN = new InjectionToken<IEmployeeRepository>('EMPLOYEE_REPOSITORY_TOKEN');
 export const PERSONAL_TRAINING_REPOSITORY_TOKEN = new InjectionToken<IPersonalTrainingRepository>('PERSONAL_TRAINING_REPOSITORY_TOKEN');
 export const AUDIT_LOG_REPOSITORY_TOKEN = new InjectionToken<IAuditLogRepository>('AUDIT_LOG_REPOSITORY_TOKEN');
+export const PRODUCT_REPOSITORY_TOKEN = new InjectionToken<IProductRepository>('PRODUCT_REPOSITORY_TOKEN');
+export const IMPORT_PROFILE_REPOSITORY_TOKEN = new InjectionToken<IImportProfileRepository>('IMPORT_PROFILE_REPOSITORY_TOKEN');
+export const IMPORT_HISTORY_REPOSITORY_TOKEN = new InjectionToken<IImportHistoryRepository>('IMPORT_HISTORY_REPOSITORY_TOKEN');
 
 // --- Enterprise Abstractions & Factories ---
 export * from './storage-provider.interface';

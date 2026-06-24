@@ -1178,3 +1178,104 @@
   }
 }
 
+/* Onboarding Setup Wizard Banner */
+.onboarding-setup-banner {
+  display: flex;
+  align-items: center;
+  gap: 20px;
+  padding: 24px;
+  background: linear-gradient(135deg, rgba(245, 158, 11, 0.08), rgba(245, 158, 11, 0.02)) !important;
+  backdrop-filter: blur(10px);
+  border: 1px solid rgba(245, 158, 11, 0.2) !important;
+  border-radius: 16px !important;
+  margin-bottom: 24px;
+  box-shadow: 0 8px 32px 0 rgba(245, 158, 11, 0.05);
+  animation: pulse-border 3s infinite ease-in-out;
+
+  body.light-theme & {
+    background: linear-gradient(135deg, rgba(245, 158, 11, 0.05), rgba(245, 158, 11, 0.01)) !important;
+    border-color: rgba(245, 158, 11, 0.15) !important;
+  }
+
+  .banner-icon-wrapper {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 48px;
+    height: 48px;
+    background: rgba(245, 158, 11, 0.15);
+    color: #f59e0b;
+    border-radius: 12px;
+    flex-shrink: 0;
+    
+    mat-icon {
+      font-size: 28px;
+      width: 28px;
+      height: 28px;
+      animation: float-icon 3s ease-in-out infinite;
+    }
+  }
+
+  .banner-content {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+
+    h2 {
+      font-size: 18px;
+      font-weight: 700;
+      color: var(--text-primary);
+      margin: 0;
+      letter-spacing: -0.01em;
+    }
+
+    p {
+      font-size: 14px;
+      color: var(--text-secondary);
+      margin: 0;
+      line-height: 1.5;
+    }
+
+    .banner-actions {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 12px;
+      margin-top: 12px;
+
+      .action-btn {
+        font-weight: 600;
+        border-radius: 8px;
+        padding: 0 16px;
+        height: 38px;
+        line-height: 38px;
+        display: flex;
+        align-items: center;
+        gap: 6px;
+
+        &.skip-btn {
+          color: var(--text-secondary);
+          border-color: var(--border-color);
+          background: transparent;
+
+          &:hover {
+            background: rgba(255, 255, 255, 0.04);
+            border-color: var(--text-muted);
+          }
+        }
+      }
+    }
+  }
+}
+
+@keyframes pulse-border {
+  0%, 100% { border-color: rgba(245, 158, 11, 0.2); }
+  50% { border-color: rgba(245, 158, 11, 0.45); }
+}
+
+@keyframes float-icon {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-4px); }
+}
+
+

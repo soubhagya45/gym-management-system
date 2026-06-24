@@ -11,7 +11,8 @@ export class TenantUrlSerializer extends DefaultUrlSerializer {
     'login', 'register', 'unauthorized', 'landing', 'profile', 
     'assets', 'settings', 'dashboard', 'members', 'leads', 
     'attendance', 'employees', 'payments', 'finance', 'plans', 
-    'trainers', 'whatsapp', 'body-progress', 'tenant-not-found'
+    'trainers', 'whatsapp', 'body-progress', 'tenant-not-found',
+    'setup-wizard'
   ];
 
   constructor(private injector: Injector) {

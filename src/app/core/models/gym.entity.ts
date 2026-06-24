@@ -83,5 +83,8 @@ export interface Gym {
     firebase?: { isEnabled: boolean; apiKey?: string; authDomain?: string; projectId?: string; };
     restApi?: { isEnabled: boolean; baseUrl?: string; apiToken?: string; };
   };
+  setupCompleted?: boolean;
+  openingBalanceCash?: number;
+  openingBalanceBank?: number;
 }
 

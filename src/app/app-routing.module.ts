@@ -175,6 +175,12 @@ const routes: Routes = [
         data: { permission: 'view:settings' }
       },
       {
+        path: 'setup-wizard',
+        loadComponent: () => import('./pages/setup-wizard/setup-wizard.component').then(m => m.SetupWizardComponent),
+        canActivate: [authGuard, permissionGuard, branchGuard],
+        data: { permission: 'import:upload' }
+      },
+      {
         path: 'whatsapp',
         loadComponent: () => import('./pages/whatsapp/whatsapp.component').then(m => m.WhatsAppComponent),
         canActivate: [authGuard, permissionGuard, branchGuard],

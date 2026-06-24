@@ -1,6 +1,6 @@
 import { Injectable } from '@angular/core';
 import { HttpClient, HttpParams } from '@angular/common/http';
-import { Observable } from 'rxjs';
+import { Observable, of } from 'rxjs';
 import { UserRole } from '../../../core/enums/roles.enum';
 import { UserProfile } from '../../../core/models/user.model';
 import { Gym } from '../../../core/models/gym.entity';
@@ -16,6 +16,9 @@ import { ActivityLog } from '../../../core/models/activity-log.entity';
 import { WhatsAppTemplate } from '../../../core/models/whatsapp-template.entity';
 import { WhatsAppReminder } from '../../../core/models/whatsapp-reminder.entity';
 import { BodyProgressEntry } from '../../../core/models/body-progress.entity';
+import { Product } from '../../../core/models/product.entity';
+import { ImportProfile } from '../../../core/models/import-profile.entity';
+import { ImportHistory } from '../../../core/models/import-history.entity';
 
 import {
   IAuthRepository,
@@ -31,7 +34,11 @@ import {
   IBodyProgressRepository,
   IFinanceRepository,
   IAuditLogRepository,
-  IPaymentSettingsRepository
+  IPaymentSettingsRepository,
+  IProductRepository,
+  IImportProfileRepository,
+  IImportHistoryRepository,
+  IUnitOfWork
 } from '../../../core/interfaces/repository.interfaces';
 import { AuditLog } from '../../../core/models/audit-log.model';
 import { PaymentSettings } from '../../../core/models/payment-settings.model';
@@ -567,5 +574,41 @@ export class ApiAuditLogRepository extends BaseApiRepository implements IAuditLo
   addAuditLog(gymId: string, log: Omit<AuditLog, 'id'>): Observable<AuditLog> {
     return this.post<AuditLog>('', log, { params: new HttpParams().set('gymId', gymId) });
   }
+}
+
+@Injectable({ providedIn: 'root' })
+export class ApiProductRepository extends BaseApiRepository implements IProductRepository {
+  protected get endpoint(): string { return '/products'; }
+  getProducts(gymId: string): Observable<Product[]> { return this.get<Product[]>('', { params: new HttpParams().set('gymId', gymId) }); }
+  getProductById(gymId: string, id: string): Observable<Product | null> { return this.get<Product>(`/${id}`, { params: new HttpParams().set('gymId', gymId) }); }
+  addProduct(gymId: string, product: Omit<Product, 'id'>): Observable<Product> { return this.post<Product>('', product, { params: new HttpParams().set('gymId', gymId) }); }
+  updateProduct(gymId: string, product: Product): Observable<void> { return this.put<void>(`/${product.id}`, product, { params: new HttpParams().set('gymId', gymId) }); }
+  deleteProduct(gymId: string, id: string): Observable<void> { return this.delete<void>(`/${id}`, { params: new HttpParams().set('gymId', gymId) }); }
+}
+
+@Injectable({ providedIn: 'root' })
+export class ApiImportProfileRepository extends BaseApiRepository implements IImportProfileRepository {
+  protected get endpoint(): string { return '/import-profiles'; }
+  getProfiles(gymId: string): Observable<ImportProfile[]> { return this.get<ImportProfile[]>('', { params: new HttpParams().set('gymId', gymId) }); }
+  getProfileById(gymId: string, id: string): Observable<ImportProfile | null> { return this.get<ImportProfile>(`/${id}`, { params: new HttpParams().set('gymId', gymId) }); }
+  saveProfile(gymId: string, profile: Omit<ImportProfile, 'id'> | ImportProfile): Observable<ImportProfile> { return this.post<ImportProfile>('', profile, { params: new HttpParams().set('gymId', gymId) }); }
+  deleteProfile(gymId: string, id: string): Observable<void> { return this.delete<void>(`/${id}`, { params: new HttpParams().set('gymId', gymId) }); }
+}
+
+@Injectable({ providedIn: 'root' })
+export class ApiImportHistoryRepository extends BaseApiRepository implements IImportHistoryRepository {
+  protected get endpoint(): string { return '/import-history'; }
+  getHistory(gymId: string): Observable<ImportHistory[]> { return this.get<ImportHistory[]>('', { params: new HttpParams().set('gymId', gymId) }); }
+  getHistoryById(gymId: string, id: string): Observable<ImportHistory | null> { return this.get<ImportHistory>(`/${id}`, { params: new HttpParams().set('gymId', gymId) }); }
+  addHistory(gymId: string, history: Omit<ImportHistory, 'id'>): Observable<ImportHistory> { return this.post<ImportHistory>('', history, { params: new HttpParams().set('gymId', gymId) }); }
+  updateHistory(gymId: string, history: ImportHistory): Observable<void> { return this.put<void>(`/${history.id}`, history, { params: new HttpParams().set('gymId', gymId) }); }
+}
+
+@Injectable({ providedIn: 'root' })
+export class ApiUnitOfWork implements IUnitOfWork {
+  begin(): void {}
+  commit(): Observable<void> { return of(undefined); }
+  rollback(): void {}
+  registerAddition(collectionName: string, id: string): void {}
 }
 

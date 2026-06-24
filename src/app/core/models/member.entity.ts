@@ -36,4 +36,5 @@ export interface Member {
   // Enterprise additions
   membershipFreezeStatus?: 'active' | 'frozen';
   queuedActivationInvoiceId?: string;
+  customFields?: Record<string, any>;
 }

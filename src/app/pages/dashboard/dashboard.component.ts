@@ -26,6 +26,7 @@ import { MembershipPlanState } from '../../presentation/state/membership-plan.st
 import { WhatsAppState } from '../../presentation/state/whatsapp.state';
 
 import { GymState } from '../../presentation/state/gym.state';
+import { Gym } from '../../core/models/gym.entity';
 import { TrainerState } from '../../presentation/state/trainer.state';
 import { AuthState } from '../../presentation/state/auth.state';
 import { PTState } from '../../presentation/state/pt.state';
@@ -61,6 +62,7 @@ export class DashboardComponent implements OnInit {
   stats$: Observable<any> | undefined;
   todayAttendance$: Observable<Attendance[]> | undefined;
   recentLogs$: Observable<ActivityLog[]> | undefined;
+  showOnboardingBanner$: Observable<boolean> | undefined;
   
   attendanceSummary$: Observable<{ present: number; total: number; percentage: number }> | undefined;
   
@@ -127,6 +129,10 @@ export class DashboardComponent implements OnInit {
 
   ngOnInit(): void {
     const todayStr = new Date().toISOString().split('T')[0];
+
+    this.showOnboardingBanner$ = this.gymState.activeGym$.pipe(
+      map(gym => gym ? !gym.setupCompleted : false)
+    );
 
     // Check if user is a Trainer
     this.currentUser$ = this.authState.currentUser$;
@@ -591,6 +597,59 @@ export class DashboardComponent implements OnInit {
     const endPoint = `${padding + (pointsCount - 1) * stepX},${height - padding}`;
 
     return `M ${startPoint} L ${linePoints.join(' L ')} L ${endPoint} Z`;
+  }
+
+  onSkipSetup(): void {
+    this.gymState.activeGym$.pipe(take(1)).subscribe(gym => {
+      if (gym) {
+        const updated: Gym = {
+          ...gym,
+          setupCompleted: true,
+          openingBalanceCash: 0,
+          openingBalanceBank: 0,
+          membershipSettings: gym.membershipSettings || {
+            monthlyPrice: 1000,
+            quarterlyPrice: 2800,
+            halfYearlyPrice: 5000,
+            annualPrice: 9000,
+            autoExpiryEnabled: true,
+            autoExpiryGraceDays: 3,
+            renewalReminderDays: 7
+          },
+          paymentSettings: gym.paymentSettings || {
+            currency: 'INR',
+            enableCard: true,
+            enableUPI: true,
+            enableCash: true
+          }
+        };
+
+        this.gymState.updateGym(updated).subscribe({
+          next: () => {
+            this.planState.plans$.pipe(take(1)).subscribe(plans => {
+              if (!plans || plans.length === 0) {
+                this.planState.addPlan({
+                  name: 'Standard Monthly',
+                  type: 'membership',
+                  durationMonths: 1,
+                  duration: 1,
+                  durationUnit: 'months',
+                  price: 1000,
+                  tax: 0,
+                  description: 'Standard monthly gym membership',
+                  features: ['Gym Floor Access', 'Cardio Area', 'Locker Room'],
+                  isActive: true
+                }).subscribe();
+              }
+            });
+            this.snackBar.open('Setup skipped. Default settings configured.', 'Dismiss', { duration: 3000 });
+          },
+          error: (err) => {
+            this.snackBar.open('Error skipping setup: ' + err.message, 'Dismiss', { duration: 3000 });
+          }
+        });
+      }
+    });
   }
 
   getPlanLabel(plan: string): string {

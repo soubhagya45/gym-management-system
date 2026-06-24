@@ -7,6 +7,7 @@ import { Observable, combineLatest } from 'rxjs';
 import { map } from 'rxjs/operators';
 import { PaymentState } from '../../../presentation/state/payment.state';
 import { FinanceState } from '../../../presentation/state/finance.state';
+import { GymState } from '../../../presentation/state/gym.state';
 
 import { RouterModule } from '@angular/router';
 
@@ -30,18 +31,19 @@ export class CashFlowComponent implements OnInit {
 
   constructor(
     private paymentState: PaymentState,
-    private financeState: FinanceState
+    private financeState: FinanceState,
+    private gymState: GymState
   ) {}
 
   ngOnInit(): void {
-    const openingBalance = 150000; // Seed baseline opening balance
-
     // Cash flow stats summary
     this.cashFlowSummary$ = combineLatest([
       this.paymentState.payments$,
-      this.financeState.expenses$
+      this.financeState.expenses$,
+      this.gymState.activeGym$
     ]).pipe(
-      map(([payments, expenses]) => {
+      map(([payments, expenses, gym]) => {
+        const openingBalance = gym && gym.setupCompleted ? ((gym.openingBalanceCash ?? 0) + (gym.openingBalanceBank ?? 0)) : 150000;
         const cashInflow = payments
           .filter(p => p.status === 'paid')
           .reduce((sum, p) => sum + p.paidAmount, 0);
@@ -61,18 +63,20 @@ export class CashFlowComponent implements OnInit {
     // Monthly Cash Flow Chart (Running balance trend)
     this.cashFlowChart$ = combineLatest([
       this.paymentState.payments$,
-      this.financeState.expenses$
+      this.financeState.expenses$,
+      this.gymState.activeGym$
     ]).pipe(
-      map(([payments, expenses]) => {
+      map(([payments, expenses, gym]) => {
+        const openingBalance = gym && gym.setupCompleted ? ((gym.openingBalanceCash ?? 0) + (gym.openingBalanceBank ?? 0)) : 150000;
         const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun'];
         // Initial projections
         const values = [
-          { month: 'Jan', balance: 184000 },
-          { month: 'Feb', balance: 222000 },
-          { month: 'Mar', balance: 277000 },
-          { month: 'Apr', balance: 321000 },
-          { month: 'May', balance: 377000 },
-          { month: 'Jun', balance: 405000 }
+          { month: 'Jan', balance: openingBalance + 34000 },
+          { month: 'Feb', balance: openingBalance + 72000 },
+          { month: 'Mar', balance: openingBalance + 127000 },
+          { month: 'Apr', balance: openingBalance + 171000 },
+          { month: 'May', balance: openingBalance + 227000 },
+          { month: 'Jun', balance: openingBalance + 255000 }
         ];
 
         // Recalculate June running balance dynamically

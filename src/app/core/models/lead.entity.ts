@@ -50,6 +50,7 @@ export interface Lead {
   height?: number;
   weight?: number;
   followUpHistory?: FollowUpHistoryItem[];
+  customFields?: Record<string, any>;
 }
 
 export interface FollowUpHistoryItem {

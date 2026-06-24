@@ -189,6 +189,26 @@
       </div>
     </div>
 
+    <!-- Onboarding Setup Wizard Banner -->
+    <div class="onboarding-setup-banner glass-panel" *ngIf="showOnboardingBanner$ | async">
+      <div class="banner-icon-wrapper">
+        <mat-icon>auto_awesome</mat-icon>
+      </div>
+      <div class="banner-content">
+        <h2>Welcome to ApexFit! Configure your Gym Settings</h2>
+        <p>Take a moment to run through our Setup Wizard to configure gym properties, create branches, define opening balances, and import your existing gym data from Excel or CSV spreadsheets. Or, click below to start immediately with default settings.</p>
+        <div class="banner-actions">
+          <a mat-raised-button color="primary" routerLink="/setup-wizard" class="action-btn">
+            <mat-icon>rocket_launch</mat-icon>
+            <span>Launch Setup Wizard</span>
+          </a>
+          <button mat-stroked-button (click)="onSkipSetup()" class="action-btn skip-btn">
+            <span>Skip Setup & Start</span>
+          </button>
+        </div>
+      </div>
+    </div>
+
   <!-- SaaS Subscription Banner Panel -->
   <div class="saas-subscription-panel glass-panel" *ngIf="subscriptionStatus$ | async as sub">
     <div class="sub-header-details">
