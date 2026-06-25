@@ -1,4 +1,4 @@
-import { Component, OnInit } from '@angular/core';
+import { Component, OnInit, OnDestroy } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { RouterModule } from '@angular/router';
 import { MatCardModule } from '@angular/material/card';
@@ -34,8 +34,8 @@ import { UserRole } from '../../core/enums/roles.enum';
 import { SubscriptionService } from '../../domain/subscription/subscription.service';
 import { SubscriptionStatus } from '../../core/models/subscription.model';
 import { RenewDialogComponent } from '../payments/renew-dialog.component';
-import { Observable, combineLatest, of } from 'rxjs';
-import { map, take, switchMap } from 'rxjs/operators';
+import { Observable, combineLatest, of, Subject } from 'rxjs';
+import { map, take, switchMap, takeUntil } from 'rxjs/operators';
 import { SubmissionGuardService } from '../../services/submission-guard.service';
 import { AttendanceSyncService } from '../../services/attendance-sync.service';
 import { DeviceConfiguration } from '../../core/models/device-configuration.model';
@@ -58,7 +58,8 @@ import { DeviceConfiguration } from '../../core/models/device-configuration.mode
   templateUrl: './dashboard.component.html',
   styleUrls: ['./dashboard.component.scss']
 })
-export class DashboardComponent implements OnInit {
+export class DashboardComponent implements OnInit, OnDestroy {
+  private destroy$ = new Subject<void>();
   stats$: Observable<any> | undefined;
   todayAttendance$: Observable<Attendance[]> | undefined;
   recentLogs$: Observable<ActivityLog[]> | undefined;
@@ -380,7 +381,7 @@ export class DashboardComponent implements OnInit {
     );
 
     // 8. Fetch lead follow ups (top 5)
-    this.leadState.leads$.subscribe(); // Ensure trigger
+    this.leadState.leads$.pipe(takeUntil(this.destroy$)).subscribe(); // Ensure trigger
     this.leadFollowUps$ = this.leadState.leads$.pipe(
       map(list => list.filter(l => l.status === 'Follow Up').slice(0, 5))
     );
@@ -660,5 +661,10 @@ export class DashboardComponent implements OnInit {
       case 'ENTERPRISE': return 'Enterprise';
       default: return plan;
     }
+  }
+
+  ngOnDestroy(): void {
+    this.destroy$.next();
+    this.destroy$.complete();
   }
 }

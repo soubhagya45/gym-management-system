@@ -28,6 +28,7 @@ import { AttendanceMapping } from '../models/attendance-mapping.model';
 import { Product } from '../models/product.entity';
 import { ImportProfile } from '../models/import-profile.entity';
 import { ImportHistory } from '../models/import-history.entity';
+import { PagedRequest, PagedResponse } from '../models/pagination.contracts';
 
 // --- Interface Definitions ---
 
@@ -65,6 +66,7 @@ export interface IGymRepository {
 
 export interface IMemberRepository {
   getMembers(gymId: string): Observable<Member[]>;
+  getMembersPaged(gymId: string, req: PagedRequest): Observable<PagedResponse<Member>>;
   getMemberById(gymId: string, id: string): Observable<Member | null>;
   addMember(gymId: string, member: Omit<Member, 'id' | 'attendanceCount' | 'balance'>): Observable<Member>;
   updateMember(gymId: string, member: Member): Observable<void>;
@@ -74,6 +76,7 @@ export interface IMemberRepository {
 
 export interface IPaymentRepository {
   getPayments(gymId: string): Observable<Payment[]>;
+  getPaymentsPaged(gymId: string, req: PagedRequest): Observable<PagedResponse<Payment>>;
   addPayment(gymId: string, payment: Omit<Payment, 'id'>): Observable<Payment>;
   confirmPayment(gymId: string, paymentId: string): Observable<void>;
 }
@@ -86,6 +89,7 @@ export interface IPaymentSettingsRepository {
 
 export interface ILeadRepository {
   getLeads(gymId: string): Observable<Lead[]>;
+  getLeadsPaged(gymId: string, req: PagedRequest): Observable<PagedResponse<Lead>>;
   addLead(gymId: string, lead: Omit<Lead, 'id'>): Observable<Lead>;
   updateLead(gymId: string, lead: Lead): Observable<void>;
   deleteLead(gymId: string, id: string): Observable<void>;
@@ -129,6 +133,7 @@ export interface IActivityLogRepository {
 
 export interface IAuditLogRepository {
   getAuditLogs(gymId: string): Observable<AuditLog[]>;
+  getAuditLogsPaged(gymId: string, req: PagedRequest): Observable<PagedResponse<AuditLog>>;
   addAuditLog(gymId: string, log: Omit<AuditLog, 'id'>): Observable<AuditLog>;
 }
 
@@ -227,6 +232,7 @@ export interface IImportProfileRepository {
 
 export interface IImportHistoryRepository {
   getHistory(gymId: string): Observable<ImportHistory[]>;
+  getHistoryPaged(gymId: string, req: PagedRequest): Observable<PagedResponse<ImportHistory>>;
   getHistoryById(gymId: string, id: string): Observable<ImportHistory | null>;
   addHistory(gymId: string, history: Omit<ImportHistory, 'id'>): Observable<ImportHistory>;
   updateHistory(gymId: string, history: ImportHistory): Observable<void>;

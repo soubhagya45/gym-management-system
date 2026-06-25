@@ -202,6 +202,7 @@ service cloud.firestore {
       allow read: if hasGymAccess(resource.data);
       allow create: if canCreateGymData(request.resource.data);
       allow update: if canUpdateGymData(resource.data, request.resource.data);
+      allow delete: if isActive() && (isSuperAdmin() || ((getUserData().role == 'gym_owner' || getUserData().role == 'branch_manager') && resource.data.gymId == getUserData().gymId));
     }
 
     match /collections/{id} {
@@ -372,6 +373,27 @@ service cloud.firestore {
       allow read: if isActive() && (isSuperAdmin() || getUserData().gymId == resource.data.gymId);
       allow write: if isActive() && (isSuperAdmin() || ((getUserData().role == 'gym_owner' || getUserData().role == 'branch_manager') && request.resource.data.gymId == getUserData().gymId));
       allow delete: if isActive() && (isSuperAdmin() || ((getUserData().role == 'gym_owner' || getUserData().role == 'branch_manager') && resource.data.gymId == getUserData().gymId));
+    }
+
+    match /importProfiles/{id} {
+      allow read: if hasGymAccess(resource.data);
+      allow write: if canWriteGymData(request.resource.data);
+    }
+
+    match /importHistory/{id} {
+      allow read: if hasGymAccess(resource.data);
+      allow write: if canWriteGymData(request.resource.data);
+      allow delete: if isActive() && (isSuperAdmin() || ((getUserData().role == 'gym_owner' || getUserData().role == 'branch_manager') && resource.data.gymId == getUserData().gymId));
+    }
+
+    match /deviceRawLogs/{id} {
+      allow read: if hasGymAccess(resource.data);
+      allow write: if canWriteGymData(request.resource.data);
+    }
+
+    match /deviceSyncQueue/{id} {
+      allow read: if hasGymAccess(resource.data);
+      allow write: if canWriteGymData(request.resource.data);
     }
   }
 }

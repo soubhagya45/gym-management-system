@@ -18,7 +18,8 @@ import { BodyProgressEntry } from '../../../core/models/body-progress.entity';
 import { Expense, Invoice, Collection } from '../../../core/models/finance.entity';
 import { Employee, EmployeeAttendance, EmployeePayroll, EmployeePerformance } from '../../../core/models/employee.entity';
 import { SubscriptionPlan } from '../../../core/enums/subscription-plans.enum';
-import { AuthState } from '../../../presentation/state/auth.state';
+import { UserContextService } from '../../../core/services/user-context.service';
+import { PagedRequest, PagedResponse } from '../../../core/models/pagination.contracts';
 import { TenantContextService } from '../../../domain/tenancy/tenant-context.service';
 import { AuditLoggerService } from '../../../services/audit-logger.service';
 import { DeviceConfiguration } from '../../../core/models/device-configuration.model';
@@ -80,42 +81,89 @@ import {
   deleteDoc,
   query,
   where,
-  writeBatch
+  writeBatch,
+  orderBy,
+  limit,
+  startAfter,
+  getCountFromServer
 } from 'firebase/firestore';
 
 function getBranchFilteredQuery(injector: Injector, firebaseService: FirebaseService, collectionName: string, gymId: string) {
   const db = firebaseService.getDb();
-  const authState = injector.get(AuthState);
+  const userContext = injector.get(UserContextService);
   const tenantContext = injector.get(TenantContextService);
-  const user = authState.currentUserValue;
+  const user = userContext.getCurrentUser();
   const colRef = collection(db, collectionName);
+  const targetGymId = userContext.getGymId() || gymId;
 
   if (!user) {
-    // Defensive guard: APP_INITIALIZER should prevent queries from reaching here
-    // without an authenticated user. If this warning appears, investigate whether
-    // the initializer ran correctly or whether localStorage was corrupt on startup.
     console.warn(`[getBranchFilteredQuery] No authenticated user found when querying '${collectionName}'. Firestore rules will reject this request.`);
-    return query(colRef, where('gymId', '==', gymId));
+    return query(colRef, where('gymId', '==', targetGymId));
   }
 
   if (user.role === UserRole.SuperAdmin) {
-    return query(colRef, where('gymId', '==', gymId));
+    return query(colRef, where('gymId', '==', targetGymId));
   }
 
   if (user.role === UserRole.Owner) {
     const activeBranchId = tenantContext.getBranchId();
     if (activeBranchId) {
-      return query(colRef, where('gymId', '==', gymId), where('branchId', '==', activeBranchId));
+      return query(colRef, where('gymId', '==', targetGymId), where('branchId', '==', activeBranchId));
     }
-    return query(colRef, where('gymId', '==', gymId));
+    return query(colRef, where('gymId', '==', targetGymId));
   }
 
   const userBranchId = user.branchId || tenantContext.getBranchId();
   if (userBranchId) {
-    return query(colRef, where('gymId', '==', gymId), where('branchId', '==', userBranchId));
+    return query(colRef, where('gymId', '==', targetGymId), where('branchId', '==', userBranchId));
   }
 
-  return query(colRef, where('gymId', '==', gymId));
+  return query(colRef, where('gymId', '==', targetGymId));
+}
+
+function fetchFirestorePaged<T>(
+  injector: Injector,
+  firebaseService: FirebaseService,
+  collectionName: string,
+  gymId: string,
+  req: PagedRequest,
+  defaultSortCol: string
+): Observable<PagedResponse<T>> {
+  const db = firebaseService.getDb();
+  const qBase = getBranchFilteredQuery(injector, firebaseService, collectionName, gymId);
+
+  const sortCol = req.sort?.column || defaultSortCol;
+  const sortDir = req.sort?.direction || 'asc';
+
+  let q = query(qBase, orderBy(sortCol, sortDir));
+
+  if (req.startAfter) {
+    q = query(q, startAfter(req.startAfter));
+  }
+
+  q = query(q, limit(req.pageSize));
+
+  return from(getCountFromServer(qBase)).pipe(
+    switchMap(countSnap => {
+      const totalCount = countSnap.data().count;
+      return from(getDocs(q)).pipe(
+        map(snap => {
+          const items = snap.docs.map(d => ({ ...d.data(), id: d.id } as T));
+          const lastVisible = snap.docs.length > 0 ? snap.docs[snap.docs.length - 1] : null;
+          const totalPages = Math.ceil(totalCount / req.pageSize);
+          return {
+            items,
+            totalCount,
+            pageIndex: req.pageIndex,
+            pageSize: req.pageSize,
+            totalPages,
+            lastVisible
+          };
+        })
+      );
+    }),
+    catchError(err => throwError(() => new Error(err.message || `Failed to query paged ${collectionName}.`)))
+  );
 }
 
 function logAudit(injector: Injector, action: string, entityType: string, entityId: string, entityName?: string) {
@@ -266,8 +314,8 @@ export class FirebaseAuthRepository implements IAuthRepository {
     const auth = this.firebaseService.getAuth();
     const db = this.firebaseService.getDb();
     try {
-      const authState = this.injector.get(AuthState);
-      const user = authState.currentUserValue;
+      const userContext = this.injector.get(UserContextService);
+      const user = userContext.getCurrentUser();
       if (user) {
         const logId = 'audit_' + Math.random().toString(36).substring(2, 9);
         setDoc(doc(db, 'auditLogs', logId), {
@@ -480,9 +528,9 @@ export class FirebaseAuthRepository implements IAuthRepository {
     const currentUser = auth.currentUser;
     const cleanEmail = email.toLowerCase().trim();
 
-    const authState = this.injector.get(AuthState);
-    const activeUser = authState.currentUserValue;
-    const userGymId = activeUser?.gymId;
+    const userContext = this.injector.get(UserContextService);
+    const activeUser = userContext.getCurrentUser();
+    const userGymId = userContext.getGymId();
 
     if (currentUser && currentUser.email?.toLowerCase().trim() === cleanEmail) {
       return from(updateDoc(doc(db, 'users', currentUser.uid), { isFirstLogin: false })).pipe(
@@ -562,8 +610,8 @@ export class FirebaseGymRepository implements IGymRepository {
 
   getGyms(): Observable<Gym[]> {
     const db = this.firebaseService.getDb();
-    const authState = this.injector.get(AuthState);
-    const user = authState.currentUserValue;
+    const userContext = this.injector.get(UserContextService);
+    const user = userContext.getCurrentUser();
 
     if (!user) {
       return of([]);
@@ -641,6 +689,10 @@ export class FirebaseMemberRepository implements IMemberRepository {
       map(snap => snap.docs.map(d => d.data() as Member)),
       catchError(err => throwError(() => new Error(err.message || 'Failed to get members.')))
     );
+  }
+
+  getMembersPaged(gymId: string, req: PagedRequest): Observable<PagedResponse<Member>> {
+    return fetchFirestorePaged<Member>(this.injector, this.firebaseService, 'members', gymId, req, 'name');
   }
 
   getMemberById(gymId: string, id: string): Observable<Member | null> {
@@ -726,6 +778,10 @@ export class FirebasePaymentRepository implements IPaymentRepository {
       map(snap => snap.docs.map(d => d.data() as Payment)),
       catchError(err => throwError(() => new Error(err.message || 'Failed to get payments.')))
     );
+  }
+
+  getPaymentsPaged(gymId: string, req: PagedRequest): Observable<PagedResponse<Payment>> {
+    return fetchFirestorePaged<Payment>(this.injector, this.firebaseService, 'payments', gymId, req, 'date');
   }
 
   addPayment(gymId: string, payment: Omit<Payment, 'id'>): Observable<Payment> {
@@ -1057,6 +1113,10 @@ export class FirebaseLeadRepository implements ILeadRepository {
       map(snap => snap.docs.map(d => d.data() as Lead)),
       catchError(err => throwError(() => new Error(err.message || 'Failed to get leads.')))
     );
+  }
+
+  getLeadsPaged(gymId: string, req: PagedRequest): Observable<PagedResponse<Lead>> {
+    return fetchFirestorePaged<Lead>(this.injector, this.firebaseService, 'leads', gymId, req, 'name');
   }
 
   addLead(gymId: string, lead: Omit<Lead, 'id'>): Observable<Lead> {
@@ -2717,8 +2777,8 @@ export class FirebaseAuditLogRepository implements IAuditLogRepository {
 
   getAuditLogs(gymId: string): Observable<AuditLog[]> {
     const db = this.firebaseService.getDb();
-    const authState = this.injector.get(AuthState);
-    const user = authState.currentUserValue;
+    const userContext = this.injector.get(UserContextService);
+    const user = userContext.getCurrentUser();
     if (!user) return of([]);
 
     let q = query(collection(db, 'auditLogs'));
@@ -2750,6 +2810,10 @@ export class FirebaseAuditLogRepository implements IAuditLogRepository {
       }),
       catchError(err => throwError(() => new Error(err.message || 'Failed to fetch audit logs.')))
     );
+  }
+
+  getAuditLogsPaged(gymId: string, req: PagedRequest): Observable<PagedResponse<AuditLog>> {
+    return fetchFirestorePaged<AuditLog>(this.injector, this.firebaseService, 'auditLogs', gymId, req, 'timestamp');
   }
 
   addAuditLog(gymId: string, log: Omit<AuditLog, 'id'>): Observable<AuditLog> {
@@ -2868,7 +2932,10 @@ export class FirebaseImportProfileRepository implements IImportProfileRepository
 
 @Injectable({ providedIn: 'root' })
 export class FirebaseImportHistoryRepository implements IImportHistoryRepository {
-  constructor(private firebaseService: FirebaseService) {}
+  constructor(
+    private firebaseService: FirebaseService,
+    private injector: Injector
+  ) {}
 
   getHistory(gymId: string): Observable<ImportHistory[]> {
     const db = this.firebaseService.getDb();
@@ -2880,6 +2947,10 @@ export class FirebaseImportHistoryRepository implements IImportHistoryRepository
       }),
       catchError(err => throwError(() => new Error(err.message || 'Failed to fetch import history.')))
     );
+  }
+
+  getHistoryPaged(gymId: string, req: PagedRequest): Observable<PagedResponse<ImportHistory>> {
+    return fetchFirestorePaged<ImportHistory>(this.injector, this.firebaseService, 'importHistory', gymId, req, 'date');
   }
 
   getHistoryById(gymId: string, id: string): Observable<ImportHistory | null> {
@@ -2939,10 +3010,10 @@ export class FirebaseUnitOfWork implements IUnitOfWork {
     // Perform standard sequential deletion in reverse order to undo additions
     const deleteOperations = this.additions.map(item => {
       let firestoreCollection = item.collectionName;
-      if (firestoreCollection === 'membership-plans') firestoreCollection = 'membershipPlans';
-      if (firestoreCollection === 'pt-plans') firestoreCollection = 'ptPlans';
-      if (firestoreCollection === 'import-profiles') firestoreCollection = 'importProfiles';
-      if (firestoreCollection === 'import-history') firestoreCollection = 'importHistory';
+      if (firestoreCollection === 'membership-plans' || firestoreCollection === 'membershipPlans') firestoreCollection = 'membership_plans';
+      if (firestoreCollection === 'pt-plans' || firestoreCollection === 'ptPlans') firestoreCollection = 'ptPlans';
+      if (firestoreCollection === 'import-profiles' || firestoreCollection === 'importProfiles') firestoreCollection = 'importProfiles';
+      if (firestoreCollection === 'import-history' || firestoreCollection === 'importHistory') firestoreCollection = 'importHistory';
       
       const docRef = doc(db, firestoreCollection, item.id);
       return from(deleteDoc(docRef)).pipe(

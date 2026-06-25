@@ -39,9 +39,33 @@ import {
   IImportProfileRepository,
   IImportHistoryRepository,
   IPersonalTrainingRepository,
-  IUnitOfWork
+  IUnitOfWork,
+  PagedRequest,
+  PagedResponse
 } from '../../../core/interfaces/repository.interfaces';
 import { AuditLog } from '../../../core/models/audit-log.model';
+
+function buildPagedParams(gymId: string, req: PagedRequest): HttpParams {
+  let params = new HttpParams()
+    .set('gymId', gymId)
+    .set('pageIndex', req.pageIndex.toString())
+    .set('pageSize', req.pageSize.toString());
+
+  if (req.searchTerm) {
+    params = params.set('searchTerm', req.searchTerm);
+  }
+  if (req.sort) {
+    params = params.set('sortColumn', req.sort.column)
+                   .set('sortDirection', req.sort.direction);
+  }
+  if (req.startAfter) {
+    params = params.set('startAfter', typeof req.startAfter === 'object' ? JSON.stringify(req.startAfter) : req.startAfter.toString());
+  }
+  if (req.filters && req.filters.length > 0) {
+    params = params.set('filters', JSON.stringify(req.filters));
+  }
+  return params;
+}
 import { PaymentSettings } from '../../../core/models/payment-settings.model';
 import { Expense, Invoice, Collection } from '../../../core/models/finance.entity';
 import { Employee, EmployeeAttendance, EmployeePayroll, EmployeePerformance } from '../../../core/models/employee.entity';
@@ -167,6 +191,10 @@ export class ApiMemberRepository extends BaseApiRepository implements IMemberRep
     return this.get<Member[]>('', { params: new HttpParams().set('gymId', gymId) });
   }
 
+  getMembersPaged(gymId: string, req: PagedRequest): Observable<PagedResponse<Member>> {
+    return this.get<PagedResponse<Member>>('/paged', { params: buildPagedParams(gymId, req) });
+  }
+
   getMemberById(gymId: string, id: string): Observable<Member | null> {
     return this.get<Member | null>(`/${id}`, { params: new HttpParams().set('gymId', gymId) });
   }
@@ -200,6 +228,10 @@ export class ApiPaymentRepository extends BaseApiRepository implements IPaymentR
 
   getPayments(gymId: string): Observable<Payment[]> {
     return this.get<Payment[]>('', { params: new HttpParams().set('gymId', gymId) });
+  }
+
+  getPaymentsPaged(gymId: string, req: PagedRequest): Observable<PagedResponse<Payment>> {
+    return this.get<PagedResponse<Payment>>('/paged', { params: buildPagedParams(gymId, req) });
   }
 
   addPayment(gymId: string, payment: Omit<Payment, 'id'>): Observable<Payment> {
@@ -246,6 +278,10 @@ export class ApiLeadRepository extends BaseApiRepository implements ILeadReposit
 
   getLeads(gymId: string): Observable<Lead[]> {
     return this.get<Lead[]>('', { params: new HttpParams().set('gymId', gymId) });
+  }
+
+  getLeadsPaged(gymId: string, req: PagedRequest): Observable<PagedResponse<Lead>> {
+    return this.get<PagedResponse<Lead>>('/paged', { params: buildPagedParams(gymId, req) });
   }
 
   addLead(gymId: string, lead: Omit<Lead, 'id'>): Observable<Lead> {
@@ -580,6 +616,10 @@ export class ApiAuditLogRepository extends BaseApiRepository implements IAuditLo
     return this.get<AuditLog[]>('', { params: new HttpParams().set('gymId', gymId) });
   }
 
+  getAuditLogsPaged(gymId: string, req: PagedRequest): Observable<PagedResponse<AuditLog>> {
+    return this.get<PagedResponse<AuditLog>>('/paged', { params: buildPagedParams(gymId, req) });
+  }
+
   addAuditLog(gymId: string, log: Omit<AuditLog, 'id'>): Observable<AuditLog> {
     return this.post<AuditLog>('', log, { params: new HttpParams().set('gymId', gymId) });
   }
@@ -608,6 +648,10 @@ export class ApiImportProfileRepository extends BaseApiRepository implements IIm
 export class ApiImportHistoryRepository extends BaseApiRepository implements IImportHistoryRepository {
   protected get endpoint(): string { return '/import-history'; }
   getHistory(gymId: string): Observable<ImportHistory[]> { return this.get<ImportHistory[]>('', { params: new HttpParams().set('gymId', gymId) }); }
+
+  getHistoryPaged(gymId: string, req: PagedRequest): Observable<PagedResponse<ImportHistory>> {
+    return this.get<PagedResponse<ImportHistory>>('/paged', { params: buildPagedParams(gymId, req) });
+  }
   getHistoryById(gymId: string, id: string): Observable<ImportHistory | null> { return this.get<ImportHistory>(`/${id}`, { params: new HttpParams().set('gymId', gymId) }); }
   addHistory(gymId: string, history: Omit<ImportHistory, 'id'>): Observable<ImportHistory> { return this.post<ImportHistory>('', history, { params: new HttpParams().set('gymId', gymId) }); }
   updateHistory(gymId: string, history: ImportHistory): Observable<void> { return this.put<void>(`/${history.id}`, history, { params: new HttpParams().set('gymId', gymId) }); }

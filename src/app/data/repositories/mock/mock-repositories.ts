@@ -4,7 +4,7 @@ import { delay, map } from 'rxjs/operators';
 import { UserRole } from '../../../core/enums/roles.enum';
 import { IOnboardingRepository } from '../../../core/interfaces/onboarding-repository.interface';
 import { OnboardingData } from '../../../core/models/onboarding.model';
-import { AuthState } from '../../../presentation/state/auth.state';
+import { UserContextService } from '../../../core/services/user-context.service';
 
 import {
   IAuthRepository,
@@ -53,7 +53,74 @@ import { MemberPTPlan } from '../../../core/models/member-pt-plan.entity';
 import { Product } from '../../../core/models/product.entity';
 import { ImportProfile } from '../../../core/models/import-profile.entity';
 import { ImportHistory } from '../../../core/models/import-history.entity';
+import { PagedRequest, PagedResponse } from '../../../core/models/pagination.contracts';
 import { IProductRepository, IImportProfileRepository, IImportHistoryRepository, IUnitOfWork } from '../../../core/interfaces/repository.interfaces';
+
+function paginateData<T>(items: T[], req: PagedRequest): PagedResponse<T> {
+  let filtered = [...items];
+
+  // 1. Search Term (case-insensitive substring match)
+  if (req.searchTerm) {
+    const term = req.searchTerm.toLowerCase().trim();
+    filtered = filtered.filter(item => {
+      const serialized = JSON.stringify(item).toLowerCase();
+      return serialized.includes(term);
+    });
+  }
+
+  // 2. Filters
+  if (req.filters && req.filters.length > 0) {
+    for (const f of req.filters) {
+      filtered = filtered.filter(item => {
+        const val = (item as any)[f.field];
+        if (val === undefined || val === null) return false;
+        const compareVal = f.value;
+
+        switch (f.operator) {
+          case 'eq': return String(val).toLowerCase() === String(compareVal).toLowerCase();
+          case 'neq': return String(val).toLowerCase() !== String(compareVal).toLowerCase();
+          case 'gt': return Number(val) > Number(compareVal);
+          case 'lt': return Number(val) < Number(compareVal);
+          case 'contains': return String(val).toLowerCase().includes(String(compareVal).toLowerCase());
+          case 'startsWith': return String(val).toLowerCase().startsWith(String(compareVal).toLowerCase());
+          default: return true;
+        }
+      });
+    }
+  }
+
+  // 3. Sort
+  if (req.sort && req.sort.column) {
+    const col = req.sort.column;
+    const dir = req.sort.direction === 'desc' ? -1 : 1;
+    filtered.sort((a, b) => {
+      const valA = (a as any)[col];
+      const valB = (b as any)[col];
+      if (valA === valB) return 0;
+      if (valA === undefined || valA === null) return 1;
+      if (valB === undefined || valB === null) return -1;
+      return valA < valB ? -1 * dir : 1 * dir;
+    });
+  }
+
+  const totalCount = filtered.length;
+  const pageIndex = req.pageIndex;
+  const pageSize = req.pageSize;
+  const totalPages = Math.ceil(totalCount / pageSize);
+  const start = pageIndex * pageSize;
+  const pagedItems = filtered.slice(start, start + pageSize);
+
+  const lastVisible = pagedItems.length > 0 ? pagedItems[pagedItems.length - 1] : null;
+
+  return {
+    items: pagedItems,
+    totalCount,
+    pageIndex,
+    pageSize,
+    totalPages,
+    lastVisible
+  };
+}
 
 
 // --- Static In-Memory Database State ---
@@ -1474,6 +1541,10 @@ export class MockMemberRepository implements IMemberRepository {
     return of(dbMembers.filter(m => m.gymId === gymId)).pipe(delay(300));
   }
 
+  getMembersPaged(gymId: string, req: PagedRequest): Observable<PagedResponse<Member>> {
+    return of(paginateData(dbMembers.filter(m => m.gymId === gymId), req)).pipe(delay(200));
+  }
+
   getMemberById(gymId: string, id: string): Observable<Member | null> {
     const member = dbMembers.find(m => m.gymId === gymId && m.id === id) || null;
     return of(member).pipe(delay(200));
@@ -1521,6 +1592,10 @@ export class MockMemberRepository implements IMemberRepository {
 export class MockPaymentRepository implements IPaymentRepository {
   getPayments(gymId: string): Observable<Payment[]> {
     return of(dbPayments.filter(p => p.gymId === gymId)).pipe(delay(300));
+  }
+
+  getPaymentsPaged(gymId: string, req: PagedRequest): Observable<PagedResponse<Payment>> {
+    return of(paginateData(dbPayments.filter(p => p.gymId === gymId), req)).pipe(delay(200));
   }
 
   addPayment(gymId: string, payment: Omit<Payment, 'id'>): Observable<Payment> {
@@ -1774,6 +1849,10 @@ export class MockPaymentSettingsRepository implements IPaymentSettingsRepository
 export class MockLeadRepository implements ILeadRepository {
   getLeads(gymId: string): Observable<Lead[]> {
     return of(dbLeads.filter(l => l.gymId === gymId)).pipe(delay(300));
+  }
+
+  getLeadsPaged(gymId: string, req: PagedRequest): Observable<PagedResponse<Lead>> {
+    return of(paginateData(dbLeads.filter(l => l.gymId === gymId), req)).pipe(delay(200));
   }
 
   addLead(gymId: string, lead: Omit<Lead, 'id'>): Observable<Lead> {
@@ -3079,8 +3158,8 @@ export class MockAuditLogRepository implements IAuditLogRepository {
   constructor(private injector: Injector) {}
 
   getAuditLogs(gymId: string): Observable<AuditLog[]> {
-    const authState = this.injector.get(AuthState);
-    const user = authState.currentUserValue;
+    const userContext = this.injector.get(UserContextService);
+    const user = userContext.getCurrentUser();
     if (!user) return of([]);
 
     let list = [...dbAuditLogs];
@@ -3101,6 +3180,27 @@ export class MockAuditLogRepository implements IAuditLogRepository {
 
     list.sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
     return of(list).pipe(delay(300));
+  }
+
+  getAuditLogsPaged(gymId: string, req: PagedRequest): Observable<PagedResponse<AuditLog>> {
+    const userContext = this.injector.get(UserContextService);
+    const user = userContext.getCurrentUser();
+    if (!user) return of({ items: [], totalCount: 0, pageIndex: req.pageIndex, pageSize: req.pageSize, totalPages: 0 });
+
+    let list = [...dbAuditLogs];
+
+    if (user.role === 'super_admin') {
+      // Super Admin: sees all gyms
+    } else if (user.role === 'gym_owner') {
+      list = list.filter(l => l.gymId === gymId);
+    } else if (user.role === 'branch_manager') {
+      const branchId = user.branchId || '';
+      list = list.filter(l => l.gymId === gymId && l.branchId === branchId);
+    } else {
+      return of({ items: [], totalCount: 0, pageIndex: req.pageIndex, pageSize: req.pageSize, totalPages: 0 });
+    }
+
+    return of(paginateData(list, req)).pipe(delay(200));
   }
 
   addAuditLog(gymId: string, log: Omit<AuditLog, 'id'>): Observable<AuditLog> {
@@ -3202,6 +3302,10 @@ export class MockImportProfileRepository implements IImportProfileRepository {
 export class MockImportHistoryRepository implements IImportHistoryRepository {
   getHistory(gymId: string): Observable<ImportHistory[]> {
     return of(dbImportHistory.filter(h => h.gymId === gymId)).pipe(delay(300));
+  }
+
+  getHistoryPaged(gymId: string, req: PagedRequest): Observable<PagedResponse<ImportHistory>> {
+    return of(paginateData(dbImportHistory.filter(h => h.gymId === gymId), req)).pipe(delay(200));
   }
 
   getHistoryById(gymId: string, id: string): Observable<ImportHistory | null> {

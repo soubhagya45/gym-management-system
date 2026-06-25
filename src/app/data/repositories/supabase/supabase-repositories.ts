@@ -18,6 +18,7 @@ import { BodyProgressEntry } from '../../../core/models/body-progress.entity';
 import { Product } from '../../../core/models/product.entity';
 import { ImportProfile } from '../../../core/models/import-profile.entity';
 import { ImportHistory } from '../../../core/models/import-history.entity';
+import { PagedRequest, PagedResponse } from '../../../core/models/pagination.contracts';
 
 import {
   IAuthRepository,
@@ -110,6 +111,7 @@ export class SupabaseGymRepository implements IGymRepository {
 @Injectable({ providedIn: 'root' })
 export class SupabaseMemberRepository implements IMemberRepository {
   getMembers(gymId: string): Observable<Member[]> { return throwError(() => new Error('Supabase integration is not enabled.')); }
+  getMembersPaged(gymId: string, req: PagedRequest): Observable<PagedResponse<Member>> { return throwError(() => new Error('Supabase integration is not enabled.')); }
   getMemberById(gymId: string, id: string): Observable<Member | null> { return throwError(() => new Error('Supabase integration is not enabled.')); }
   addMember(gymId: string, member: Omit<Member, 'id' | 'attendanceCount' | 'balance'>): Observable<Member> { return throwError(() => new Error('Supabase integration is not enabled.')); }
   updateMember(gymId: string, member: Member): Observable<void> { return throwError(() => new Error('Supabase integration is not enabled.')); }
@@ -120,6 +122,7 @@ export class SupabaseMemberRepository implements IMemberRepository {
 @Injectable({ providedIn: 'root' })
 export class SupabasePaymentRepository implements IPaymentRepository {
   getPayments(gymId: string): Observable<Payment[]> { return throwError(() => new Error('Supabase integration is not enabled.')); }
+  getPaymentsPaged(gymId: string, req: PagedRequest): Observable<PagedResponse<Payment>> { return throwError(() => new Error('Supabase integration is not enabled.')); }
   addPayment(gymId: string, payment: Omit<Payment, 'id'>): Observable<Payment> { return throwError(() => new Error('Supabase integration is not enabled.')); }
   confirmPayment(gymId: string, paymentId: string): Observable<void> { return throwError(() => new Error('Supabase integration is not enabled.')); }
 }
@@ -134,6 +137,7 @@ export class SupabasePaymentSettingsRepository implements IPaymentSettingsReposi
 @Injectable({ providedIn: 'root' })
 export class SupabaseLeadRepository implements ILeadRepository {
   getLeads(gymId: string): Observable<Lead[]> { return throwError(() => new Error('Supabase integration is not enabled.')); }
+  getLeadsPaged(gymId: string, req: PagedRequest): Observable<PagedResponse<Lead>> { return throwError(() => new Error('Supabase integration is not enabled.')); }
   addLead(gymId: string, lead: Omit<Lead, 'id'>): Observable<Lead> { return throwError(() => new Error('Supabase integration is not enabled.')); }
   updateLead(gymId: string, lead: Lead): Observable<void> { return throwError(() => new Error('Supabase integration is not enabled.')); }
   deleteLead(gymId: string, id: string): Observable<void> { return throwError(() => new Error('Supabase integration is not enabled.')); }
@@ -229,6 +233,7 @@ export class SupabaseEmployeeRepository implements IEmployeeRepository {
 @Injectable({ providedIn: 'root' })
 export class SupabaseAuditLogRepository implements IAuditLogRepository {
   getAuditLogs(gymId: string): Observable<AuditLog[]> { return throwError(() => new Error('Supabase integration is not enabled.')); }
+  getAuditLogsPaged(gymId: string, req: PagedRequest): Observable<PagedResponse<AuditLog>> { return throwError(() => new Error('Supabase integration is not enabled.')); }
   addAuditLog(gymId: string, log: Omit<AuditLog, 'id'>): Observable<AuditLog> { return throwError(() => new Error('Supabase integration is not enabled.')); }
 }
 
@@ -252,6 +257,7 @@ export class SupabaseImportProfileRepository implements IImportProfileRepository
 @Injectable({ providedIn: 'root' })
 export class SupabaseImportHistoryRepository implements IImportHistoryRepository {
   getHistory(gymId: string): Observable<ImportHistory[]> { return throwError(() => new Error('Supabase integration is not enabled.')); }
+  getHistoryPaged(gymId: string, req: PagedRequest): Observable<PagedResponse<ImportHistory>> { return throwError(() => new Error('Supabase integration is not enabled.')); }
   getHistoryById(gymId: string, id: string): Observable<ImportHistory | null> { return throwError(() => new Error('Supabase integration is not enabled.')); }
   addHistory(gymId: string, history: Omit<ImportHistory, 'id'>): Observable<ImportHistory> { return throwError(() => new Error('Supabase integration is not enabled.')); }
   updateHistory(gymId: string, history: ImportHistory): Observable<void> { return throwError(() => new Error('Supabase integration is not enabled.')); }

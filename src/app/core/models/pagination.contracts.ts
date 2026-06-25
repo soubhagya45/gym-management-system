@@ -15,6 +15,7 @@ export interface PagedRequest {
   searchTerm?: string;
   sort?: SortDefinition;
   filters?: FilterDefinition[];
+  startAfter?: any;
 }
 
 export interface PagedResponse<T> {
@@ -23,4 +24,5 @@ export interface PagedResponse<T> {
   pageIndex: number;
   pageSize: number;
   totalPages: number;
+  lastVisible?: any;
 }
