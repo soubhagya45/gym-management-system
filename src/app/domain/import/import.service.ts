@@ -354,7 +354,18 @@ export class ImportService {
     );
   }
 
+  /**
+   * WARNING: Out of Memory (OOM) risk in browser environments.
+   * restoreDisasterSnapshot loads entire collections into memory simultaneously via combineLatest
+   * and performs batch creation of all snapshot entities. At enterprise scale (>1,000 records
+   * per collection), browser tab memory limit (~1.5GB) can be exceeded.
+   * Recommended long-term fix: Migrate to server-side streaming restore using Cloud Functions or
+   * Paginated cursor-based sequential chunk loading.
+   */
   restoreDisasterSnapshot(gymId: string, snapshotUrl: string): Observable<void> {
+    if (!snapshotUrl) {
+      return throwError(() => new Error('Disaster Recovery restoration aborted: Snapshot URL is empty.'));
+    }
     if (this.userContext.getGymId() !== gymId) {
       return throwError(() => new Error('Access denied: Unauthorized gym context for snapshot restoration.'));
     }
@@ -362,6 +373,7 @@ export class ImportService {
       return throwError(() => new Error('Access denied: Insufficient permission to perform restoration.'));
     }
 
+    console.log(`[DisasterRecovery] Downloading snapshot from: ${snapshotUrl}`);
     return this.storageRepo.downloadFile(snapshotUrl).pipe(
       switchMap((blob: Blob) => {
         return new Observable<any>(subscriber => {
@@ -372,23 +384,23 @@ export class ImportService {
               subscriber.next(snapshot);
               subscriber.complete();
             } catch (err) {
-              subscriber.error(new Error('JSON parsing failed.'));
+              subscriber.error(new Error('JSON parsing of snapshot file failed.'));
             }
           };
-          reader.onerror = () => subscriber.error(new Error('Reading blob failed.'));
+          reader.onerror = () => subscriber.error(new Error('Reading downloaded snapshot file failed.'));
           reader.readAsText(blob);
         });
       }),
       switchMap((snapshot: any) => {
         if (!snapshot || !snapshot.data) {
-          return throwError(() => new Error('Invalid snapshot structure.'));
+          return throwError(() => new Error('Invalid snapshot structure: missing data block.'));
         }
 
         const data = snapshot.data;
         const commitUnit = this.unitOfWork;
         commitUnit.begin();
 
-        console.log(`[DisasterRecovery] Initiating restoration for gym: ${gymId}`);
+        console.log(`[DisasterRecovery] Initiating restoration logic for gym: ${gymId}`);
 
         return combineLatest([
           this.memberRepo.getMembers(gymId).pipe(catchError(() => of([]))),
@@ -487,10 +499,17 @@ export class ImportService {
                 const runDeletes = deleteOps.length > 0 ? forkJoin(deleteOps) : of([]);
                 return runDeletes.pipe(
                   switchMap(() => commitUnit.commit()),
-                  map(() => undefined),
-                  catchError(err => {
-                    commitUnit.failure(err);
-                    return throwError(() => err);
+                  map(() => undefined)
+                );
+              }),
+              catchError(err => {
+                // If anything fails, perform rollback of UoW and await it before propagating error
+                console.error('[DisasterRecovery] Error occurred during restore operations. Triggering rollback...', err);
+                return commitUnit.rollback().pipe(
+                  switchMap(() => throwError(() => err)),
+                  catchError(rollbackErr => {
+                    console.error('[DisasterRecovery] Critical failure: Rollback also failed.', rollbackErr);
+                    return throwError(() => new Error(`Disaster Recovery restoration failed, and rollback also failed: ${rollbackErr.message}. Original error: ${err.message}`));
                   })
                 );
               })
@@ -498,7 +517,10 @@ export class ImportService {
           })
         );
       }),
-      catchError(err => throwError(() => new Error('Disaster Recovery restoration failed: ' + err.message)))
+      catchError(err => {
+        console.error('[DisasterRecovery] Disaster recovery restoration process failed:', err);
+        return throwError(() => new Error('Disaster Recovery restoration failed: ' + err.message));
+      })
     );
   }
 
@@ -678,10 +700,9 @@ export class ImportService {
                 console.error(`[BackgroundImport] Batch execution failed. Triggering rollback.`, err);
                 this.jobProvider.markFailed(jobId, err.message);
                 
-                this.restoreDisasterSnapshot(gymId, snapshotUrl).subscribe({
-                  next: () => {
+                this.restoreDisasterSnapshot(gymId, snapshotUrl).pipe(
+                  switchMap(() => {
                     localStorage.removeItem(`active_import_job_${jobId}`);
-                    
                     const failedHistory: Omit<ImportHistory, 'id'> = {
                       gymId,
                       importedBy: this.userContext.getUserId() || 'system',
@@ -697,15 +718,17 @@ export class ImportService {
                       snapshotUrl,
                       status: 'failed'
                     };
-
-                    this.historyRepo.addHistory(gymId, failedHistory).subscribe(() => {
-                      subscriber.error(new Error('Import failed: ' + err.message + '. Rollback executed.'));
-                    });
-                  },
-                  error: (rollbackErr) => {
+                    return this.historyRepo.addHistory(gymId, failedHistory);
+                  }),
+                  catchError(rollbackErr => of(null).pipe(map(() => {
                     localStorage.removeItem(`active_import_job_${jobId}`);
                     subscriber.error(new Error('Import failed and rollback also failed: ' + rollbackErr.message));
-                  }
+                  })))
+                ).subscribe({
+                  next: () => {
+                    subscriber.error(new Error('Import failed: ' + err.message + '. Rollback executed.'));
+                  },
+                  error: () => {} // already handled by catchError above
                 });
               }
             });
@@ -1283,8 +1306,13 @@ export class ImportService {
       }),
       catchError(err => {
         console.error('[ImportService] Commit failure. Rolling back writes.', err);
-        commitUnit.rollback();
-        return throwError(() => new Error('Import execution encountered a database error. Complete rollback executed. Details: ' + err.message));
+        return commitUnit.rollback().pipe(
+          switchMap(() => throwError(() => new Error('Import execution encountered a database error. Complete rollback executed. Details: ' + err.message))),
+          catchError(rollbackErr => {
+            console.error('[ImportService] Rollback also encountered error:', rollbackErr);
+            return throwError(() => new Error('Import execution failed, and subsequent rollback also failed: ' + rollbackErr.message + '. Original error: ' + err.message));
+          })
+        );
       })
     );
   }

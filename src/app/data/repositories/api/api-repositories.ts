@@ -665,14 +665,15 @@ export class ApiImportHistoryRepository extends BaseApiRepository implements IIm
 export class ApiUnitOfWork implements IUnitOfWork {
   begin(): void {}
   commit(): Observable<void> { return of(undefined); }
-  rollback(): void {
+  rollback(): Observable<void> {
     // API provider — transactional rollback is responsibility of the backend.
     // Log warning so this is visible in monitoring during debugging.
     console.warn('[ApiUnitOfWork] rollback() called. The backend API must handle transaction cleanup.');
+    return of(undefined);
   }
   failure(error: Error): void {
     console.error('[ApiUnitOfWork] failure() called:', error.message);
-    this.rollback();
+    this.rollback().subscribe();
   }
   registerAddition(collectionName: string, id: string): void {}
 }

@@ -88,6 +88,17 @@ import {
   getCountFromServer
 } from 'firebase/firestore';
 
+function generateUUID(): string {
+  if (typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function') {
+    return crypto.randomUUID();
+  }
+  return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, (c) => {
+    const r = (Math.random() * 16) | 0;
+    const v = c === 'x' ? r : (r & 0x3) | 0x8;
+    return v.toString(16);
+  });
+}
+
 function getBranchFilteredQuery(injector: Injector, firebaseService: FirebaseService, collectionName: string, gymId: string) {
   const db = firebaseService.getDb();
   const userContext = injector.get(UserContextService);
@@ -230,8 +241,8 @@ export class FirebaseAuthRepository implements IAuthRepository {
                 }
 
                 // Audit logging trigger
-                const logId = 'audit_' + Math.random().toString(36).substring(2, 9);
-                setDoc(doc(db, 'auditLogs', logId), {
+                const logId = 'audit_' + generateUUID();
+                return from(setDoc(doc(db, 'auditLogs', logId), {
                   id: logId,
                   userId: uid,
                   role: enrichedProfile.role,
@@ -240,9 +251,13 @@ export class FirebaseAuthRepository implements IAuthRepository {
                   entityId: uid,
                   timestamp: new Date().toISOString(),
                   gymId: enrichedProfile.gymId || ''
-                }).catch(err => console.error('Login audit log failed:', err));
-
-                return of(enrichedProfile);
+                })).pipe(
+                  map(() => enrichedProfile),
+                  catchError(err => {
+                    console.error('Login audit log failed:', err);
+                    return of(enrichedProfile);
+                  })
+                );
               };
 
               if (isEmployeeRole) {
@@ -313,12 +328,14 @@ export class FirebaseAuthRepository implements IAuthRepository {
   logout(): Observable<void> {
     const auth = this.firebaseService.getAuth();
     const db = this.firebaseService.getDb();
+    let auditLog$: Observable<any> = of(undefined);
+
     try {
       const userContext = this.injector.get(UserContextService);
       const user = userContext.getCurrentUser();
       if (user) {
-        const logId = 'audit_' + Math.random().toString(36).substring(2, 9);
-        setDoc(doc(db, 'auditLogs', logId), {
+        const logId = 'audit_' + generateUUID();
+        auditLog$ = from(setDoc(doc(db, 'auditLogs', logId), {
           id: logId,
           userId: user.id,
           role: user.role,
@@ -327,12 +344,20 @@ export class FirebaseAuthRepository implements IAuthRepository {
           entityId: user.id,
           timestamp: new Date().toISOString(),
           gymId: user.gymId || ''
-        }).catch(err => console.error('Logout audit log failed:', err));
+        })).pipe(
+          catchError(err => {
+            console.error('Logout audit log failed:', err);
+            return of(undefined);
+          })
+        );
       }
     } catch (e) {
       console.error(e);
     }
-    return from(signOut(auth));
+
+    return auditLog$.pipe(
+      switchMap(() => from(signOut(auth)))
+    );
   }
 
   register(
@@ -352,8 +377,8 @@ export class FirebaseAuthRepository implements IAuthRepository {
     return from(createUserWithEmailAndPassword(auth, email, password || 'password')).pipe(
       switchMap(cred => {
         const uid = cred.user.uid;
-        const gymId = 'gym_' + Math.random().toString(36).substring(2, 9);
-        const defaultBranchId = 'branch_' + Math.random().toString(36).substring(2, 9);
+        const gymId = 'gym_' + generateUUID();
+        const defaultBranchId = 'branch_' + generateUUID();
         const today = new Date().toISOString().split('T')[0];
 
         const defaultBranch = {
@@ -442,8 +467,7 @@ export class FirebaseAuthRepository implements IAuthRepository {
           shift: 'General',
           username: email.split('@')[0],
           accountStatus: 'Active',
-          photoUrl: userDoc.avatarUrl,
-          password: password || 'password'
+          photoUrl: userDoc.avatarUrl
         };
 
         return forkJoin([
@@ -452,9 +476,9 @@ export class FirebaseAuthRepository implements IAuthRepository {
           from(setDoc(doc(db, 'employees', uid), ownerEmployee)),
           from(setDoc(doc(db, 'branches', defaultBranchId), defaultBranch))
         ]).pipe(
-          map(() => {
-            const logId = 'audit_' + Math.random().toString(36).substring(2, 9);
-            setDoc(doc(db, 'auditLogs', logId), {
+          switchMap(() => {
+            const logId = 'audit_' + generateUUID();
+            return from(setDoc(doc(db, 'auditLogs', logId), {
               id: logId,
               userId: uid,
               role: UserRole.Owner,
@@ -463,9 +487,13 @@ export class FirebaseAuthRepository implements IAuthRepository {
               entityId: uid,
               timestamp: new Date().toISOString(),
               gymId: gymId
-            }).catch(err => console.error('Registration audit log failed:', err));
-
-            return userDoc;
+            })).pipe(
+              map(() => userDoc),
+              catchError(err => {
+                console.error('Registration audit log failed:', err);
+                return of(userDoc);
+              })
+            );
           })
         );
       }),
@@ -572,7 +600,19 @@ export class FirebaseAuthRepository implements IAuthRepository {
 
   getUsers(): Observable<UserProfile[]> {
     const db = this.firebaseService.getDb();
-    return from(getDocs(collection(db, 'users'))).pipe(
+    const userContext = this.injector.get(UserContextService);
+    const userRole = userContext.getRole();
+    const gymId = userContext.getGymId();
+
+    let q = query(collection(db, 'users'));
+    if (userRole !== UserRole.SuperAdmin) {
+      if (!gymId) {
+        return throwError(() => new Error('Tenant context missing. Unable to list users.'));
+      }
+      q = query(q, where('gymId', '==', gymId));
+    }
+
+    return from(getDocs(q)).pipe(
       map(snap => snap.docs.map(d => d.data() as UserProfile)),
       catchError(err => throwError(() => new Error(err.message || 'Failed to get users.')))
     );
@@ -645,7 +685,7 @@ export class FirebaseGymRepository implements IGymRepository {
 
   createGym(gym: Omit<Gym, 'gymId' | 'createdAt'>): Observable<Gym> {
     const db = this.firebaseService.getDb();
-    const gymId = 'gym_' + Math.random().toString(36).substring(2, 9);
+    const gymId = 'gym_' + generateUUID();
     const newGym: Gym = {
       ...gym,
       gymId,
@@ -711,7 +751,7 @@ export class FirebaseMemberRepository implements IMemberRepository {
 
   addMember(gymId: string, member: Omit<Member, 'id' | 'attendanceCount' | 'balance'>): Observable<Member> {
     const db = this.firebaseService.getDb();
-    const id = (member as any).id || 'mem_' + Math.random().toString(36).substring(2, 9);
+    const id = (member as any).id || 'mem_' + generateUUID();
     const tenantContext = this.injector.get(TenantContextService);
     const branchId = member.branchId || tenantContext.getBranchId() || '';
 
@@ -786,7 +826,7 @@ export class FirebasePaymentRepository implements IPaymentRepository {
 
   addPayment(gymId: string, payment: Omit<Payment, 'id'>): Observable<Payment> {
     const db = this.firebaseService.getDb();
-    const id = 'pay_' + Math.random().toString(36).substring(2, 9);
+    const id = 'pay_' + generateUUID();
     const tenantContext = this.injector.get(TenantContextService);
     const branchId = (payment as any).branchId || tenantContext.getBranchId() || '';
     const newPayment: Payment = {
@@ -810,7 +850,7 @@ export class FirebasePaymentRepository implements IPaymentRepository {
         batch.update(memberRef, { balance: payment.dueAmount });
 
         // 3. Create Invoice document
-        const invoiceId = 'inv_' + Math.random().toString(36).substring(2, 9);
+        const invoiceId = 'inv_' + generateUUID();
         const year = new Date().getFullYear();
         const rand = Math.floor(1000 + Math.random() * 9000);
         const gst = Math.round(payment.amount * 0.18 * 100) / 100;
@@ -840,7 +880,7 @@ export class FirebasePaymentRepository implements IPaymentRepository {
 
         // 4. Create Collection document if status is paid
         if (payment.status === 'paid') {
-          const collectionId = 'col_' + Math.random().toString(36).substring(2, 9);
+          const collectionId = 'col_' + generateUUID();
           batch.set(doc(db, 'collections', collectionId), {
             id: collectionId,
             gymId,
@@ -947,7 +987,7 @@ export class FirebasePaymentRepository implements IPaymentRepository {
 
             // 2b. Add Trainer Revenue if confirming a PT payment
             if (payment.type === 'pt' && payment.trainerId && payment.trainerId !== 'unassigned') {
-              const trId = 'trev_' + Math.random().toString(36).substring(2, 9);
+              const trId = 'trev_' + generateUUID();
               batch.set(doc(db, 'trainerRevenue', trId), {
                 id: trId,
                 gymId,
@@ -967,7 +1007,7 @@ export class FirebasePaymentRepository implements IPaymentRepository {
 
             // 3. Create Invoice if not exists
             if (!invoiceExists) {
-              const invoiceId = 'inv_' + Math.random().toString(36).substring(2, 9);
+              const invoiceId = 'inv_' + generateUUID();
               const year = new Date().getFullYear();
               const rand = Math.floor(1000 + Math.random() * 9000);
               const gst = Math.round(payment.amount * 0.18 * 100) / 100;
@@ -994,7 +1034,7 @@ export class FirebasePaymentRepository implements IPaymentRepository {
 
             // 4. Create Collection if not exists
             if (!collectionExists) {
-              const collectionId = 'col_' + Math.random().toString(36).substring(2, 9);
+              const collectionId = 'col_' + generateUUID();
               const year = new Date().getFullYear();
               const rand = Math.floor(1000 + Math.random() * 9000);
               batch.set(doc(db, 'collections', collectionId), {
@@ -1129,7 +1169,7 @@ export class FirebaseLeadRepository implements ILeadRepository {
 
   addLead(gymId: string, lead: Omit<Lead, 'id'>): Observable<Lead> {
     const db = this.firebaseService.getDb();
-    const id = (lead as any).id || 'lead_' + Math.random().toString(36).substring(2, 9);
+    const id = (lead as any).id || 'lead_' + generateUUID();
     const tenantContext = this.injector.get(TenantContextService);
     const branchId = lead.branchId || tenantContext.getBranchId() || '';
     const newLead: Lead = {
@@ -1196,13 +1236,13 @@ export class FirebaseLeadRepository implements ILeadRepository {
     const { lead, memberData, membershipPlanPrice, conversionDetails, gymId, branchId, today } = payload;
 
     // ── Pre-generate all IDs deterministically before building the batch ──
-    const memberId        = 'mem_'  + Math.random().toString(36).substring(2, 9);
-    const paymentId       = 'pay_'  + Math.random().toString(36).substring(2, 9);
-    const invoiceId       = 'inv_'  + Math.random().toString(36).substring(2, 9);
-    const mptId           = 'mpt_'  + Math.random().toString(36).substring(2, 9);
-    const taId            = 'ta_'   + Math.random().toString(36).substring(2, 9);
-    const ptPayId         = 'pay_'  + Math.random().toString(36).substring(2, 9);
-    const trId            = 'trev_' + Math.random().toString(36).substring(2, 9);
+    const memberId        = 'mem_'  + generateUUID();
+    const paymentId       = 'pay_'  + generateUUID();
+    const invoiceId       = 'inv_'  + generateUUID();
+    const mptId           = 'mpt_'  + generateUUID();
+    const taId            = 'ta_'   + generateUUID();
+    const ptPayId         = 'pay_'  + generateUUID();
+    const trId            = 'trev_' + generateUUID();
 
     const hasPT   = conversionDetails.interestedInPT && !!conversionDetails.ptPlanId;
     const ptPlanPrice = hasPT ? (conversionDetails.ptPlanPrice || 0) : 0;
@@ -1368,7 +1408,7 @@ export class FirebaseLeadRepository implements ILeadRepository {
 
         // ── 4b. Membership Collection receipt (if paid portion > 0) ─────────
         if (mPaid > 0) {
-          const collectionId = 'col_' + Math.random().toString(36).substring(2, 9);
+          const collectionId = 'col_' + generateUUID();
           const randCol = Math.floor(1000 + Math.random() * 9000);
           const collectionDoc = {
             id: collectionId,
@@ -1515,7 +1555,7 @@ export class FirebaseLeadRepository implements ILeadRepository {
 
           // 5f. PT Collection receipt (if paid portion > 0)
           if (ptPaid > 0) {
-            const ptColId = 'col_' + Math.random().toString(36).substring(2, 9);
+            const ptColId = 'col_' + generateUUID();
             const randCol = Math.floor(1000 + Math.random() * 9000);
             const ptCollection = {
               id: ptColId,
@@ -1581,7 +1621,7 @@ export class FirebaseTrainerRepository implements ITrainerRepository {
 
   addTrainer(gymId: string, trainer: Omit<Trainer, 'id' | 'membersCount'>): Observable<Trainer> {
     const db = this.firebaseService.getDb();
-    const id = (trainer as any).id || 'trainer_' + Math.random().toString(36).substring(2, 9);
+    const id = (trainer as any).id || 'trainer_' + generateUUID();
     const tenantContext = this.injector.get(TenantContextService);
     const branchId = trainer.branchId || tenantContext.getBranchId() || '';
     const newTrainer: Trainer = {
@@ -1665,7 +1705,7 @@ export class FirebaseAttendanceRepository implements IAttendanceRepository {
               const memberBranchId = memberSnap.exists() ? (memberSnap.data() as Member).branchId : '';
               const tenantContext = this.injector.get(TenantContextService);
               const branchId = memberBranchId || tenantContext.getBranchId() || '';
-              const id = 'att_' + Math.random().toString(36).substring(2, 9);
+              const id = 'att_' + generateUUID();
               const newAttendance: Attendance = {
                 id,
                 gymId,
@@ -1798,7 +1838,7 @@ export class FirebaseMembershipPlanRepository implements IMembershipPlanReposito
 
   addPlan(gymId: string, plan: Omit<MembershipPlan, 'id' | 'activeMembersCount'>): Observable<MembershipPlan> {
     const db = this.firebaseService.getDb();
-    const id = (plan as any).id || 'plan_' + Math.random().toString(36).substring(2, 9);
+    const id = (plan as any).id || 'plan_' + generateUUID();
     const newPlan: MembershipPlan = {
       ...plan,
       id,
@@ -1847,7 +1887,7 @@ export class FirebaseActivityLogRepository implements IActivityLogRepository {
 
   addLog(gymId: string, text: string, type: 'join' | 'payment' | 'attendance' | 'plan-change'): Observable<ActivityLog> {
     const db = this.firebaseService.getDb();
-    const id = 'log_' + Math.random().toString(36).substring(2, 9);
+    const id = 'log_' + generateUUID();
     const newLog: ActivityLog = {
       id,
       gymId,
@@ -1877,7 +1917,7 @@ export class FirebaseWhatsAppRepository implements IWhatsAppRepository {
 
   addTemplate(gymId: string, template: Omit<WhatsAppTemplate, 'id'>): Observable<WhatsAppTemplate> {
     const db = this.firebaseService.getDb();
-    const id = 'tpl_' + Math.random().toString(36).substring(2, 10);
+    const id = 'tpl_' + generateUUID();
     const newTemplate: WhatsAppTemplate = { ...template, id, gymId };
     return from(setDoc(doc(db, 'whatsapp_templates', id), newTemplate)).pipe(
       map(() => newTemplate),
@@ -1913,7 +1953,7 @@ export class FirebaseWhatsAppRepository implements IWhatsAppRepository {
 
   addReminder(gymId: string, reminder: Omit<WhatsAppReminder, 'id'>): Observable<WhatsAppReminder> {
     const db = this.firebaseService.getDb();
-    const id = 'rem_' + Math.random().toString(36).substring(2, 9);
+    const id = 'rem_' + generateUUID();
     const newReminder: WhatsAppReminder = {
       ...reminder,
       id,
@@ -1978,7 +2018,7 @@ export class FirebaseBodyProgressRepository implements IBodyProgressRepository {
 
   addEntry(gymId: string, entry: Omit<BodyProgressEntry, 'id'>): Observable<BodyProgressEntry> {
     const db = this.firebaseService.getDb();
-    const id = 'bp_' + Math.random().toString(36).substring(2, 9);
+    const id = 'bp_' + generateUUID();
     const newEntry: BodyProgressEntry = {
       ...entry,
       id,
@@ -2018,7 +2058,7 @@ export class FirebaseFinanceRepository implements IFinanceRepository {
 
   addExpense(gymId: string, expense: Omit<Expense, 'id'>): Observable<Expense> {
     const db = this.firebaseService.getDb();
-    const id = 'exp_' + Math.random().toString(36).substring(2, 9);
+    const id = 'exp_' + generateUUID();
     const tenantContext = this.injector.get(TenantContextService);
     const branchId = (expense as any).branchId || tenantContext.getBranchId() || '';
     const newExpense: Expense = {
@@ -2061,7 +2101,7 @@ export class FirebaseFinanceRepository implements IFinanceRepository {
 
   addInvoice(gymId: string, invoice: Omit<Invoice, 'id'>): Observable<Invoice> {
     const db = this.firebaseService.getDb();
-    const id = (invoice as any).id || 'inv_' + Math.random().toString(36).substring(2, 9);
+    const id = (invoice as any).id || 'inv_' + generateUUID();
     const tenantContext = this.injector.get(TenantContextService);
     const branchId = (invoice as any).branchId || tenantContext.getBranchId() || '';
     const newInvoice: Invoice = {
@@ -2096,7 +2136,7 @@ export class FirebaseFinanceRepository implements IFinanceRepository {
 
   addCollection(gymId: string, collection: Omit<Collection, 'id'>): Observable<Collection> {
     const db = this.firebaseService.getDb();
-    const id = (collection as any).id || 'col_' + Math.random().toString(36).substring(2, 9);
+    const id = (collection as any).id || 'col_' + generateUUID();
     const tenantContext = this.injector.get(TenantContextService);
     const branchId = (collection as any).branchId || tenantContext.getBranchId() || '';
     const newCollection: Collection = {
@@ -2223,7 +2263,7 @@ export class FirebaseEmployeeRepository implements IEmployeeRepository {
             }
             
             // 2. Initialize a temporary secondary Firebase App to create user without taking over the admin session
-            const tempAppName = 'temp_onboard_' + Math.random().toString(36).substring(2, 9);
+            const tempAppName = 'temp_onboard_' + generateUUID();
             let tempApp;
             try {
               tempApp = initializeApp(config, tempAppName);
@@ -2410,7 +2450,7 @@ export class FirebaseEmployeeRepository implements IEmployeeRepository {
 
   markAttendance(gymId: string, record: Omit<EmployeeAttendance, 'id'>): Observable<EmployeeAttendance> {
     const db = this.firebaseService.getDb();
-    const id = 'att_emp_' + Math.random().toString(36).substring(2, 9);
+    const id = 'att_emp_' + generateUUID();
     const tenantContext = this.injector.get(TenantContextService);
     const branchId = record.branchId || tenantContext.getBranchId() || '';
     const newRecord: EmployeeAttendance = {
@@ -2434,7 +2474,7 @@ export class FirebaseEmployeeRepository implements IEmployeeRepository {
 
   addPayroll(gymId: string, payroll: Omit<EmployeePayroll, 'id'>): Observable<EmployeePayroll> {
     const db = this.firebaseService.getDb();
-    const id = 'pay_emp_' + Math.random().toString(36).substring(2, 9);
+    const id = 'pay_emp_' + generateUUID();
     const tenantContext = this.injector.get(TenantContextService);
     const branchId = payroll.branchId || tenantContext.getBranchId() || '';
     const newPayroll: EmployeePayroll = {
@@ -2458,7 +2498,7 @@ export class FirebaseEmployeeRepository implements IEmployeeRepository {
 
   addPerformance(gymId: string, performance: Omit<EmployeePerformance, 'id'>): Observable<EmployeePerformance> {
     const db = this.firebaseService.getDb();
-    const id = 'perf_' + Math.random().toString(36).substring(2, 9);
+    const id = 'perf_' + generateUUID();
     const tenantContext = this.injector.get(TenantContextService);
     const branchId = performance.branchId || tenantContext.getBranchId() || '';
     const newPerformance: EmployeePerformance = {
@@ -2490,7 +2530,7 @@ export class FirebasePersonalTrainingRepository implements IPersonalTrainingRepo
 
   addPTPlan(gymId: string, plan: Omit<PTPlan, 'id'>): Observable<PTPlan> {
     const db = this.firebaseService.getDb();
-    const id = 'pt_' + Math.random().toString(36).substring(2, 9);
+    const id = 'pt_' + generateUUID();
     const tenantContext = this.injector.get(TenantContextService);
     const branchId = (plan as any).branchId || tenantContext.getBranchId() || '';
     const newPlan: PTPlan = {
@@ -2530,7 +2570,7 @@ export class FirebasePersonalTrainingRepository implements IPersonalTrainingRepo
 
   addPTSession(gymId: string, session: Omit<PTSession, 'id'>): Observable<PTSession> {
     const db = this.firebaseService.getDb();
-    const id = 'pts_' + Math.random().toString(36).substring(2, 9);
+    const id = 'pts_' + generateUUID();
     const tenantContext = this.injector.get(TenantContextService);
     const branchId = session.branchId || tenantContext.getBranchId() || '';
     const newSession: PTSession = {
@@ -2540,7 +2580,7 @@ export class FirebasePersonalTrainingRepository implements IPersonalTrainingRepo
       branchId
     };
 
-    const histId = 'sh_' + Math.random().toString(36).substring(2, 9);
+    const histId = 'sh_' + generateUUID();
     const hist: SessionHistory = {
       id: histId,
       gymId,
@@ -2625,7 +2665,7 @@ export class FirebasePersonalTrainingRepository implements IPersonalTrainingRepo
           }
         }
 
-        const histId = 'sh_' + Math.random().toString(36).substring(2, 9);
+        const histId = 'sh_' + generateUUID();
         const hist: SessionHistory = {
           id: histId,
           gymId,
@@ -2666,7 +2706,7 @@ export class FirebasePersonalTrainingRepository implements IPersonalTrainingRepo
 
   addTrainerAssignment(gymId: string, assignment: Omit<TrainerAssignment, 'id'>): Observable<TrainerAssignment> {
     const db = this.firebaseService.getDb();
-    const id = 'ta_' + Math.random().toString(36).substring(2, 9);
+    const id = 'ta_' + generateUUID();
     const tenantContext = this.injector.get(TenantContextService);
     const branchId = (assignment as any).branchId || tenantContext.getBranchId() || '';
     const newAssignment: TrainerAssignment = {
@@ -2690,7 +2730,7 @@ export class FirebasePersonalTrainingRepository implements IPersonalTrainingRepo
 
   addSessionHistory(gymId: string, history: Omit<SessionHistory, 'id'>): Observable<SessionHistory> {
     const db = this.firebaseService.getDb();
-    const id = 'sh_' + Math.random().toString(36).substring(2, 9);
+    const id = 'sh_' + generateUUID();
     const tenantContext = this.injector.get(TenantContextService);
     const branchId = history.branchId || tenantContext.getBranchId() || '';
     const newHistory: SessionHistory = {
@@ -2714,7 +2754,7 @@ export class FirebasePersonalTrainingRepository implements IPersonalTrainingRepo
 
   addTrainerRevenue(gymId: string, revenue: Omit<TrainerRevenue, 'id'>): Observable<TrainerRevenue> {
     const db = this.firebaseService.getDb();
-    const id = 'tr_' + Math.random().toString(36).substring(2, 9);
+    const id = 'tr_' + generateUUID();
     const tenantContext = this.injector.get(TenantContextService);
     const branchId = (revenue as any).branchId || tenantContext.getBranchId() || '';
     const newRev: TrainerRevenue = {
@@ -2752,7 +2792,7 @@ export class FirebasePersonalTrainingRepository implements IPersonalTrainingRepo
 
   addMemberPTPlan(gymId: string, memberPlan: Omit<MemberPTPlan, 'id'>): Observable<MemberPTPlan> {
     const db = this.firebaseService.getDb();
-    const id = 'mpt_' + Math.random().toString(36).substring(2, 9);
+    const id = 'mpt_' + generateUUID();
     const tenantContext = this.injector.get(TenantContextService);
     const branchId = (memberPlan as any).branchId || tenantContext.getBranchId() || '';
     const newMP: MemberPTPlan = {
@@ -2826,7 +2866,7 @@ export class FirebaseAuditLogRepository implements IAuditLogRepository {
 
   addAuditLog(gymId: string, log: Omit<AuditLog, 'id'>): Observable<AuditLog> {
     const db = this.firebaseService.getDb();
-    const id = 'audit_' + Math.random().toString(36).substring(2, 9);
+    const id = 'audit_' + generateUUID();
     const newLog = {
       ...log,
       id,
@@ -2863,7 +2903,7 @@ export class FirebaseProductRepository implements IProductRepository {
 
   addProduct(gymId: string, product: Omit<Product, 'id'>): Observable<Product> {
     const db = this.firebaseService.getDb();
-    const id = (product as any).id || 'prod_' + Math.random().toString(36).substring(2, 9);
+    const id = (product as any).id || 'prod_' + generateUUID();
     const newP = { ...product, id, gymId } as Product;
 
     return from(setDoc(doc(db, 'products', id), newP)).pipe(
@@ -2912,7 +2952,7 @@ export class FirebaseImportProfileRepository implements IImportProfileRepository
 
   saveProfile(gymId: string, profile: Omit<ImportProfile, 'id'> | ImportProfile): Observable<ImportProfile> {
     const db = this.firebaseService.getDb();
-    const id = (profile as any).id || 'prof_' + Math.random().toString(36).substring(2, 9);
+    const id = (profile as any).id || 'prof_' + generateUUID();
     const now = new Date().toISOString();
     
     const newProfile = {
@@ -2971,7 +3011,7 @@ export class FirebaseImportHistoryRepository implements IImportHistoryRepository
 
   addHistory(gymId: string, history: Omit<ImportHistory, 'id'>): Observable<ImportHistory> {
     const db = this.firebaseService.getDb();
-    const id = 'hist_' + Math.random().toString(36).substring(2, 9);
+    const id = 'hist_' + generateUUID();
     const newHist = { ...history, id, gymId } as ImportHistory;
 
     return from(setDoc(doc(db, 'importHistory', id), newHist)).pipe(
@@ -3007,10 +3047,10 @@ export class FirebaseUnitOfWork implements IUnitOfWork {
     return of(undefined);
   }
 
-  rollback(): void {
+  rollback(): Observable<void> {
     if (this.additions.length === 0) {
       this.inTransaction = false;
-      return;
+      return of(undefined);
     }
 
     const db = this.firebaseService.getDb();
@@ -3036,10 +3076,15 @@ export class FirebaseUnitOfWork implements IUnitOfWork {
     this.additions = [];
 
     // Run delete operations concurrently
-    forkJoin(deleteOperations).subscribe({
-      next: () => console.log('[FirebaseUnitOfWork] Rollback completed successfully.'),
-      error: (e) => console.error('[FirebaseUnitOfWork] Rollback encountered errors:', e)
-    });
+    return forkJoin(deleteOperations).pipe(
+      map(() => {
+        console.log('[FirebaseUnitOfWork] Rollback completed successfully.');
+      }),
+      catchError(err => {
+        console.error('[FirebaseUnitOfWork] Rollback encountered errors:', err);
+        return of(undefined);
+      })
+    );
   }
 
   registerAddition(collectionName: string, id: string): void {

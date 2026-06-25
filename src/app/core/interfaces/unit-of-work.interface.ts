@@ -4,7 +4,7 @@ import { Observable } from 'rxjs';
 export interface IUnitOfWork {
   begin(): void;
   commit(): Observable<void>;
-  rollback(): void;
+  rollback(): Observable<void>;
   /** Called when an unrecoverable error occurs during a unit of work. Triggers rollback and cleans state. */
   failure(error: Error): void;
   registerAddition(collectionName: string, id: string): void;

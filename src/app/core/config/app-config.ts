@@ -1,4 +1,5 @@
 import { Injectable, InjectionToken } from '@angular/core';
+import { environment } from '../../../environments/environment';
 
 export enum ProviderType {
   Mock = 'MOCK',
@@ -21,26 +22,18 @@ export const APP_CONFIG = new InjectionToken<AppConfig>('app.config');
 })
 export class AppConfigService {
   private config: AppConfig = {
-    // provider: ProviderType.Mock 
-    // Default to mock database for local demo
-
-    provider: ProviderType.Firebase, // 🔥 FIREBASE ACTIVE — switch back to ProviderType.Mock for demo mode
-    firebaseConfig: {
-      apiKey: "AIzaSyAgOsXMU4Mpy7AmBZXa11-GFDJWCYoyc90",
-      authDomain: "apexfit-saas-dev.firebaseapp.com",
-      projectId: "apexfit-saas-dev",
-      storageBucket: "apexfit-saas-dev.firebasestorage.app",
-      messagingSenderId: "463009229431",
-      appId: "1:463009229431:web:c5e0282bf11a0c701f7472",
-      measurementId: "G-W1WL8C1HB3"
-    }
+    // Default to Firebase as active provider, configuration loaded from environment
+    provider: ProviderType.Firebase,
+    firebaseConfig: environment.firebase
   };
 
   constructor() {
-    // Try to load from localStorage or environment in a real app
-    const savedProvider = localStorage.getItem('apexfit_provider');
-    if (savedProvider && Object.values(ProviderType).includes(savedProvider as ProviderType)) {
-      this.config.provider = savedProvider as ProviderType;
+    // Only allow local provider override in development mode
+    if (!environment.production) {
+      const savedProvider = localStorage.getItem('apexfit_provider');
+      if (savedProvider && Object.values(ProviderType).includes(savedProvider as ProviderType)) {
+        this.config.provider = savedProvider as ProviderType;
+      }
     }
   }
 
@@ -57,9 +50,14 @@ export class AppConfigService {
   }
 
   setProvider(provider: ProviderType): void {
+    if (environment.production) {
+      console.warn('Cannot switch provider in production mode.');
+      return;
+    }
     this.config.provider = provider;
     localStorage.setItem('apexfit_provider', provider);
     // Reload page to re-initialize Dependency Injection tree
     window.location.reload();
   }
 }
+

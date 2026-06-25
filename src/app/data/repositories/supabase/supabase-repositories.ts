@@ -1,5 +1,5 @@
 import { Injectable } from '@angular/core';
-import { Observable, throwError } from 'rxjs';
+import { Observable, throwError, of } from 'rxjs';
 import { UserRole } from '../../../core/enums/roles.enum';
 import { UserProfile } from '../../../core/models/user.model';
 import { Gym } from '../../../core/models/gym.entity';
@@ -268,13 +268,14 @@ export class SupabaseImportHistoryRepository implements IImportHistoryRepository
 export class SupabaseUnitOfWork implements IUnitOfWork {
   begin(): void {}
   commit(): Observable<void> { return throwError(() => new Error('Supabase integration is not enabled.')); }
-  rollback(): void {
+  rollback(): Observable<void> {
     // Supabase SDK is not implemented — log a warning so this silent no-op is visible in monitoring.
     console.warn('[SupabaseUnitOfWork] rollback() called but Supabase integration is not enabled. No data was cleaned up.');
+    return of(undefined);
   }
   failure(error: Error): void {
     console.error('[SupabaseUnitOfWork] failure() called:', error.message);
-    this.rollback();
+    this.rollback().subscribe();
   }
   registerAddition(collectionName: string, id: string): void {}
 }

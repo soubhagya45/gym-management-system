@@ -3369,7 +3369,7 @@ export class MockUnitOfWork implements IUnitOfWork {
     return of(undefined).pipe(delay(200));
   }
 
-  rollback(): void {
+  rollback(): Observable<void> {
     if (this.snapshots) {
       // Revert length and push back original snapshots
       dbMembers.length = 0; dbMembers.push(...this.snapshots.members);
@@ -3386,11 +3386,12 @@ export class MockUnitOfWork implements IUnitOfWork {
     }
     this.inTransaction = false;
     this.snapshots = null;
+    return of(undefined);
   }
 
   failure(error: Error): void {
     console.error('[MockUnitOfWork] failure() called:', error.message);
-    this.rollback();
+    this.rollback().subscribe();
   }
 
   registerAddition(collectionName: string, id: string): void {
