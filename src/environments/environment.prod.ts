@@ -8,6 +8,7 @@ export const environment = {
     storageBucket: 'apexfit-saas-dev.firebasestorage.app',
     messagingSenderId: '463009229431',
     appId: '1:463009229431:web:c5e0282bf11a0c701f7472',
-    measurementId: 'G-W1WL8C1HB3'
+    measurementId: 'G-W1WL8C1HB3',
+    appCheckSiteKey: '6Ld_aKcqAAAAAONWwIpl3Wz_dD6JpP4qY51Fj89-'
   }
 };
