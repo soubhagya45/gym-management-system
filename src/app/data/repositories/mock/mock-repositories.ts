@@ -1814,6 +1814,14 @@ export class MockPaymentRepository implements IPaymentRepository {
     }
     return of(undefined).pipe(delay(200));
   }
+
+  deletePayment(gymId: string, id: string): Observable<void> {
+    const idx = dbPayments.findIndex(p => p.gymId === gymId && p.id === id);
+    if (idx !== -1) {
+      dbPayments.splice(idx, 1);
+    }
+    return of(undefined).pipe(delay(100));
+  }
 }
 
 @Injectable({ providedIn: 'root' })

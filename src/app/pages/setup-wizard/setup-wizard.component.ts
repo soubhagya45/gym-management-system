@@ -262,6 +262,7 @@ export class SetupWizardComponent implements OnInit, OnDestroy {
           this.activeTenantId = gym.gymId;
           this.loadGymSettings(gym);
           this.loadImportHistoryAndProfiles();
+          this.checkAndResumeInterruptedImports();
         }
       })
     );
@@ -981,7 +982,18 @@ export class SetupWizardComponent implements OnInit, OnDestroy {
         this.jobProvider.schedule('Execute legacy excel batch commit', 'once', { totalRows: item.stagingRecords.length }).subscribe({
           next: (jobId: string) => {
             this.jobId = jobId;
-            this.simulateBackgroundJobRun(jobId, params);
+            this.importService.runBackgroundImport(
+              this.activeTenantId!,
+              jobId,
+              item.module,
+              item.file.name,
+              'hash_' + item.file.size + '_' + item.file.name.length,
+              item.stagingRecords
+            ).subscribe({
+              error: (err) => {
+                console.error('[BackgroundImport] Job execution failed:', err);
+              }
+            });
             
             const progressSub = this.jobProvider.jobs$.subscribe((jobs: any[]) => {
               const job = jobs.find((j: any) => j.id === jobId);
@@ -1042,47 +1054,75 @@ export class SetupWizardComponent implements OnInit, OnDestroy {
     commitNextFile();
   }
 
-  simulateBackgroundJobRun(jobId: string, params: any): void {
-    let processed = 0;
-    const interval = setInterval(() => {
-      if (this.jobStatus === 'paused') return;
-      if (this.jobStatus === 'cancelled' || this.jobStatus === 'failed' || this.jobStatus === 'completed' || this.jobStatus === 'idle') {
-        clearInterval(interval);
-        return;
-      }
+  checkAndResumeInterruptedImports(): void {
+    if (!this.activeTenantId) return;
+    
+    const keys = Object.keys(localStorage);
+    const interruptedKeys = keys.filter(k => k.startsWith('active_import_job_'));
+    
+    if (interruptedKeys.length > 0) {
+      const key = interruptedKeys[0];
+      try {
+        const state = JSON.parse(localStorage.getItem(key)!);
+        if (state && state.gymId === this.activeTenantId && state.processed < state.stagingRecords.length) {
+          this.jobProvider.schedule(
+            'Resuming interrupted excel batch commit', 
+            'once', 
+            { totalRows: state.stagingRecords.length }
+          ).subscribe((newJobId: string) => {
+            const oldJobId = state.jobId;
+            state.jobId = newJobId;
+            
+            localStorage.removeItem(key);
+            localStorage.setItem(`active_import_job_${newJobId}`, JSON.stringify(state));
 
-      processed += Math.ceil(params.stagingRecords.length / 10);
-      if (processed >= params.stagingRecords.length) {
-        processed = params.stagingRecords.length;
-        clearInterval(interval);
-        
-        this.importService.createDisasterRecoverySnapshot(params.gymId).pipe(
-          switchMap(snapshotUrl => {
-            const hash = params.fileHash;
-            const historyPayload: Omit<ImportHistory, 'id'> = {
-              gymId: params.gymId,
-              importedBy: 'system',
-              importedByName: 'Active Owner',
-              date: new Date().toISOString(),
-              fileName: params.fileName,
-              module: params.module,
-              recordsImported: processed,
-              recordsFailed: 0,
-              recordsDuplicates: 0,
-              duration: 0,
-              fileHash: hash,
-              snapshotUrl,
-              status: 'completed'
-            };
-            return this.historyRepo.addHistory(params.gymId, historyPayload);
-          })
-        ).subscribe(() => {
-          this.jobProvider.updateProgress(jobId, processed, 0, 0);
-        });
-      } else {
-        this.jobProvider.updateProgress(jobId, processed, 0, 0);
+            this.jobId = newJobId;
+            this.isProcessing = true;
+
+            this.snackBar.open(`Resuming interrupted import job for ${state.fileName}...`, 'Dismiss', { duration: 4000 });
+            
+            this.jobProvider.updateProgress(newJobId, state.processed, state.failed, state.duplicates);
+
+            this.importService.runBackgroundImport(
+              this.activeTenantId!,
+              newJobId,
+              state.module,
+              state.fileName,
+              state.fileHash,
+              state.stagingRecords
+            ).subscribe({
+              next: () => {
+                this.isProcessing = false;
+                this.snackBar.open('Resumed import completed successfully.', 'Dismiss', { duration: 3000 });
+                this.loadImportHistoryAndProfiles();
+              },
+              error: (err) => {
+                this.isProcessing = false;
+                this.snackBar.open(`Interrupted job failed: ${err.message}`, 'Dismiss', { duration: 5000 });
+                this.loadImportHistoryAndProfiles();
+              }
+            });
+
+            const progressSub = this.jobProvider.jobs$.subscribe((jobs: any[]) => {
+              const job = jobs.find((j: any) => j.id === newJobId);
+              if (job && job.status === 'completed') {
+                progressSub.unsubscribe();
+                this.isProcessing = false;
+                this.loadImportHistoryAndProfiles();
+              } else if (job && job.status === 'failed') {
+                progressSub.unsubscribe();
+                this.isProcessing = false;
+                this.snackBar.open(`Background Import failed for ${state.fileName}`, 'Dismiss', { duration: 5000 });
+              }
+            });
+          });
+        } else {
+          localStorage.removeItem(key);
+        }
+      } catch (e) {
+        localStorage.removeItem(key);
       }
-    }, 800);
+    }
   }
 
   pauseBackgroundJob(): void {
@@ -1110,7 +1150,6 @@ export class SetupWizardComponent implements OnInit, OnDestroy {
   }
 
   triggerHistoryRollback(history: ImportHistory): void {
-    // ── RUNTIME PERMISSION ENFORCEMENT ──────────────────────────────────────
     if (!this.authState.hasPermission('import:rollback')) {
       this.snackBar.open('Access denied: you do not have import:rollback permission.', 'Dismiss', { duration: 4000 });
       return;
@@ -1122,21 +1161,11 @@ export class SetupWizardComponent implements OnInit, OnDestroy {
     }
 
     this.isLoading = true;
-    this.importService.restoreDisasterSnapshot(this.activeTenantId, history.snapshotUrl).subscribe({
+    this.importService.rollbackImport(this.activeTenantId, history).subscribe({
       next: () => {
-        const currentUser = this.authState.currentUserValue;
-        const updated: ImportHistory = {
-          ...history,
-          status: 'rolled_back',
-          rolledBackBy: currentUser?.id ?? 'unknown',
-          rolledBackByName: currentUser?.name ?? currentUser?.email ?? 'Unknown User',
-          rolledBackAt: new Date().toISOString()
-        };
-        this.historyRepo.updateHistory(this.activeTenantId, updated).subscribe(() => {
-          this.isLoading = false;
-          this.snackBar.open(`Rollback transaction executed. Gym reverted to pre-import snapshot state.`, 'Dismiss', { duration: 4000 });
-          this.loadImportHistoryAndProfiles();
-        });
+        this.isLoading = false;
+        this.snackBar.open(`Rollback transaction executed. Gym reverted to pre-import snapshot state.`, 'Dismiss', { duration: 4000 });
+        this.loadImportHistoryAndProfiles();
       },
       error: (err) => {
         this.isLoading = false;

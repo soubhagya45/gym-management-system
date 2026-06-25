@@ -125,6 +125,7 @@ export class SupabasePaymentRepository implements IPaymentRepository {
   getPaymentsPaged(gymId: string, req: PagedRequest): Observable<PagedResponse<Payment>> { return throwError(() => new Error('Supabase integration is not enabled.')); }
   addPayment(gymId: string, payment: Omit<Payment, 'id'>): Observable<Payment> { return throwError(() => new Error('Supabase integration is not enabled.')); }
   confirmPayment(gymId: string, paymentId: string): Observable<void> { return throwError(() => new Error('Supabase integration is not enabled.')); }
+  deletePayment(gymId: string, id: string): Observable<void> { return throwError(() => new Error('Supabase integration is not enabled.')); }
 }
 
 @Injectable({ providedIn: 'root' })

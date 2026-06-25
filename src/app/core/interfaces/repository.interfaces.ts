@@ -79,6 +79,7 @@ export interface IPaymentRepository {
   getPaymentsPaged(gymId: string, req: PagedRequest): Observable<PagedResponse<Payment>>;
   addPayment(gymId: string, payment: Omit<Payment, 'id'>): Observable<Payment>;
   confirmPayment(gymId: string, paymentId: string): Observable<void>;
+  deletePayment(gymId: string, id: string): Observable<void>;
 }
 
 export interface IPaymentSettingsRepository {

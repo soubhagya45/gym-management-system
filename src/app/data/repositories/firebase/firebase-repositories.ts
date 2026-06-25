@@ -1025,6 +1025,14 @@ export class FirebasePaymentRepository implements IPaymentRepository {
       catchError(err => throwError(() => new Error(err.message || 'Failed to confirm payment.')))
     );
   }
+
+  deletePayment(gymId: string, id: string): Observable<void> {
+    const db = this.firebaseService.getDb();
+    return from(deleteDoc(doc(db, 'payments', id))).pipe(
+      map(() => undefined),
+      catchError(err => throwError(() => new Error(err.message || 'Failed to delete payment.')))
+    );
+  }
 }
 
 @Injectable({ providedIn: 'root' })

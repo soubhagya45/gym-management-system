@@ -241,6 +241,10 @@ export class ApiPaymentRepository extends BaseApiRepository implements IPaymentR
   confirmPayment(gymId: string, paymentId: string): Observable<void> {
     return this.post<void>(`/${paymentId}/confirm`, {}, { params: new HttpParams().set('gymId', gymId) });
   }
+
+  deletePayment(gymId: string, id: string): Observable<void> {
+    return this.delete<void>(`/${id}`, { params: new HttpParams().set('gymId', gymId) });
+  }
 }
 
 @Injectable({ providedIn: 'root' })

@@ -210,6 +210,13 @@ service cloud.firestore {
       allow write: if canWriteGymData(request.resource.data);
     }
 
+    match /products/{id} {
+      allow read: if hasGymAccess(resource.data);
+      allow create: if canCreateGymData(request.resource.data);
+      allow update: if canUpdateGymData(resource.data, request.resource.data);
+      allow delete: if isActive() && (isSuperAdmin() || ((getUserData().role == 'gym_owner' || getUserData().role == 'branch_manager') && resource.data.gymId == getUserData().gymId));
+    }
+
     match /deviceConfigurations/{id} {
       allow read: if hasGymAccess(resource.data);
       allow create: if canCreateGymData(request.resource.data);

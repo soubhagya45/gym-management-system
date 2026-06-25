@@ -317,11 +317,14 @@ export class ImportService {
       this.employeeRepo.getEmployees(gymId).pipe(catchError(() => of([]))),
       this.trainerRepo.getTrainers(gymId).pipe(catchError(() => of([]))),
       this.planRepo.getPlans(gymId).pipe(catchError(() => of([]))),
+      this.ptRepo.getPTPlans(gymId).pipe(catchError(() => of([]))),
       this.productRepo.getProducts(gymId).pipe(catchError(() => of([]))),
       this.financeRepo.getInvoices(gymId).pipe(catchError(() => of([]))),
-      this.financeRepo.getCollections(gymId).pipe(catchError(() => of([])))
+      this.financeRepo.getCollections(gymId).pipe(catchError(() => of([]))),
+      this.paymentRepo.getPayments(gymId).pipe(catchError(() => of([]))),
+      this.financeRepo.getExpenses(gymId).pipe(catchError(() => of([])))
     ]).pipe(
-      switchMap(([members, leads, employees, trainers, plans, products, invoices, collections]) => {
+      switchMap(([members, leads, employees, trainers, plans, ptPlans, products, invoices, collections, payments, expenses]) => {
         const snapshot = {
           timestamp: new Date().toISOString(),
           gymId,
@@ -331,9 +334,12 @@ export class ImportService {
             employees,
             trainers,
             plans,
+            ptPlans,
             products,
             invoices,
-            collections
+            collections,
+            payments,
+            expenses
           }
         };
 
@@ -390,65 +396,96 @@ export class ImportService {
           this.employeeRepo.getEmployees(gymId).pipe(catchError(() => of([]))),
           this.trainerRepo.getTrainers(gymId).pipe(catchError(() => of([]))),
           this.planRepo.getPlans(gymId).pipe(catchError(() => of([]))),
+          this.ptRepo.getPTPlans(gymId).pipe(catchError(() => of([]))),
           this.productRepo.getProducts(gymId).pipe(catchError(() => of([]))),
           this.financeRepo.getInvoices(gymId).pipe(catchError(() => of([]))),
-          this.financeRepo.getCollections(gymId).pipe(catchError(() => of([])))
+          this.financeRepo.getCollections(gymId).pipe(catchError(() => of([]))),
+          this.paymentRepo.getPayments(gymId).pipe(catchError(() => of([]))),
+          this.financeRepo.getExpenses(gymId).pipe(catchError(() => of([])))
         ]).pipe(
-          switchMap(([members, leads, employees, trainers, plans, products, invoices, collections]) => {
-            const deleteOps: Observable<void>[] = [];
+          switchMap(([members, leads, employees, trainers, plans, ptPlans, products, invoices, collections, payments, expenses]) => {
+            const addOps: Observable<any>[] = [];
             
-            members.forEach(m => deleteOps.push(this.memberRepo.deleteMember(gymId, m.id).pipe(catchError(() => of(undefined)))));
-            leads.forEach(l => deleteOps.push(this.leadRepo.deleteLead(gymId, l.id).pipe(catchError(() => of(undefined)))));
-            employees.forEach(e => deleteOps.push(this.employeeRepo.deleteEmployee(gymId, e.id).pipe(catchError(() => of(undefined)))));
-            trainers.forEach(t => deleteOps.push(this.trainerRepo.deleteTrainer(gymId, t.id).pipe(catchError(() => of(undefined)))));
-            plans.forEach(p => deleteOps.push(this.planRepo.deletePlan(gymId, p.id).pipe(catchError(() => of(undefined)))));
-            products.forEach(pr => deleteOps.push(this.productRepo.deleteProduct(gymId, pr.id).pipe(catchError(() => of(undefined)))));
-            invoices.forEach(inv => deleteOps.push(this.financeRepo.deleteInvoice(gymId, inv.id).pipe(catchError(() => of(undefined)))));
-            collections.forEach(col => deleteOps.push(this.financeRepo.deleteCollection(gymId, col.id).pipe(catchError(() => of(undefined)))));
+            const snapshotMembers = data.members || [];
+            const snapshotLeads = data.leads || [];
+            const snapshotEmployees = data.employees || [];
+            const snapshotTrainers = data.trainers || [];
+            const snapshotPlans = data.plans || [];
+            const snapshotPtPlans = data.ptPlans || [];
+            const snapshotProducts = data.products || [];
+            const snapshotInvoices = data.invoices || [];
+            const snapshotCollections = data.collections || [];
+            const snapshotPayments = data.payments || [];
+            const snapshotExpenses = data.expenses || [];
 
-            const runDeletes = deleteOps.length > 0 ? forkJoin(deleteOps) : of([]);
+            // 1. Queue additions/overwrites first
+            snapshotMembers.forEach((m: any) => addOps.push(this.memberRepo.addMember(gymId, m).pipe(
+              map(res => commitUnit.registerAddition('members', res.id))
+            )));
+            snapshotLeads.forEach((l: any) => addOps.push(this.leadRepo.addLead(gymId, l).pipe(
+              map(res => commitUnit.registerAddition('leads', res.id))
+            )));
+            snapshotEmployees.forEach((e: any) => addOps.push(this.employeeRepo.addEmployee(gymId, e).pipe(
+              map(res => commitUnit.registerAddition('employees', res.id))
+            )));
+            snapshotTrainers.forEach((t: any) => addOps.push(this.trainerRepo.addTrainer(gymId, t).pipe(
+              map(res => commitUnit.registerAddition('trainers', res.id))
+            )));
+            snapshotPlans.forEach((p: any) => addOps.push(this.planRepo.addPlan(gymId, p).pipe(
+              map(res => commitUnit.registerAddition('membershipPlans', res.id))
+            )));
+            snapshotPtPlans.forEach((p: any) => addOps.push(this.ptRepo.addPTPlan(gymId, p).pipe(
+              map(res => commitUnit.registerAddition('ptPlans', res.id))
+            )));
+            snapshotProducts.forEach((pr: any) => addOps.push(this.productRepo.addProduct(gymId, pr).pipe(
+              map(res => commitUnit.registerAddition('products', res.id))
+            )));
+            snapshotInvoices.forEach((inv: any) => addOps.push(this.financeRepo.addInvoice(gymId, inv).pipe(
+              map(res => commitUnit.registerAddition('invoices', res.id))
+            )));
+            snapshotCollections.forEach((col: any) => addOps.push(this.financeRepo.addCollection(gymId, col).pipe(
+              map(res => commitUnit.registerAddition('collections', res.id))
+            )));
+            snapshotPayments.forEach((p: any) => addOps.push(this.paymentRepo.addPayment(gymId, p).pipe(
+              map(res => commitUnit.registerAddition('payments', res.id))
+            )));
+            snapshotExpenses.forEach((exp: any) => addOps.push(this.financeRepo.addExpense(gymId, exp).pipe(
+              map(res => commitUnit.registerAddition('expenses', res.id))
+            )));
 
-            return runDeletes.pipe(
+            const runAdds = addOps.length > 0 ? forkJoin(addOps) : of([]);
+
+            return runAdds.pipe(
               switchMap(() => {
-                const addOps: Observable<any>[] = [];
+                // 2. Queue deletes of orphans only after successful writes
+                const deleteOps: Observable<void>[] = [];
                 
-                const snapshotMembers = data.members || [];
-                const snapshotLeads = data.leads || [];
-                const snapshotEmployees = data.employees || [];
-                const snapshotTrainers = data.trainers || [];
-                const snapshotPlans = data.plans || [];
-                const snapshotProducts = data.products || [];
-                const snapshotInvoices = data.invoices || [];
-                const snapshotCollections = data.collections || [];
+                const snapshotMemberIds = new Set(snapshotMembers.map((sm: any) => sm.id));
+                const snapshotLeadIds = new Set(snapshotLeads.map((sl: any) => sl.id));
+                const snapshotEmployeeIds = new Set(snapshotEmployees.map((se: any) => se.id));
+                const snapshotTrainerIds = new Set(snapshotTrainers.map((st: any) => st.id));
+                const snapshotPlanIds = new Set(snapshotPlans.map((sp: any) => sp.id));
+                const snapshotPtPlanIds = new Set(snapshotPtPlans.map((spt: any) => spt.id));
+                const snapshotProductIds = new Set(snapshotProducts.map((sp: any) => sp.id));
+                const snapshotInvoiceIds = new Set(snapshotInvoices.map((sinv: any) => sinv.id));
+                const snapshotCollectionIds = new Set(snapshotCollections.map((sc: any) => sc.id));
+                const snapshotPaymentIds = new Set(snapshotPayments.map((sp: any) => sp.id));
+                const snapshotExpenseIds = new Set(snapshotExpenses.map((se: any) => se.id));
 
-                snapshotMembers.forEach((m: any) => addOps.push(this.memberRepo.addMember(gymId, m).pipe(
-                  map(res => commitUnit.registerAddition('members', res.id))
-                )));
-                snapshotLeads.forEach((l: any) => addOps.push(this.leadRepo.addLead(gymId, l).pipe(
-                  map(res => commitUnit.registerAddition('leads', res.id))
-                )));
-                snapshotEmployees.forEach((e: any) => addOps.push(this.employeeRepo.addEmployee(gymId, e).pipe(
-                  map(res => commitUnit.registerAddition('employees', res.id))
-                )));
-                snapshotTrainers.forEach((t: any) => addOps.push(this.trainerRepo.addTrainer(gymId, t).pipe(
-                  map(res => commitUnit.registerAddition('trainers', res.id))
-                )));
-                snapshotPlans.forEach((p: any) => addOps.push(this.planRepo.addPlan(gymId, p).pipe(
-                  map(res => commitUnit.registerAddition('membershipPlans', res.id))
-                )));
-                snapshotProducts.forEach((pr: any) => addOps.push(this.productRepo.addProduct(gymId, pr).pipe(
-                  map(res => commitUnit.registerAddition('products', res.id))
-                )));
-                snapshotInvoices.forEach((inv: any) => addOps.push(this.financeRepo.addInvoice(gymId, inv).pipe(
-                  map(res => commitUnit.registerAddition('invoices', res.id))
-                )));
-                snapshotCollections.forEach((col: any) => addOps.push(this.financeRepo.addCollection(gymId, col).pipe(
-                  map(res => commitUnit.registerAddition('collections', res.id))
-                )));
+                members.filter(m => !snapshotMemberIds.has(m.id)).forEach(m => deleteOps.push(this.memberRepo.deleteMember(gymId, m.id).pipe(catchError(() => of(undefined)))));
+                leads.filter(l => !snapshotLeadIds.has(l.id)).forEach(l => deleteOps.push(this.leadRepo.deleteLead(gymId, l.id).pipe(catchError(() => of(undefined)))));
+                employees.filter(e => !snapshotEmployeeIds.has(e.id)).forEach(e => deleteOps.push(this.employeeRepo.deleteEmployee(gymId, e.id).pipe(catchError(() => of(undefined)))));
+                trainers.filter(t => !snapshotTrainerIds.has(t.id)).forEach(t => deleteOps.push(this.trainerRepo.deleteTrainer(gymId, t.id).pipe(catchError(() => of(undefined)))));
+                plans.filter(p => !snapshotPlanIds.has(p.id)).forEach(p => deleteOps.push(this.planRepo.deletePlan(gymId, p.id).pipe(catchError(() => of(undefined)))));
+                ptPlans.filter(p => !snapshotPtPlanIds.has(p.id)).forEach(p => deleteOps.push(this.ptRepo.deletePTPlan(gymId, p.id).pipe(catchError(() => of(undefined)))));
+                products.filter(pr => !snapshotProductIds.has(pr.id)).forEach(pr => deleteOps.push(this.productRepo.deleteProduct(gymId, pr.id).pipe(catchError(() => of(undefined)))));
+                invoices.filter(inv => !snapshotInvoiceIds.has(inv.id)).forEach(inv => deleteOps.push(this.financeRepo.deleteInvoice(gymId, inv.id).pipe(catchError(() => of(undefined)))));
+                collections.filter(col => !snapshotCollectionIds.has(col.id)).forEach(col => deleteOps.push(this.financeRepo.deleteCollection(gymId, col.id).pipe(catchError(() => of(undefined)))));
+                payments.filter(p => !snapshotPaymentIds.has(p.id)).forEach(p => deleteOps.push(this.paymentRepo.deletePayment(gymId, p.id).pipe(catchError(() => of(undefined)))));
+                expenses.filter(exp => !snapshotExpenseIds.has(exp.id)).forEach(exp => deleteOps.push(this.financeRepo.deleteExpense(gymId, exp.id).pipe(catchError(() => of(undefined)))));
 
-                const runAdds = addOps.length > 0 ? forkJoin(addOps) : of([]);
-
-                return runAdds.pipe(
+                const runDeletes = deleteOps.length > 0 ? forkJoin(deleteOps) : of([]);
+                return runDeletes.pipe(
                   switchMap(() => commitUnit.commit()),
                   map(() => undefined),
                   catchError(err => {
@@ -462,6 +499,225 @@ export class ImportService {
         );
       }),
       catchError(err => throwError(() => new Error('Disaster Recovery restoration failed: ' + err.message)))
+    );
+  }
+
+  rollbackImport(gymId: string, history: ImportHistory): Observable<void> {
+    if (!this.userContext.hasPermission('import:rollback')) {
+      return throwError(() => new Error('Access denied: Insufficient permission to perform rollback.'));
+    }
+    if (!history.snapshotUrl) {
+      return throwError(() => new Error('Cannot rollback: Snapshot not available.'));
+    }
+
+    return this.restoreDisasterSnapshot(gymId, history.snapshotUrl).pipe(
+      switchMap(() => {
+        const userId = this.userContext.getUserId() || 'system';
+        const userName = this.userContext.getDisplayName() || 'Active Owner';
+        const role = this.userContext.getRole() || 'user';
+        
+        const updated: ImportHistory = {
+          ...history,
+          status: 'rolled_back',
+          rolledBackBy: userId,
+          rolledBackByName: userName,
+          rolledBackAt: new Date().toISOString()
+        };
+
+        const auditLog: Omit<AuditLog, 'id'> = {
+          gymId,
+          branchId: this.userContext.getBranchId() || '',
+          userId,
+          userName,
+          role,
+          action: 'Rollback Excel Import',
+          entityType: 'importHistory',
+          entityId: history.id || '',
+          entityName: history.fileName,
+          timestamp: new Date().toISOString()
+        };
+
+        return combineLatest([
+          this.historyRepo.updateHistory(gymId, updated),
+          this.auditLogRepo.addAuditLog(gymId, auditLog)
+        ]).pipe(
+          map(() => undefined)
+        );
+      })
+    );
+  }
+
+  runBackgroundImport(
+    gymId: string,
+    jobId: string,
+    module: string,
+    fileName: string,
+    fileHash: string,
+    stagingRecords: StagingRecord[]
+  ): Observable<void> {
+    return this.createDisasterRecoverySnapshot(gymId).pipe(
+      switchMap((snapshotUrl: string) => {
+        const jobState = {
+          jobId,
+          gymId,
+          module,
+          fileName,
+          fileHash,
+          snapshotUrl,
+          stagingRecords,
+          processed: 0,
+          failed: 0,
+          duplicates: 0,
+          status: 'running'
+        };
+        localStorage.setItem(`active_import_job_${jobId}`, JSON.stringify(jobState));
+
+        return new Observable<void>((subscriber) => {
+          const BATCH_SIZE = 50;
+          const savedStateStr = localStorage.getItem(`active_import_job_${jobId}`);
+          let savedState: any = null;
+          try {
+            if (savedStateStr) savedState = JSON.parse(savedStateStr);
+          } catch (e) {}
+
+          let currentIdx = savedState ? savedState.processed : 0;
+          let failedCount = savedState ? savedState.failed : 0;
+          let duplicateCount = savedState ? savedState.duplicates : 0;
+
+          const processNextBatch = () => {
+            const job = this.jobProvider.getJob(jobId);
+            
+            if (!job || job.status === 'cancelled') {
+              console.log(`[BackgroundImport] Job ${jobId} cancelled. Initiating rollback.`);
+              this.restoreDisasterSnapshot(gymId, snapshotUrl).subscribe({
+                next: () => {
+                  localStorage.removeItem(`active_import_job_${jobId}`);
+                  subscriber.error(new Error('Import cancelled by user. Reverted to snapshot.'));
+                },
+                error: (rollbackErr) => {
+                  localStorage.removeItem(`active_import_job_${jobId}`);
+                  subscriber.error(new Error('Import cancelled but rollback encountered error: ' + rollbackErr.message));
+                }
+              });
+              return;
+            }
+
+            if (job.status === 'paused') {
+              setTimeout(processNextBatch, 1000);
+              return;
+            }
+
+            if (currentIdx >= stagingRecords.length) {
+              const historyPayload: Omit<ImportHistory, 'id'> = {
+                gymId,
+                importedBy: this.userContext.getUserId() || 'system',
+                importedByName: this.userContext.getDisplayName() || 'Active Owner',
+                date: new Date().toISOString(),
+                fileName,
+                module: module as any,
+                recordsImported: stagingRecords.length - failedCount - duplicateCount,
+                recordsFailed: failedCount,
+                recordsDuplicates: duplicateCount,
+                duration: Date.now() - job.progress.startTime,
+                fileHash,
+                snapshotUrl,
+                status: 'completed'
+              };
+
+              const auditLog: Omit<AuditLog, 'id'> = {
+                gymId,
+                branchId: this.userContext.getBranchId() || '',
+                userId: this.userContext.getUserId() || 'system',
+                userName: this.userContext.getDisplayName() || 'Active Owner',
+                role: this.userContext.getRole() || 'owner',
+                action: 'Execute Excel Import Batch',
+                entityType: 'importHistory',
+                entityId: jobId,
+                entityName: fileName,
+                timestamp: new Date().toISOString()
+              };
+
+              combineLatest([
+                this.historyRepo.addHistory(gymId, historyPayload),
+                this.auditLogRepo.addAuditLog(gymId, auditLog)
+              ]).subscribe({
+                next: () => {
+                  localStorage.removeItem(`active_import_job_${jobId}`);
+                  this.jobProvider.updateProgress(jobId, stagingRecords.length, failedCount, duplicateCount);
+                  subscriber.next();
+                  subscriber.complete();
+                },
+                error: (dbErr) => {
+                  subscriber.error(dbErr);
+                }
+              });
+              return;
+            }
+
+            const batch = stagingRecords.slice(currentIdx, currentIdx + BATCH_SIZE);
+            
+            this.commitImport(gymId, batch).subscribe({
+              next: (result) => {
+                currentIdx += batch.length;
+                failedCount += result.failed;
+                duplicateCount += result.duplicates;
+
+                this.jobProvider.updateProgress(jobId, currentIdx, failedCount, duplicateCount);
+
+                const updatedState = {
+                  ...jobState,
+                  processed: currentIdx,
+                  failed: failedCount,
+                  duplicates: duplicateCount
+                };
+                localStorage.setItem(`active_import_job_${jobId}`, JSON.stringify(updatedState));
+
+                setTimeout(processNextBatch, 100);
+              },
+              error: (err) => {
+                console.error(`[BackgroundImport] Batch execution failed. Triggering rollback.`, err);
+                this.jobProvider.markFailed(jobId, err.message);
+                
+                this.restoreDisasterSnapshot(gymId, snapshotUrl).subscribe({
+                  next: () => {
+                    localStorage.removeItem(`active_import_job_${jobId}`);
+                    
+                    const failedHistory: Omit<ImportHistory, 'id'> = {
+                      gymId,
+                      importedBy: this.userContext.getUserId() || 'system',
+                      importedByName: this.userContext.getDisplayName() || 'Active Owner',
+                      date: new Date().toISOString(),
+                      fileName,
+                      module: module as any,
+                      recordsImported: 0,
+                      recordsFailed: stagingRecords.length,
+                      recordsDuplicates: 0,
+                      duration: Date.now() - job.progress.startTime,
+                      fileHash,
+                      snapshotUrl,
+                      status: 'failed'
+                    };
+
+                    this.historyRepo.addHistory(gymId, failedHistory).subscribe(() => {
+                      subscriber.error(new Error('Import failed: ' + err.message + '. Rollback executed.'));
+                    });
+                  },
+                  error: (rollbackErr) => {
+                    localStorage.removeItem(`active_import_job_${jobId}`);
+                    subscriber.error(new Error('Import failed and rollback also failed: ' + rollbackErr.message));
+                  }
+                });
+              }
+            });
+          };
+
+          processNextBatch();
+        });
+      }),
+      catchError((err) => {
+        this.jobProvider.markFailed(jobId, err.message);
+        return throwError(() => err);
+      })
     );
   }
 
@@ -1006,8 +1262,9 @@ export class ImportService {
     }
 
     if (writeObservables.length === 0) {
-      commitUnit.commit().subscribe();
-      return of({ imported: 0, failed: 0, duplicates: 0 });
+      return commitUnit.commit().pipe(
+        map(() => ({ imported: 0, failed: 0, duplicates: 0 }))
+      );
     }
 
     // Process sets
