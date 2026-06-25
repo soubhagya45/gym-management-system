@@ -466,7 +466,8 @@ export class MemberDialogComponent implements OnInit {
     if (input.files && input.files.length > 0) {
       const file = input.files[0];
       this.isUploading = true;
-      this.fileStorage.uploadFile(file, 'members').subscribe({
+      const gymId = this.tenantContext.getTenantId() || 'unknown';
+      this.fileStorage.uploadFile(file, `gyms/${gymId}/members`).subscribe({
         next: (url) => {
           this.memberForm.patchValue({ avatarUrl: url });
           this.selectedAvatarUrl = url;

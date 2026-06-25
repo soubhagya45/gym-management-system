@@ -6,7 +6,7 @@ export interface ImportHistory {
   importedByName?: string;
   date: string;
   fileName: string;
-  module: 'members' | 'leads' | 'employees' | 'trainers' | 'membership-plans' | 'pt-plans' | 'products' | 'invoices' | 'outstanding-dues' | 'multi-file';
+  module: 'members' | 'leads' | 'employees' | 'trainers' | 'membership-plans' | 'pt-plans' | 'products' | 'invoices' | 'outstanding-dues' | 'multi-file' | 'expenses' | 'collections' | 'payments';
   recordsImported: number;
   recordsFailed: number;
   recordsDuplicates: number;

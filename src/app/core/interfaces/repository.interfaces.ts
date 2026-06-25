@@ -158,8 +158,10 @@ export interface IFinanceRepository {
   getInvoices(gymId: string): Observable<Invoice[]>;
   addInvoice(gymId: string, invoice: Omit<Invoice, 'id'>): Observable<Invoice>;
   updateInvoice(gymId: string, invoice: Invoice): Observable<void>;
+  deleteInvoice(gymId: string, id: string): Observable<void>;
   getCollections(gymId: string): Observable<Collection[]>;
   addCollection(gymId: string, collection: Omit<Collection, 'id'>): Observable<Collection>;
+  deleteCollection(gymId: string, id: string): Observable<void>;
 }
 
 export interface IEmployeeRepository {

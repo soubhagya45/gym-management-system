@@ -54,6 +54,7 @@ import { IFileStorageRepository, FILE_STORAGE_REPOSITORY_TOKEN } from '../../cor
 import { MockFileStorageRepository } from '../repositories/mock/mock-file-storage.repository';
 import { FirebaseStorageRepository } from '../repositories/firebase/firebase-file-storage.repository';
 import { ApiFileStorageRepository } from '../repositories/api/api-file-storage.repository';
+import { SupabaseFileStorageRepository } from '../repositories/supabase/supabase-file-storage.repository';
 import { ClientBackgroundJobProvider } from '../../services/client-background-job.provider';
 
 
@@ -147,7 +148,8 @@ import {
   ApiProductRepository,
   ApiImportProfileRepository,
   ApiImportHistoryRepository,
-  ApiUnitOfWork
+  ApiUnitOfWork,
+  ApiPersonalTrainingRepository
 } from '../repositories/api/api-repositories';
 
 
@@ -286,7 +288,12 @@ export function employeeRepositoryFactory(configService: AppConfigService, injec
 export function personalTrainingRepositoryFactory(configService: AppConfigService, injector: Injector): IPersonalTrainingRepository {
   switch (configService.provider) {
     case ProviderType.Firebase: return injector.get(FirebasePersonalTrainingRepository);
-    // Fallback to Mock for other providers as REST/Supabase aren't explicitly requested for PT
+    case ProviderType.REST: return injector.get(ApiPersonalTrainingRepository);
+    // Supabase PT integration not yet implemented — throws rather than silently returning mock
+    case ProviderType.Supabase:
+      console.warn('[personalTrainingRepositoryFactory] Supabase PT repository not implemented. Falling back to Mock.');
+      return injector.get(MockPersonalTrainingRepository);
+    case ProviderType.Mock:
     default: return injector.get(MockPersonalTrainingRepository);
   }
 }
@@ -316,6 +323,7 @@ export function fileStorageRepositoryFactory(configService: AppConfigService, in
   switch (configService.provider) {
     case ProviderType.Firebase: return injector.get(FirebaseStorageRepository);
     case ProviderType.REST: return injector.get(ApiFileStorageRepository);
+    case ProviderType.Supabase: return injector.get(SupabaseFileStorageRepository);
     case ProviderType.Mock:
     default: return injector.get(MockFileStorageRepository);
   }

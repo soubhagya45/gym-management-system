@@ -36,7 +36,8 @@ export type Permission =
   | 'import:upload'
   | 'import:review'
   | 'import:approve'
-  | 'import:rollback';
+  | 'import:rollback'
+  | 'import:manage-profiles';
 
 
 /**
@@ -69,7 +70,8 @@ export const ROLE_PERMISSIONS: Record<UserRole, Permission[]> = {
     'import:upload',
     'import:review',
     'import:approve',
-    'import:rollback'
+    'import:rollback',
+    'import:manage-profiles'
   ],
 
   [UserRole.Owner]: [
@@ -96,7 +98,8 @@ export const ROLE_PERMISSIONS: Record<UserRole, Permission[]> = {
     'import:upload',
     'import:review',
     'import:approve',
-    'import:rollback'
+    'import:rollback',
+    'import:manage-profiles'
   ],
 
   [UserRole.Manager]: [
@@ -121,7 +124,8 @@ export const ROLE_PERMISSIONS: Record<UserRole, Permission[]> = {
     'view:settings',
     'view:audit-logs',
     'import:upload',
-    'import:review'
+    'import:review',
+    'import:manage-profiles'
   ],
 
   [UserRole.Trainer]: [

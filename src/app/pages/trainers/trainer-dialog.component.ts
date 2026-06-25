@@ -10,6 +10,7 @@ import { MatIconModule } from '@angular/material/icon';
 import { MatTooltipModule } from '@angular/material/tooltip';
 import { Trainer } from '../../core/models/trainer.entity';
 import { FILE_STORAGE_REPOSITORY_TOKEN, IFileStorageRepository } from '../../core/interfaces/file-storage-repository.interface';
+import { TenantContextService } from '../../domain/tenancy/tenant-context.service';
 
 @Component({
   selector: 'app-trainer-dialog',
@@ -170,7 +171,8 @@ export class TrainerDialogComponent implements OnInit {
     private fb: FormBuilder,
     private dialogRef: MatDialogRef<TrainerDialogComponent>,
     @Inject(MAT_DIALOG_DATA) public data: Trainer | null,
-    @Inject(FILE_STORAGE_REPOSITORY_TOKEN) private fileStorage: IFileStorageRepository
+    @Inject(FILE_STORAGE_REPOSITORY_TOKEN) private fileStorage: IFileStorageRepository,
+    private tenantContext: TenantContextService
   ) {}
 
   onTrainerPhotoUpload(event: Event): void {
@@ -178,7 +180,8 @@ export class TrainerDialogComponent implements OnInit {
     if (input.files && input.files.length > 0) {
       const file = input.files[0];
       this.isUploading = true;
-      this.fileStorage.uploadFile(file, 'employees').subscribe({
+      const gymId = this.tenantContext.getTenantId() || 'unknown';
+      this.fileStorage.uploadFile(file, `gyms/${gymId}/employees`).subscribe({
         next: (url) => {
           this.trainerForm.patchValue({ avatarUrl: url });
           this.selectedAvatarUrl = url;

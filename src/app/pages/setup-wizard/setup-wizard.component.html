@@ -219,6 +219,7 @@
                         <span>Sandbox Dry Run (All)</span>
                       </button>
                       <button mat-raised-button color="primary" class="sm-action-btn pulse-glow"
+                              *ngIf="hasApprovePermission()"
                               (click)="commitDataImport()" [disabled]="isProcessing || isLoading">
                         <mat-icon>rocket_launch</mat-icon>
                         <span>Commit All</span>
@@ -260,6 +261,9 @@
                           <option value="products">Products</option>
                           <option value="invoices">Invoices</option>
                           <option value="outstanding-dues">Outstanding Dues</option>
+                          <option value="expenses">Expenses</option>
+                          <option value="collections">Collections</option>
+                          <option value="payments">Payments</option>
                         </select>
                       </div>
 
@@ -373,7 +377,7 @@
                       </table>
                     </div>
 
-                    <div class="save-profile-card glass-panel mt-4">
+                    <div class="save-profile-card glass-panel mt-4" *ngIf="hasManageProfilesPermission()">
                       <div class="form-group flex-1">
                         <label>Save mapping template for future imports</label>
                         <input type="text" class="form-input" [(ngModel)]="customProfileName"
@@ -566,7 +570,7 @@
                           <span class="badge" [ngClass]="h.status">{{ h.status | uppercase }}</span>
                         </td>
                         <td>
-                          <button mat-stroked-button color="warn" class="rollback-btn" *ngIf="h.status === 'completed' && h.snapshotUrl" (click)="triggerHistoryRollback(h)" [disabled]="isLoading">
+                          <button mat-stroked-button color="warn" class="rollback-btn" *ngIf="h.status === 'completed' && h.snapshotUrl && hasRollbackPermission()" (click)="triggerHistoryRollback(h)" [disabled]="isLoading">
                             <mat-icon>restore</mat-icon>
                             <span>Revert Gym State</span>
                           </button>
@@ -632,6 +636,7 @@
               </div>
             </div>
           </div>
+
 
           <div class="step-actions mt-4 center-actions">
             <button mat-button matStepperPrevious class="prev-btn">

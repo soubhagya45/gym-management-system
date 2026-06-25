@@ -17,6 +17,7 @@ import { PTPlan } from '../../core/models/pt-plan.entity';
 import { Invoice, Expense, Collection } from '../../core/models/finance.entity';
 import { Payment } from '../../core/models/payment.entity';
 import { AuditLog } from '../../core/models/audit-log.model';
+import { UserRole } from '../../core/enums/roles.enum';
 
 // Repository and Interface Tokens
 import {
@@ -32,11 +33,12 @@ import {
   PRODUCT_REPOSITORY_TOKEN, IProductRepository,
   IMPORT_PROFILE_REPOSITORY_TOKEN, IImportProfileRepository,
   IMPORT_HISTORY_REPOSITORY_TOKEN, IImportHistoryRepository,
-  BACKGROUND_JOB_PROVIDER_TOKEN, IBackgroundJobProvider
+  BACKGROUND_JOB_PROVIDER_TOKEN, IBackgroundJobProvider,
+  PERSONAL_TRAINING_REPOSITORY_TOKEN, IPersonalTrainingRepository
 } from '../../core/interfaces/repository.interfaces';
 import { FILE_STORAGE_REPOSITORY_TOKEN, IFileStorageRepository } from '../../core/interfaces/file-storage-repository.interface';
 import { TenantContextService } from '../tenancy/tenant-context.service';
-import { AuthState } from '../../presentation/state/auth.state';
+import { UserContextService } from '../../core/services/user-context.service';
 import { ImportMetricsService } from '../../services/import-metrics.service';
 import { ClientBackgroundJobProvider } from '../../services/client-background-job.provider';
 
@@ -59,8 +61,9 @@ export class ImportService {
     @Inject(FILE_STORAGE_REPOSITORY_TOKEN) private storageRepo: IFileStorageRepository,
     @Inject(UNIT_OF_WORK_TOKEN) private unitOfWork: IUnitOfWork,
     @Inject(BACKGROUND_JOB_PROVIDER_TOKEN) private jobProvider: IBackgroundJobProvider,
+    @Inject(PERSONAL_TRAINING_REPOSITORY_TOKEN) private ptRepo: IPersonalTrainingRepository,
     private tenantContext: TenantContextService,
-    private authState: AuthState,
+    private userContext: UserContextService,
     private metricsService: ImportMetricsService
   ) {}
 
@@ -181,6 +184,18 @@ export class ImportService {
       case 'outstanding-dues':
         headers = ['Member Email or Phone', 'PlanName', 'Amount', 'GST', 'Discount', 'FinalAmount', 'AmountPaid', 'PendingAmount', 'InvoiceDate', 'DueDate', 'Status', 'PaymentMethod'];
         sampleData = [['john@example.com', 'Essential Monthly', '1500', '270', '0', '1770', '0', '1770', '2026-06-01', '2026-06-15', 'pending', 'Cash']];
+        break;
+      case 'expenses':
+        headers = ['Title', 'Category', 'Amount', 'Date', 'Notes', 'CreatedBy'];
+        sampleData = [['Downtown Rent', 'Rent', '25000', '2026-06-01', 'Monthly building rent payment', 'owner']];
+        break;
+      case 'collections':
+        headers = ['Receipt Number', 'Member Email or Phone', 'PlanName', 'Amount', 'PaymentMethod', 'Date', 'CollectedBy'];
+        sampleData = [['REC-2026-001', 'john@example.com', 'Essential Monthly', '1770', 'UPI', '2026-06-01', 'system']];
+        break;
+      case 'payments':
+        headers = ['Member Email or Phone', 'PlanName', 'Amount', 'PaidAmount', 'DueAmount', 'DueDate', 'Date', 'Status', 'PaymentMethod', 'SalespersonEmailOrPhone', 'Type', 'InvoiceNumber'];
+        sampleData = [['john@example.com', 'Essential Monthly', '1770', '1770', '0', '2026-06-01', '2026-06-01', 'paid', 'UPI', 'rahul.sharma@apexfit.com', 'membership', 'INV-2026-001']];
         break;
     }
 
@@ -334,6 +349,13 @@ export class ImportService {
   }
 
   restoreDisasterSnapshot(gymId: string, snapshotUrl: string): Observable<void> {
+    if (this.userContext.getGymId() !== gymId) {
+      return throwError(() => new Error('Access denied: Unauthorized gym context for snapshot restoration.'));
+    }
+    if (!this.userContext.hasPermission('import:rollback')) {
+      return throwError(() => new Error('Access denied: Insufficient permission to perform restoration.'));
+    }
+
     return this.storageRepo.downloadFile(snapshotUrl).pipe(
       switchMap((blob: Blob) => {
         return new Observable<any>(subscriber => {
@@ -362,14 +384,82 @@ export class ImportService {
 
         console.log(`[DisasterRecovery] Initiating restoration for gym: ${gymId}`);
 
-        // Restoration requires clearing existing mock lists and writing the snapshot records.
-        // For production backends, we delete current items and set snapshot items.
-        // In this architecture, MockUnitOfWork handles full revert automatically,
-        // but for Firebase we write bulk deletes and sets. 
-        // We will coordinate the restores sequentially.
-        
-        // Return a mock confirmation delay
-        return of(undefined).pipe(delay(500));
+        return combineLatest([
+          this.memberRepo.getMembers(gymId).pipe(catchError(() => of([]))),
+          this.leadRepo.getLeads(gymId).pipe(catchError(() => of([]))),
+          this.employeeRepo.getEmployees(gymId).pipe(catchError(() => of([]))),
+          this.trainerRepo.getTrainers(gymId).pipe(catchError(() => of([]))),
+          this.planRepo.getPlans(gymId).pipe(catchError(() => of([]))),
+          this.productRepo.getProducts(gymId).pipe(catchError(() => of([]))),
+          this.financeRepo.getInvoices(gymId).pipe(catchError(() => of([]))),
+          this.financeRepo.getCollections(gymId).pipe(catchError(() => of([])))
+        ]).pipe(
+          switchMap(([members, leads, employees, trainers, plans, products, invoices, collections]) => {
+            const deleteOps: Observable<void>[] = [];
+            
+            members.forEach(m => deleteOps.push(this.memberRepo.deleteMember(gymId, m.id).pipe(catchError(() => of(undefined)))));
+            leads.forEach(l => deleteOps.push(this.leadRepo.deleteLead(gymId, l.id).pipe(catchError(() => of(undefined)))));
+            employees.forEach(e => deleteOps.push(this.employeeRepo.deleteEmployee(gymId, e.id).pipe(catchError(() => of(undefined)))));
+            trainers.forEach(t => deleteOps.push(this.trainerRepo.deleteTrainer(gymId, t.id).pipe(catchError(() => of(undefined)))));
+            plans.forEach(p => deleteOps.push(this.planRepo.deletePlan(gymId, p.id).pipe(catchError(() => of(undefined)))));
+            products.forEach(pr => deleteOps.push(this.productRepo.deleteProduct(gymId, pr.id).pipe(catchError(() => of(undefined)))));
+            invoices.forEach(inv => deleteOps.push(this.financeRepo.deleteInvoice(gymId, inv.id).pipe(catchError(() => of(undefined)))));
+            collections.forEach(col => deleteOps.push(this.financeRepo.deleteCollection(gymId, col.id).pipe(catchError(() => of(undefined)))));
+
+            const runDeletes = deleteOps.length > 0 ? forkJoin(deleteOps) : of([]);
+
+            return runDeletes.pipe(
+              switchMap(() => {
+                const addOps: Observable<any>[] = [];
+                
+                const snapshotMembers = data.members || [];
+                const snapshotLeads = data.leads || [];
+                const snapshotEmployees = data.employees || [];
+                const snapshotTrainers = data.trainers || [];
+                const snapshotPlans = data.plans || [];
+                const snapshotProducts = data.products || [];
+                const snapshotInvoices = data.invoices || [];
+                const snapshotCollections = data.collections || [];
+
+                snapshotMembers.forEach((m: any) => addOps.push(this.memberRepo.addMember(gymId, m).pipe(
+                  map(res => commitUnit.registerAddition('members', res.id))
+                )));
+                snapshotLeads.forEach((l: any) => addOps.push(this.leadRepo.addLead(gymId, l).pipe(
+                  map(res => commitUnit.registerAddition('leads', res.id))
+                )));
+                snapshotEmployees.forEach((e: any) => addOps.push(this.employeeRepo.addEmployee(gymId, e).pipe(
+                  map(res => commitUnit.registerAddition('employees', res.id))
+                )));
+                snapshotTrainers.forEach((t: any) => addOps.push(this.trainerRepo.addTrainer(gymId, t).pipe(
+                  map(res => commitUnit.registerAddition('trainers', res.id))
+                )));
+                snapshotPlans.forEach((p: any) => addOps.push(this.planRepo.addPlan(gymId, p).pipe(
+                  map(res => commitUnit.registerAddition('membershipPlans', res.id))
+                )));
+                snapshotProducts.forEach((pr: any) => addOps.push(this.productRepo.addProduct(gymId, pr).pipe(
+                  map(res => commitUnit.registerAddition('products', res.id))
+                )));
+                snapshotInvoices.forEach((inv: any) => addOps.push(this.financeRepo.addInvoice(gymId, inv).pipe(
+                  map(res => commitUnit.registerAddition('invoices', res.id))
+                )));
+                snapshotCollections.forEach((col: any) => addOps.push(this.financeRepo.addCollection(gymId, col).pipe(
+                  map(res => commitUnit.registerAddition('collections', res.id))
+                )));
+
+                const runAdds = addOps.length > 0 ? forkJoin(addOps) : of([]);
+
+                return runAdds.pipe(
+                  switchMap(() => commitUnit.commit()),
+                  map(() => undefined),
+                  catchError(err => {
+                    commitUnit.failure(err);
+                    return throwError(() => err);
+                  })
+                );
+              })
+            );
+          })
+        );
       }),
       catchError(err => throwError(() => new Error('Disaster Recovery restoration failed: ' + err.message)))
     );
@@ -486,7 +576,7 @@ export class ImportService {
     gymId: string,
     rawData: any[],
     mappings: Record<string, string>,
-    module: 'members' | 'leads' | 'employees' | 'trainers' | 'membership-plans' | 'pt-plans' | 'products' | 'invoices' | 'outstanding-dues'
+    module: 'members' | 'leads' | 'employees' | 'trainers' | 'membership-plans' | 'pt-plans' | 'products' | 'invoices' | 'outstanding-dues' | 'expenses' | 'collections' | 'payments'
   ): Observable<StagingRecord[]> {
     const importId = 'imp_' + Math.random().toString(36).substring(2, 9);
     const stagingRecords: StagingRecord[] = [];
@@ -562,6 +652,83 @@ export class ImportService {
             status: 'unresolved'
           });
         }
+      } else if (module === 'expenses') {
+        if (!mappedData['title']) errors.push({ field: 'title', message: 'Title is required.', severity: 'error' });
+        if (!mappedData['category']) errors.push({ field: 'category', message: 'Category is required.', severity: 'error' });
+        if (mappedData['amount'] === undefined || mappedData['amount'] === null) {
+          errors.push({ field: 'amount', message: 'Amount is required.', severity: 'error' });
+        }
+        if (!mappedData['date']) errors.push({ field: 'date', message: 'Date is required.', severity: 'error' });
+      } else if (module === 'collections') {
+        if (!mappedData['receiptNo']) errors.push({ field: 'receiptNo', message: 'Receipt number is required.', severity: 'error' });
+        if (mappedData['amount'] === undefined || mappedData['amount'] === null) {
+          errors.push({ field: 'amount', message: 'Amount is required.', severity: 'error' });
+        }
+        if (!mappedData['date']) errors.push({ field: 'date', message: 'Date is required.', severity: 'error' });
+        
+        const refMember = row['MemberPhoneOrEmail'] || row['Member Email or Phone'] || row['Member'] || row['MemberId'] || row['Member Name'];
+        if (refMember) {
+          relations.push({
+            field: 'memberId',
+            entityType: 'Member',
+            referencedName: String(refMember),
+            status: 'unresolved'
+          });
+        }
+        const refPlan = row['MembershipPlan'] || row['PlanName'] || row['Plan'] || row['Membership Plan'];
+        if (refPlan) {
+          relations.push({
+            field: 'membershipPlanId',
+            entityType: 'MembershipPlan',
+            referencedName: String(refPlan),
+            status: 'unresolved'
+          });
+        }
+      } else if (module === 'payments') {
+        if (mappedData['amount'] === undefined || mappedData['amount'] === null) {
+          errors.push({ field: 'amount', message: 'Amount is required.', severity: 'error' });
+        }
+        if (mappedData['paidAmount'] === undefined || mappedData['paidAmount'] === null) {
+          errors.push({ field: 'paidAmount', message: 'Paid Amount is required.', severity: 'error' });
+        }
+        if (!mappedData['date']) errors.push({ field: 'date', message: 'Date is required.', severity: 'error' });
+        
+        const refMember = row['MemberPhoneOrEmail'] || row['Member Email or Phone'] || row['Member'] || row['MemberId'] || row['Member Name'];
+        if (refMember) {
+          relations.push({
+            field: 'memberId',
+            entityType: 'Member',
+            referencedName: String(refMember),
+            status: 'unresolved'
+          });
+        }
+        const refPlan = row['MembershipPlan'] || row['PlanName'] || row['Plan'] || row['Membership Plan'];
+        if (refPlan) {
+          relations.push({
+            field: 'membershipPlanId',
+            entityType: 'MembershipPlan',
+            referencedName: String(refPlan),
+            status: 'unresolved'
+          });
+        }
+      } else if (module === 'membership-plans') {
+        if (!mappedData['name']) errors.push({ field: 'name', message: 'Plan Name is required.', severity: 'error' });
+        if (mappedData['price'] === undefined || mappedData['price'] === null) {
+          errors.push({ field: 'price', message: 'Price is required.', severity: 'error' });
+        }
+      } else if (module === 'pt-plans') {
+        if (!mappedData['name']) errors.push({ field: 'name', message: 'PT Plan Name is required.', severity: 'error' });
+        if (mappedData['price'] === undefined || mappedData['price'] === null) {
+          errors.push({ field: 'price', message: 'Price is required.', severity: 'error' });
+        }
+      } else if (module === 'trainers') {
+        if (!mappedData['name']) errors.push({ field: 'name', message: 'Trainer Name is required.', severity: 'error' });
+        if (!mappedData['specialty']) errors.push({ field: 'specialty', message: 'Specialty is required.', severity: 'error' });
+      } else if (module === 'employees') {
+        if (!mappedData['fullName']) errors.push({ field: 'fullName', message: 'Full Name is required.', severity: 'error' });
+        if (!mappedData['phone']) errors.push({ field: 'phone', message: 'Phone is required.', severity: 'error' });
+        if (!mappedData['email']) errors.push({ field: 'email', message: 'Email is required.', severity: 'error' });
+        if (!mappedData['role']) errors.push({ field: 'role', message: 'Role is required.', severity: 'error' });
       }
 
       stagingRecords.push({
@@ -625,7 +792,7 @@ export class ImportService {
         };
 
         const addObs = this.memberRepo.addMember(gymId, finalMember).pipe(
-          map(created => {
+          switchMap(created => {
             commitUnit.registerAddition('members', created.id);
             
             // Create a pending invoice if opening balance outstanding exists
@@ -646,11 +813,14 @@ export class ImportService {
                 pendingAmount: bal,
                 amountPaid: 0
               };
-              this.financeRepo.addInvoice(gymId, invoicePayload).subscribe(inv => {
-                commitUnit.registerAddition('invoices', inv.id);
-              });
+              return this.financeRepo.addInvoice(gymId, invoicePayload).pipe(
+                map(inv => {
+                  commitUnit.registerAddition('invoices', inv.id);
+                  return created;
+                })
+              );
             }
-            return created;
+            return of(created);
           })
         );
         writeObservables.push(addObs);
@@ -686,6 +856,151 @@ export class ImportService {
         };
         writeObservables.push(this.productRepo.addProduct(gymId, finalProd).pipe(
           map(created => commitUnit.registerAddition('products', created.id))
+        ));
+      } else if (module === 'invoices') {
+        const finalInvoice: Omit<Invoice, 'id'> = {
+          gymId,
+          branchId: payload['branchId'] || '',
+          invoiceNumber: payload['invoiceNumber'],
+          memberId: payload['memberId'] || 'unknown-member',
+          memberName: payload['memberName'] || 'Unknown Member',
+          membershipPlan: payload['membershipPlan'] || payload['planName'] || 'General',
+          amount: parseFloat(payload['amount']) || 0,
+          discount: parseFloat(payload['discount']) || 0,
+          finalAmount: parseFloat(payload['finalAmount']) || parseFloat(payload['amount']) || 0,
+          paymentMethod: payload['paymentMethod'] || 'Cash',
+          invoiceDate: payload['invoiceDate'] || new Date().toISOString().split('T')[0],
+          status: (payload['status'] || 'paid') as any,
+          amountPaid: parseFloat(payload['amountPaid']) || 0,
+          pendingAmount: parseFloat(payload['pendingAmount']) || 0,
+          dueDate: payload['dueDate'] || '',
+          salespersonId: payload['salespersonId'] || '',
+          salespersonName: payload['salespersonName'] || ''
+        };
+        writeObservables.push(this.financeRepo.addInvoice(gymId, finalInvoice).pipe(
+          map(created => commitUnit.registerAddition('invoices', created.id))
+        ));
+      } else if (module === 'expenses') {
+        const finalExpense: Omit<Expense, 'id'> = {
+          gymId,
+          title: payload['title'] || 'Legacy Expense',
+          category: (payload['category'] || 'Miscellaneous') as any,
+          amount: parseFloat(payload['amount']) || 0,
+          date: payload['date'] || new Date().toISOString().split('T')[0],
+          notes: payload['notes'] || '',
+          createdBy: payload['createdBy'] || 'system'
+        };
+        writeObservables.push(this.financeRepo.addExpense(gymId, finalExpense).pipe(
+          map(created => commitUnit.registerAddition('expenses', created.id))
+        ));
+      } else if (module === 'collections') {
+        const finalCollection: Omit<Collection, 'id'> = {
+          gymId,
+          branchId: payload['branchId'] || '',
+          receiptNo: payload['receiptNo'] || 'REC-' + Math.random().toString(36).substring(2, 7).toUpperCase(),
+          memberId: payload['memberId'] || 'unknown-member',
+          memberName: payload['memberName'] || 'Unknown Member',
+          membershipPlan: payload['membershipPlan'] || payload['planName'] || 'General',
+          amount: parseFloat(payload['amount']) || 0,
+          paymentMethod: payload['paymentMethod'] || 'Cash',
+          date: payload['date'] || new Date().toISOString().split('T')[0],
+          collectedBy: payload['collectedBy'] || 'system'
+        };
+        writeObservables.push(this.financeRepo.addCollection(gymId, finalCollection).pipe(
+          map(created => commitUnit.registerAddition('collections', created.id))
+        ));
+      } else if (module === 'payments') {
+        const finalPayment: Omit<Payment, 'id'> = {
+          gymId,
+          branchId: payload['branchId'] || '',
+          memberId: payload['memberId'] || 'unknown-member',
+          memberName: payload['memberName'] || 'Unknown Member',
+          amount: parseFloat(payload['amount']) || 0,
+          paidAmount: parseFloat(payload['paidAmount']) || 0,
+          dueAmount: parseFloat(payload['dueAmount']) || 0,
+          dueDate: payload['dueDate'] || '',
+          date: payload['date'] || new Date().toISOString().split('T')[0],
+          status: (payload['status'] || 'paid') as any,
+          planName: payload['planName'] || 'General',
+          paymentMethod: payload['paymentMethod'] || 'Cash',
+          collectedBy: payload['collectedBy'] || 'system',
+          salespersonId: payload['salespersonId'] || '',
+          salespersonName: payload['salespersonName'] || '',
+          type: (payload['type'] || 'membership') as any,
+          invoiceId: payload['invoiceId'] || ''
+        };
+        writeObservables.push(this.paymentRepo.addPayment(gymId, finalPayment).pipe(
+          map(created => commitUnit.registerAddition('payments', created.id))
+        ));
+      } else if (module === 'membership-plans') {
+        const finalPlan: Omit<MembershipPlan, 'id' | 'activeMembersCount'> = {
+          gymId,
+          name: payload['name'],
+          type: 'membership',
+          durationMonths: parseInt(payload['durationMonths'] || payload['duration']) || 1,
+          duration: parseInt(payload['duration']) || 1,
+          durationUnit: (payload['durationUnit'] || 'months') as any,
+          price: parseFloat(payload['price']) || 0,
+          tax: parseFloat(payload['tax']) || 0,
+          description: payload['description'] || '',
+          features: payload['features'] ? (Array.isArray(payload['features']) ? payload['features'] : [payload['features']]) : [],
+          isActive: payload['isActive'] !== undefined ? payload['isActive'] : true
+        };
+        writeObservables.push(this.planRepo.addPlan(gymId, finalPlan).pipe(
+          map(created => commitUnit.registerAddition('membershipPlans', created.id))
+        ));
+      } else if (module === 'pt-plans') {
+        const finalPTPlan: Omit<PTPlan, 'id'> = {
+          gymId,
+          branchId: payload['branchId'] || '',
+          name: payload['name'],
+          type: 'pt',
+          price: parseFloat(payload['price']) || 0,
+          tax: parseFloat(payload['tax']) || 0,
+          numberOfSessions: parseInt(payload['numberOfSessions']) || 10,
+          duration: parseInt(payload['duration']) || 1,
+          durationUnit: (payload['durationUnit'] || 'months') as any,
+          description: payload['description'] || '',
+          isActive: payload['isActive'] !== undefined ? payload['isActive'] : true
+        };
+        writeObservables.push(this.ptRepo.addPTPlan(gymId, finalPTPlan).pipe(
+          map(created => commitUnit.registerAddition('ptPlans', created.id))
+        ));
+      } else if (module === 'trainers') {
+        const finalTrainer: Omit<Trainer, 'id' | 'membersCount'> = {
+          gymId,
+          branchId: payload['branchId'] || '',
+          name: payload['name'],
+          specialty: payload['specialty'] || 'General Training',
+          rating: parseFloat(payload['rating']) || 5,
+          avatarUrl: payload['avatarUrl'] || '',
+          status: (payload['status'] || 'active') as any,
+          email: payload['email'] || '',
+          phone: payload['phone'] || ''
+        };
+        writeObservables.push(this.trainerRepo.addTrainer(gymId, finalTrainer).pipe(
+          map(created => commitUnit.registerAddition('trainers', created.id))
+        ));
+      } else if (module === 'employees') {
+        const finalEmp: Omit<Employee, 'id'> = {
+          gymId,
+          branchId: payload['branchId'] || '',
+          fullName: payload['fullName'] || payload['name'] || '',
+          phone: payload['phone'] || '',
+          email: payload['email'] || '',
+          gender: payload['gender'] || 'Male',
+          dob: payload['dob'] || '1995-01-01',
+          address: payload['address'] || '',
+          role: (payload['role'] || UserRole.Staff) as any,
+          department: payload['department'] || 'Operations',
+          joinDate: payload['joinDate'] || new Date().toISOString().split('T')[0],
+          salary: parseFloat(payload['salary']) || 15000,
+          shift: payload['shift'] || 'Morning',
+          username: payload['username'] || (payload['fullName'] || 'staff').toLowerCase().replace(/\s+/g, '_'),
+          accountStatus: (payload['accountStatus'] || 'Active') as any
+        };
+        writeObservables.push(this.employeeRepo.addEmployee(gymId, finalEmp).pipe(
+          map(created => commitUnit.registerAddition('employees', created.id))
         ));
       }
     }

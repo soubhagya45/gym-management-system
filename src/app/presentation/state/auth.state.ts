@@ -9,6 +9,7 @@ import { Permission } from '../../core/models/permission.model';
 import { TenantContextService } from '../../domain/tenancy/tenant-context.service';
 import { SessionService } from '../../domain/auth/session.service';
 import { PermissionService } from '../../domain/auth/permission.service';
+import { UserContextService } from '../../core/services/user-context.service';
 
 @Injectable({
   providedIn: 'root'
@@ -24,6 +25,7 @@ export class AuthState {
     private tenantContext: TenantContextService,
     private sessionService: SessionService,
     private permissionService: PermissionService,
+    private userContext: UserContextService,
     private router: Router
   ) {
     this.loadSession();
@@ -93,6 +95,7 @@ export class AuthState {
     });
   }
 
+
   private loadSession(): void {
     try {
       const saved = localStorage.getItem(this.STORAGE_KEY);
@@ -101,6 +104,8 @@ export class AuthState {
         // Validate session is still fresh
         if (!user.sessionExpiresAt || new Date(user.sessionExpiresAt).getTime() > Date.now()) {
           this.currentUserSubject.next(user);
+          // Sync core-layer user context so domain/data services see the restored user
+          this.userContext.setCurrentUser(user);
           if (user.gymId) {
             this.tenantContext.setTenantId(user.gymId);
           } else {
@@ -118,6 +123,7 @@ export class AuthState {
       localStorage.removeItem(this.STORAGE_KEY);
     }
   }
+
 
   login(email: string, password: string): Observable<UserProfile> {
     return this.authService.login(email, password).pipe(
@@ -198,6 +204,8 @@ export class AuthState {
     this.currentUserSubject.next(null);
     this.tenantContext.setTenantId(null);
     this.sessionService.stop();
+    // Sync core-layer user context so domain/data services see no user
+    this.userContext.clearCurrentUser();
     this.router.navigate(['/login']);
   }
 
@@ -211,6 +219,8 @@ export class AuthState {
 
     localStorage.setItem(this.STORAGE_KEY, JSON.stringify(enriched));
     this.currentUserSubject.next(enriched);
+    // Sync core-layer user context so domain/data services see the current user
+    this.userContext.setCurrentUser(enriched);
 
     // Set tenant context
     if (enriched.gymId) {

@@ -38,6 +38,7 @@ import {
   IProductRepository,
   IImportProfileRepository,
   IImportHistoryRepository,
+  IPersonalTrainingRepository,
   IUnitOfWork
 } from '../../../core/interfaces/repository.interfaces';
 import { AuditLog } from '../../../core/models/audit-log.model';
@@ -493,12 +494,20 @@ export class ApiFinanceRepository extends BaseApiRepository implements IFinanceR
     return this.put<void>(`/invoices/${invoice.id}`, invoice, { params: new HttpParams().set('gymId', gymId) });
   }
 
+  deleteInvoice(gymId: string, id: string): Observable<void> {
+    return this.delete<void>(`/invoices/${id}`, { params: new HttpParams().set('gymId', gymId) });
+  }
+
   getCollections(gymId: string): Observable<Collection[]> {
     return this.get<Collection[]>('/collections', { params: new HttpParams().set('gymId', gymId) });
   }
 
   addCollection(gymId: string, collection: Omit<Collection, 'id'>): Observable<Collection> {
     return this.post<Collection>('/collections', collection, { params: new HttpParams().set('gymId', gymId) });
+  }
+
+  deleteCollection(gymId: string, id: string): Observable<void> {
+    return this.delete<void>(`/collections/${id}`, { params: new HttpParams().set('gymId', gymId) });
   }
 }
 
@@ -608,7 +617,108 @@ export class ApiImportHistoryRepository extends BaseApiRepository implements IIm
 export class ApiUnitOfWork implements IUnitOfWork {
   begin(): void {}
   commit(): Observable<void> { return of(undefined); }
-  rollback(): void {}
+  rollback(): void {
+    // API provider — transactional rollback is responsibility of the backend.
+    // Log warning so this is visible in monitoring during debugging.
+    console.warn('[ApiUnitOfWork] rollback() called. The backend API must handle transaction cleanup.');
+  }
+  failure(error: Error): void {
+    console.error('[ApiUnitOfWork] failure() called:', error.message);
+    this.rollback();
+  }
   registerAddition(collectionName: string, id: string): void {}
+}
+
+/**
+ * ApiPersonalTrainingRepository
+ * REST API implementation for Personal Training entities.
+ * All PT operations are tenant-scoped by gymId query parameter.
+ */
+import { PTPlan } from '../../../core/models/pt-plan.entity';
+import { PTSession } from '../../../core/models/pt-session.entity';
+import { TrainerAssignment } from '../../../core/models/trainer-assignment.entity';
+import { SessionHistory } from '../../../core/models/session-history.entity';
+import { TrainerRevenue } from '../../../core/models/trainer-revenue.entity';
+import { MemberPTPlan } from '../../../core/models/member-pt-plan.entity';
+
+@Injectable({ providedIn: 'root' })
+export class ApiPersonalTrainingRepository extends BaseApiRepository implements IPersonalTrainingRepository {
+  protected get endpoint(): string { return '/personal-training'; }
+
+  constructor(http: HttpClient, configService: AppConfigService) {
+    super(http, configService);
+  }
+
+  getPTPlans(gymId: string): Observable<PTPlan[]> {
+    return this.get<PTPlan[]>('/plans', { params: new HttpParams().set('gymId', gymId) });
+  }
+
+  addPTPlan(gymId: string, plan: Omit<PTPlan, 'id'>): Observable<PTPlan> {
+    return this.post<PTPlan>('/plans', plan, { params: new HttpParams().set('gymId', gymId) });
+  }
+
+  updatePTPlan(gymId: string, plan: PTPlan): Observable<void> {
+    return this.put<void>(`/plans/${plan.id}`, plan, { params: new HttpParams().set('gymId', gymId) });
+  }
+
+  deletePTPlan(gymId: string, id: string): Observable<void> {
+    return this.delete<void>(`/plans/${id}`, { params: new HttpParams().set('gymId', gymId) });
+  }
+
+  getPTSessions(gymId: string): Observable<PTSession[]> {
+    return this.get<PTSession[]>('/sessions', { params: new HttpParams().set('gymId', gymId) });
+  }
+
+  addPTSession(gymId: string, session: Omit<PTSession, 'id'>): Observable<PTSession> {
+    return this.post<PTSession>('/sessions', session, { params: new HttpParams().set('gymId', gymId) });
+  }
+
+  updatePTSession(gymId: string, session: PTSession): Observable<void> {
+    return this.put<void>(`/sessions/${session.id}`, session, { params: new HttpParams().set('gymId', gymId) });
+  }
+
+  deletePTSession(gymId: string, id: string): Observable<void> {
+    return this.delete<void>(`/sessions/${id}`, { params: new HttpParams().set('gymId', gymId) });
+  }
+
+  getTrainerAssignments(gymId: string): Observable<TrainerAssignment[]> {
+    return this.get<TrainerAssignment[]>('/trainer-assignments', { params: new HttpParams().set('gymId', gymId) });
+  }
+
+  addTrainerAssignment(gymId: string, assignment: Omit<TrainerAssignment, 'id'>): Observable<TrainerAssignment> {
+    return this.post<TrainerAssignment>('/trainer-assignments', assignment, { params: new HttpParams().set('gymId', gymId) });
+  }
+
+  getSessionHistory(gymId: string): Observable<SessionHistory[]> {
+    return this.get<SessionHistory[]>('/session-history', { params: new HttpParams().set('gymId', gymId) });
+  }
+
+  addSessionHistory(gymId: string, history: Omit<SessionHistory, 'id'>): Observable<SessionHistory> {
+    return this.post<SessionHistory>('/session-history', history, { params: new HttpParams().set('gymId', gymId) });
+  }
+
+  getTrainerRevenue(gymId: string): Observable<TrainerRevenue[]> {
+    return this.get<TrainerRevenue[]>('/trainer-revenue', { params: new HttpParams().set('gymId', gymId) });
+  }
+
+  addTrainerRevenue(gymId: string, revenue: Omit<TrainerRevenue, 'id'>): Observable<TrainerRevenue> {
+    return this.post<TrainerRevenue>('/trainer-revenue', revenue, { params: new HttpParams().set('gymId', gymId) });
+  }
+
+  getMemberPTPlans(gymId: string): Observable<MemberPTPlan[]> {
+    return this.get<MemberPTPlan[]>('/member-pt-plans', { params: new HttpParams().set('gymId', gymId) });
+  }
+
+  getMemberPTPlanById(gymId: string, id: string): Observable<MemberPTPlan | null> {
+    return this.get<MemberPTPlan>(`/member-pt-plans/${id}`, { params: new HttpParams().set('gymId', gymId) });
+  }
+
+  addMemberPTPlan(gymId: string, memberPlan: Omit<MemberPTPlan, 'id'>): Observable<MemberPTPlan> {
+    return this.post<MemberPTPlan>('/member-pt-plans', memberPlan, { params: new HttpParams().set('gymId', gymId) });
+  }
+
+  updateMemberPTPlan(gymId: string, memberPlan: MemberPTPlan): Observable<void> {
+    return this.put<void>(`/member-pt-plans/${memberPlan.id}`, memberPlan, { params: new HttpParams().set('gymId', gymId) });
+  }
 }
 

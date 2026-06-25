@@ -25,6 +25,7 @@ import { Employee, EmployeeAttendance, EmployeePayroll, EmployeePerformance } fr
 import { UserRole } from '../../core/enums/roles.enum';
 import { FILE_STORAGE_REPOSITORY_TOKEN, IFileStorageRepository } from '../../core/interfaces/file-storage-repository.interface';
 import { SubmissionGuardService } from '../../services/submission-guard.service';
+import { TenantContextService } from '../../domain/tenancy/tenant-context.service';
 
 @Component({
   selector: 'app-employees',
@@ -132,7 +133,8 @@ export class EmployeesComponent implements OnInit {
     private route: ActivatedRoute,
     private router: Router,
     public submissionGuard: SubmissionGuardService,
-    @Inject(FILE_STORAGE_REPOSITORY_TOKEN) private fileStorage: IFileStorageRepository
+    @Inject(FILE_STORAGE_REPOSITORY_TOKEN) private fileStorage: IFileStorageRepository,
+    private tenantContext: TenantContextService
   ) {
     this.employees$ = this.employeeState.employees$;
     this.attendance$ = this.employeeState.attendance$;
@@ -172,7 +174,8 @@ export class EmployeesComponent implements OnInit {
     if (input.files && input.files.length > 0) {
       const file = input.files[0];
       this.isUploadingPhoto = true;
-      this.fileStorage.uploadFile(file, 'employees').subscribe({
+      const tenantId = this.tenantContext.getTenantId() || 'unknown';
+      this.fileStorage.uploadFile(file, `gyms/${tenantId}/employees`).subscribe({
         next: (url) => {
           this.employeeForm.patchValue({ photoUrl: url });
           this.isUploadingPhoto = false;

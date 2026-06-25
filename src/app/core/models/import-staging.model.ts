@@ -17,7 +17,7 @@ export interface StagingRecord {
   id: string;
   gymId: string;
   importId: string;
-  module: 'members' | 'leads' | 'employees' | 'trainers' | 'membership-plans' | 'pt-plans' | 'products' | 'invoices' | 'outstanding-dues';
+  module: 'members' | 'leads' | 'employees' | 'trainers' | 'membership-plans' | 'pt-plans' | 'products' | 'invoices' | 'outstanding-dues' | 'expenses' | 'collections' | 'payments';
   rawRowData: Record<string, any>;
   mappedData: Record<string, any>;
   validationErrors: StagingValidationError[];

@@ -8,6 +8,7 @@ import { MatTooltipModule } from '@angular/material/tooltip';
 import { Invoice } from '../../../core/models/finance.entity';
 import { FinanceState } from '../../../presentation/state/finance.state';
 import { FILE_STORAGE_REPOSITORY_TOKEN, IFileStorageRepository } from '../../../core/interfaces/file-storage-repository.interface';
+import { TenantContextService } from '../../../domain/tenancy/tenant-context.service';
 
 @Component({
   selector: 'app-invoice-view-dialog',
@@ -408,7 +409,8 @@ export class InvoiceViewDialogComponent {
     public dialogRef: MatDialogRef<InvoiceViewDialogComponent>,
     @Inject(MAT_DIALOG_DATA) public data: Invoice,
     private financeState: FinanceState,
-    @Inject(FILE_STORAGE_REPOSITORY_TOKEN) private fileStorage: IFileStorageRepository
+    @Inject(FILE_STORAGE_REPOSITORY_TOKEN) private fileStorage: IFileStorageRepository,
+    private tenantContext: TenantContextService
   ) {}
 
   printInvoice(): void {
@@ -420,7 +422,8 @@ export class InvoiceViewDialogComponent {
     if (input.files && input.files.length > 0) {
       const file = input.files[0];
       this.isUploading = true;
-      this.fileStorage.uploadFile(file, 'invoices').subscribe({
+      const gymId = this.data.gymId || this.tenantContext.getTenantId() || 'unknown';
+      this.fileStorage.uploadFile(file, `gyms/${gymId}/invoices`).subscribe({
         next: (url) => {
           this.data = {
             ...this.data,

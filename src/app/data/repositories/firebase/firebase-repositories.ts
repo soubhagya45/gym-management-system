@@ -659,7 +659,7 @@ export class FirebaseMemberRepository implements IMemberRepository {
 
   addMember(gymId: string, member: Omit<Member, 'id' | 'attendanceCount' | 'balance'>): Observable<Member> {
     const db = this.firebaseService.getDb();
-    const id = 'mem_' + Math.random().toString(36).substring(2, 9);
+    const id = (member as any).id || 'mem_' + Math.random().toString(36).substring(2, 9);
     const tenantContext = this.injector.get(TenantContextService);
     const branchId = member.branchId || tenantContext.getBranchId() || '';
 
@@ -1061,7 +1061,7 @@ export class FirebaseLeadRepository implements ILeadRepository {
 
   addLead(gymId: string, lead: Omit<Lead, 'id'>): Observable<Lead> {
     const db = this.firebaseService.getDb();
-    const id = 'lead_' + Math.random().toString(36).substring(2, 9);
+    const id = (lead as any).id || 'lead_' + Math.random().toString(36).substring(2, 9);
     const tenantContext = this.injector.get(TenantContextService);
     const branchId = lead.branchId || tenantContext.getBranchId() || '';
     const newLead: Lead = {
@@ -1513,7 +1513,7 @@ export class FirebaseTrainerRepository implements ITrainerRepository {
 
   addTrainer(gymId: string, trainer: Omit<Trainer, 'id' | 'membersCount'>): Observable<Trainer> {
     const db = this.firebaseService.getDb();
-    const id = 'trainer_' + Math.random().toString(36).substring(2, 9);
+    const id = (trainer as any).id || 'trainer_' + Math.random().toString(36).substring(2, 9);
     const tenantContext = this.injector.get(TenantContextService);
     const branchId = trainer.branchId || tenantContext.getBranchId() || '';
     const newTrainer: Trainer = {
@@ -1730,7 +1730,7 @@ export class FirebaseMembershipPlanRepository implements IMembershipPlanReposito
 
   addPlan(gymId: string, plan: Omit<MembershipPlan, 'id' | 'activeMembersCount'>): Observable<MembershipPlan> {
     const db = this.firebaseService.getDb();
-    const id = 'plan_' + Math.random().toString(36).substring(2, 9);
+    const id = (plan as any).id || 'plan_' + Math.random().toString(36).substring(2, 9);
     const newPlan: MembershipPlan = {
       ...plan,
       id,
@@ -1993,7 +1993,7 @@ export class FirebaseFinanceRepository implements IFinanceRepository {
 
   addInvoice(gymId: string, invoice: Omit<Invoice, 'id'>): Observable<Invoice> {
     const db = this.firebaseService.getDb();
-    const id = 'inv_' + Math.random().toString(36).substring(2, 9);
+    const id = (invoice as any).id || 'inv_' + Math.random().toString(36).substring(2, 9);
     const tenantContext = this.injector.get(TenantContextService);
     const branchId = (invoice as any).branchId || tenantContext.getBranchId() || '';
     const newInvoice: Invoice = {
@@ -2028,7 +2028,7 @@ export class FirebaseFinanceRepository implements IFinanceRepository {
 
   addCollection(gymId: string, collection: Omit<Collection, 'id'>): Observable<Collection> {
     const db = this.firebaseService.getDb();
-    const id = 'col_' + Math.random().toString(36).substring(2, 9);
+    const id = (collection as any).id || 'col_' + Math.random().toString(36).substring(2, 9);
     const tenantContext = this.injector.get(TenantContextService);
     const branchId = (collection as any).branchId || tenantContext.getBranchId() || '';
     const newCollection: Collection = {
@@ -2040,6 +2040,22 @@ export class FirebaseFinanceRepository implements IFinanceRepository {
     return from(setDoc(doc(db, 'collections', id), newCollection)).pipe(
       map(() => newCollection),
       catchError(err => throwError(() => new Error(err.message || 'Failed to add collection.')))
+    );
+  }
+
+  deleteInvoice(gymId: string, id: string): Observable<void> {
+    const db = this.firebaseService.getDb();
+    return from(deleteDoc(doc(db, 'invoices', id))).pipe(
+      map(() => undefined),
+      catchError(err => throwError(() => new Error(err.message || 'Failed to delete invoice.')))
+    );
+  }
+
+  deleteCollection(gymId: string, id: string): Observable<void> {
+    const db = this.firebaseService.getDb();
+    return from(deleteDoc(doc(db, 'collections', id))).pipe(
+      map(() => undefined),
+      catchError(err => throwError(() => new Error(err.message || 'Failed to delete collection.')))
     );
   }
 }
@@ -2074,6 +2090,24 @@ export class FirebaseEmployeeRepository implements IEmployeeRepository {
 
   addEmployee(gymId: string, employee: Omit<Employee, 'id'>): Observable<Employee> {
     const db = this.firebaseService.getDb();
+    
+    // Restore mode check: if employee has predefined id, bypass Firebase Auth creation
+    if ((employee as any).id) {
+      const uid = (employee as any).id;
+      const tenantContext = this.injector.get(TenantContextService);
+      const branchId = employee.branchId || tenantContext.getBranchId() || '';
+      const newEmp: Employee = {
+        ...employee,
+        id: uid,
+        gymId,
+        branchId
+      };
+      return from(setDoc(doc(db, 'employees', uid), newEmp)).pipe(
+        map(() => newEmp),
+        catchError(err => throwError(() => new Error(err.message || 'Failed to restore employee.')))
+      );
+    }
+
     const auth = this.firebaseService.getAuth();
     const config = auth.app.options;
     
@@ -2757,7 +2791,7 @@ export class FirebaseProductRepository implements IProductRepository {
 
   addProduct(gymId: string, product: Omit<Product, 'id'>): Observable<Product> {
     const db = this.firebaseService.getDb();
-    const id = 'prod_' + Math.random().toString(36).substring(2, 9);
+    const id = (product as any).id || 'prod_' + Math.random().toString(36).substring(2, 9);
     const newP = { ...product, id, gymId } as Product;
 
     return from(setDoc(doc(db, 'products', id), newP)).pipe(
@@ -2934,4 +2968,10 @@ export class FirebaseUnitOfWork implements IUnitOfWork {
       this.additions.push({ collectionName, id });
     }
   }
+
+  failure(error: Error): void {
+    console.error('[FirebaseUnitOfWork] failure() called with error:', error.message);
+    this.rollback();
+  }
 }
+

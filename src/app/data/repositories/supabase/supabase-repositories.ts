@@ -205,8 +205,10 @@ export class SupabaseFinanceRepository implements IFinanceRepository {
   getInvoices(gymId: string): Observable<Invoice[]> { return throwError(() => new Error('Supabase integration is not enabled.')); }
   addInvoice(gymId: string, invoice: Omit<Invoice, 'id'>): Observable<Invoice> { return throwError(() => new Error('Supabase integration is not enabled.')); }
   updateInvoice(gymId: string, invoice: Invoice): Observable<void> { return throwError(() => new Error('Supabase integration is not enabled.')); }
+  deleteInvoice(gymId: string, id: string): Observable<void> { return throwError(() => new Error('Supabase integration is not enabled.')); }
   getCollections(gymId: string): Observable<Collection[]> { return throwError(() => new Error('Supabase integration is not enabled.')); }
   addCollection(gymId: string, collection: Omit<Collection, 'id'>): Observable<Collection> { return throwError(() => new Error('Supabase integration is not enabled.')); }
+  deleteCollection(gymId: string, id: string): Observable<void> { return throwError(() => new Error('Supabase integration is not enabled.')); }
 }
 
 @Injectable({ providedIn: 'root' })
@@ -259,7 +261,14 @@ export class SupabaseImportHistoryRepository implements IImportHistoryRepository
 export class SupabaseUnitOfWork implements IUnitOfWork {
   begin(): void {}
   commit(): Observable<void> { return throwError(() => new Error('Supabase integration is not enabled.')); }
-  rollback(): void {}
+  rollback(): void {
+    // Supabase SDK is not implemented — log a warning so this silent no-op is visible in monitoring.
+    console.warn('[SupabaseUnitOfWork] rollback() called but Supabase integration is not enabled. No data was cleaned up.');
+  }
+  failure(error: Error): void {
+    console.error('[SupabaseUnitOfWork] failure() called:', error.message);
+    this.rollback();
+  }
   registerAddition(collectionName: string, id: string): void {}
 }
 

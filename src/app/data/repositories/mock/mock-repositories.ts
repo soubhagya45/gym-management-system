@@ -1482,7 +1482,7 @@ export class MockMemberRepository implements IMemberRepository {
   addMember(gymId: string, member: Omit<Member, 'id' | 'attendanceCount' | 'balance'>): Observable<Member> {
     const newMember: Member = {
       ...member,
-      id: 'mem-' + Math.random().toString(36).substring(2, 9),
+      id: (member as any).id || 'mem-' + Math.random().toString(36).substring(2, 9),
       gymId,
       attendanceCount: 0,
       balance: member.status === 'inactive' ? 0 : this.getPlanPrice(gymId, member.planId)
@@ -1779,7 +1779,7 @@ export class MockLeadRepository implements ILeadRepository {
   addLead(gymId: string, lead: Omit<Lead, 'id'>): Observable<Lead> {
     const newLead: Lead = {
       ...lead,
-      id: 'lead-' + Math.random().toString(36).substring(2, 9),
+      id: (lead as any).id || 'lead-' + Math.random().toString(36).substring(2, 9),
       gymId
     };
     dbLeads.unshift(newLead);
@@ -2134,7 +2134,7 @@ export class MockTrainerRepository implements ITrainerRepository {
   addTrainer(gymId: string, trainer: Omit<Trainer, 'id' | 'membersCount'>): Observable<Trainer> {
     const newTrainer: Trainer = {
       ...trainer,
-      id: 'trainer-' + Math.random().toString(36).substring(2, 9),
+      id: (trainer as any).id || 'trainer-' + Math.random().toString(36).substring(2, 9),
       gymId,
       membersCount: 0
     };
@@ -2261,7 +2261,7 @@ export class MockMembershipPlanRepository implements IMembershipPlanRepository {
   addPlan(gymId: string, plan: Omit<MembershipPlan, 'id' | 'activeMembersCount'>): Observable<MembershipPlan> {
     const newPlan: MembershipPlan = {
       ...plan,
-      id: 'plan-' + Math.random().toString(36).substring(2, 9),
+      id: (plan as any).id || 'plan-' + Math.random().toString(36).substring(2, 9),
       gymId,
       activeMembersCount: 0
     };
@@ -2473,7 +2473,7 @@ export class MockFinanceRepository implements IFinanceRepository {
   addInvoice(gymId: string, invoice: Omit<Invoice, 'id'>): Observable<Invoice> {
     const newInvoice: Invoice = {
       ...invoice,
-      id: 'inv-' + Math.random().toString(36).substring(2, 9),
+      id: (invoice as any).id || 'inv-' + Math.random().toString(36).substring(2, 9),
       gymId
     };
     dbInvoices.unshift(newInvoice);
@@ -2513,11 +2513,23 @@ export class MockFinanceRepository implements IFinanceRepository {
   addCollection(gymId: string, collection: Omit<Collection, 'id'>): Observable<Collection> {
     const newCollection: Collection = {
       ...collection,
-      id: 'col-' + Math.random().toString(36).substring(2, 9),
+      id: (collection as any).id || 'col-' + Math.random().toString(36).substring(2, 9),
       gymId
     };
     dbCollections.unshift(newCollection);
     return of(newCollection).pipe(delay(300));
+  }
+
+  deleteInvoice(gymId: string, id: string): Observable<void> {
+    const idx = dbInvoices.findIndex(i => i.gymId === gymId && i.id === id);
+    if (idx !== -1) dbInvoices.splice(idx, 1);
+    return of(undefined).pipe(delay(200));
+  }
+
+  deleteCollection(gymId: string, id: string): Observable<void> {
+    const idx = dbCollections.findIndex(c => c.gymId === gymId && c.id === id);
+    if (idx !== -1) dbCollections.splice(idx, 1);
+    return of(undefined).pipe(delay(200));
   }
 }
 @Injectable({ providedIn: 'root' })
@@ -2535,12 +2547,12 @@ export class MockEmployeeRepository implements IEmployeeRepository {
     if (employee.email) {
       const emailKey = employee.email.toLowerCase().trim();
       const duplicateEmp = dbEmployees.find(e => e.gymId === gymId && e.email.toLowerCase().trim() === emailKey);
-      if (duplicateEmp) {
+      if (duplicateEmp && !(employee as any).id) {
         return throwError(() => new Error('An employee with this email already exists.'));
       }
     }
 
-    const id = 'emp-' + Math.random().toString(36).substring(2, 9);
+    const id = (employee as any).id || 'emp-' + Math.random().toString(36).substring(2, 9);
     
     const generateSecurePassword = (length: number = 10): string => {
       const lowercase = 'abcdefghijklmnopqrstuvwxyz';
@@ -3121,7 +3133,7 @@ export class MockProductRepository implements IProductRepository {
   addProduct(gymId: string, product: Omit<Product, 'id'>): Observable<Product> {
     const newP: Product = {
       ...product,
-      id: 'prod-' + Math.random().toString(36).substring(2, 9),
+      id: (product as any).id || 'prod-' + Math.random().toString(36).substring(2, 9),
       gymId
     };
     dbProducts.push(newP);
@@ -3262,6 +3274,11 @@ export class MockUnitOfWork implements IUnitOfWork {
     }
     this.inTransaction = false;
     this.snapshots = null;
+  }
+
+  failure(error: Error): void {
+    console.error('[MockUnitOfWork] failure() called:', error.message);
+    this.rollback();
   }
 
   registerAddition(collectionName: string, id: string): void {

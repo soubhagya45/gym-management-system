@@ -383,8 +383,8 @@ export class GymProfileComponent implements OnInit, OnDestroy {
       const file = input.files[0];
       this.isUploadingLogo = true;
       this.cdr.markForCheck();
-      
-      this.fileStorage.uploadFile(file, 'logos').subscribe({
+      const gymId = this.activeGym?.gymId || 'unknown';
+      this.fileStorage.uploadFile(file, `gyms/${gymId}/logos`).subscribe({
         next: (url) => {
           this.profileForm.patchValue({ logoUrl: url });
           this.isUploadingLogo = false;

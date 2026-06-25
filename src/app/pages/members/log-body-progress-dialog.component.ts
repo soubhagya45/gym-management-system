@@ -265,7 +265,8 @@ export class LogBodyProgressDialogComponent implements OnInit {
     if (input.files && input.files.length > 0) {
       const file = input.files[0];
       this.uploadingField = controlName;
-      this.fileStorage.uploadFile(file, 'progress').subscribe({
+      const gymId = this.member.gymId || 'unknown';
+      this.fileStorage.uploadFile(file, `gyms/${gymId}/progress`).subscribe({
         next: (url) => {
           this.progressForm.patchValue({ [controlName]: url });
           this.uploadingField = null;

@@ -21,6 +21,7 @@ import { map, take, switchMap } from 'rxjs/operators';
 // Domain and core states
 import { ImportService } from '../../domain/import/import.service';
 import { GymState } from '../../presentation/state/gym.state';
+import { AuthState } from '../../presentation/state/auth.state';
 import { TenantContextService } from '../../domain/tenancy/tenant-context.service';
 import { FileImportConnector } from '../../domain/import/import-connectors';
 import { ImportHistory } from '../../core/models/import-history.entity';
@@ -39,7 +40,7 @@ import {
 interface ImportFileQueueItem {
   id: string;
   file: File;
-  module: 'members' | 'leads' | 'employees' | 'trainers' | 'membership-plans' | 'pt-plans' | 'products' | 'invoices' | 'outstanding-dues';
+  module: 'members' | 'leads' | 'employees' | 'trainers' | 'membership-plans' | 'pt-plans' | 'products' | 'invoices' | 'outstanding-dues' | 'expenses' | 'collections' | 'payments';
   headers: string[];
   mappings: MappedField[];
   rawExcelData: any[];
@@ -163,6 +164,78 @@ export class SetupWizardComponent implements OnInit, OnDestroy {
       { name: 'invoiceDate', required: false },
       { name: 'dueDate', required: false },
       { name: 'status', required: false }
+    ],
+    expenses: [
+      { name: 'title', required: true },
+      { name: 'category', required: true },
+      { name: 'amount', required: true },
+      { name: 'date', required: true },
+      { name: 'notes', required: false },
+      { name: 'createdBy', required: false }
+    ],
+    collections: [
+      { name: 'receiptNo', required: true },
+      { name: 'memberName', required: false },
+      { name: 'membershipPlan', required: false },
+      { name: 'amount', required: true },
+      { name: 'paymentMethod', required: false },
+      { name: 'date', required: true },
+      { name: 'collectedBy', required: false }
+    ],
+    payments: [
+      { name: 'memberName', required: false },
+      { name: 'amount', required: true },
+      { name: 'paidAmount', required: true },
+      { name: 'dueAmount', required: false },
+      { name: 'dueDate', required: false },
+      { name: 'date', required: true },
+      { name: 'status', required: true },
+      { name: 'planName', required: false },
+      { name: 'paymentMethod', required: false },
+      { name: 'type', required: false },
+      { name: 'invoiceId', required: false }
+    ],
+    'membership-plans': [
+      { name: 'name', required: true },
+      { name: 'durationMonths', required: true },
+      { name: 'duration', required: false },
+      { name: 'durationUnit', required: false },
+      { name: 'price', required: true },
+      { name: 'tax', required: false },
+      { name: 'description', required: false }
+    ],
+    'pt-plans': [
+      { name: 'name', required: true },
+      { name: 'price', required: true },
+      { name: 'tax', required: false },
+      { name: 'numberOfSessions', required: true },
+      { name: 'duration', required: true },
+      { name: 'durationUnit', required: true },
+      { name: 'description', required: false }
+    ],
+    trainers: [
+      { name: 'name', required: true },
+      { name: 'specialty', required: true },
+      { name: 'rating', required: false },
+      { name: 'avatarUrl', required: false },
+      { name: 'status', required: true },
+      { name: 'email', required: false },
+      { name: 'phone', required: false }
+    ],
+    employees: [
+      { name: 'fullName', required: true },
+      { name: 'phone', required: true },
+      { name: 'email', required: true },
+      { name: 'gender', required: false },
+      { name: 'dob', required: false },
+      { name: 'address', required: false },
+      { name: 'role', required: true },
+      { name: 'department', required: false },
+      { name: 'joinDate', required: false },
+      { name: 'salary', required: false },
+      { name: 'shift', required: false },
+      { name: 'username', required: false },
+      { name: 'accountStatus', required: false }
     ]
   };
 
@@ -170,6 +243,7 @@ export class SetupWizardComponent implements OnInit, OnDestroy {
     private fb: FormBuilder,
     private importService: ImportService,
     private gymState: GymState,
+    private authState: AuthState,
     private tenantContext: TenantContextService,
     private snackBar: MatSnackBar,
     private router: Router,
@@ -231,11 +305,11 @@ export class SetupWizardComponent implements OnInit, OnDestroy {
     return this.fileQueue[this.selectedQueueItemIndex];
   }
 
-  get selectedModule(): 'members' | 'leads' | 'employees' | 'trainers' | 'membership-plans' | 'pt-plans' | 'products' | 'invoices' | 'outstanding-dues' {
+  get selectedModule(): 'members' | 'leads' | 'employees' | 'trainers' | 'membership-plans' | 'pt-plans' | 'products' | 'invoices' | 'outstanding-dues' | 'expenses' | 'collections' | 'payments' {
     return this.selectedQueueItem?.module || 'members';
   }
 
-  set selectedModule(val: 'members' | 'leads' | 'employees' | 'trainers' | 'membership-plans' | 'pt-plans' | 'products' | 'invoices' | 'outstanding-dues') {
+  set selectedModule(val: 'members' | 'leads' | 'employees' | 'trainers' | 'membership-plans' | 'pt-plans' | 'products' | 'invoices' | 'outstanding-dues' | 'expenses' | 'collections' | 'payments') {
     if (this.selectedQueueItem) {
       this.selectedQueueItem.module = val;
       this.runAutoMapping(this.selectedQueueItem);
@@ -330,7 +404,7 @@ export class SetupWizardComponent implements OnInit, OnDestroy {
     }
   }
 
-  autoDetectModuleByHeaders(headers: string[]): 'members' | 'leads' | 'employees' | 'trainers' | 'membership-plans' | 'pt-plans' | 'products' | 'invoices' | 'outstanding-dues' {
+  autoDetectModuleByHeaders(headers: string[]): 'members' | 'leads' | 'employees' | 'trainers' | 'membership-plans' | 'pt-plans' | 'products' | 'invoices' | 'outstanding-dues' | 'expenses' | 'collections' | 'payments' {
     const hdrs = headers.map(h => h.toLowerCase().trim().replace(/[\s_-]+/g, ''));
     if (hdrs.some(h => h.includes('durationunit') || h.includes('durationmonths') || h.includes('taxrate'))) {
       return 'membership-plans';
@@ -351,10 +425,22 @@ export class SetupWizardComponent implements OnInit, OnDestroy {
       return 'invoices';
     }
     if (hdrs.some(h => h.includes('category') || h.includes('costprice') || h.includes('quantity') || h.includes('sku'))) {
-      return 'products';
+      if (hdrs.some(h => h.includes('costprice') || h.includes('quantity') || h.includes('sku'))) {
+        return 'products';
+      }
+      return 'expenses';
     }
     if (hdrs.some(h => h.includes('outstandingbalance') || h.includes('pendingamount') || h.includes('dueamount') || h.includes('outstandingdues'))) {
       return 'outstanding-dues';
+    }
+    if (hdrs.some(h => h.includes('receiptno') || h.includes('receiptnumber') || h.includes('collection'))) {
+      return 'collections';
+    }
+    if (hdrs.some(h => h.includes('expense') || h.includes('title'))) {
+      return 'expenses';
+    }
+    if (hdrs.some(h => h.includes('paidamount') || h.includes('dueamount') || h.includes('payment'))) {
+      return 'payments';
     }
     return 'members';
   }
@@ -369,7 +455,10 @@ export class SetupWizardComponent implements OnInit, OnDestroy {
       'members': 4,
       'products': 5,
       'invoices': 6,
-      'outstanding-dues': 7
+      'outstanding-dues': 7,
+      'expenses': 8,
+      'collections': 9,
+      'payments': 10
     };
 
     return [...this.fileQueue].sort((a, b) => {
@@ -675,6 +764,11 @@ export class SetupWizardComponent implements OnInit, OnDestroy {
   }
 
   saveMappingAsProfile(): void {
+    if (!this.authState.hasPermission('import:manage-profiles')) {
+      this.snackBar.open('Access denied: you do not have import:manage-profiles permission.', 'Dismiss', { duration: 4000 });
+      return;
+    }
+
     const item = this.selectedQueueItem;
     if (!item || !this.customProfileName.trim() || !this.activeTenantId) return;
 
@@ -843,6 +937,11 @@ export class SetupWizardComponent implements OnInit, OnDestroy {
   }
 
   commitDataImport(): void {
+    if (!this.authState.hasPermission('import:approve')) {
+      this.snackBar.open('Access denied: you do not have import:approve permission.', 'Dismiss', { duration: 4000 });
+      return;
+    }
+
     if (this.fileQueue.length === 0 || !this.activeTenantId) return;
 
     this.isProcessing = true;
@@ -1011,6 +1110,12 @@ export class SetupWizardComponent implements OnInit, OnDestroy {
   }
 
   triggerHistoryRollback(history: ImportHistory): void {
+    // ── RUNTIME PERMISSION ENFORCEMENT ──────────────────────────────────────
+    if (!this.authState.hasPermission('import:rollback')) {
+      this.snackBar.open('Access denied: you do not have import:rollback permission.', 'Dismiss', { duration: 4000 });
+      return;
+    }
+
     if (!this.activeTenantId || !history.snapshotUrl) {
       this.snackBar.open('Cannot rollback: Snapshot not available.', 'Dismiss', { duration: 3000 });
       return;
@@ -1019,11 +1124,12 @@ export class SetupWizardComponent implements OnInit, OnDestroy {
     this.isLoading = true;
     this.importService.restoreDisasterSnapshot(this.activeTenantId, history.snapshotUrl).subscribe({
       next: () => {
+        const currentUser = this.authState.currentUserValue;
         const updated: ImportHistory = {
           ...history,
           status: 'rolled_back',
-          rolledBackBy: 'system',
-          rolledBackByName: 'Active Owner',
+          rolledBackBy: currentUser?.id ?? 'unknown',
+          rolledBackByName: currentUser?.name ?? currentUser?.email ?? 'Unknown User',
           rolledBackAt: new Date().toISOString()
         };
         this.historyRepo.updateHistory(this.activeTenantId, updated).subscribe(() => {
@@ -1071,5 +1177,17 @@ export class SetupWizardComponent implements OnInit, OnDestroy {
         this.snackBar.open('Failed to launch system: ' + err.message, 'Dismiss', { duration: 3000 });
       }
     });
+  }
+
+  hasRollbackPermission(): boolean {
+    return this.authState.hasPermission('import:rollback');
+  }
+
+  hasManageProfilesPermission(): boolean {
+    return this.authState.hasPermission('import:manage-profiles');
+  }
+
+  hasApprovePermission(): boolean {
+    return this.authState.hasPermission('import:approve');
   }
 }
