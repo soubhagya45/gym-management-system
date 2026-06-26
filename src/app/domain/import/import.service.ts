@@ -468,6 +468,7 @@ export class ImportService {
             const runAdds = addOps.length > 0 ? forkJoin(addOps) : of([]);
 
             return runAdds.pipe(
+              switchMap(() => commitUnit.commit()),
               switchMap(() => {
                 // 2. Queue deletes of orphans only after successful writes
                 const deleteOps: Observable<void>[] = [];
@@ -498,7 +499,6 @@ export class ImportService {
 
                 const runDeletes = deleteOps.length > 0 ? forkJoin(deleteOps) : of([]);
                 return runDeletes.pipe(
-                  switchMap(() => commitUnit.commit()),
                   map(() => undefined)
                 );
               }),

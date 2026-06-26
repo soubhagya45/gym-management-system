@@ -197,28 +197,44 @@ service cloud.firestore {
       allow read: if hasGymAccess(resource.data);
       allow create: if canCreateGymData(request.resource.data);
       allow update: if canUpdateGymData(resource.data, request.resource.data);
-      allow delete: if isActive() && (isSuperAdmin() || ((getUserData().role == 'gym_owner' || getUserData().role == 'branch_manager') && resource.data.gymId == getUserData().gymId));
+      allow delete: if isActive() && (
+        isSuperAdmin() || 
+        (getUserData().role == 'gym_owner' && resource.data.gymId == getUserData().gymId) ||
+        (getUserData().role == 'branch_manager' && resource.data.gymId == getUserData().gymId && resource.data.branchId == getUserData().branchId)
+      );
     }
 
     match /payments/{id} {
       allow read: if hasGymAccess(resource.data);
       allow create: if canCreateGymData(request.resource.data);
       allow update: if canUpdateGymData(resource.data, request.resource.data);
-      allow delete: if isActive() && (isSuperAdmin() || ((getUserData().role == 'gym_owner' || getUserData().role == 'branch_manager') && resource.data.gymId == getUserData().gymId));
+      allow delete: if isActive() && (
+        isSuperAdmin() || 
+        (getUserData().role == 'gym_owner' && resource.data.gymId == getUserData().gymId) ||
+        (getUserData().role == 'branch_manager' && resource.data.gymId == getUserData().gymId && resource.data.branchId == getUserData().branchId)
+      );
     }
 
     match /leads/{id} {
       allow read: if hasGymAccess(resource.data);
       allow create: if canCreateGymData(request.resource.data);
       allow update: if canUpdateGymData(resource.data, request.resource.data);
-      allow delete: if isActive() && (isSuperAdmin() || ((getUserData().role == 'gym_owner' || getUserData().role == 'branch_manager') && resource.data.gymId == getUserData().gymId));
+      allow delete: if isActive() && (
+        isSuperAdmin() || 
+        (getUserData().role == 'gym_owner' && resource.data.gymId == getUserData().gymId) ||
+        (getUserData().role == 'branch_manager' && resource.data.gymId == getUserData().gymId && resource.data.branchId == getUserData().branchId)
+      );
     }
 
     match /trainers/{id} {
       allow read: if hasGymAccess(resource.data);
       allow create: if canCreateGymData(request.resource.data);
       allow update: if canUpdateGymData(resource.data, request.resource.data);
-      allow delete: if isActive() && (isSuperAdmin() || ((getUserData().role == 'gym_owner' || getUserData().role == 'branch_manager') && resource.data.gymId == getUserData().gymId));
+      allow delete: if isActive() && (
+        isSuperAdmin() || 
+        (getUserData().role == 'gym_owner' && resource.data.gymId == getUserData().gymId) ||
+        (getUserData().role == 'branch_manager' && resource.data.gymId == getUserData().gymId && resource.data.branchId == getUserData().branchId)
+      );
     }
 
     match /attendance/{id} {
@@ -231,14 +247,22 @@ service cloud.firestore {
       allow read: if hasGymAccess(resource.data);
       allow create: if canCreateGymData(request.resource.data);
       allow update: if canUpdateGymData(resource.data, request.resource.data);
-      allow delete: if isActive() && (isSuperAdmin() || ((getUserData().role == 'gym_owner' || getUserData().role == 'branch_manager') && resource.data.gymId == getUserData().gymId));
+      allow delete: if isActive() && (
+        isSuperAdmin() || 
+        (getUserData().role == 'gym_owner' && resource.data.gymId == getUserData().gymId) ||
+        (getUserData().role == 'branch_manager' && resource.data.gymId == getUserData().gymId && resource.data.branchId == getUserData().branchId)
+      );
     }
 
     match /invoices/{id} {
       allow read: if hasGymAccess(resource.data);
       allow create: if canCreateGymData(request.resource.data);
       allow update: if canUpdateGymData(resource.data, request.resource.data);
-      allow delete: if isActive() && (isSuperAdmin() || ((getUserData().role == 'gym_owner' || getUserData().role == 'branch_manager') && resource.data.gymId == getUserData().gymId));
+      allow delete: if isActive() && (
+        isSuperAdmin() || 
+        (getUserData().role == 'gym_owner' && resource.data.gymId == getUserData().gymId) ||
+        (getUserData().role == 'branch_manager' && resource.data.gymId == getUserData().gymId && resource.data.branchId == getUserData().branchId)
+      );
     }
 
     match /collections/{id} {
