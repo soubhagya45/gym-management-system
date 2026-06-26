@@ -30,9 +30,9 @@ export class FirebaseService {
         // Configure App Check using ReCaptcha V3
         const siteKey = config.appCheckSiteKey || '6Ld_aKcqAAAAAONWwIpl3Wz_dD6JpP4qY51Fj89-';
         
-        // Use debug token in local development environment to avoid blocking local queries
+        // Use a fixed debug token in local development environment to avoid blocking local queries
         if (!environment.production) {
-          (window as any).FIREBASE_APPCHECK_DEBUG_TOKEN = true;
+          (window as any).FIREBASE_APPCHECK_DEBUG_TOKEN = '88023436-5deb-41f4-98ca-1f36dabfffe7';
         }
 
         try {
