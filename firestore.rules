@@ -79,7 +79,7 @@ service cloud.firestore {
     // Gyms rules
     match /gyms/{gymId} {
       allow create: if isActive();
-      allow read: if isActive() && (isSuperAdmin() || getUserData().gymId == gymId);
+      allow read: if true; // Public read is required for tenant resolution in guards (e.g. login/landing page)
       allow write: if isActive() && (isSuperAdmin() || (getUserData().gymId == gymId && (getUserData().role == 'gym_owner' || getUserData().role == 'branch_manager')));
     }
 
