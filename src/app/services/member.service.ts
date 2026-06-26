@@ -12,6 +12,7 @@ import {
 import { Member } from '../core/models/member.entity';
 import { TenantContextService } from '../domain/tenancy/tenant-context.service';
 import { LeadConversionPayload } from '../core/models/lead.entity';
+import { PagedRequest, PagedResponse } from '../core/models/pagination.contracts';
 
 @Injectable({
   providedIn: 'root'
@@ -28,6 +29,12 @@ export class MemberService {
     const gymId = this.tenantContext.getTenantId();
     if (!gymId) throw new Error('No active tenant selected');
     return this.memberRepository.getMembers(gymId);
+  }
+
+  getMembersPaged(req: PagedRequest): Observable<PagedResponse<Member>> {
+    const gymId = this.tenantContext.getTenantId();
+    if (!gymId) throw new Error('No active tenant selected');
+    return this.memberRepository.getMembersPaged(gymId, req);
   }
 
   getMemberById(id: string): Observable<Member | null> {

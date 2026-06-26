@@ -9,6 +9,7 @@ import { PaymentState } from './payment.state';
 import { PTState } from './pt.state';
 import { FinanceState } from './finance.state';
 import { LeadService } from '../../services/lead.service';
+import { PagedRequest, PagedResponse } from '../../core/models/pagination.contracts';
 
 @Injectable({
   providedIn: 'root'
@@ -51,6 +52,10 @@ export class LeadState {
         this.leadsSubject.next(leads);
       });
     }
+  }
+
+  getLeadsPaged(req: PagedRequest): Observable<PagedResponse<Lead>> {
+    return this.leadService.getLeadsPaged(req);
   }
 
   addLead(lead: Omit<Lead, 'id' | 'gymId'>): Observable<Lead> {

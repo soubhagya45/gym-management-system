@@ -312,17 +312,17 @@ export class ImportService {
     const fileName = `snapshot_${backupId}.json`;
 
     return combineLatest([
-      this.memberRepo.getMembers(gymId).pipe(catchError(() => of([]))),
-      this.leadRepo.getLeads(gymId).pipe(catchError(() => of([]))),
-      this.employeeRepo.getEmployees(gymId).pipe(catchError(() => of([]))),
-      this.trainerRepo.getTrainers(gymId).pipe(catchError(() => of([]))),
-      this.planRepo.getPlans(gymId).pipe(catchError(() => of([]))),
-      this.ptRepo.getPTPlans(gymId).pipe(catchError(() => of([]))),
-      this.productRepo.getProducts(gymId).pipe(catchError(() => of([]))),
-      this.financeRepo.getInvoices(gymId).pipe(catchError(() => of([]))),
-      this.financeRepo.getCollections(gymId).pipe(catchError(() => of([]))),
-      this.paymentRepo.getPayments(gymId).pipe(catchError(() => of([]))),
-      this.financeRepo.getExpenses(gymId).pipe(catchError(() => of([])))
+      this.memberRepo.getMembers(gymId),
+      this.leadRepo.getLeads(gymId),
+      this.employeeRepo.getEmployees(gymId),
+      this.trainerRepo.getTrainers(gymId),
+      this.planRepo.getPlans(gymId),
+      this.ptRepo.getPTPlans(gymId),
+      this.productRepo.getProducts(gymId),
+      this.financeRepo.getInvoices(gymId),
+      this.financeRepo.getCollections(gymId),
+      this.paymentRepo.getPayments(gymId),
+      this.financeRepo.getExpenses(gymId)
     ]).pipe(
       switchMap(([members, leads, employees, trainers, plans, ptPlans, products, invoices, collections, payments, expenses]) => {
         const snapshot = {
@@ -789,10 +789,58 @@ export class ImportService {
     return combineLatest([
       this.planRepo.getPlans(gymId).pipe(catchError(() => of([]))),
       this.trainerRepo.getTrainers(gymId).pipe(catchError(() => of([]))),
-      this.memberRepo.getMembers(gymId).pipe(catchError(() => of([])))
+      this.memberRepo.getMembers(gymId).pipe(catchError(() => of([]))),
+      this.employeeRepo.getEmployees(gymId).pipe(catchError(() => of([]))),
+      this.leadRepo.getLeads(gymId).pipe(catchError(() => of([])))
     ]).pipe(
-      map(([plans, trainers, members]) => {
+      map(([plans, trainers, members, employees, leads]) => {
         for (const record of stagingRecords) {
+          const payload = record.mappedData;
+          if (record.module === 'members') {
+            const dup = members.find(m => 
+              (payload['email'] && m.email === payload['email']) || 
+              (payload['phone'] && m.phone === payload['phone'])
+            );
+            if (dup) {
+              record.duplicateStatus = 'duplicate_skip';
+              record.mappedData['id'] = dup.id;
+            }
+          } else if (record.module === 'leads') {
+            const dup = leads.find(l => 
+              (payload['email'] && l.email === payload['email']) || 
+              (payload['phone'] && l.phone === payload['phone'])
+            );
+            if (dup) {
+              record.duplicateStatus = 'duplicate_skip';
+              record.mappedData['id'] = dup.id;
+            }
+          } else if (record.module === 'trainers') {
+            const dup = trainers.find(t => 
+              (payload['email'] && t.email === payload['email']) || 
+              (payload['phone'] && t.phone === payload['phone'])
+            );
+            if (dup) {
+              record.duplicateStatus = 'duplicate_skip';
+              record.mappedData['id'] = dup.id;
+            }
+          } else if (record.module === 'employees') {
+            const dup = employees.find(e => 
+              (payload['email'] && e.email === payload['email']) || 
+              (payload['phone'] && e.phone === payload['phone'])
+            );
+            if (dup) {
+              record.duplicateStatus = 'duplicate_skip';
+              record.mappedData['id'] = dup.id;
+            }
+          } else if (record.module === 'membership-plans') {
+            const dup = plans.find(p => 
+              p.name.trim().toLowerCase() === (payload['name'] || '').trim().toLowerCase()
+            );
+            if (dup) {
+              record.duplicateStatus = 'duplicate_skip';
+              record.mappedData['id'] = dup.id;
+            }
+          }
           const schemaRelations = record.relations;
 
           for (const rel of schemaRelations) {
@@ -1044,6 +1092,10 @@ export class ImportService {
 
     for (const record of stagingRecords) {
       if (record.status === 'invalid') continue;
+      if (record.duplicateStatus === 'duplicate_skip') {
+        duplicateCount++;
+        continue;
+      }
       
       const payload = record.mappedData;
       

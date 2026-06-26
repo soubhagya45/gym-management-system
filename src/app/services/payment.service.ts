@@ -3,6 +3,7 @@ import { Observable } from 'rxjs';
 import { IPaymentRepository, PAYMENT_REPOSITORY_TOKEN, IActivityLogRepository, ACTIVITY_LOG_REPOSITORY_TOKEN } from '../core/interfaces/repository.interfaces';
 import { Payment } from '../core/models/payment.entity';
 import { TenantContextService } from '../domain/tenancy/tenant-context.service';
+import { PagedRequest, PagedResponse } from '../core/models/pagination.contracts';
 
 @Injectable({
   providedIn: 'root'
@@ -18,6 +19,12 @@ export class PaymentService {
     const gymId = this.tenantContext.getTenantId();
     if (!gymId) throw new Error('No active tenant selected');
     return this.paymentRepository.getPayments(gymId);
+  }
+
+  getPaymentsPaged(req: PagedRequest): Observable<PagedResponse<Payment>> {
+    const gymId = this.tenantContext.getTenantId();
+    if (!gymId) throw new Error('No active tenant selected');
+    return this.paymentRepository.getPaymentsPaged(gymId, req);
   }
 
   addPayment(payment: Omit<Payment, 'id'>): Observable<Payment> {

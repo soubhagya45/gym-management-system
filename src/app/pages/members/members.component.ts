@@ -61,6 +61,13 @@ export class MembersComponent implements OnInit, AfterViewInit {
   selectedStatus = 'all';
   selectedPlan = 'all';
 
+  // Server-side pagination state
+  pageIndex = 0;
+  pageSize = 10;
+  totalCount = 0;
+  lastVisibleDoc: any = null;
+  prevCursors: any[] = [];
+
   @ViewChild(MatPaginator) paginator!: MatPaginator;
   @ViewChild(MatSort) sort!: MatSort;
 
@@ -81,13 +88,41 @@ export class MembersComponent implements OnInit, AfterViewInit {
     this.router.navigate(['/members', member.id]);
   }
 
-  ngOnInit(): void {
-    // 1. Subscribe to members list
-    this.memberState.members$.subscribe(members => {
-      this.dataSource.data = members;
-      this.applyFilters();
+  loadMembersPage() {
+    this.memberState.getMembersPaged({
+      pageIndex: this.pageIndex,
+      pageSize: this.pageSize,
+      sort: { column: this.sort?.active || 'name', direction: (this.sort?.direction || 'asc') as any },
+      searchTerm: this.searchQuery ? this.searchQuery : undefined,
+      startAfter: this.lastVisibleDoc
+    }).subscribe({
+      next: (res) => {
+        this.dataSource.data = res.items;
+        this.totalCount = res.totalCount;
+        this.lastVisibleDoc = res.lastVisible;
+      },
+      error: (err) => {
+        this.snackBar.open('Failed to load members page: ' + err.message, 'Dismiss', { duration: 3000 });
+      }
     });
+  }
 
+  onPageChange(event: any) {
+    this.pageIndex = event.pageIndex;
+    this.pageSize = event.pageSize;
+    if (event.pageIndex === 0) {
+      this.lastVisibleDoc = null;
+      this.prevCursors = [];
+    } else if (event.pageIndex > (event.previousPageIndex || 0)) {
+      this.prevCursors.push(this.lastVisibleDoc);
+    } else {
+      this.prevCursors.pop();
+      this.lastVisibleDoc = this.prevCursors[this.prevCursors.length - 1] || null;
+    }
+    this.loadMembersPage();
+  }
+
+  ngOnInit(): void {
     // 2. Fetch plans for filter dropdown
     this.planState.plans$.subscribe(plans => {
       this.plans = plans;
@@ -101,62 +136,26 @@ export class MembersComponent implements OnInit, AfterViewInit {
       if (params['plan']) {
         this.selectedPlan = params['plan'];
       }
-      this.applyFilters();
     });
 
-    // Custom filtering algorithm that handles name, email, plan, and status
-    this.dataSource.filterPredicate = (data: Member, filter: string) => {
-      const searchTerms = JSON.parse(filter);
-      
-      const matchesSearch = 
-        data.id.toLowerCase().includes(searchTerms.query) ||
-        data.name.toLowerCase().includes(searchTerms.query) ||
-        data.email.toLowerCase().includes(searchTerms.query) ||
-        data.phone.includes(searchTerms.query);
-        
-      const matchesStatus = 
-        searchTerms.status === 'all' || 
-        data.status === searchTerms.status;
-        
-      const matchesPlan = 
-        searchTerms.plan === 'all' || 
-        data.planId === searchTerms.plan;
-
-      return matchesSearch && matchesStatus && matchesPlan;
-    };
+    this.loadMembersPage();
   }
 
   ngAfterViewInit() {
-    this.dataSource.paginator = this.paginator;
     this.dataSource.sort = this.sort;
-    
-    // Custom sort accessor to sort by nested elements if needed
-    this.dataSource.sortingDataAccessor = (item, property) => {
-      switch(property) {
-        case 'id': return item.id.toLowerCase();
-        case 'name': return item.name.toLowerCase();
-        case 'phone': return item.phone.toLowerCase();
-        case 'email': return item.email.toLowerCase();
-        case 'planName': return item.planName.toLowerCase();
-        case 'startDate': return item.startDate;
-        case 'endDate': return item.endDate;
-        case 'status': return item.status.toLowerCase();
-        default: return (item as any)[property];
-      }
-    };
+    this.sort.sortChange.subscribe(() => {
+      this.lastVisibleDoc = null;
+      this.prevCursors = [];
+      this.pageIndex = 0;
+      this.loadMembersPage();
+    });
   }
 
   applyFilters() {
-    const filterValues = {
-      query: this.searchQuery.trim().toLowerCase(),
-      status: this.selectedStatus,
-      plan: this.selectedPlan
-    };
-    this.dataSource.filter = JSON.stringify(filterValues);
-    
-    if (this.dataSource.paginator) {
-      this.dataSource.paginator.firstPage();
-    }
+    this.lastVisibleDoc = null;
+    this.prevCursors = [];
+    this.pageIndex = 0;
+    this.loadMembersPage();
   }
 
   resetFilters() {
@@ -173,7 +172,7 @@ export class MembersComponent implements OnInit, AfterViewInit {
         const isLimitReached = this.subscriptionService.hasReachedLimit(
           gym.subscriptionPlan,
           'maxMembers',
-          this.dataSource.data.length
+          this.totalCount
         );
         if (isLimitReached) {
           this.snackBar.open(`Member limit reached for plan: ${gym.subscriptionPlan}. Please upgrade to register more members.`, 'Upgrade Plan', {

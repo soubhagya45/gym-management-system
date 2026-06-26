@@ -3034,22 +3034,36 @@ export class FirebaseUnitOfWork implements IUnitOfWork {
   private additions: { collectionName: string; id: string }[] = [];
   private inTransaction = false;
 
-  constructor(private firebaseService: FirebaseService) {}
+  constructor(private firebaseService: FirebaseService) {
+    try {
+      const pending = localStorage.getItem('pending_uow_additions');
+      if (pending) {
+        this.additions = JSON.parse(pending);
+        console.warn('[FirebaseUnitOfWork] Found pending additions from crashed session. Initiating rollback...', this.additions);
+        this.rollback().subscribe();
+      }
+    } catch (e) {
+      console.error('[FirebaseUnitOfWork] Failed to parse pending UoW additions:', e);
+    }
+  }
 
   begin(): void {
     this.additions = [];
     this.inTransaction = true;
+    localStorage.removeItem('pending_uow_additions');
   }
 
   commit(): Observable<void> {
     this.inTransaction = false;
     this.additions = [];
+    localStorage.removeItem('pending_uow_additions');
     return of(undefined);
   }
 
   rollback(): Observable<void> {
     if (this.additions.length === 0) {
       this.inTransaction = false;
+      localStorage.removeItem('pending_uow_additions');
       return of(undefined);
     }
 
@@ -3074,6 +3088,7 @@ export class FirebaseUnitOfWork implements IUnitOfWork {
 
     this.inTransaction = false;
     this.additions = [];
+    localStorage.removeItem('pending_uow_additions');
 
     // Run delete operations concurrently
     return forkJoin(deleteOperations).pipe(
@@ -3090,6 +3105,9 @@ export class FirebaseUnitOfWork implements IUnitOfWork {
   registerAddition(collectionName: string, id: string): void {
     if (this.inTransaction) {
       this.additions.push({ collectionName, id });
+      try {
+        localStorage.setItem('pending_uow_additions', JSON.stringify(this.additions));
+      } catch (e) {}
     }
   }
 

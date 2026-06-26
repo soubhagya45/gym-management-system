@@ -6,6 +6,7 @@ import { TenantContextService } from '../../domain/tenancy/tenant-context.servic
 import { FinanceState } from './finance.state';
 import { InvoiceStatusService } from '../../services/invoice-status.service';
 import { PaymentService } from '../../services/payment.service';
+import { PagedRequest, PagedResponse } from '../../core/models/pagination.contracts';
 
 @Injectable({
   providedIn: 'root'
@@ -65,6 +66,10 @@ export class PaymentState {
         this.paymentsSubject.next(this.augmentPayments(payments));
       });
     }
+  }
+
+  getPaymentsPaged(req: PagedRequest): Observable<PagedResponse<Payment>> {
+    return this.paymentService.getPaymentsPaged(req);
   }
 
   addPayment(payment: Omit<Payment, 'id' | 'gymId'>): Observable<Payment> {

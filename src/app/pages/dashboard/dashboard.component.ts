@@ -34,8 +34,8 @@ import { UserRole } from '../../core/enums/roles.enum';
 import { SubscriptionService } from '../../domain/subscription/subscription.service';
 import { SubscriptionStatus } from '../../core/models/subscription.model';
 import { RenewDialogComponent } from '../payments/renew-dialog.component';
-import { Observable, combineLatest, of, Subject } from 'rxjs';
-import { map, take, switchMap, takeUntil } from 'rxjs/operators';
+import { Observable, combineLatest, of, Subject, BehaviorSubject } from 'rxjs';
+import { map, take, switchMap, takeUntil, catchError } from 'rxjs/operators';
 import { SubmissionGuardService } from '../../services/submission-guard.service';
 import { AttendanceSyncService } from '../../services/attendance-sync.service';
 import { DeviceConfiguration } from '../../core/models/device-configuration.model';
@@ -60,6 +60,7 @@ import { DeviceConfiguration } from '../../core/models/device-configuration.mode
 })
 export class DashboardComponent implements OnInit, OnDestroy {
   private destroy$ = new Subject<void>();
+  private refresh$ = new BehaviorSubject<void>(undefined);
   stats$: Observable<any> | undefined;
   todayAttendance$: Observable<Attendance[]> | undefined;
   recentLogs$: Observable<ActivityLog[]> | undefined;
@@ -275,18 +276,50 @@ export class DashboardComponent implements OnInit, OnDestroy {
       })
     );
 
-    // Load active subscription status
+    // Load active subscription status using paged members count
+    const dashboardTrigger$ = combineLatest([
+      this.gymState.activeGym$,
+      this.refresh$
+    ]);
+
+    const membersPaged$ = dashboardTrigger$.pipe(
+      switchMap(([gym]) => {
+        if (!gym) return of({ items: [], totalCount: 0 });
+        return this.memberState.getMembersPaged({ pageIndex: 0, pageSize: 200 }).pipe(
+          catchError(() => of({ items: [], totalCount: 0 }))
+        );
+      })
+    );
+
+    const paymentsPaged$ = dashboardTrigger$.pipe(
+      switchMap(([gym]) => {
+        if (!gym) return of({ items: [], totalCount: 0 });
+        return this.paymentState.getPaymentsPaged({ pageIndex: 0, pageSize: 200 }).pipe(
+          catchError(() => of({ items: [], totalCount: 0 }))
+        );
+      })
+    );
+
+    const leadsPaged$ = dashboardTrigger$.pipe(
+      switchMap(([gym]) => {
+        if (!gym) return of({ items: [], totalCount: 0 });
+        return this.leadState.getLeadsPaged({ pageIndex: 0, pageSize: 200 }).pipe(
+          catchError(() => of({ items: [], totalCount: 0 }))
+        );
+      })
+    );
+
     this.subscriptionStatus$ = combineLatest([
       this.gymState.activeGym$,
-      this.memberState.members$,
+      membersPaged$,
       this.trainerState.trainers$
     ]).pipe(
-      map(([gym, members, trainers]) => {
+      map(([gym, membersPaged, trainers]) => {
         if (!gym) return null;
         return this.subscriptionService.getSubscriptionStatus(
           gym.subscriptionPlan,
           gym.createdAt,
-          members.length,
+          membersPaged.totalCount,
           trainers.length
         );
       })
@@ -294,12 +327,16 @@ export class DashboardComponent implements OnInit, OnDestroy {
 
     // 1. Calculate stats dynamically based on active member lists
     this.stats$ = combineLatest([
-      this.memberState.members$,
-      this.paymentState.payments$,
-      this.leadState.leads$
+      membersPaged$,
+      paymentsPaged$,
+      leadsPaged$
     ]).pipe(
-      map(([members, payments, leads]) => {
-        const totalMembers = members.length;
+      map(([membersPaged, paymentsPaged, leadsPaged]) => {
+        const members = membersPaged.items;
+        const payments = paymentsPaged.items;
+        const leads = leadsPaged.items;
+
+        const totalMembers = membersPaged.totalCount;
         const activeMembers = members.filter(m => m.status === 'active').length;
         const activePercentage = totalMembers > 0 ? Math.round((activeMembers / totalMembers) * 100) : 0;
         const expiringMemberships = members.filter(m => m.status === 'expiring').length;
@@ -310,7 +347,7 @@ export class DashboardComponent implements OnInit, OnDestroy {
           .filter(p => p.status === 'paid')
           .reduce((sum, p) => sum + p.paidAmount, 0);
 
-        const totalLeads = leads.length;
+        const totalLeads = leadsPaged.totalCount;
 
         // Dynamic widget counts
         const dueTodayCount = payments.filter(p => p.status !== 'paid' && p.dueDate === todayStr).length;
@@ -344,11 +381,11 @@ export class DashboardComponent implements OnInit, OnDestroy {
 
     // 3. Fetch attendance stats summary
     this.attendanceSummary$ = combineLatest([
-      this.memberState.members$,
+      membersPaged$,
       this.todayAttendance$
     ]).pipe(
-      map(([members, todayAtt]) => {
-        const eligibleCount = members.filter(m => m.status !== 'inactive').length;
+      map(([membersPaged, todayAtt]) => {
+        const eligibleCount = membersPaged.items.filter(m => m.status !== 'inactive').length;
         const presentCount = todayAtt.filter(a => a.status === 'present').length;
         const percentage = eligibleCount > 0 ? Math.round((presentCount / eligibleCount) * 100) : 0;
         
@@ -366,33 +403,32 @@ export class DashboardComponent implements OnInit, OnDestroy {
     );
 
     // 5. Fetch expiring members list (top 5)
-    this.expiringMembers$ = this.memberState.members$.pipe(
-      map(list => list.filter(m => m.status === 'expiring').slice(0, 5))
+    this.expiringMembers$ = membersPaged$.pipe(
+      map(paged => paged.items.filter(m => m.status === 'expiring').slice(0, 5))
     );
 
     // 6. Fetch pending payments list (top 5)
-    this.pendingPayments$ = this.paymentState.payments$.pipe(
-      map(list => list.filter(p => p.status === 'pending' || p.status === 'overdue').slice(0, 5))
+    this.pendingPayments$ = paymentsPaged$.pipe(
+      map(paged => paged.items.filter(p => p.status === 'pending' || p.status === 'overdue').slice(0, 5))
     );
 
     // 7. Fetch new members list (sorted by startDate desc, top 5)
-    this.newMembers$ = this.memberState.members$.pipe(
-      map(list => [...list].sort((a, b) => new Date(b.startDate).getTime() - new Date(a.startDate).getTime()).slice(0, 5))
+    this.newMembers$ = membersPaged$.pipe(
+      map(paged => [...paged.items].sort((a, b) => new Date(b.startDate).getTime() - new Date(a.startDate).getTime()).slice(0, 5))
     );
 
     // 8. Fetch lead follow ups (top 5)
-    this.leadState.leads$.pipe(takeUntil(this.destroy$)).subscribe(); // Ensure trigger
-    this.leadFollowUps$ = this.leadState.leads$.pipe(
-      map(list => list.filter(l => l.status === 'Follow Up').slice(0, 5))
+    this.leadFollowUps$ = leadsPaged$.pipe(
+      map(paged => paged.items.filter(l => l.status === 'Follow Up').slice(0, 5))
     );
 
     // 9. Fetch active plan distribution details
     this.planDistribution$ = combineLatest([
-      this.memberState.members$,
+      membersPaged$,
       this.planState.plans$
     ]).pipe(
-      map(([members, plans]) => {
-        const activeMembers = members.filter(m => m.status === 'active');
+      map(([membersPaged, plans]) => {
+        const activeMembers = membersPaged.items.filter(m => m.status === 'active');
         const totalActive = activeMembers.length;
         const colors = ['primary', 'success', 'warning', 'info'];
 
@@ -410,20 +446,22 @@ export class DashboardComponent implements OnInit, OnDestroy {
     );
 
     // 10. Load Specific Widgets Lists
-    this.paymentsDueToday$ = this.paymentState.payments$.pipe(
-      map(payments => payments.filter(p => p.status !== 'paid' && p.dueDate === todayStr))
+    this.paymentsDueToday$ = paymentsPaged$.pipe(
+      map(paged => paged.items.filter(p => p.status !== 'paid' && p.dueDate === todayStr))
     );
 
-    this.overduePaymentsList$ = this.paymentState.payments$.pipe(
-      map(payments => payments.filter(p => p.status === 'overdue' || ((p.status === 'pending' || p.status === 'partially_paid') && p.dueDate < todayStr)))
+    this.overduePaymentsList$ = paymentsPaged$.pipe(
+      map(paged => paged.items.filter(p => p.status === 'overdue' || ((p.status === 'pending' || p.status === 'partially_paid') && p.dueDate < todayStr)))
     );
 
-    const { start, end } = this.getStartAndEndOfWeek();
-    this.renewalsThisWeek$ = this.memberState.members$.pipe(
-      map(members => members.filter(m => {
-        const expiry = new Date(m.endDate);
-        return expiry >= start && expiry <= end;
-      }))
+    this.renewalsThisWeek$ = membersPaged$.pipe(
+      map(paged => {
+        const { start, end } = this.getStartAndEndOfWeek();
+        return paged.items.filter(m => {
+          const expiry = new Date(m.endDate);
+          return expiry >= start && expiry <= end;
+        });
+      })
     );
 
     this.upcomingReminders$ = this.whatsappState.reminders$.pipe(
@@ -478,12 +516,14 @@ export class DashboardComponent implements OnInit, OnDestroy {
   onConfirmPayment(paymentId: string): void {
     this.paymentState.confirmPayment(paymentId).subscribe(() => {
       this.snackBar.open('Invoice marked as paid.', 'Dismiss', { duration: 3000 });
+      this.refresh$.next();
     });
   }
 
   onMarkPaid(payment: Payment): void {
     this.paymentState.confirmPayment(payment.id).subscribe(() => {
       this.snackBar.open(`Invoice of ₹${payment.amount} from ${payment.memberName} marked as PAID.`, 'Dismiss', { duration: 3000 });
+      this.refresh$.next();
     });
   }
 
@@ -534,6 +574,7 @@ export class DashboardComponent implements OnInit, OnDestroy {
           next: () => {
             this.submissionGuard.end('membership-renew');
             this.snackBar.open(`Membership renewed for ${member.name}!`, 'Dismiss', { duration: 3000 });
+            this.refresh$.next();
           },
           error: (err) => {
             this.submissionGuard.end('membership-renew');

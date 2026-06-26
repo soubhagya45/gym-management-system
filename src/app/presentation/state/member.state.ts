@@ -8,6 +8,7 @@ import { FinanceState } from './finance.state';
 import { PTState } from './pt.state';
 import { MemberService } from '../../services/member.service';
 import { LeadConversionPayload } from '../../core/models/lead.entity';
+import { PagedRequest, PagedResponse } from '../../core/models/pagination.contracts';
 
 @Injectable({
   providedIn: 'root'
@@ -52,6 +53,10 @@ export class MemberState {
 
   getMemberById(id: string): Observable<Member | null> {
     return this.memberService.getMemberById(id);
+  }
+
+  getMembersPaged(req: PagedRequest): Observable<PagedResponse<Member>> {
+    return this.memberService.getMembersPaged(req);
   }
 
   addMember(member: Omit<Member, 'id' | 'attendanceCount' | 'balance' | 'gymId'>): Observable<Member> {

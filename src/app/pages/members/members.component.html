@@ -178,7 +178,7 @@
       </table>
 
       <!-- Empty state when search yields no matches -->
-      <div class="empty-table-state" *ngIf="dataSource.filteredData.length === 0">
+      <div class="empty-table-state" *ngIf="dataSource.data.length === 0">
         <mat-icon>search_off</mat-icon>
         <h3>No matching members found</h3>
         <p>Try adjusting your search query or switching your status/plan filters.</p>
@@ -187,6 +187,6 @@
     </div>
 
     <!-- Paginator -->
-    <mat-paginator [pageSizeOptions]="[5, 10, 20]" showFirstLastButtons aria-label="Select page of members"></mat-paginator>
+    <mat-paginator [length]="totalCount" [pageSize]="pageSize" [pageIndex]="pageIndex" [pageSizeOptions]="[5, 10, 20]" (page)="onPageChange($event)" showFirstLastButtons aria-label="Select page of members"></mat-paginator>
   </div>
 </div>

@@ -8,7 +8,7 @@ service cloud.firestore {
     }
 
     function isActive() {
-      return request.auth != null && (
+      return request.auth != null && request.auth.token.firebase.appcheck != null && (
         !exists(/databases/$(database)/documents/users/$(request.auth.uid)) ||
         !('accountStatus' in getUserData()) ||
         getUserData().accountStatus == 'Active'
@@ -25,7 +25,7 @@ service cloud.firestore {
         isSuperAdmin() || 
         (getUserData().gymId == resourceData.gymId && (
           getUserData().role == 'gym_owner' || 
-          getUserData().role == 'branch_manager' || 
+          (getUserData().role == 'branch_manager' && getUserData().branchId == resourceData.branchId) ||
           getUserData().branchId == resourceData.branchId
         ))
       );
@@ -36,7 +36,7 @@ service cloud.firestore {
         isSuperAdmin() || 
         (getUserData().gymId == resourceData.gymId && (
           getUserData().role == 'gym_owner' || 
-          getUserData().role == 'branch_manager'
+          (getUserData().role == 'branch_manager' && getUserData().branchId == resourceData.branchId)
         ))
       );
     }
@@ -46,7 +46,7 @@ service cloud.firestore {
         isSuperAdmin() || 
         (getUserData().gymId == resourceData.gymId && (
           getUserData().role == 'gym_owner' || 
-          getUserData().role == 'branch_manager' || 
+          (getUserData().role == 'branch_manager' && getUserData().branchId == resourceData.branchId) ||
           getUserData().branchId == resourceData.branchId
         ))
       );
@@ -57,7 +57,7 @@ service cloud.firestore {
         isSuperAdmin() || 
         (getUserData().gymId == resourceData.gymId && (
           getUserData().role == 'gym_owner' || 
-          getUserData().role == 'branch_manager' || 
+          (getUserData().role == 'branch_manager' && getUserData().branchId == resourceData.branchId) ||
           getUserData().branchId == resourceData.branchId
         ))
       );
@@ -68,7 +68,7 @@ service cloud.firestore {
         isSuperAdmin() || 
         (
           currentData.gymId == getUserData().gymId &&
-          (getUserData().role == 'gym_owner' || getUserData().role == 'branch_manager' || getUserData().branchId == currentData.branchId) &&
+          (getUserData().role == 'gym_owner' || (getUserData().role == 'branch_manager' && getUserData().branchId == currentData.branchId) || getUserData().branchId == currentData.branchId) &&
           newData.gymId == currentData.gymId
         )
       );
@@ -168,7 +168,11 @@ service cloud.firestore {
       ) && (
         // gymId, branchId, and accountStatus updates are restricted to super_admin or owner/manager
         isSuperAdmin() || 
-        ((getUserData().role == 'gym_owner' || getUserData().role == 'branch_manager') && resource.data.gymId == getUserData().gymId) ||
+        (
+          ((getUserData().role == 'gym_owner' || getUserData().role == 'branch_manager') && resource.data.gymId == getUserData().gymId) &&
+          request.auth.uid != userId &&
+          (!request.resource.data.diff(resource.data).affectedKeys().hasAny(['gymId']) || request.resource.data.gymId == resource.data.gymId)
+        ) ||
         !request.resource.data.diff(resource.data).affectedKeys().hasAny(['gymId', 'branchId', 'accountStatus'])
       );
       
@@ -177,7 +181,7 @@ service cloud.firestore {
 
     // Audit logs rules
     match /auditLogs/{logId} {
-      allow create: if isActive();
+      allow create: if isActive() && (isSuperAdmin() || request.resource.data.gymId == getUserData().gymId);
       allow read: if isActive() && (
         isSuperAdmin() || 
         (getUserData().gymId == resource.data.gymId && (
@@ -434,8 +438,9 @@ service cloud.firestore {
 
     match /importHistory/{id} {
       allow read: if hasGymAccess(resource.data);
-      allow create, update: if canWriteGymData(request.resource.data);
-      allow delete: if isActive() && (isSuperAdmin() || ((getUserData().role == 'gym_owner' || getUserData().role == 'branch_manager') && resource.data.gymId == getUserData().gymId));
+      allow create: if canWriteGymData(request.resource.data);
+      allow update: if isActive() && (isSuperAdmin() || (getUserData().role == 'gym_owner' && request.resource.data.gymId == getUserData().gymId));
+      allow delete: if isActive() && (isSuperAdmin() || (getUserData().role == 'gym_owner' && resource.data.gymId == getUserData().gymId));
     }
 
     match /deviceRawLogs/{id} {
