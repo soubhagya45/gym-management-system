@@ -3,7 +3,7 @@ import { initializeApp, getApp, getApps, FirebaseApp } from 'firebase/app';
 import { getAuth, Auth } from 'firebase/auth';
 import { getFirestore, Firestore } from 'firebase/firestore';
 import { getStorage, FirebaseStorage } from 'firebase/storage';
-import { initializeAppCheck, ReCaptchaV3Provider } from 'firebase/app-check';
+import { initializeAppCheck, ReCaptchaV3Provider, getToken } from 'firebase/app-check';
 import { AppConfigService } from '../../../core/config/app-config';
 import { environment } from '../../../../environments/environment';
 
@@ -36,11 +36,18 @@ export class FirebaseService {
         }
 
         try {
-          initializeAppCheck(this.app, {
+          const appCheck = initializeAppCheck(this.app, {
             provider: new ReCaptchaV3Provider(siteKey),
             isTokenAutoRefreshEnabled: true
           });
-          console.log('[FirebaseService] Firebase App Check initialized successfully.');
+          if (!environment.production) {
+            console.log('[FirebaseService] Firebase App Check initialized successfully.');
+            getToken(appCheck).then((tokenResult) => {
+              console.log('[FirebaseService] Obtained App Check token successfully.');
+            }).catch((err) => {
+              console.error('[FirebaseService] Failed to obtain App Check token:', err);
+            });
+          }
         } catch (appCheckErr) {
           console.error('[FirebaseService] App Check initialization failed:', appCheckErr);
         }

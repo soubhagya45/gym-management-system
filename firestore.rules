@@ -8,7 +8,9 @@ service cloud.firestore {
     }
 
     function isActive() {
-      return request.auth != null && request.auth.token.firebase.appcheck != null && (
+      // Note: request.app is NOT a valid Firestore rules property — App Check enforcement
+      // is handled at the service level via the Firebase Console toggle. No rule expression needed.
+      return request.auth != null && (
         !exists(/databases/$(database)/documents/users/$(request.auth.uid)) ||
         !('accountStatus' in getUserData()) ||
         getUserData().accountStatus == 'Active'
@@ -26,7 +28,7 @@ service cloud.firestore {
         (getUserData().gymId == resourceData.gymId && (
           getUserData().role == 'gym_owner' || 
           (getUserData().role == 'branch_manager' && getUserData().branchId == resourceData.branchId) ||
-          getUserData().branchId == resourceData.branchId
+          (getUserData().role != 'gym_owner' && getUserData().branchId == resourceData.branchId)
         ))
       );
     }
@@ -47,7 +49,7 @@ service cloud.firestore {
         (getUserData().gymId == resourceData.gymId && (
           getUserData().role == 'gym_owner' || 
           (getUserData().role == 'branch_manager' && getUserData().branchId == resourceData.branchId) ||
-          getUserData().branchId == resourceData.branchId
+          (getUserData().role != 'gym_owner' && getUserData().branchId == resourceData.branchId)
         ))
       );
     }
@@ -58,7 +60,7 @@ service cloud.firestore {
         (getUserData().gymId == resourceData.gymId && (
           getUserData().role == 'gym_owner' || 
           (getUserData().role == 'branch_manager' && getUserData().branchId == resourceData.branchId) ||
-          getUserData().branchId == resourceData.branchId
+          (getUserData().role != 'gym_owner' && getUserData().branchId == resourceData.branchId)
         ))
       );
     }
@@ -68,7 +70,11 @@ service cloud.firestore {
         isSuperAdmin() || 
         (
           currentData.gymId == getUserData().gymId &&
-          (getUserData().role == 'gym_owner' || (getUserData().role == 'branch_manager' && getUserData().branchId == currentData.branchId) || getUserData().branchId == currentData.branchId) &&
+          (
+            getUserData().role == 'gym_owner' || 
+            (getUserData().role == 'branch_manager' && getUserData().branchId == currentData.branchId) || 
+            (getUserData().role != 'gym_owner' && getUserData().branchId == currentData.branchId)
+          ) &&
           newData.gymId == currentData.gymId
         )
       );
