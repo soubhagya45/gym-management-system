@@ -1,0 +1,7 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="app_name">ApexFit</string>
+    <string name="title_activity_main">ApexFit</string>
+    <string name="package_name">com.apexfit.gym</string>
+    <string name="custom_url_scheme">com.apexfit.gym</string>
+</resources>
