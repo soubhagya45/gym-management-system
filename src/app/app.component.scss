@@ -663,4 +663,189 @@ body.light-theme .top-navbar.glass-panel {
   }
 }
 
+/* --- Native Android Mobile Shell Styles --- */
+.show-on-mobile {
+  display: flex;
+  @media (min-width: 960px) {
+    display: none !important;
+  }
+}
+
+.mobile-brand-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+
+  .mobile-logo-icon {
+    font-size: 24px;
+    width: 24px;
+    height: 24px;
+    color: var(--accent-color, #6366f1);
+  }
+
+  .mobile-brand-title {
+    font-size: 18px;
+    font-weight: 800;
+    letter-spacing: 0.08em;
+    color: #ffffff;
+
+    .logo-highlight {
+      color: var(--accent-color, #6366f1);
+    }
+  }
+}
+
+.mobile-body-padding {
+  padding: 16px 16px 90px 16px !important;
+  box-sizing: border-box;
+}
+
+/* Native 5-Item Bottom Navigation Bar */
+.mobile-bottom-nav {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  height: calc(64px + env(safe-area-inset-bottom, 0px));
+  padding-bottom: env(safe-area-inset-bottom, 0px);
+  background: var(--bg-card, rgba(18, 24, 38, 0.92));
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border-top: 1px solid rgba(255, 255, 255, 0.1);
+  display: flex;
+  align-items: center;
+  justify-content: space-around;
+  z-index: 98;
+  box-shadow: 0 -4px 20px rgba(0, 0, 0, 0.3);
+
+  .bottom-nav-item {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 3px;
+    height: 100%;
+    min-height: 48px;
+    color: #94a3b8;
+    text-decoration: none;
+    background: transparent;
+    border: none;
+    cursor: pointer;
+    transition: color 0.15s ease, transform 0.15s ease;
+    -webkit-tap-highlight-color: transparent;
+
+    .bottom-nav-icon {
+      font-size: 22px;
+      width: 22px;
+      height: 22px;
+      transition: transform 0.2s cubic-bezier(0.34, 1.56, 0.64, 1);
+    }
+
+    .bottom-nav-label {
+      font-size: 11px;
+      font-weight: 500;
+      letter-spacing: 0.01em;
+    }
+
+    &.active {
+      color: var(--accent-color, #6366f1);
+
+      .bottom-nav-icon {
+        transform: translateY(-2px) scale(1.1);
+        filter: drop-shadow(0 0 6px rgba(99, 102, 241, 0.6));
+      }
+
+      .bottom-nav-label {
+        font-weight: 700;
+      }
+    }
+
+    &:active {
+      transform: scale(0.92);
+    }
+  }
+}
+
+/* More Menu Grid Inside Bottom Sheet */
+.more-menu-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 14px;
+  padding: 12px 4px 28px 4px;
+
+  @media (max-width: 360px) {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+  .more-menu-tile {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    padding: 16px 8px;
+    background: rgba(255, 255, 255, 0.04);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    border-radius: 18px;
+    text-decoration: none;
+    color: var(--text-primary, #f8fafc);
+    font-size: 0.8125rem;
+    font-weight: 500;
+    text-align: center;
+    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+    min-height: 90px;
+    box-sizing: border-box;
+
+    &:active {
+      transform: scale(0.93);
+      background: rgba(99, 102, 241, 0.15);
+    }
+
+    &.active-tile {
+      background: rgba(99, 102, 241, 0.12);
+      border-color: rgba(99, 102, 241, 0.4);
+      box-shadow: 0 0 16px rgba(99, 102, 241, 0.2);
+
+      span {
+        color: #818cf8;
+        font-weight: 700;
+      }
+    }
+
+    .active-dot {
+      position: absolute;
+      top: 8px;
+      right: 8px;
+      width: 7px;
+      height: 7px;
+      border-radius: 50%;
+      background: #6366f1;
+      box-shadow: 0 0 8px #6366f1;
+    }
+
+    .more-icon-box {
+      width: 46px;
+      height: 46px;
+      border-radius: 14px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: transform 0.2s ease;
+
+      mat-icon {
+        font-size: 24px;
+        width: 24px;
+        height: 24px;
+      }
+    }
+
+    &:hover .more-icon-box {
+      transform: scale(1.06);
+    }
+  }
+}
+
+
 

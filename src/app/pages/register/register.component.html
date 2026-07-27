@@ -23,7 +23,22 @@
         </p>
       </div>
 
-      <!-- Stepper Navigation Header -->
+      <!-- Mobile Stepper Header (visible on screens <= 600px) -->
+      <div class="mobile-stepper-header" *ngIf="currentStep !== 3 && currentStep !== 7">
+        <div class="mobile-step-top">
+          <span class="mobile-step-pill">Step {{ currentStep > 3 ? (currentStep - 1) : (currentStep > 2 ? 2 : currentStep) }} of 5</span>
+          <span class="mobile-step-title">{{ getStepTitle(currentStep) }}</span>
+          <button type="button" class="mobile-quick-fill-chip" (click)="currentStep === 1 ? quickFillDemoGymData() : (currentStep === 2 ? quickFillDemoOTP() : (currentStep === 4 ? quickFillDemoOwnerData() : null))" *ngIf="[1,2,4].includes(currentStep)" matTooltip="Pre-fill sample data">
+            <mat-icon>auto_awesome</mat-icon>
+            <span>Demo Fill</span>
+          </button>
+        </div>
+        <div class="mobile-progress-bar-container">
+          <div class="mobile-progress-bar-fill" [style.width.%]="(currentStep / 7) * 100"></div>
+        </div>
+      </div>
+
+      <!-- Desktop Stepper Navigation Header -->
       <div class="stepper-header" *ngIf="currentStep !== 3 && currentStep !== 7">
         <div class="step-indicator" [class.active]="currentStep === 1" [class.completed]="currentStep > 1">
           <div class="circle">
@@ -78,9 +93,20 @@
 
         <!-- STEP 1: GYM INFORMATION -->
         <div class="step-content" *ngIf="currentStep === 1" @stepAnimation>
-          <div class="step-title-area">
-            <h2>Register Your Gym Profile</h2>
-            <p>Let's configure your tenant business settings first.</p>
+          <div class="step-title-area flex-title-row">
+            <div>
+              <h2>Register Your Gym Profile</h2>
+              <p>Let's configure your tenant business settings first.</p>
+            </div>
+            <div class="quick-actions-toolbar">
+              <button type="button" class="quick-act-btn" (click)="quickFillDemoGymData()" matTooltip="Fill sample demo gym details">
+                <mat-icon>bolt</mat-icon>
+                <span>Quick Fill</span>
+              </button>
+              <button type="button" class="quick-act-btn support-wa" (click)="openSupportWhatsApp()" matTooltip="Get help via WhatsApp">
+                <mat-icon>chat</mat-icon>
+              </button>
+            </div>
           </div>
 
           <form [formGroup]="gymForm" (ngSubmit)="submitGymInfo()">
@@ -170,6 +196,9 @@
                 <button mat-button type="button" class="resend-btn" *ngIf="resendCountdown === 0" (click)="resendVerificationCode()" [disabled]="isLoading">
                   Resend Code
                 </button>
+                <button type="button" class="quick-fill-text-btn" (click)="quickFillDemoOTP()">
+                  Auto-fill (123456)
+                </button>
               </div>
             </div>
 
@@ -210,9 +239,17 @@
 
         <!-- STEP 4: OWNER ACCOUNT DETAILS -->
         <div class="step-content" *ngIf="currentStep === 4" @stepAnimation>
-          <div class="step-title-area">
-            <h2>Create Owner Account</h2>
-            <p>Set up administrative credentials to log in and manage your gym.</p>
+          <div class="step-title-area flex-title-row">
+            <div>
+              <h2>Create Owner Account</h2>
+              <p>Set up administrative credentials to log in and manage your gym.</p>
+            </div>
+            <div class="quick-actions-toolbar">
+              <button type="button" class="quick-act-btn" (click)="quickFillDemoOwnerData()" matTooltip="Auto-fill sample owner info">
+                <mat-icon>bolt</mat-icon>
+                <span>Quick Fill</span>
+              </button>
+            </div>
           </div>
 
           <form [formGroup]="ownerForm" (ngSubmit)="submitOwnerDetails()">
@@ -508,6 +545,16 @@
         <p class="help-text">
           Our onboarding team is ready to guide you. Contact core support at <strong>support@apexfit.com</strong> for assistance.
         </p>
+        <div class="help-actions-row">
+          <button type="button" class="help-act-btn wa-btn" (click)="openSupportWhatsApp()">
+            <mat-icon>chat</mat-icon>
+            <span>WhatsApp Support</span>
+          </button>
+          <button type="button" class="help-act-btn phone-btn" (click)="openSupportCall()">
+            <mat-icon>phone</mat-icon>
+            <span>Call Support</span>
+          </button>
+        </div>
       </div>
 
     </div>

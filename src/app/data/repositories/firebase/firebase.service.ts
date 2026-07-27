@@ -1,7 +1,7 @@
 import { Injectable } from '@angular/core';
 import { initializeApp, getApp, getApps, FirebaseApp } from 'firebase/app';
 import { getAuth, Auth } from 'firebase/auth';
-import { getFirestore, Firestore } from 'firebase/firestore';
+import { getFirestore, Firestore, enableMultiTabIndexedDbPersistence, enableIndexedDbPersistence } from 'firebase/firestore';
 import { getStorage, FirebaseStorage } from 'firebase/storage';
 import { initializeAppCheck, ReCaptchaV3Provider, getToken } from 'firebase/app-check';
 import { AppConfigService } from '../../../core/config/app-config';
@@ -54,6 +54,20 @@ export class FirebaseService {
 
         this.auth = getAuth(this.app);
         this.db = getFirestore(this.app);
+
+        // Enable Firestore offline persistence for seamless offline app experience
+        try {
+          enableMultiTabIndexedDbPersistence(this.db).catch((err) => {
+            if (err.code === 'failed-precondition') {
+              enableIndexedDbPersistence(this.db).catch((e) => console.warn('Firestore persistence fallback warning:', e));
+            } else if (err.code === 'unimplemented') {
+              console.warn('Browser does not support Firestore persistence:', err);
+            }
+          });
+        } catch (persErr) {
+          console.warn('Firestore offline persistence init warning:', persErr);
+        }
+
         this.storage = getStorage(this.app);
         this.initialized = true;
       }

@@ -1,3 +1,164 @@
+<ng-container *ngIf="responsiveLayout.isMobile; else desktopDashboard">
+  <!-- Native Mobile Dashboard View -->
+  <div class="mobile-dashboard-container">
+    <!-- Top Greeting Banner -->
+    <div class="mobile-greeting-card" *ngIf="currentUser$ | async as user">
+      <div class="user-greeting-info">
+        <img [src]="user.avatarUrl" [alt]="user.name" class="mobile-user-avatar">
+        <div>
+          <span class="greeting-subtitle">Welcome back,</span>
+          <h2 class="user-greeting-name">{{ user.name }}</h2>
+        </div>
+      </div>
+      <div class="active-gym-pill" *ngIf="activeGym$ | async as gym">
+        <mat-icon>storefront</mat-icon>
+        <span>{{ gym.gymName }}</span>
+      </div>
+    </div>
+
+    <!-- Onboarding Alert Banner if Setup Not Completed -->
+    <div class="mobile-onboarding-banner" *ngIf="showOnboardingBanner$ | async">
+      <div class="onboarding-content">
+        <mat-icon color="warn">info</mat-icon>
+        <div class="onboarding-text">
+          <strong>Complete Gym Setup</strong>
+          <span>Configure membership pricing & currency to start.</span>
+        </div>
+      </div>
+      <button mat-flat-button color="primary" routerLink="/setup-wizard">Setup Now</button>
+    </div>
+
+    <!-- 2x2 Metric Grid -->
+    <div class="mobile-metrics-grid" *ngIf="stats$ | async as s">
+      <app-metric-card 
+        title="Monthly Revenue" 
+        [value]="'₹' + (s.monthlyRevenue | number)" 
+        icon="payments" 
+        colorClass="success">
+      </app-metric-card>
+      <app-metric-card 
+        title="Active Members" 
+        [value]="s.activeMembers" 
+        icon="people" 
+        colorClass="primary">
+      </app-metric-card>
+      <app-metric-card 
+        title="Pending Fees" 
+        [value]="s.pendingPaymentsCount" 
+        icon="account_balance_wallet" 
+        colorClass="warning">
+      </app-metric-card>
+      <app-metric-card 
+        title="Today's Attendance" 
+        [value]="(attendanceSummary$ | async)?.present || 0" 
+        icon="check_circle" 
+        colorClass="info">
+      </app-metric-card>
+    </div>
+
+    <!-- Quick Action Touch Row -->
+    <div class="mobile-section-header">
+      <h3>Quick Actions</h3>
+    </div>
+    <app-quick-action-row 
+      [actions]="quickActions" 
+      (actionClick)="onQuickAction($event)">
+    </app-quick-action-row>
+
+    <!-- Vertical Stacked Charts Card -->
+    <div class="mobile-section-header">
+      <h3>Revenue Overview</h3>
+    </div>
+    <app-mobile-card [glass]="true">
+      <div class="mobile-chart-header">
+        <span class="chart-title font-semibold">Monthly Revenue Trend</span>
+        <span class="chart-value text-accent font-bold">₹1,25,000</span>
+      </div>
+      <div class="mobile-svg-chart-container">
+        <svg viewBox="0 0 500 150" class="mobile-revenue-svg">
+          <defs>
+            <linearGradient id="mobileRevenueGrad" x1="0" y1="0" x2="0" y2="1">
+              <stop offset="0%" stop-color="#6366f1" stop-opacity="0.5"/>
+              <stop offset="100%" stop-color="#6366f1" stop-opacity="0.0"/>
+            </linearGradient>
+          </defs>
+          <path [attr.d]="getSVGFillPath()" fill="url(#mobileRevenueGrad)"/>
+          <polyline [attr.points]="getSVGPath()" fill="none" stroke="#6366f1" stroke-width="3"/>
+        </svg>
+      </div>
+    </app-mobile-card>
+
+    <!-- Pending Payments Section -->
+    <div class="mobile-section-header">
+      <h3>Pending Collections</h3>
+      <a routerLink="/payments" class="see-all-link">See All</a>
+    </div>
+    <ng-container *ngIf="pendingPayments$ | async as pendingList">
+      <app-empty-state 
+        *ngIf="pendingList.length === 0" 
+        icon="verified" 
+        title="All Payments Up To Date" 
+        message="No pending payments requiring attention.">
+      </app-empty-state>
+      <app-mobile-card *ngFor="let p of pendingList">
+        <div class="mobile-card-row">
+          <div class="card-info">
+            <span class="card-title">{{ p.memberName }}</span>
+            <span class="card-subtitle">Plan: {{ p.planName }} • Due: {{ p.dueDate | date:'mediumDate' }}</span>
+          </div>
+          <div class="card-amount">
+            <span class="amount-text">₹{{ p.amount | number }}</span>
+            <app-status-chip [status]="p.status"></app-status-chip>
+          </div>
+        </div>
+        <div class="mobile-card-actions">
+          <button mat-button color="primary" class="touch-action-btn" (click)="onMarkPaid(p)">
+            <mat-icon>check_circle</mat-icon>
+            <span>Mark Paid</span>
+          </button>
+          <button mat-button color="accent" class="touch-action-btn" (click)="onSendReminder(p)">
+            <mat-icon>send</mat-icon>
+            <span>Reminder</span>
+          </button>
+        </div>
+      </app-mobile-card>
+    </ng-container>
+
+    <!-- Expiring Memberships Section -->
+    <div class="mobile-section-header">
+      <h3>Expiring Memberships</h3>
+      <a routerLink="/members" class="see-all-link">See All</a>
+    </div>
+    <ng-container *ngIf="expiringMembers$ | async as expiringList">
+      <app-empty-state 
+        *ngIf="expiringList.length === 0" 
+        icon="task_alt" 
+        title="No Expiring Members" 
+        message="No memberships expiring in the next 7 days.">
+      </app-empty-state>
+      <app-mobile-card *ngFor="let m of expiringList">
+        <div class="mobile-card-row">
+          <div class="member-avatar-box">
+            <img [src]="m.avatarUrl || 'assets/default-avatar.png'" class="avatar-img" />
+          </div>
+          <div class="card-info flex-1">
+            <span class="card-title">{{ m.name }}</span>
+            <span class="card-subtitle">{{ m.planName }} • Ends: {{ m.endDate | date:'mediumDate' }}</span>
+          </div>
+          <app-status-chip status="expiring"></app-status-chip>
+        </div>
+        <div class="mobile-card-actions">
+          <button mat-flat-button color="primary" class="touch-action-btn" (click)="onRenewMembership(m)">
+            <mat-icon>autorenew</mat-icon>
+            <span>Renew</span>
+          </button>
+        </div>
+      </app-mobile-card>
+    </ng-container>
+  </div>
+</ng-container>
+
+<ng-template #desktopDashboard>
 <div class="dashboard-wrapper">
   <!-- Check if User is a Trainer -->
   <ng-container *ngIf="isTrainer$ | async; else adminDashboard">

@@ -16,6 +16,10 @@ import { AuditLogsComponent } from './audit-logs/audit-logs.component';
 import { AttendanceDevicesComponent } from './attendance-devices/attendance-devices.component';
 import { AuthState } from '../../presentation/state/auth.state';
 
+import { ResponsiveLayoutService } from '../../core/services/responsive-layout.service';
+import { MobileCardComponent } from '../../shared/components/mobile/mobile-card.component';
+import { EmptyStateComponent } from '../../shared/components/mobile/empty-state.component';
+
 @Component({
   selector: 'app-settings',
   standalone: true,
@@ -47,7 +51,8 @@ export class SettingsComponent implements OnInit {
   constructor(
     private route: ActivatedRoute,
     private authState: AuthState,
-    private cdr: ChangeDetectorRef
+    private cdr: ChangeDetectorRef,
+    public responsiveLayout: ResponsiveLayoutService
   ) {}
 
   ngOnInit(): void {

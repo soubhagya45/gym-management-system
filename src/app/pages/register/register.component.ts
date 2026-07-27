@@ -78,6 +78,62 @@ export class RegisterComponent implements OnInit, OnDestroy {
   
   registeredUser: UserProfile | null = null;
 
+  // Mobile drawer / accordion state
+  activeMobileSection: string = 'features';
+  showStepDrawer = false;
+
+  getStepTitle(step: number): string {
+    switch (step) {
+      case 1: return 'Gym Profile';
+      case 2: return 'Verify Email';
+      case 3: return 'Creating Workspace';
+      case 4: return 'Owner Account';
+      case 5: return 'Default Branch';
+      case 6: return 'Membership Plans';
+      case 7: return 'Deploying Platform';
+      default: return 'Onboarding';
+    }
+  }
+
+  toggleMobileSection(section: string): void {
+    this.activeMobileSection = this.activeMobileSection === section ? '' : section;
+  }
+
+  quickFillDemoGymData(): void {
+    this.gymForm.patchValue({
+      gymName: 'Apex Fitness & Health Club',
+      gymPhone: '+91 99887 76655',
+      gymEmail: 'owner@apexfitness.com',
+      gymAddress: '100 MG Road, Cyber Towers',
+      gymCity: 'Bengaluru',
+      gymState: 'Karnataka',
+      gymCountry: 'India'
+    });
+  }
+
+  quickFillDemoOTP(): void {
+    this.otpForm.patchValue({
+      code: '123456'
+    });
+  }
+
+  quickFillDemoOwnerData(): void {
+    this.ownerForm.patchValue({
+      ownerFullName: 'Rajesh Sharma',
+      ownerPhone: '+91 99887 76655',
+      ownerPassword: 'Password@123'
+    });
+  }
+
+  openSupportWhatsApp(): void {
+    const text = encodeURIComponent('Hello ApexFit Support! I need assistance with setting up my gym workspace onboarding.');
+    window.open(`https://wa.me/919988776655?text=${text}`, '_blank');
+  }
+
+  openSupportCall(): void {
+    window.open('tel:+919988776655', '_self');
+  }
+
   constructor(
     private fb: FormBuilder,
     private authState: AuthState,

@@ -277,3 +277,160 @@
     text-decoration: line-through;
   }
 }
+
+/* --- Dedicated Native Mobile Payments Styles --- */
+.mobile-payments-container {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+
+  .mobile-revenue-banner {
+    display: flex;
+    align-items: center;
+    justify-content: space-around;
+    padding: 16px;
+    background: var(--bg-card, rgba(30, 41, 59, 0.7));
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    border-radius: 20px;
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.2);
+
+    .revenue-tile {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 4px;
+
+      .tile-label {
+        font-size: 0.75rem;
+        color: var(--text-secondary, #94a3b8);
+      }
+
+      .tile-val {
+        font-size: 1.25rem;
+        font-weight: 800;
+        margin: 0;
+
+        &.text-success { color: #34d399; }
+        &.text-warning { color: #fbbf24; }
+      }
+    }
+
+    .revenue-divider {
+      width: 1px;
+      height: 36px;
+      background: rgba(255, 255, 255, 0.1);
+    }
+  }
+
+  .payment-card-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 10px;
+
+    .payment-info {
+      display: flex;
+      flex-direction: column;
+      gap: 3px;
+
+      &.flex-1 { flex: 1; overflow: hidden; }
+
+      .payment-title-row {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 8px;
+
+        .member-name {
+          font-size: 1rem;
+          font-weight: 700;
+          color: var(--text-primary, #f8fafc);
+        }
+      }
+
+      .payment-sub-info {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        font-size: 0.75rem;
+        color: var(--text-secondary, #94a3b8);
+
+        .plan-badge {
+          font-weight: 600;
+          color: var(--accent-color, #6366f1);
+        }
+      }
+    }
+  }
+
+  .payment-card-body {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    padding: 10px 12px;
+    background: rgba(255, 255, 255, 0.03);
+    border-radius: 14px;
+    margin-bottom: 12px;
+
+    .amount-info-row {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+
+      .amount-box {
+        display: flex;
+        flex-direction: column;
+
+        .amount-lbl {
+          font-size: 0.6875rem;
+          color: var(--text-secondary, #94a3b8);
+        }
+
+        .amount-num {
+          font-size: 1rem;
+          font-weight: 700;
+          color: var(--text-primary, #f8fafc);
+
+          &.text-success { color: #34d399; }
+          &.text-danger { color: #f87171; }
+        }
+      }
+    }
+
+    .payment-method-row {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 0.75rem;
+      color: var(--text-secondary, #94a3b8);
+
+      .method-icon {
+        font-size: 16px;
+        width: 16px;
+        height: 16px;
+        color: var(--accent-color, #6366f1);
+      }
+    }
+  }
+
+  .payment-card-actions {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding-top: 10px;
+    border-top: 1px solid rgba(255, 255, 255, 0.08);
+
+    .touch-action-btn {
+      flex: 1;
+      height: 44px;
+      border-radius: 12px;
+      font-size: 0.8125rem;
+      font-weight: 600;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+    }
+  }
+}
+

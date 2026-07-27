@@ -28,6 +28,8 @@ import { TenantContextService } from '../../domain/tenancy/tenant-context.servic
 import { BillingCalculationService } from '../../services/billing-calculation.service';
 import { PaymentGatewayModalComponent } from '../../shared/components/payment-gateway-modal/payment-gateway-modal.component';
 
+import { ResponsiveLayoutService } from '../../core/services/responsive-layout.service';
+
 @Component({
   selector: 'app-member-dialog',
   standalone: true,
@@ -46,11 +48,25 @@ import { PaymentGatewayModalComponent } from '../../shared/components/payment-ga
     MatDividerModule
   ],
   template: `
-    <h2 mat-dialog-title class="gradient-text dialogue-title">
-      {{ isEdit ? 'Modify Member Profile' : 'Onboard & Register Member' }}
-    </h2>
+    <div class="dialog-header-flex">
+      <h2 mat-dialog-title class="gradient-text dialogue-title">
+        {{ isEdit ? 'Modify Member Profile' : 'Onboard & Register Member' }}
+      </h2>
+      <div class="dialog-quick-actions" *ngIf="!isEdit">
+        <button type="button" class="dialog-act-chip" (click)="quickFillDemoMember()" matTooltip="Quick fill demo member profile">
+          <mat-icon>auto_awesome</mat-icon>
+          <span>Demo Fill</span>
+        </button>
+        <button type="button" class="dialog-act-chip wa-chip" (click)="openWhatsAppWelcome()" matTooltip="Preview WhatsApp welcome message">
+          <mat-icon>chat</mat-icon>
+        </button>
+        <button type="button" class="dialog-act-chip link-chip" (click)="copyPaymentLink()" matTooltip="Copy summary details">
+          <mat-icon>content_copy</mat-icon>
+        </button>
+      </div>
+    </div>
     
-    <form [formGroup]="memberForm" (ngSubmit)="onSubmit()">
+    <form [formGroup]="memberForm" (ngSubmit)="onSubmit()" class="dialog-form-wrapper">
       <mat-dialog-content class="dialog-form-content">
         <!-- Profile Image Display & Avatar URL selection -->
         <div class="avatar-select-section">
@@ -331,7 +347,7 @@ import { PaymentGatewayModalComponent } from '../../shared/components/payment-ga
       
       <mat-dialog-actions align="end" class="dialog-actions">
         <button mat-button type="button" (click)="onCancel()" [disabled]="submissionGuard.isSubmitting('member-dialog-submit') | async">Cancel</button>
-        <button mat-raised-button color="primary" type="submit" [disabled]="memberForm.invalid || (submissionGuard.isSubmitting('member-dialog-submit') | async)">
+        <button mat-raised-button color="primary" type="submit" [disabled]="memberForm.invalid || (submissionGuard.isSubmitting('member-dialog-submit') | async)" class="submit-action-btn">
           <mat-icon *ngIf="submissionGuard.isSubmitting('member-dialog-submit') | async" class="spin-icon" style="margin-right: 8px;">sync</mat-icon>
           <span>{{ (submissionGuard.isSubmitting('member-dialog-submit') | async) ? 'Saving...' : (isEdit ? 'Save Profile' : 'Complete Registration') }}</span>
         </button>
@@ -339,18 +355,90 @@ import { PaymentGatewayModalComponent } from '../../shared/components/payment-ga
     </form>
   `,
   styles: [`
+    :host {
+      display: flex;
+      flex-direction: column;
+      max-height: calc(100vh - 32px);
+      max-height: calc(100dvh - 32px);
+      box-sizing: border-box;
+      overflow: hidden;
+    }
+
+    .dialog-header-flex {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      margin-bottom: 12px;
+      flex-wrap: wrap;
+      flex-shrink: 0;
+      padding-bottom: 8px;
+      border-bottom: 1px solid var(--border-color);
+    }
     .dialogue-title {
+      font-weight: 800;
+      font-size: 20px;
+      margin: 0;
+    }
+    .dialog-quick-actions {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      flex-wrap: wrap;
+    }
+    .dialog-act-chip {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      background: rgba(99, 102, 241, 0.12);
+      border: 1px solid rgba(99, 102, 241, 0.3);
+      color: #6366f1;
+      border-radius: 16px;
+      padding: 4px 10px;
+      font-size: 11px;
       font-weight: 700;
-      font-size: 22px;
-      margin-bottom: 20px;
+      cursor: pointer;
+      transition: all 0.2s ease;
+      
+      mat-icon {
+        font-size: 14px;
+        width: 14px;
+        height: 14px;
+      }
+      &:hover {
+        background: rgba(99, 102, 241, 0.25);
+      }
+      &.wa-chip {
+        background: rgba(37, 211, 102, 0.12);
+        border-color: rgba(37, 211, 102, 0.3);
+        color: #25d366;
+        padding: 4px 8px;
+        &:hover { background: rgba(37, 211, 102, 0.25); }
+      }
+      &.link-chip {
+        background: rgba(14, 165, 233, 0.12);
+        border-color: rgba(14, 165, 233, 0.3);
+        color: #0ea5e9;
+        padding: 4px 8px;
+        &:hover { background: rgba(14, 165, 233, 0.25); }
+      }
+    }
+    .dialog-form-wrapper {
+      display: flex;
+      flex-direction: column;
+      flex: 1;
+      min-height: 0;
+      overflow: hidden;
     }
     .dialog-form-content {
       display: flex;
       flex-direction: column;
       gap: 16px;
-      padding-top: 10px !important;
-      max-height: 60vh;
+      padding: 10px 4px 16px 4px !important;
+      flex: 1 1 auto;
+      min-height: 0;
       overflow-y: auto;
+      max-height: none;
     }
     .avatar-select-section {
       display: flex;
@@ -364,6 +452,7 @@ import { PaymentGatewayModalComponent } from '../../shared/components/payment-ga
       border-radius: 50%;
       overflow: hidden;
       border: 2px solid var(--border-color);
+      flex-shrink: 0;
       img {
         width: 100%;
         height: 100%;
@@ -415,13 +504,66 @@ import { PaymentGatewayModalComponent } from '../../shared/components/payment-ga
       font-weight: 600;
     }
     .dialog-actions {
-      padding: 16px 0 0 0 !important;
-      gap: 8px;
+      flex-shrink: 0;
+      position: sticky;
+      bottom: 0;
+      z-index: 20;
+      background: var(--bg-secondary);
+      border-top: 1px solid var(--border-color);
+      padding: 12px 0 0 0 !important;
+      margin-top: 4px;
+      gap: 12px;
+
+      .submit-action-btn {
+        height: 44px;
+        font-weight: 700;
+        padding: 0 20px;
+        border-radius: 8px;
+      }
     }
     
     @media (max-width: 599.98px) {
+      .dialog-header-flex {
+        gap: 8px;
+        margin-bottom: 8px;
+        padding-bottom: 6px;
+      }
+      .dialogue-title {
+        font-size: 16px;
+      }
+      .dialog-quick-actions {
+        width: 100%;
+        justify-content: flex-start;
+        gap: 6px;
+      }
+      .dialog-form-content {
+        gap: 12px;
+        padding: 8px 2px 12px 2px !important;
+        max-height: calc(100dvh - 170px);
+      }
+      .avatar-select-section {
+        gap: 10px;
+      }
+      .avatar-preview {
+        width: 52px;
+        height: 52px;
+      }
       .form-grid {
         grid-template-columns: 1fr;
+        gap: 8px;
+      }
+      .dialog-actions {
+        padding: 10px 0 4px 0 !important;
+        flex-direction: row;
+        justify-content: space-between;
+        gap: 8px;
+        
+        button {
+          flex: 1;
+          height: 44px !important;
+          font-size: 14px;
+          margin: 0 !important;
+        }
       }
     }
   `]
@@ -439,6 +581,41 @@ export class MemberDialogComponent implements OnInit {
   private _matDialog!: MatDialog;
   private snackBar!: MatSnackBar;
 
+  quickFillDemoMember(): void {
+    const randomNum = Math.floor(1000 + Math.random() * 9000);
+    this.memberForm.patchValue({
+      name: `Rohan Sharma ${randomNum}`,
+      email: `rohan.sharma${randomNum}@example.com`,
+      phone: `+91 98765 ${randomNum}`,
+      gender: 'Male',
+      age: 26,
+      height: 178,
+      weight: 74,
+      fitnessGoal: 'Muscle Gain',
+      status: 'active',
+      paidAmount: 2500,
+      discountType: 'none'
+    });
+    this.selectedAvatarUrl = 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150';
+    this.memberForm.patchValue({ avatarUrl: this.selectedAvatarUrl });
+    this.snackBar.open('Demo member profile pre-filled!', 'Dismiss', { duration: 2500 });
+  }
+
+  openWhatsAppWelcome(): void {
+    const name = this.memberForm.get('name')?.value || 'Valued Member';
+    const planName = this.plans.find(p => p.id === this.memberForm.get('planId')?.value)?.name || 'Membership Plan';
+    const text = encodeURIComponent(`Hi ${name}! Welcome to ApexFit Gym. Your registration for ${planName} is configured.`);
+    const phone = (this.memberForm.get('phone')?.value || '').replace(/[^0-9]/g, '');
+    window.open(`https://wa.me/${phone || '919988776655'}?text=${text}`, '_blank');
+  }
+
+  copyPaymentLink(): void {
+    const finalTotal = this.calculations.finalTotal;
+    const text = `ApexFit Gym Membership Registration - Total Payable: ₹${finalTotal}. Please complete payment via UPI/Cash/Card.`;
+    navigator.clipboard.writeText(text);
+    this.snackBar.open('Registration billing summary copied to clipboard!', 'Dismiss', { duration: 3000 });
+  }
+
   constructor(
     private dialogRef: MatDialogRef<MemberDialogComponent>,
     @Inject(MAT_DIALOG_DATA) public data: Member | null,
@@ -453,7 +630,8 @@ export class MemberDialogComponent implements OnInit {
     @Inject(PAYMENT_SETTINGS_REPOSITORY_TOKEN) private settingsRepo: IPaymentSettingsRepository,
     @Inject(FILE_STORAGE_REPOSITORY_TOKEN) private fileStorage: IFileStorageRepository,
     matDialog: MatDialog,
-    snackBar: MatSnackBar
+    snackBar: MatSnackBar,
+    public responsiveLayout: ResponsiveLayoutService
   ) {
     this._matDialog = matDialog;
     this.snackBar = snackBar;

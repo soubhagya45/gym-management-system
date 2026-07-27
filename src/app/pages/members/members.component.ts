@@ -28,6 +28,12 @@ import { SubmissionGuardService } from '../../services/submission-guard.service'
 import { MatMenuModule } from '@angular/material/menu';
 
 
+import { ResponsiveLayoutService } from '../../core/services/responsive-layout.service';
+import { SearchHeaderComponent, FilterOption } from '../../shared/components/mobile/search-header.component';
+import { MobileCardComponent } from '../../shared/components/mobile/mobile-card.component';
+import { StatusChipComponent } from '../../shared/components/mobile/status-chip.component';
+import { EmptyStateComponent } from '../../shared/components/mobile/empty-state.component';
+
 @Component({
   selector: 'app-members',
   standalone: true,
@@ -45,7 +51,11 @@ import { MatMenuModule } from '@angular/material/menu';
     MatDialogModule,
     MatSnackBarModule,
     MatTooltipModule,
-    MatMenuModule
+    MatMenuModule,
+    SearchHeaderComponent,
+    MobileCardComponent,
+    StatusChipComponent,
+    EmptyStateComponent
   ],
   templateUrl: './members.component.html',
   styleUrls: ['./members.component.scss']
@@ -60,6 +70,13 @@ export class MembersComponent implements OnInit, AfterViewInit {
   searchQuery = '';
   selectedStatus = 'all';
   selectedPlan = 'all';
+
+  memberFilterOptions: FilterOption[] = [
+    { id: 'all', label: 'All' },
+    { id: 'active', label: 'Active' },
+    { id: 'expiring', label: 'Expiring' },
+    { id: 'inactive', label: 'Inactive' }
+  ];
 
   // Server-side pagination state
   pageIndex = 0;
@@ -81,8 +98,18 @@ export class MembersComponent implements OnInit, AfterViewInit {
     private router: Router,
     private route: ActivatedRoute,
     private exportService: ExportService,
-    public submissionGuard: SubmissionGuardService
+    public submissionGuard: SubmissionGuardService,
+    public responsiveLayout: ResponsiveLayoutService
   ) {}
+
+  trackByMemberId(index: number, member: Member): string {
+    return member.id;
+  }
+
+  onMobileFilterChange(statusId: string): void {
+    this.selectedStatus = statusId;
+    this.applyFilters();
+  }
 
   viewProfile(member: Member) {
     this.router.navigate(['/members', member.id]);
@@ -128,13 +155,22 @@ export class MembersComponent implements OnInit, AfterViewInit {
       this.plans = plans;
     });
 
-    // 3. Listen to query params to apply external filters
+    // 3. Listen to query params to apply external filters or trigger action dialog
     this.route.queryParams.subscribe(params => {
       if (params['status']) {
         this.selectedStatus = params['status'];
       }
       if (params['plan']) {
         this.selectedPlan = params['plan'];
+      }
+      if (params['action'] === 'add') {
+        this.openAddMemberDialog();
+        this.router.navigate([], {
+          relativeTo: this.route,
+          queryParams: { action: null, _t: null },
+          queryParamsHandling: 'merge',
+          replaceUrl: true
+        });
       }
     });
 
@@ -186,6 +222,8 @@ export class MembersComponent implements OnInit, AfterViewInit {
 
       const dialogRef = this.dialog.open(MemberDialogComponent, {
         width: '600px',
+        maxWidth: '96vw',
+        maxHeight: '92vh',
         data: null
       });
 
@@ -218,6 +256,8 @@ export class MembersComponent implements OnInit, AfterViewInit {
   openEditMemberDialog(member: Member) {
     const dialogRef = this.dialog.open(MemberDialogComponent, {
       width: '600px',
+      maxWidth: '96vw',
+      maxHeight: '92vh',
       data: member
     });
 
@@ -320,6 +360,10 @@ export class MembersComponent implements OnInit, AfterViewInit {
         this.exportService.exportToExcel(filename, exportData);
       }
     });
+  }
+
+  getTotalPages(): number {
+    return Math.max(1, Math.ceil(this.totalCount / this.pageSize));
   }
 }
 

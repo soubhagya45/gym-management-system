@@ -1,6 +1,6 @@
 import { Component, OnInit, OnDestroy } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { RouterModule } from '@angular/router';
+import { RouterModule, Router } from '@angular/router';
 import { MatCardModule } from '@angular/material/card';
 import { MatIconModule } from '@angular/material/icon';
 import { MatButtonModule } from '@angular/material/button';
@@ -40,6 +40,13 @@ import { SubmissionGuardService } from '../../services/submission-guard.service'
 import { AttendanceSyncService } from '../../services/attendance-sync.service';
 import { DeviceConfiguration } from '../../core/models/device-configuration.model';
 
+import { ResponsiveLayoutService } from '../../core/services/responsive-layout.service';
+import { MetricCardComponent } from '../../shared/components/mobile/metric-card.component';
+import { MobileCardComponent } from '../../shared/components/mobile/mobile-card.component';
+import { StatusChipComponent } from '../../shared/components/mobile/status-chip.component';
+import { QuickActionRowComponent, QuickActionItem } from '../../shared/components/mobile/quick-action-row.component';
+import { EmptyStateComponent } from '../../shared/components/mobile/empty-state.component';
+
 @Component({
   selector: 'app-dashboard',
   standalone: true,
@@ -53,7 +60,12 @@ import { DeviceConfiguration } from '../../core/models/device-configuration.mode
     MatTooltipModule,
     MatTabsModule,
     MatDialogModule,
-    MatSnackBarModule
+    MatSnackBarModule,
+    MetricCardComponent,
+    MobileCardComponent,
+    StatusChipComponent,
+    QuickActionRowComponent,
+    EmptyStateComponent
   ],
   templateUrl: './dashboard.component.html',
   styleUrls: ['./dashboard.component.scss']
@@ -88,6 +100,7 @@ export class DashboardComponent implements OnInit, OnDestroy {
   renewalsThisWeek$: Observable<Member[]> | undefined;
   upcomingReminders$: Observable<WhatsAppReminder[]> | undefined;
   canAccessAnalytics$: Observable<boolean>;
+  activeGym$: Observable<any> = this.gymState.activeGym$;
 
   // Attendance Devices Widgets
   attendanceDevices$: Observable<DeviceConfiguration[]> | undefined;
@@ -106,6 +119,13 @@ export class DashboardComponent implements OnInit, OnDestroy {
     { label: 'Jun', value: 125000, percent: 100 }
   ];
 
+  quickActions: QuickActionItem[] = [
+    { id: 'add-member', label: 'Add Member', icon: 'person_add', color: 'rgba(99, 102, 241, 0.25)' },
+    { id: 'record-payment', label: 'Payment', icon: 'payments', color: 'rgba(16, 185, 129, 0.25)' },
+    { id: 'checkin', label: 'Attendance', icon: 'qr_code_scanner', color: 'rgba(245, 158, 11, 0.25)' },
+    { id: 'add-lead', label: 'Add Lead', icon: 'person_add_alt_1', color: 'rgba(59, 130, 246, 0.25)' }
+  ];
+
   constructor(
     private memberState: MemberState,
     private paymentState: PaymentState,
@@ -122,11 +142,25 @@ export class DashboardComponent implements OnInit, OnDestroy {
     private dialog: MatDialog,
     private snackBar: MatSnackBar,
     public submissionGuard: SubmissionGuardService,
-    private syncService: AttendanceSyncService
+    private syncService: AttendanceSyncService,
+    public responsiveLayout: ResponsiveLayoutService,
+    private router: Router
   ) {
     this.canAccessAnalytics$ = this.gymState.activeGymFeatures$.pipe(
       map(features => features ? features.canAccessAnalytics : false)
     );
+  }
+
+  onQuickAction(actionId: string): void {
+    if (actionId === 'add-member') {
+      this.router.navigate(['/members'], { queryParams: { action: 'add' } });
+    } else if (actionId === 'record-payment') {
+      this.router.navigate(['/payments'], { queryParams: { action: 'add' } });
+    } else if (actionId === 'checkin') {
+      this.router.navigate(['/attendance'], { queryParams: { action: 'checkin' } });
+    } else if (actionId === 'add-lead') {
+      this.router.navigate(['/leads/add']);
+    }
   }
 
   ngOnInit(): void {

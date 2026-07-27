@@ -15,6 +15,8 @@ import { SubscriptionPlan } from './core/enums/subscription-plans.enum';
 import { FeatureFlags } from './core/models/subscription.model';
 import { MatSnackBar } from '@angular/material/snack-bar';
 
+import { ResponsiveLayoutService } from './core/services/responsive-layout.service';
+
 @Component({
   selector: 'app-root',
   standalone: false,
@@ -27,6 +29,7 @@ export class AppComponent implements OnInit {
   isDarkMode = true;
   isMobile = false;
   sidenavOpened = true;
+  isMoreMenuOpen = false;
 
   currentUser$: Observable<UserProfile | null>;
   menuItems$: Observable<NavItem[]>;
@@ -41,14 +44,15 @@ export class AppComponent implements OnInit {
   activeFeatureFlags$: Observable<FeatureFlags | null>;
 
   constructor(
-    private router: Router,
+    public router: Router,
     private authState: AuthState,
     private gymState: GymState,
     private configService: AppConfigService,
     private permissionService: PermissionService,
     private sessionService: SessionService,
     private tenantContext: TenantContextService,
-    private snackBar: MatSnackBar
+    private snackBar: MatSnackBar,
+    public responsiveLayout: ResponsiveLayoutService
   ) {
     this.currentUser$ = this.authState.currentUser$;
     this.menuItems$ = this.currentUser$.pipe(
@@ -87,10 +91,11 @@ export class AppComponent implements OnInit {
       document.body.classList.add('dark-theme');
     }
 
-    // 2. Track route change to update Page Title in toolbar
+    // 2. Track route change to update Page Title in toolbar & close mobile drawer
     this.router.events.pipe(
       filter(event => event instanceof NavigationEnd)
     ).subscribe((event: any) => {
+      this.isMoreMenuOpen = false;
       if (event.urlAfterRedirects.includes('/members/') && event.urlAfterRedirects.match(/\/members\/[a-zA-Z0-9-]+/)) {
         this.pageTitle = 'Member Profile';
       } else if (event.urlAfterRedirects.includes('/leads/add')) {
@@ -106,7 +111,6 @@ export class AppComponent implements OnInit {
         const currentRoute = items.find(item => event.urlAfterRedirects.includes(item.route));
         this.pageTitle = currentRoute ? currentRoute.label : 'Dashboard';
       }
-
 
       // Auto-close drawer on mobile navigation
       if (this.isMobile) {
@@ -148,6 +152,12 @@ export class AppComponent implements OnInit {
         root.style.setProperty('--accent-light', 'rgba(99, 102, 241, 0.15)');
       }
     });
+
+    // Subscribe to CDK BreakpointObserver stream
+    this.responsiveLayout.isMobile$.subscribe(mobile => {
+      this.isMobile = mobile;
+      this.sidenavOpened = !mobile;
+    });
   }
 
   @HostListener('window:resize')
@@ -168,6 +178,35 @@ export class AppComponent implements OnInit {
     this.sidenavOpened = !this.sidenavOpened;
   }
 
+  toggleMoreMenu() {
+    this.isMoreMenuOpen = !this.isMoreMenuOpen;
+  }
+
+  getTileColorStyle(route: string, icon: string): { [key: string]: string } {
+    if (route.includes('dashboard')) return { background: 'rgba(6, 182, 212, 0.15)', color: '#22d3ee' };
+    if (route.includes('members')) return { background: 'rgba(139, 92, 246, 0.15)', color: '#a78bfa' };
+    if (route.includes('leads')) return { background: 'rgba(245, 158, 11, 0.15)', color: '#fbbf24' };
+    if (route.includes('crm-sales')) return { background: 'rgba(132, 204, 22, 0.15)', color: '#a3e635' };
+    if (route.includes('employees')) return { background: 'rgba(236, 72, 153, 0.15)', color: '#f472b6' };
+    if (route.includes('attendance')) return { background: 'rgba(16, 185, 129, 0.15)', color: '#34d399' };
+    if (route.includes('pt-sessions')) return { background: 'rgba(20, 184, 166, 0.15)', color: '#2dd4bf' };
+    if (route.includes('payments')) return { background: 'rgba(34, 197, 94, 0.15)', color: '#4ade80' };
+    if (route.includes('finance')) return { background: 'rgba(16, 185, 129, 0.15)', color: '#34d399' };
+    if (route.includes('plans')) return { background: 'rgba(168, 85, 247, 0.15)', color: '#c084fc' };
+    if (route.includes('trainers')) return { background: 'rgba(239, 68, 68, 0.15)', color: '#f87171' };
+    if (route.includes('whatsapp')) return { background: 'rgba(37, 211, 102, 0.15)', color: '#25d366' };
+    if (route.includes('body-progress')) return { background: 'rgba(244, 63, 94, 0.15)', color: '#fb7185' };
+    if (route.includes('setup-wizard')) return { background: 'rgba(249, 115, 22, 0.15)', color: '#fb923c' };
+    if (route.includes('settings')) return { background: 'rgba(148, 163, 184, 0.15)', color: '#cbd5e1' };
+    if (route.includes('profile')) return { background: 'rgba(99, 102, 241, 0.15)', color: '#818cf8' };
+    return { background: 'rgba(99, 102, 241, 0.15)', color: '#818cf8' };
+  }
+
+  isTileActive(route: string): boolean {
+    if (!route) return false;
+    return this.router.url.includes(route);
+  }
+
   expandedMenus: Record<string, boolean> = { 'Finance': false };
 
   toggleSubmenu(menuLabel: string): void {
@@ -181,7 +220,6 @@ export class AppComponent implements OnInit {
   isRouteActiveInSubmenu(item: any): boolean {
     return item.subItems?.some((sub: any) => this.router.url.includes(sub.route)) ?? false;
   }
-
 
   toggleTheme() {
     this.isDarkMode = !this.isDarkMode;
@@ -225,7 +263,55 @@ export class AppComponent implements OnInit {
     return host === 'localhost' || host === '127.0.0.1' || host.startsWith('192.168.');
   }
 
+  // --- Context-Aware FAB Helpers ---
+  get fabIcon(): string {
+    const url = this.router.url;
+    if (url.includes('/members')) return 'person_add';
+    if (url.includes('/leads')) return 'person_add_alt_1';
+    if (url.includes('/employees')) return 'person_add';
+    if (url.includes('/payments')) return 'payments';
+    if (url.includes('/attendance')) return 'qr_code_scanner';
+    if (url.includes('/finance')) return 'receipt_long';
+    if (url.includes('/trainers')) return 'group_add';
+    return 'add';
+  }
+
+  get fabLabel(): string {
+    const url = this.router.url;
+    if (url.includes('/members')) return 'Add Member';
+    if (url.includes('/leads')) return 'Add Lead';
+    if (url.includes('/employees')) return 'Register Employee';
+    if (url.includes('/payments')) return 'Record Payment';
+    if (url.includes('/attendance')) return 'Check In';
+    if (url.includes('/finance')) return 'Add Expense';
+    if (url.includes('/trainers')) return 'Add Trainer';
+    return 'Quick Action';
+  }
+
+  onFabClick(): void {
+    const url = this.router.url;
+    const timestamp = Date.now();
+    if (url.includes('/members')) {
+      this.router.navigate(['/members'], { queryParams: { action: 'add', _t: timestamp } });
+    } else if (url.includes('/leads')) {
+      this.router.navigate(['/leads/add']);
+    } else if (url.includes('/employees')) {
+      this.router.navigate(['/employees'], { queryParams: { tab: 1, action: 'add', _t: timestamp } });
+    } else if (url.includes('/payments')) {
+      this.router.navigate(['/payments'], { queryParams: { action: 'add', _t: timestamp } });
+    } else if (url.includes('/attendance')) {
+      this.router.navigate(['/attendance'], { queryParams: { action: 'checkin', _t: timestamp } });
+    } else if (url.includes('/finance')) {
+      this.router.navigate(['/finance/expenses'], { queryParams: { action: 'add', _t: timestamp } });
+    } else if (url.includes('/trainers')) {
+      this.router.navigate(['/trainers'], { queryParams: { action: 'add', _t: timestamp } });
+    } else {
+      this.router.navigate(['/members'], { queryParams: { action: 'add', _t: timestamp } });
+    }
+  }
+
   onLogout(): void {
     this.authState.logout();
   }
 }
+

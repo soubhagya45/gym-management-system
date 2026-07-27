@@ -1,3 +1,622 @@
+<ng-container *ngIf="responsiveLayout.isMobile; else desktopEmployees">
+  <!-- Native Mobile Employees View -->
+  <div class="mobile-employees-container">
+
+    <!-- Mobile Header -->
+    <div class="mobile-employees-header">
+      <div class="mobile-title-area">
+        <h2 class="mobile-title">Employee Management</h2>
+        <span class="mobile-subtitle">{{ (employees$ | async)?.length || 0 }} Staff Members</span>
+      </div>
+      <button *ngIf="canManageEmployees" mat-raised-button color="primary" class="mobile-add-emp-btn" (click)="onTabChange(1)">
+        <mat-icon>person_add</mat-icon>
+        <span>Register Employee</span>
+      </button>
+    </div>
+
+    <!-- Mobile Horizontally Scrollable Tabs Navigation Bar -->
+    <div class="tabs-nav-bar glassmorphic">
+      <button class="nav-tab-btn" [class.active]="activeTab === 0" (click)="onTabChange(0)">
+        <mat-icon>people</mat-icon>
+        <span>Directory</span>
+      </button>
+      <button class="nav-tab-btn" [class.active]="activeTab === 1" (click)="onTabChange(1)" *ngIf="canManageEmployees">
+        <mat-icon>person_add</mat-icon>
+        <span>Register</span>
+      </button>
+      <button class="nav-tab-btn" [class.active]="activeTab === 2" (click)="onTabChange(2)">
+        <mat-icon>security</mat-icon>
+        <span>Roles Matrix</span>
+      </button>
+      <button class="nav-tab-btn" [class.active]="activeTab === 3" (click)="onTabChange(3)">
+        <mat-icon>event_available</mat-icon>
+        <span>Attendance</span>
+      </button>
+      <button class="nav-tab-btn" [class.active]="activeTab === 4" (click)="onTabChange(4)">
+        <mat-icon>payments</mat-icon>
+        <span>Payroll</span>
+      </button>
+      <button class="nav-tab-btn" [class.active]="activeTab === 5" (click)="onTabChange(5)">
+        <mat-icon>star</mat-icon>
+        <span>Performance</span>
+      </button>
+    </div>
+
+    <!-- Tab 0: Directory -->
+    <div class="mobile-tab-content" *ngIf="activeTab === 0">
+      <app-search-header 
+        placeholder="Search employee name, role, email..." 
+        [(searchQuery)]="searchQuery"
+        (searchQueryChange)="applyFilters()"
+        [filterOptions]="mobileRoleFilterOptions"
+        [selectedFilter]="roleFilter"
+        (filterChange)="onMobileRoleFilterChange($event)">
+      </app-search-header>
+
+      <!-- Status Chips Filter Bar -->
+      <div class="mobile-status-chips">
+        <button class="status-chip-btn" [class.active]="statusFilter === 'all'" (click)="onMobileStatusFilterChange('all')">
+          <span>All Statuses</span>
+        </button>
+        <button class="status-chip-btn" [class.active]="statusFilter === 'Active'" (click)="onMobileStatusFilterChange('Active')">
+          <span>Active</span>
+        </button>
+        <button class="status-chip-btn" [class.active]="statusFilter === 'Suspended'" (click)="onMobileStatusFilterChange('Suspended')">
+          <span>Suspended</span>
+        </button>
+      </div>
+
+      <ng-container *ngIf="filteredEmployees$ | async as empList">
+        <div class="mobile-cards-list" *ngIf="empList.length > 0; else emptyMobileEmployees">
+          <app-mobile-card *ngFor="let emp of empList; trackBy: trackByEmployeeId" [clickable]="true" (cardClick)="openProfile(emp)">
+            <div class="emp-card-header">
+              <div class="emp-photo-box">
+                <img [src]="emp.photoUrl || 'assets/default-avatar.png'" [alt]="emp.fullName" class="emp-img">
+              </div>
+              <div class="emp-info flex-1">
+                <div class="emp-name-row">
+                  <span class="emp-name">{{ emp.fullName }}</span>
+                  <app-status-chip [status]="emp.accountStatus === 'Active' ? 'active' : 'inactive'"></app-status-chip>
+                </div>
+                <div class="emp-sub-info">
+                  <span class="role-badge" [ngClass]="emp.role">{{ getRoleLabel(emp.role) }}</span>
+                  <span class="bullet">•</span>
+                  <span class="dept-text">{{ emp.department }} | {{ emp.shift }} Shift</span>
+                </div>
+              </div>
+            </div>
+
+            <div class="emp-details-rows">
+              <div class="emp-detail-item">
+                <mat-icon class="item-icon">phone</mat-icon>
+                <span>{{ emp.phone }}</span>
+              </div>
+              <div class="emp-detail-item">
+                <mat-icon class="item-icon">email</mat-icon>
+                <span>{{ emp.email }}</span>
+              </div>
+              <div class="emp-detail-item" *ngIf="emp.reportingManagerName">
+                <mat-icon class="item-icon">supervisor_account</mat-icon>
+                <span>Reports to: {{ emp.reportingManagerName }}</span>
+              </div>
+              <div class="emp-detail-item" *ngIf="emp.specialty">
+                <mat-icon class="item-icon">fitness_center</mat-icon>
+                <span>Specialty: {{ emp.specialty }}</span>
+              </div>
+            </div>
+
+            <div class="emp-card-actions" (click)="$event.stopPropagation()">
+              <a mat-button color="primary" class="touch-action-btn" [href]="'tel:' + emp.phone">
+                <mat-icon>call</mat-icon>
+                <span>Call</span>
+              </a>
+              <button mat-button color="primary" class="touch-action-btn" (click)="openProfile(emp)">
+                <mat-icon>info</mat-icon>
+                <span>Details</span>
+              </button>
+              <button *ngIf="canManageEmployees" mat-button color="accent" class="touch-action-btn" (click)="openResetPassword(emp)" matTooltip="Reset Credentials">
+                <mat-icon>vpn_key</mat-icon>
+                <span>Key</span>
+              </button>
+              <button *ngIf="canManageEmployees" mat-icon-button [color]="emp.accountStatus === 'Active' ? 'warn' : 'accent'" (click)="toggleEmployeeStatus(emp)">
+                <mat-icon>{{ emp.accountStatus === 'Active' ? 'block' : 'check_circle' }}</mat-icon>
+              </button>
+            </div>
+          </app-mobile-card>
+        </div>
+
+        <ng-template #emptyMobileEmployees>
+          <app-empty-state 
+            icon="badge" 
+            title="No Employees Found" 
+            message="No staff members found matching your active search or filters." 
+            actionLabel="Register Employee" 
+            actionIcon="person_add" 
+            (actionClick)="onTabChange(1)">
+          </app-empty-state>
+        </ng-template>
+      </ng-container>
+    </div>
+
+    <!-- Tab 1: Onboard Employee -->
+    <div class="mobile-tab-content" *ngIf="activeTab === 1 && canManageEmployees">
+      <mat-card class="form-card glassmorphic">
+        <div class="form-header">
+          <h2>Employee Registration Wizard</h2>
+          <p>Onboard a new gym staff, receptionist, trainer or manager into your organization.</p>
+        </div>
+        
+        <form [formGroup]="employeeForm" (ngSubmit)="submitOnboarding()" class="onboarding-form">
+          <div class="form-section-title">
+            <mat-icon>account_circle</mat-icon>
+            <span>Personal Information</span>
+          </div>
+          
+          <div class="form-grid-mobile">
+            <mat-form-field appearance="outline">
+              <mat-label>Full Name</mat-label>
+              <input matInput formControlName="fullName" required placeholder="John Doe">
+              <mat-error *ngIf="employeeForm.get('fullName')?.hasError('required')">Name is required</mat-error>
+            </mat-form-field>
+
+            <mat-form-field appearance="outline">
+              <mat-label>Phone Number</mat-label>
+              <input matInput formControlName="phone" required placeholder="+91 9988776655">
+              <mat-error *ngIf="employeeForm.get('phone')?.hasError('required')">Phone is required</mat-error>
+            </mat-form-field>
+
+            <mat-form-field appearance="outline">
+              <mat-label>Email Address</mat-label>
+              <input matInput formControlName="email" type="email" required placeholder="john@domain.com">
+              <mat-error *ngIf="employeeForm.get('email')?.hasError('required')">Email is required</mat-error>
+              <mat-error *ngIf="employeeForm.get('email')?.hasError('email')">Enter a valid email</mat-error>
+            </mat-form-field>
+
+            <mat-form-field appearance="outline">
+              <mat-label>Gender</mat-label>
+              <mat-select formControlName="gender" required>
+                <mat-option value="Male">Male</mat-option>
+                <mat-option value="Female">Female</mat-option>
+                <mat-option value="Other">Other</mat-option>
+              </mat-select>
+            </mat-form-field>
+
+            <mat-form-field appearance="outline">
+              <mat-label>Date of Birth</mat-label>
+              <input matInput type="date" formControlName="dob" required>
+            </mat-form-field>
+
+            <div style="display: flex; align-items: center; gap: 8px; width: 100%;">
+              <mat-form-field appearance="outline" style="flex: 1;">
+                <mat-label>Photo URL (Optional)</mat-label>
+                <input matInput formControlName="photoUrl" placeholder="https://unsplash.com/...">
+              </mat-form-field>
+              <input type="file" #empPhotoInputMobile (change)="onEmployeePhotoUpload($event)" accept="image/*" style="display: none">
+              <button type="button" mat-stroked-button color="accent" (click)="empPhotoInputMobile.click()" [disabled]="isUploadingPhoto" style="height: 54px; margin-top: -4px;">
+                <mat-icon *ngIf="!isUploadingPhoto">cloud_upload</mat-icon>
+                <mat-icon *ngIf="isUploadingPhoto" class="spin-icon">sync</mat-icon>
+              </button>
+            </div>
+          </div>
+
+          <mat-form-field appearance="outline" class="w-100">
+            <mat-label>Resident Address</mat-label>
+            <textarea matInput formControlName="address" rows="2" required placeholder="Street address, city, pin code"></textarea>
+            <mat-error *ngIf="employeeForm.get('address')?.hasError('required')">Address is required</mat-error>
+          </mat-form-field>
+
+          <div class="form-section-title">
+            <mat-icon>work</mat-icon>
+            <span>Employment Information</span>
+          </div>
+          
+          <div class="form-grid-mobile">
+            <mat-form-field appearance="outline">
+              <mat-label>Role</mat-label>
+              <mat-select formControlName="role" (selectionChange)="onRoleChange($event.value)" required>
+                <mat-option *ngFor="let role of roles" [value]="role.value">{{role.label}}</mat-option>
+              </mat-select>
+            </mat-form-field>
+
+            <mat-form-field appearance="outline">
+              <mat-label>Department</mat-label>
+              <mat-select formControlName="department" required>
+                <mat-option *ngFor="let dept of departments" [value]="dept">{{dept}}</mat-option>
+              </mat-select>
+            </mat-form-field>
+
+            <mat-form-field appearance="outline">
+              <mat-label>Branch</mat-label>
+              <mat-select formControlName="branchId" required>
+                <mat-option *ngFor="let branch of branches$ | async" [value]="branch.id">{{branch.name}}</mat-option>
+              </mat-select>
+              <mat-error *ngIf="employeeForm.get('branchId')?.hasError('required')">Branch selection is required</mat-error>
+            </mat-form-field>
+
+            <mat-form-field appearance="outline">
+              <mat-label>Join Date</mat-label>
+              <input matInput type="date" formControlName="joinDate" required>
+            </mat-form-field>
+
+            <mat-form-field appearance="outline">
+              <mat-label>Base Monthly Salary (₹)</mat-label>
+              <input matInput type="number" formControlName="salary" required>
+              <mat-error *ngIf="employeeForm.get('salary')?.hasError('required')">Salary is required</mat-error>
+            </mat-form-field>
+
+            <mat-form-field appearance="outline">
+              <mat-label>Duty Shift</mat-label>
+              <mat-select formControlName="shift" required>
+                <mat-option *ngFor="let shift of shifts" [value]="shift">{{shift}} Shift</mat-option>
+              </mat-select>
+            </mat-form-field>
+
+            <mat-form-field appearance="outline" *ngIf="employeeForm.get('role')?.value !== 'gym_owner'">
+              <mat-label>Reporting Manager</mat-label>
+              <mat-select formControlName="reportingManagerId">
+                <mat-option value="">None / Top Level</mat-option>
+                <mat-option *ngFor="let mgr of managers$ | async" [value]="mgr.id">{{mgr.fullName}} ({{getRoleLabel(mgr.role)}})</mat-option>
+              </mat-select>
+            </mat-form-field>
+          </div>
+
+          <div *ngIf="employeeForm.get('role')?.value === 'trainer'" class="trainer-fields-block">
+            <div class="form-section-title">
+              <mat-icon>fitness_center</mat-icon>
+              <span>Trainer Parameters</span>
+            </div>
+            <div class="form-grid-mobile">
+              <mat-form-field appearance="outline">
+                <mat-label>Trainer Specialty</mat-label>
+                <input matInput formControlName="specialty" placeholder="e.g. Strength Training, Yoga">
+              </mat-form-field>
+
+              <mat-form-field appearance="outline">
+                <mat-label>Years of Experience</mat-label>
+                <input matInput type="number" formControlName="experienceYears" placeholder="e.g. 5">
+              </mat-form-field>
+            </div>
+          </div>
+
+          <div class="form-section-title">
+            <mat-icon>security</mat-icon>
+            <span>Portal Access Credentials</span>
+          </div>
+          
+          <div class="form-grid-mobile">
+            <mat-form-field appearance="outline">
+              <mat-label>Staff Username</mat-label>
+              <input matInput formControlName="username" required placeholder="username_prefix">
+            </mat-form-field>
+          </div>
+
+          <div class="form-actions-bar">
+            <button mat-stroked-button type="button" (click)="onTabChange(0)">Cancel</button>
+            <button mat-flat-button color="primary" type="submit" [disabled]="employeeForm.invalid || (submissionGuard.isSubmitting('employee-onboarding') | async)" class="submit-onboard-btn">
+              <mat-icon *ngIf="!(submissionGuard.isSubmitting('employee-onboarding') | async)">how_to_reg</mat-icon>
+              <mat-icon *ngIf="submissionGuard.isSubmitting('employee-onboarding') | async" class="spin-icon">sync</mat-icon>
+              <span>{{ (submissionGuard.isSubmitting('employee-onboarding') | async) ? 'Registering...' : 'Onboard Employee' }}</span>
+            </button>
+          </div>
+        </form>
+      </mat-card>
+    </div>
+
+    <!-- Tab 2: Roles Matrix -->
+    <div class="mobile-tab-content" *ngIf="activeTab === 2">
+      <mat-card class="matrix-card glassmorphic">
+        <div class="matrix-header">
+          <h2>RBAC Roles Matrix</h2>
+          <p>Visual map of user action permissions assigned to organization roles.</p>
+        </div>
+        
+        <div class="table-responsive">
+          <table class="rbac-matrix-table">
+            <thead>
+              <tr>
+                <th class="feature-col">Feature</th>
+                <th>Owner</th>
+                <th>Manager</th>
+                <th>Trainer</th>
+                <th>Staff</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr *ngFor="let row of rolesMatrix" class="matrix-row">
+                <td class="feature-name">{{ row.feature }}</td>
+                <td class="cell-perm"><mat-icon class="perm-icon" [ngClass]="{'allowed': row.roles.owner}">{{ row.roles.owner ? 'check_circle' : 'cancel' }}</mat-icon></td>
+                <td class="cell-perm"><mat-icon class="perm-icon" [ngClass]="{'allowed': row.roles.manager}">{{ row.roles.manager ? 'check_circle' : 'cancel' }}</mat-icon></td>
+                <td class="cell-perm"><mat-icon class="perm-icon" [ngClass]="{'allowed': row.roles.trainer}">{{ row.roles.trainer ? 'check_circle' : 'cancel' }}</mat-icon></td>
+                <td class="cell-perm"><mat-icon class="perm-icon" [ngClass]="{'allowed': row.roles.staff}">{{ row.roles.staff ? 'check_circle' : 'cancel' }}</mat-icon></td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </mat-card>
+    </div>
+
+    <!-- Tab 3: Attendance -->
+    <div class="mobile-tab-content" *ngIf="activeTab === 3">
+      <mat-card *ngIf="canManageEmployees" class="action-form-card glassmorphic margin-bottom-16">
+        <form [formGroup]="attendanceForm" (ngSubmit)="submitAttendance()" class="side-form">
+          <h3>Mark Staff Attendance</h3>
+          <mat-form-field appearance="outline">
+            <mat-label>Select Employee</mat-label>
+            <mat-select formControlName="employeeId" required>
+              <mat-option *ngFor="let emp of employees$ | async" [value]="emp.id">{{ emp.fullName }} ({{ getRoleLabel(emp.role) }})</mat-option>
+            </mat-select>
+          </mat-form-field>
+          
+          <mat-form-field appearance="outline">
+            <mat-label>Date</mat-label>
+            <input matInput type="date" formControlName="date" required>
+          </mat-form-field>
+
+          <mat-form-field appearance="outline">
+            <mat-label>Status</mat-label>
+            <mat-select formControlName="status" required>
+              <mat-option value="Present">Present</mat-option>
+              <mat-option value="Absent">Absent</mat-option>
+              <mat-option value="Leave">On Leave</mat-option>
+              <mat-option value="Half Day">Half Day</mat-option>
+            </mat-select>
+          </mat-form-field>
+
+          <button mat-flat-button color="primary" type="submit" [disabled]="attendanceForm.invalid" class="w-100 py-3">
+            <mat-icon>check</mat-icon>
+            <span>Save Attendance Record</span>
+          </button>
+        </form>
+      </mat-card>
+
+      <mat-card class="list-table-card glassmorphic">
+        <h3>Attendance Log Entries</h3>
+        <div class="table-scroll-wrapper">
+          <table mat-table [dataSource]="(attendance$ | async) || []" class="w-100 bg-transparent">
+            <ng-container matColumnDef="employeeName">
+              <th mat-header-cell *matHeaderCellDef> Employee </th>
+              <td mat-cell *matCellDef="let record"> {{record.employeeName}} </td>
+            </ng-container>
+
+            <ng-container matColumnDef="role">
+              <th mat-header-cell *matHeaderCellDef> Role </th>
+              <td mat-cell *matCellDef="let record">
+                <span class="mini-role-badge" [ngClass]="record.role">{{getRoleLabel(record.role)}}</span>
+              </td>
+            </ng-container>
+
+            <ng-container matColumnDef="date">
+              <th mat-header-cell *matHeaderCellDef> Date </th>
+              <td mat-cell *matCellDef="let record"> {{record.date}} </td>
+            </ng-container>
+
+            <ng-container matColumnDef="status">
+              <th mat-header-cell *matHeaderCellDef> Status </th>
+              <td mat-cell *matCellDef="let record">
+                <span class="status-chip" [ngClass]="record.status">{{record.status}}</span>
+              </td>
+            </ng-container>
+
+            <ng-container matColumnDef="checkInTime">
+              <th mat-header-cell *matHeaderCellDef> Check In </th>
+              <td mat-cell *matCellDef="let record"> {{record.checkInTime || '-'}} </td>
+            </ng-container>
+
+            <ng-container matColumnDef="checkOutTime">
+              <th mat-header-cell *matHeaderCellDef> Check Out </th>
+              <td mat-cell *matCellDef="let record"> {{record.checkOutTime || '-'}} </td>
+            </ng-container>
+
+            <ng-container matColumnDef="notes">
+              <th mat-header-cell *matHeaderCellDef> Notes </th>
+              <td mat-cell *matCellDef="let record"> {{record.notes || '-'}} </td>
+            </ng-container>
+
+            <tr mat-header-row *matHeaderRowDef="attendanceColumns"></tr>
+            <tr mat-row *matRowDef="let row; columns: attendanceColumns;"></tr>
+          </table>
+        </div>
+      </mat-card>
+    </div>
+
+    <!-- Tab 4: Payroll -->
+    <div class="mobile-tab-content" *ngIf="activeTab === 4">
+      <div class="payroll-stats-deck margin-bottom-16">
+        <mat-card class="stat-card glassmorphic paid-glow">
+          <mat-icon class="stat-icon text-success">check_circle</mat-icon>
+          <div class="stat-data">
+            <span class="stat-label">Disbursed</span>
+            <h2 class="stat-value">₹{{ totalPayrollPaid$ | async }}</h2>
+          </div>
+        </mat-card>
+
+        <mat-card class="stat-card glassmorphic pending-glow">
+          <mat-icon class="stat-icon text-warning">hourglass_empty</mat-icon>
+          <div class="stat-data">
+            <span class="stat-label">Pending</span>
+            <h2 class="stat-value">₹{{ totalPayrollPending$ | async }}</h2>
+          </div>
+        </mat-card>
+      </div>
+
+      <mat-card *ngIf="canManageEmployees" class="action-form-card glassmorphic margin-bottom-16">
+        <form [formGroup]="payrollForm" (ngSubmit)="submitPayroll()" class="side-form">
+          <h3>Record Staff Payroll</h3>
+          <mat-form-field appearance="outline">
+            <mat-label>Select Employee</mat-label>
+            <mat-select formControlName="employeeId" required>
+              <mat-option *ngFor="let emp of employees$ | async" [value]="emp.id">{{ emp.fullName }} ({{ getRoleLabel(emp.role) }})</mat-option>
+            </mat-select>
+          </mat-form-field>
+
+          <mat-form-field appearance="outline">
+            <mat-label>Payroll Month/Year</mat-label>
+            <input matInput formControlName="monthYear" placeholder="e.g. June 2026" required>
+          </mat-form-field>
+
+          <mat-form-field appearance="outline">
+            <mat-label>Base Salary (₹)</mat-label>
+            <input matInput type="number" formControlName="baseSalary" required>
+          </mat-form-field>
+
+          <mat-form-field appearance="outline">
+            <mat-label>Payout Status</mat-label>
+            <mat-select formControlName="status" required>
+              <mat-option value="Paid">Paid</mat-option>
+              <mat-option value="Pending">Pending</mat-option>
+            </mat-select>
+          </mat-form-field>
+
+          <button mat-flat-button color="primary" type="submit" [disabled]="payrollForm.invalid" class="w-100 py-3">
+            <mat-icon>payment</mat-icon>
+            <span>Record Payroll Record</span>
+          </button>
+        </form>
+      </mat-card>
+
+      <mat-card class="list-table-card glassmorphic">
+        <h3>Salary Disbursal Ledger</h3>
+        <div class="table-scroll-wrapper">
+          <table mat-table [dataSource]="(payroll$ | async) || []" class="w-100 bg-transparent">
+            <ng-container matColumnDef="employeeName">
+              <th mat-header-cell *matHeaderCellDef> Employee </th>
+              <td mat-cell *matCellDef="let record"> {{record.employeeName}} </td>
+            </ng-container>
+
+            <ng-container matColumnDef="role">
+              <th mat-header-cell *matHeaderCellDef> Role </th>
+              <td mat-cell *matCellDef="let record">
+                <span class="mini-role-badge" [ngClass]="record.role">{{getRoleLabel(record.role)}}</span>
+              </td>
+            </ng-container>
+
+            <ng-container matColumnDef="monthYear">
+              <th mat-header-cell *matHeaderCellDef> Period </th>
+              <td mat-cell *matCellDef="let record"> {{record.monthYear}} </td>
+            </ng-container>
+
+            <ng-container matColumnDef="baseSalary">
+              <th mat-header-cell *matHeaderCellDef> Base </th>
+              <td mat-cell *matCellDef="let record"> ₹{{record.baseSalary}} </td>
+            </ng-container>
+
+            <ng-container matColumnDef="bonus">
+              <th mat-header-cell *matHeaderCellDef> Bonus </th>
+              <td mat-cell *matCellDef="let record"> +₹{{record.bonus}} </td>
+            </ng-container>
+
+            <ng-container matColumnDef="deductions">
+              <th mat-header-cell *matHeaderCellDef> Deduct </th>
+              <td mat-cell *matCellDef="let record"> -₹{{record.deductions}} </td>
+            </ng-container>
+
+            <ng-container matColumnDef="netPaid">
+              <th mat-header-cell *matHeaderCellDef> Net Paid </th>
+              <td mat-cell *matCellDef="let record" class="font-weight-bold"> ₹{{record.netPaid}} </td>
+            </ng-container>
+
+            <ng-container matColumnDef="status">
+              <th mat-header-cell *matHeaderCellDef> Status </th>
+              <td mat-cell *matCellDef="let record">
+                <span class="status-chip" [ngClass]="record.status">{{record.status}}</span>
+              </td>
+            </ng-container>
+
+            <ng-container matColumnDef="actions">
+              <th mat-header-cell *matHeaderCellDef> Action </th>
+              <td mat-cell *matCellDef="let record">
+                <button *ngIf="canManageEmployees" mat-stroked-button size="small" [color]="record.status === 'Paid' ? 'warn' : 'primary'" (click)="togglePayrollStatus(record)" class="mini-action-btn">
+                  {{ record.status === 'Paid' ? 'Mark Pending' : 'Confirm Payment' }}
+                </button>
+              </td>
+            </ng-container>
+
+            <tr mat-header-row *matHeaderRowDef="payrollColumns"></tr>
+            <tr mat-row *matRowDef="let row; columns: payrollColumns;"></tr>
+          </table>
+        </div>
+      </mat-card>
+    </div>
+
+    <!-- Tab 5: Performance Review -->
+    <div class="mobile-tab-content" *ngIf="activeTab === 5">
+      <mat-card *ngIf="canManageEmployees" class="action-form-card glassmorphic margin-bottom-16">
+        <form [formGroup]="performanceForm" (ngSubmit)="submitPerformance()" class="side-form">
+          <h3>Submit Staff Review</h3>
+          <mat-form-field appearance="outline">
+            <mat-label>Select Employee</mat-label>
+            <mat-select formControlName="employeeId" required>
+              <mat-option *ngFor="let emp of employees$ | async" [value]="emp.id">{{ emp.fullName }} ({{ getRoleLabel(emp.role) }})</mat-option>
+            </mat-select>
+          </mat-form-field>
+          
+          <mat-form-field appearance="outline">
+            <mat-label>Star Rating (1-5)</mat-label>
+            <mat-select formControlName="rating" required>
+              <mat-option [value]="5">⭐⭐⭐⭐⭐ (5 - Exceptional)</mat-option>
+              <mat-option [value]="4">⭐⭐⭐⭐ (4 - Exceeds)</mat-option>
+              <mat-option [value]="3">⭐⭐⭐ (3 - Meets)</mat-option>
+              <mat-option [value]="2">⭐⭐ (2 - Needs Imp.)</mat-option>
+              <mat-option [value]="1">⭐ (1 - Unsatisfactory)</mat-option>
+            </mat-select>
+          </mat-form-field>
+
+          <mat-form-field appearance="outline">
+            <mat-label>Review Comments</mat-label>
+            <textarea matInput formControlName="feedback" rows="2" placeholder="Constructive feedback..." required></textarea>
+          </mat-form-field>
+
+          <button mat-flat-button color="primary" type="submit" [disabled]="performanceForm.invalid" class="w-100 py-3">
+            <mat-icon>reviews</mat-icon>
+            <span>Save Review Record</span>
+          </button>
+        </form>
+      </mat-card>
+
+      <mat-card class="list-table-card glassmorphic">
+        <h3>Staff Appraisals Log</h3>
+        <div class="table-scroll-wrapper">
+          <table mat-table [dataSource]="(performance$ | async) || []" class="w-100 bg-transparent">
+            <ng-container matColumnDef="employeeName">
+              <th mat-header-cell *matHeaderCellDef> Employee </th>
+              <td mat-cell *matCellDef="let record"> {{record.employeeName}} </td>
+            </ng-container>
+
+            <ng-container matColumnDef="rating">
+              <th mat-header-cell *matHeaderCellDef> Star Rating </th>
+              <td mat-cell *matCellDef="let record" class="stars-cell">
+                <span class="stars-indicator">{{ '★'.repeat(record.rating) }}{{ '☆'.repeat(5 - record.rating) }}</span>
+              </td>
+            </ng-container>
+
+            <ng-container matColumnDef="tasks">
+              <th mat-header-cell *matHeaderCellDef> Tasks </th>
+              <td mat-cell *matCellDef="let record">
+                {{record.tasksCompletedCount}} / {{record.tasksAssignedCount}}
+              </td>
+            </ng-container>
+
+            <ng-container matColumnDef="reviewDate">
+              <th mat-header-cell *matHeaderCellDef> Date </th>
+              <td mat-cell *matCellDef="let record"> {{record.reviewDate}} </td>
+            </ng-container>
+
+            <ng-container matColumnDef="feedback">
+              <th mat-header-cell *matHeaderCellDef> Feedback </th>
+              <td mat-cell *matCellDef="let record" class="feedback-comment"> {{record.feedback}} </td>
+            </ng-container>
+
+            <tr mat-header-row *matHeaderRowDef="performanceColumns"></tr>
+            <tr mat-row *matRowDef="let row; columns: performanceColumns;"></tr>
+          </table>
+        </div>
+      </mat-card>
+    </div>
+
+  </div>
+</ng-container>
+
+<ng-template #desktopEmployees>
 <div class="employees-container">
   <mat-tab-group [selectedIndex]="activeTab" (selectedIndexChange)="onTabChange($event)" animationDuration="300ms">
     
@@ -889,4 +1508,5 @@
       <button mat-flat-button color="primary" mat-dialog-close>Got It, Close</button>
     </mat-dialog-actions>
   </div>
+</ng-template>
 </ng-template>

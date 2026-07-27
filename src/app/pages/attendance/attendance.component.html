@@ -1,3 +1,79 @@
+<ng-container *ngIf="responsiveLayout.isMobile; else desktopAttendance">
+  <!-- Native Mobile Attendance View -->
+  <div class="mobile-attendance-container">
+    <!-- Today's Attendance Header -->
+    <div class="mobile-attendance-header">
+      <div class="header-text">
+        <span class="date-lbl">{{ todayString }}</span>
+        <h2>Daily Roster Check-In</h2>
+      </div>
+    </div>
+
+    <!-- Attendance Stats 3-Grid -->
+    <div class="mobile-stats-row">
+      <div class="stat-box">
+        <span class="num text-success">{{ presentCount$ | async }}</span>
+        <span class="lbl">Present</span>
+      </div>
+      <div class="stat-box">
+        <span class="num text-danger">{{ absentCount$ | async }}</span>
+        <span class="lbl">Absent</span>
+      </div>
+      <div class="stat-box">
+        <span class="num text-accent">{{ attendanceRate$ | async }}%</span>
+        <span class="lbl">Rate %</span>
+      </div>
+    </div>
+
+    <!-- Search Header -->
+    <app-search-header 
+      placeholder="Search member for check-in..." 
+      [(searchQuery)]="searchQuery" 
+      (searchQueryChange)="applySearchFilter()">
+    </app-search-header>
+
+    <!-- Single Column Mobile Attendance Cards -->
+    <ng-container *ngIf="filteredRoster$ | async as rosterList">
+      <div class="mobile-cards-list" *ngIf="rosterList.length > 0; else emptyMobileAttendance">
+        <app-mobile-card *ngFor="let item of rosterList; trackBy: trackByRosterItem">
+          <div class="roster-card-header">
+            <div class="member-avatar-box">
+              <img [src]="item.avatarUrl || 'assets/default-avatar.png'" [alt]="item.name" class="avatar-img">
+            </div>
+            <div class="roster-info flex-1">
+              <div class="name-row">
+                <span class="member-name">{{ item.name }}</span>
+                <app-status-chip [status]="item.status"></app-status-chip>
+              </div>
+              <span class="plan-name">{{ item.planName }} • Time: {{ item.timeIn }}</span>
+            </div>
+          </div>
+
+          <div class="roster-card-actions">
+            <button 
+              mat-flat-button 
+              [color]="item.status === 'present' ? 'accent' : 'primary'" 
+              class="touch-action-btn" 
+              (click)="markPresent(item)">
+              <mat-icon>{{ item.status === 'present' ? 'check_circle' : 'qr_code_scanner' }}</mat-icon>
+              <span>{{ item.status === 'present' ? 'Checked In' : 'Mark Present' }}</span>
+            </button>
+          </div>
+        </app-mobile-card>
+      </div>
+
+      <ng-template #emptyMobileAttendance>
+        <app-empty-state 
+          icon="event_busy" 
+          title="No Roster Items Found" 
+          message="No active members match your search query for today's check-in.">
+        </app-empty-state>
+      </ng-template>
+    </ng-container>
+  </div>
+</ng-container>
+
+<ng-template #desktopAttendance>
 <div class="attendance-page-wrapper">
   <!-- Page Header -->
   <div class="page-header" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px;">
@@ -367,3 +443,4 @@
     </mat-tab>
   </mat-tab-group>
 </div>
+</ng-template>

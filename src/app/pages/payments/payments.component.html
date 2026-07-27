@@ -1,3 +1,97 @@
+<ng-container *ngIf="responsiveLayout.isMobile; else desktopPayments">
+  <!-- Native Mobile Payments View -->
+  <div class="mobile-payments-container">
+    <!-- Revenue Summary Banner -->
+    <div class="mobile-revenue-banner" *ngIf="stats$ | async as stats">
+      <div class="revenue-tile">
+        <span class="tile-label">Total Revenue</span>
+        <h3 class="tile-val text-success">₹{{ stats.totalCollected | number }}</h3>
+      </div>
+      <div class="revenue-divider"></div>
+      <div class="revenue-tile">
+        <span class="tile-label">Outstanding Dues</span>
+        <h3 class="tile-val text-warning">₹{{ stats.outstandingDues | number }}</h3>
+      </div>
+    </div>
+
+    <!-- Search Header with Status Filter Chips -->
+    <app-search-header 
+      placeholder="Search member, invoice #, status..." 
+      [(searchQuery)]="searchQuery" 
+      (searchQueryChange)="applyFilters()" 
+      [filterOptions]="paymentFilterOptions" 
+      [selectedFilter]="selectedStatus" 
+      (filterChange)="onMobileFilterChange($event)">
+    </app-search-header>
+
+    <!-- Single Column Mobile Payment Cards -->
+    <div class="mobile-cards-list" *ngIf="dataSource.filteredData.length > 0; else emptyMobilePayments">
+      <app-mobile-card *ngFor="let p of dataSource.filteredData; trackBy: trackByPaymentId">
+        <div class="payment-card-header">
+          <div class="payment-info flex-1">
+            <div class="payment-title-row">
+              <span class="member-name">{{ p.memberName }}</span>
+              <app-status-chip [status]="p.status"></app-status-chip>
+            </div>
+            <div class="payment-sub-info">
+              <span class="plan-badge">{{ p.planName }}</span>
+              <span class="bullet">•</span>
+              <span class="date-text">Date: {{ p.date | date:'mediumDate' }}</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="payment-card-body">
+          <div class="amount-info-row">
+            <div class="amount-box">
+              <span class="amount-lbl">Amount</span>
+              <span class="amount-num">₹{{ p.amount | number }}</span>
+            </div>
+            <div class="amount-box" *ngIf="p.paidAmount">
+              <span class="amount-lbl">Paid</span>
+              <span class="amount-num text-success">₹{{ p.paidAmount | number }}</span>
+            </div>
+            <div class="amount-box" *ngIf="p.dueAmount">
+              <span class="amount-lbl">Due</span>
+              <span class="amount-num text-danger">₹{{ p.dueAmount | number }}</span>
+            </div>
+          </div>
+
+          <div class="payment-method-row">
+            <mat-icon class="method-icon">credit_card</mat-icon>
+            <span>Method: {{ p.paymentMethod }}</span>
+            <span class="bullet" *ngIf="p.dueDate">•</span>
+            <span *ngIf="p.dueDate">Due: {{ p.dueDate | date:'mediumDate' }}</span>
+          </div>
+        </div>
+
+        <div class="payment-card-actions">
+          <button mat-flat-button color="primary" class="touch-action-btn" *ngIf="p.status !== 'paid'" (click)="openRecordPaymentDialog()">
+            <mat-icon>check_circle</mat-icon>
+            <span>Mark Paid</span>
+          </button>
+          <button mat-button color="accent" class="touch-action-btn" *ngIf="p.status !== 'paid'" (click)="sendReminder(p)">
+            <mat-icon>send</mat-icon>
+            <span>Reminder</span>
+          </button>
+        </div>
+      </app-mobile-card>
+    </div>
+
+    <ng-template #emptyMobilePayments>
+      <app-empty-state 
+        icon="account_balance_wallet" 
+        title="No Payments Found" 
+        message="No payment transactions match your search or filter settings." 
+        actionLabel="Record Payment" 
+        actionIcon="add" 
+        (actionClick)="openRecordPaymentDialog()">
+      </app-empty-state>
+    </ng-template>
+  </div>
+</ng-container>
+
+<ng-template #desktopPayments>
 <div class="payments-page-wrapper">
   <!-- Page Header -->
   <div class="page-header">
@@ -544,3 +638,4 @@
     </ng-template>
   </mat-menu>
 </div>
+</ng-template>

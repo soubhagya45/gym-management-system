@@ -106,6 +106,12 @@ interface PaymentStats {
   pendingCount: number;
 }
 
+import { ResponsiveLayoutService } from '../../core/services/responsive-layout.service';
+import { SearchHeaderComponent, FilterOption } from '../../shared/components/mobile/search-header.component';
+import { MobileCardComponent } from '../../shared/components/mobile/mobile-card.component';
+import { StatusChipComponent } from '../../shared/components/mobile/status-chip.component';
+import { EmptyStateComponent } from '../../shared/components/mobile/empty-state.component';
+
 @Component({
   selector: 'app-payments',
   standalone: true,
@@ -124,7 +130,11 @@ interface PaymentStats {
     MatTooltipModule,
     MatTabsModule,
     MatProgressBarModule,
-    MatMenuModule
+    MatMenuModule,
+    SearchHeaderComponent,
+    MobileCardComponent,
+    StatusChipComponent,
+    EmptyStateComponent
   ],
   templateUrl: './payments.component.html',
   styleUrls: ['./payments.component.scss']
@@ -147,6 +157,13 @@ export class PaymentsComponent implements OnInit {
   selectedRenewalStatus = 'all';
   activeTab = 0;
 
+  paymentFilterOptions: FilterOption[] = [
+    { id: 'all', label: 'All' },
+    { id: 'paid', label: 'Paid' },
+    { id: 'pending', label: 'Pending' },
+    { id: 'overdue', label: 'Overdue' }
+  ];
+
   constructor(
     private paymentState: PaymentState,
     private memberState: MemberState,
@@ -160,8 +177,18 @@ export class PaymentsComponent implements OnInit {
     private route: ActivatedRoute,
     private router: Router,
     private exportService: ExportService,
-    public submissionGuard: SubmissionGuardService
+    public submissionGuard: SubmissionGuardService,
+    public responsiveLayout: ResponsiveLayoutService
   ) {}
+
+  trackByPaymentId(index: number, payment: Payment): string {
+    return payment.id;
+  }
+
+  onMobileFilterChange(statusId: string): void {
+    this.selectedStatus = statusId;
+    this.applyFilters();
+  }
 
   ngOnInit(): void {
     this.paymentState.payments$.subscribe(payments => {
@@ -191,6 +218,9 @@ export class PaymentsComponent implements OnInit {
         } else if (this.activeTab === 2) {
           this.selectedRenewalStatus = targetStatus;
         }
+      }
+      if (params['action'] === 'add') {
+        this.openRecordPaymentDialog();
       }
       this.applyFilters();
     });

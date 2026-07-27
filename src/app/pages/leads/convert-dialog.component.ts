@@ -44,11 +44,19 @@ import { PaymentGatewayModalComponent } from '../../shared/components/payment-ga
     MatDividerModule
   ],
   template: `
-    <h2 mat-dialog-title class="gradient-text dialogue-title">
-      Convert Lead to Member: {{ data.name }}
-    </h2>
+    <div class="dialog-header-flex">
+      <h2 mat-dialog-title class="gradient-text dialogue-title">
+        Convert Lead to Member: {{ data.name }}
+      </h2>
+      <div class="dialog-quick-actions">
+        <button type="button" class="dialog-act-chip" (click)="quickFillDemoConversion()" matTooltip="Quick fill defaults">
+          <mat-icon>auto_awesome</mat-icon>
+          <span>Demo Fill</span>
+        </button>
+      </div>
+    </div>
     
-    <form [formGroup]="convertForm" (ngSubmit)="onSubmit()">
+    <form [formGroup]="convertForm" (ngSubmit)="onSubmit()" class="dialog-form-wrapper">
       <mat-dialog-content class="dialog-form-content">
         <p class="dialog-desc">Complete membership details, discount incentives, and payment info to finalize the conversion.</p>
         
@@ -265,7 +273,7 @@ import { PaymentGatewayModalComponent } from '../../shared/components/payment-ga
       
       <mat-dialog-actions align="end" class="dialog-actions">
         <button mat-button type="button" (click)="onCancel()" [disabled]="submissionGuard.isSubmitting('lead-convert') | async">Cancel</button>
-        <button mat-raised-button color="primary" type="submit" [disabled]="convertForm.invalid || (submissionGuard.isSubmitting('lead-convert') | async)">
+        <button mat-raised-button color="primary" type="submit" [disabled]="convertForm.invalid || (submissionGuard.isSubmitting('lead-convert') | async)" class="submit-action-btn">
           <mat-icon *ngIf="!(submissionGuard.isSubmitting('lead-convert') | async)">check</mat-icon>
           <mat-icon *ngIf="submissionGuard.isSubmitting('lead-convert') | async" class="spin-icon">sync</mat-icon>
           <span>{{ (submissionGuard.isSubmitting('lead-convert') | async) ? 'Converting...' : 'Complete Conversion' }}</span>
@@ -274,22 +282,78 @@ import { PaymentGatewayModalComponent } from '../../shared/components/payment-ga
     </form>
   `,
   styles: [`
-    .dialogue-title {
-      font-weight: 700;
-      font-size: 22px;
+    :host {
+      display: flex;
+      flex-direction: column;
+      max-height: calc(100vh - 32px);
+      max-height: calc(100dvh - 32px);
+      box-sizing: border-box;
+      overflow: hidden;
+    }
+
+    .dialog-header-flex {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
       margin-bottom: 8px;
+      flex-shrink: 0;
+      padding-bottom: 8px;
+      border-bottom: 1px solid var(--border-color);
+    }
+    .dialogue-title {
+      font-weight: 800;
+      font-size: 20px;
+      margin: 0;
+    }
+    .dialog-quick-actions {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+    .dialog-act-chip {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      background: rgba(99, 102, 241, 0.12);
+      border: 1px solid rgba(99, 102, 241, 0.3);
+      color: #6366f1;
+      border-radius: 16px;
+      padding: 4px 10px;
+      font-size: 11px;
+      font-weight: 700;
+      cursor: pointer;
+      transition: all 0.2s ease;
+      
+      mat-icon {
+        font-size: 14px;
+        width: 14px;
+        height: 14px;
+      }
+      &:hover {
+        background: rgba(99, 102, 241, 0.25);
+      }
     }
     .dialog-desc {
       color: var(--text-secondary);
-      font-size: 14px;
-      margin-bottom: 20px;
+      font-size: 13.5px;
+      margin-bottom: 12px;
+    }
+    .dialog-form-wrapper {
+      display: flex;
+      flex-direction: column;
+      flex: 1;
+      min-height: 0;
+      overflow: hidden;
     }
     .dialog-form-content {
       display: flex;
       flex-direction: column;
-      padding-top: 10px !important;
-      max-height: 60vh;
+      padding: 10px 4px 16px 4px !important;
+      flex: 1 1 auto;
+      min-height: 0;
       overflow-y: auto;
+      max-height: none;
       gap: 16px;
     }
     .form-grid {
@@ -334,13 +398,49 @@ import { PaymentGatewayModalComponent } from '../../shared/components/payment-ga
       font-weight: 600;
     }
     .dialog-actions {
-      padding: 16px 0 0 0 !important;
-      gap: 8px;
+      flex-shrink: 0;
+      position: sticky;
+      bottom: 0;
+      z-index: 20;
+      background: var(--bg-secondary);
+      border-top: 1px solid var(--border-color);
+      padding: 12px 0 0 0 !important;
+      margin-top: 4px;
+      gap: 12px;
+
+      .submit-action-btn {
+        height: 44px;
+        font-weight: 700;
+        padding: 0 20px;
+        border-radius: 8px;
+      }
     }
     
     @media (max-width: 599.98px) {
+      .dialogue-title {
+        font-size: 16px;
+      }
+      .dialog-form-content {
+        max-height: calc(100dvh - 170px);
+        padding: 8px 2px 12px 2px !important;
+        gap: 12px;
+      }
       .form-grid {
         grid-template-columns: 1fr;
+        gap: 8px;
+      }
+      .dialog-actions {
+        padding: 10px 0 4px 0 !important;
+        flex-direction: row;
+        justify-content: space-between;
+        gap: 8px;
+        
+        button {
+          flex: 1;
+          height: 44px !important;
+          font-size: 14px;
+          margin: 0 !important;
+        }
       }
     }
   `]
@@ -353,6 +453,19 @@ export class ConvertDialogComponent implements OnInit {
   trainers: Trainer[] = [];
   availablePaymentMethods: string[] = ['Cash'];
   private _matDialog!: MatDialog;
+
+  quickFillDemoConversion(): void {
+    this.convertForm.patchValue({
+      gender: 'Male',
+      age: 27,
+      height: 175,
+      weight: 72,
+      fitnessGoal: ['General Fitness', 'Muscle Gain'],
+      paidAmount: 3000,
+      discountType: 'none'
+    });
+    this.snackBar.open('Demo conversion details populated!', 'Dismiss', { duration: 2500 });
+  }
 
   fitnessGoalOptions: string[] = [
     'Weight Loss',

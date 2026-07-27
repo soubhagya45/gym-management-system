@@ -13,6 +13,15 @@
   --info: #3b82f6;
   --info-glow: rgba(59, 130, 246, 0.15);
 
+  /* Material 3 Design Tokens */
+  --m3-elevation-1: 0 2px 8px rgba(0, 0, 0, 0.25);
+  --m3-elevation-2: 0 4px 16px rgba(0, 0, 0, 0.35);
+  --m3-elevation-3: 0 8px 32px rgba(0, 0, 0, 0.45);
+  --m3-radius-sm: 8px;
+  --m3-radius-md: 16px;
+  --m3-radius-lg: 24px;
+  --m3-radius-full: 9999px;
+
   /* Transitions */
   --transition-speed: 0.3s;
   --transition-curve: cubic-bezier(0.4, 0, 0.2, 1);
@@ -405,7 +414,7 @@ h1, h2, h3, h4, h5, h6 {
   }
 }
 
-/* Dialog Styling (MDC Compliant) */
+/* Dialog Styling (MDC Compliant & Responsive) */
 .mat-mdc-dialog-container {
   .mdc-dialog__surface {
     background-color: var(--bg-secondary) !important;
@@ -414,8 +423,34 @@ h1, h2, h3, h4, h5, h6 {
     border: var(--card-border) !important;
     box-shadow: var(--shadow-lg) !important;
     padding: 24px !important;
+    display: flex;
+    flex-direction: column;
+    max-height: calc(100vh - 32px) !important;
+    max-height: calc(100dvh - 32px) !important;
+    overflow: hidden !important;
   }
 }
+
+@media (max-width: 599.98px) {
+  .cdk-overlay-pane {
+    max-width: 95vw !important;
+    width: 95vw !important;
+  }
+
+  .mat-mdc-dialog-container {
+    .mdc-dialog__surface {
+      padding: 16px 12px !important;
+      border-radius: 16px !important;
+      max-height: calc(100dvh - 20px) !important;
+    }
+  }
+
+  .mat-mdc-dialog-content {
+    max-height: calc(100dvh - 160px) !important;
+    padding: 8px 4px !important;
+  }
+}
+
 
 /* Datepicker Overlay Styling */
 .mat-datepicker-content {
@@ -967,15 +1002,75 @@ body.light-theme {
 }
 
 /* Global loading spin animation utility */
-.spin-icon {
-  animation: spin-anim-global 1.5s infinite linear;
-  display: inline-block;
+/* --- Mobile Full-Screen Dialogs & Bottom Sheet Styles --- */
+.mobile-fullscreen-dialog {
+  .mat-mdc-dialog-container,
+  .mdc-dialog__surface {
+    width: 100vw !important;
+    height: 100vh !important;
+    max-width: 100vw !important;
+    max-height: 100vh !important;
+    margin: 0 !important;
+    border-radius: 0 !important;
+    box-sizing: border-box !important;
+    padding: 0 !important;
+  }
 }
 
-@keyframes spin-anim-global {
-  0% { transform: rotate(0deg); }
-  100% { transform: rotate(360deg); }
+.mobile-slide-up {
+  animation: mobileSlideUp 0.25s cubic-bezier(0.34, 1.56, 0.64, 1);
 }
+
+@keyframes mobileSlideUp {
+  from {
+    transform: translateY(100%);
+    opacity: 0;
+  }
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+
+/* Material Motion & Native Touch Feedback Utilities */
+.touch-active-scale {
+  transition: transform 0.15s ease, opacity 0.15s ease;
+  &:active {
+    transform: scale(0.96);
+    opacity: 0.9;
+  }
+}
+
+.mobile-page-fade {
+  animation: mobilePageFade 0.2s cubic-bezier(0, 0, 0.2, 1);
+}
+
+@keyframes mobilePageFade {
+  from { opacity: 0; transform: translateY(4px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.skeleton-shimmer {
+  background: linear-gradient(90deg, rgba(255,255,255,0.03) 25%, rgba(255,255,255,0.08) 50%, rgba(255,255,255,0.03) 75%);
+  background-size: 200% 100%;
+  animation: shimmer 1.5s infinite;
+}
+
+@keyframes shimmer {
+  0% { background-position: 200% 0; }
+  100% { background-position: -200% 0; }
+}
+
+/* Safe Area Inset Support for Android 15 Edge-to-Edge display */
+.safe-area-bottom-padding {
+  padding-bottom: calc(72px + env(safe-area-inset-bottom, 16px)) !important;
+}
+
+.safe-area-top-padding {
+  padding-top: env(safe-area-inset-top, 0px) !important;
+}
+
+
 
 
 

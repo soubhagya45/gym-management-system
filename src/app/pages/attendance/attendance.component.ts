@@ -40,6 +40,13 @@ interface EmployeeRosterItem {
   status: 'Present' | 'Absent' | 'Leave' | 'Half Day' | 'Unmarked';
 }
 
+import { ActivatedRoute } from '@angular/router';
+import { ResponsiveLayoutService } from '../../core/services/responsive-layout.service';
+import { SearchHeaderComponent } from '../../shared/components/mobile/search-header.component';
+import { MobileCardComponent } from '../../shared/components/mobile/mobile-card.component';
+import { StatusChipComponent } from '../../shared/components/mobile/status-chip.component';
+import { EmptyStateComponent } from '../../shared/components/mobile/empty-state.component';
+
 @Component({
   selector: 'app-attendance',
   standalone: true,
@@ -54,7 +61,11 @@ interface EmployeeRosterItem {
     MatInputModule,
     MatSnackBarModule,
     MatMenuModule,
-    MatTabsModule
+    MatTabsModule,
+    SearchHeaderComponent,
+    MobileCardComponent,
+    StatusChipComponent,
+    EmptyStateComponent
   ],
   templateUrl: './attendance.component.html',
   styleUrls: ['./attendance.component.scss']
@@ -96,10 +107,15 @@ export class AttendanceComponent implements OnInit {
     private attendanceState: AttendanceState,
     private employeeState: EmployeeState,
     private snackBar: MatSnackBar,
-    private exportService: ExportService
+    private exportService: ExportService,
+    public responsiveLayout: ResponsiveLayoutService
   ) {
     const options: Intl.DateTimeFormatOptions = { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' };
     this.todayString = new Date().toLocaleDateString('en-US', options);
+  }
+
+  trackByRosterItem(index: number, item: RosterItem): string {
+    return item.memberId;
   }
 
   ngOnInit(): void {

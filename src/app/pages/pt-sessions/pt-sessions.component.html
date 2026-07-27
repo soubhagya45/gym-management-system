@@ -1,3 +1,64 @@
+<ng-container *ngIf="responsiveLayout.isMobile; else desktopPt">
+  <!-- Native Mobile PT Sessions View -->
+  <div class="mobile-pt-container">
+    <div class="mobile-pt-header">
+      <h2>Personal Training Sessions</h2>
+      <p>Track client PT bookings, session logs, and trainer assignments.</p>
+    </div>
+
+    <div class="mobile-cards-list" *ngIf="filteredSessions.length > 0; else emptyMobilePt">
+      <app-mobile-card *ngFor="let s of filteredSessions; trackBy: trackBySessionId">
+        <div class="pt-card-header">
+          <div class="pt-info flex-1">
+            <div class="pt-title-row">
+              <span class="member-name">{{ s.memberName }}</span>
+              <app-status-chip [status]="s.status === 'completed' ? 'active' : (s.status === 'scheduled' ? 'expiring' : 'inactive')"></app-status-chip>
+            </div>
+            <div class="pt-sub-info">
+              <span class="trainer-badge">Trainer: {{ s.trainerName }}</span>
+              <span class="bullet">•</span>
+              <span class="date-text">{{ s.date | date:'mediumDate' }} at {{ s.time }}</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="pt-card-actions">
+          <button 
+            mat-flat-button 
+            color="primary" 
+            class="touch-action-btn" 
+            *ngIf="s.status === 'scheduled'" 
+            (click)="completeSession(s)">
+            <mat-icon>check_circle</mat-icon>
+            <span>Mark Completed</span>
+          </button>
+          <button 
+            mat-button 
+            color="warn" 
+            class="touch-action-btn" 
+            *ngIf="s.status === 'scheduled'" 
+            (click)="cancelSession(s)">
+            <mat-icon>cancel</mat-icon>
+            <span>Cancel</span>
+          </button>
+        </div>
+      </app-mobile-card>
+    </div>
+
+    <ng-template #emptyMobilePt>
+      <app-empty-state 
+        icon="fitness_center" 
+        title="No PT Sessions" 
+        message="No personal training sessions scheduled." 
+        actionLabel="Book Session" 
+        actionIcon="event" 
+        (actionClick)="openScheduleDialog()">
+      </app-empty-state>
+    </ng-template>
+  </div>
+</ng-container>
+
+<ng-template #desktopPt>
 <div class="pt-sessions-page-wrapper">
   <!-- Decorative background blobs for glassmorphic depth -->
   <div class="glass-blob blob-1"></div>
@@ -117,3 +178,4 @@
     </mat-card>
   </div>
 </div>
+</ng-template>

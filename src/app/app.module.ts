@@ -66,6 +66,20 @@ export function initializeFirebaseApp(
   };
 }
 
+import { LayoutModule } from '@angular/cdk/layout';
+import { MatBadgeModule } from '@angular/material/badge';
+
+import { FloatingActionButtonComponent } from './shared/components/mobile/floating-action-button.component';
+import { BottomSheetComponent } from './shared/components/mobile/bottom-sheet.component';
+import { OfflineBannerComponent } from './shared/components/mobile/offline-banner.component';
+import { ImageViewerModalComponent } from './shared/components/mobile/image-viewer-modal.component';
+import { LoadingSkeletonComponent } from './shared/components/mobile/loading-skeleton.component';
+import { MobileErrorStateComponent } from './shared/components/mobile/mobile-error-state.component';
+import { MobileFormContainerComponent } from './shared/components/mobile/mobile-form-container.component';
+
+import { MobileDialogService } from './core/services/mobile-dialog.service';
+import { NativeNotificationService } from './core/services/native-notification.service';
+
 @NgModule({
   declarations: [
     AppComponent
@@ -75,6 +89,7 @@ export function initializeFirebaseApp(
     BrowserAnimationsModule,
     HttpClientModule,
     AppRoutingModule,
+    LayoutModule,
     MatSidenavModule,
     MatToolbarModule,
     MatListModule,
@@ -82,10 +97,20 @@ export function initializeFirebaseApp(
     MatButtonModule,
     MatMenuModule,
     MatTooltipModule,
-    MatDividerModule
+    MatDividerModule,
+    MatBadgeModule,
+    FloatingActionButtonComponent,
+    BottomSheetComponent,
+    OfflineBannerComponent,
+    ImageViewerModalComponent,
+    LoadingSkeletonComponent,
+    MobileErrorStateComponent,
+    MobileFormContainerComponent
   ],
   providers: [
     ...REPOSITORY_PROVIDERS,
+    MobileDialogService,
+    NativeNotificationService,
     { provide: UrlSerializer, useClass: TenantUrlSerializer },
     { provide: HTTP_INTERCEPTORS, useClass: TenantInterceptor, multi: true },
     { provide: HTTP_INTERCEPTORS, useClass: ApiInterceptor, multi: true },

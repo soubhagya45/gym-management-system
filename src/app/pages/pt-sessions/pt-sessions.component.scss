@@ -238,3 +238,95 @@
     width: 100%;
   }
 }
+
+/* --- Dedicated Native Mobile PT Sessions Styles --- */
+.mobile-pt-container {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+
+  .mobile-pt-header {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    padding: 14px 16px;
+    background: var(--bg-card, rgba(30, 41, 59, 0.7));
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    border-radius: 16px;
+
+    h2 {
+      font-size: 1.125rem;
+      font-weight: 700;
+      color: var(--text-primary, #f8fafc);
+      margin: 0;
+    }
+
+    p {
+      font-size: 0.75rem;
+      color: var(--text-secondary, #94a3b8);
+      margin: 0;
+    }
+  }
+
+  .pt-card-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 12px;
+
+    .pt-info {
+      display: flex;
+      flex-direction: column;
+      gap: 3px;
+
+      &.flex-1 { flex: 1; overflow: hidden; }
+
+      .pt-title-row {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 8px;
+
+        .member-name {
+          font-size: 1rem;
+          font-weight: 700;
+          color: var(--text-primary, #f8fafc);
+        }
+      }
+
+      .pt-sub-info {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        font-size: 0.75rem;
+        color: var(--text-secondary, #94a3b8);
+
+        .trainer-badge {
+          font-weight: 600;
+          color: var(--accent-color, #6366f1);
+        }
+      }
+    }
+  }
+
+  .pt-card-actions {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding-top: 10px;
+    border-top: 1px solid rgba(255, 255, 255, 0.08);
+
+    .touch-action-btn {
+      flex: 1;
+      height: 44px;
+      border-radius: 12px;
+      font-size: 0.8125rem;
+      font-weight: 600;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+    }
+  }
+}
+

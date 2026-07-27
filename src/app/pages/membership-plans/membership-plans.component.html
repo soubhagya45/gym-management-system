@@ -1,3 +1,54 @@
+<ng-container *ngIf="responsiveLayout.isMobile; else desktopPlans">
+  <!-- Native Mobile Membership Plans View -->
+  <div class="mobile-plans-container">
+    <div class="mobile-plans-header">
+      <h2>Membership Packages</h2>
+      <p>Configure subscription plans and pricing options.</p>
+    </div>
+
+    <ng-container *ngIf="plans$ | async as plansList">
+      <div class="mobile-cards-list" *ngIf="plansList.length > 0; else emptyMobilePlans">
+        <app-mobile-card *ngFor="let plan of plansList; trackBy: trackByPlanId">
+          <div class="plan-card-header">
+            <div class="plan-title-box flex-1">
+              <span class="plan-name">{{ plan.name }}</span>
+              <span class="duration-badge">{{ plan.durationMonths }} Month{{ plan.durationMonths > 1 ? 's' : '' }}</span>
+            </div>
+            <div class="plan-price-box">
+              <span class="price-val">₹{{ plan.price | number }}</span>
+            </div>
+          </div>
+
+          <p class="plan-desc" *ngIf="plan.description">{{ plan.description }}</p>
+
+          <div class="plan-card-actions">
+            <button mat-button color="accent" class="touch-action-btn" (click)="openEditPlanDialog(plan)">
+              <mat-icon>edit</mat-icon>
+              <span>Edit Plan</span>
+            </button>
+            <button mat-button color="warn" class="touch-action-btn" (click)="confirmDeletePlan(plan)">
+              <mat-icon>delete</mat-icon>
+              <span>Delete</span>
+            </button>
+          </div>
+        </app-mobile-card>
+      </div>
+
+      <ng-template #emptyMobilePlans>
+        <app-empty-state 
+          icon="card_membership" 
+          title="No Plans Configured" 
+          message="Create membership plan packages for gym subscriptions." 
+          actionLabel="Create Plan" 
+          actionIcon="add" 
+          (actionClick)="openAddPlanDialog()">
+        </app-empty-state>
+      </ng-template>
+    </ng-container>
+  </div>
+</ng-container>
+
+<ng-template #desktopPlans>
 <div class="plans-page-wrapper">
   <!-- Page Header -->
   <div class="page-header">
@@ -139,3 +190,4 @@
     </div>
   </div>
 </div>
+</ng-template>

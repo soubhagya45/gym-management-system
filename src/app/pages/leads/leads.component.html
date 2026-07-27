@@ -1,3 +1,117 @@
+<ng-container *ngIf="responsiveLayout.isMobile; else desktopLeads">
+  <!-- Native Mobile Leads / CRM View -->
+  <div class="mobile-leads-container">
+    <!-- CRM Summary Metric Cards -->
+    <div class="mobile-crm-stats-grid">
+      <div class="crm-stat-box">
+        <span class="stat-num">{{ stats.total }}</span>
+        <span class="stat-lbl">Total Leads</span>
+      </div>
+      <div class="crm-stat-box">
+        <span class="stat-num text-success">{{ stats.newLeadsToday }}</span>
+        <span class="stat-lbl">New Today</span>
+      </div>
+      <div class="crm-stat-box">
+        <span class="stat-num text-warning">{{ stats.followUpsDueToday }}</span>
+        <span class="stat-lbl">Follow-ups Due</span>
+      </div>
+      <div class="crm-stat-box">
+        <span class="stat-num text-accent">{{ stats.conversionRate }}%</span>
+        <span class="stat-lbl">Conversion %</span>
+      </div>
+    </div>
+
+    <!-- Search Header with Status Filter Chips -->
+    <app-search-header 
+      placeholder="Search lead name, phone, plan, source..." 
+      [(searchQuery)]="searchQuery" 
+      (searchQueryChange)="applyFilters()" 
+      [filterOptions]="leadFilterOptions" 
+      [selectedFilter]="selectedStatus" 
+      (filterChange)="onMobileFilterChange($event)">
+    </app-search-header>
+
+    <!-- Single Column Mobile Lead Cards -->
+    <div class="mobile-cards-list" *ngIf="dataSource.filteredData.length > 0; else emptyMobileLeads">
+      <app-mobile-card 
+        *ngFor="let lead of dataSource.filteredData; trackBy: trackByLeadId" 
+        [clickable]="true" 
+        (cardClick)="viewLead(lead)">
+        <div class="lead-card-header">
+          <div class="lead-info flex-1">
+            <div class="lead-name-row">
+              <span class="lead-name">{{ lead.name }}</span>
+              <app-status-chip [status]="lead.status"></app-status-chip>
+            </div>
+            <div class="lead-sub-info">
+              <span class="source-badge">{{ lead.leadSource }}</span>
+              <span class="bullet">•</span>
+              <span class="temp-badge" [class.hot]="lead.leadTemperature === 'Hot'" [class.warm]="lead.leadTemperature === 'Warm'">
+                {{ lead.leadTemperature || 'Cold' }}
+              </span>
+            </div>
+          </div>
+        </div>
+
+        <div class="lead-card-details">
+          <div class="detail-item" *ngIf="lead.interestedPlan">
+            <mat-icon class="detail-icon">card_membership</mat-icon>
+            <span>{{ lead.interestedPlan }}</span>
+          </div>
+          <div class="detail-item" *ngIf="lead.assignedEmployeeName || lead.assignedStaff">
+            <mat-icon class="detail-icon">person_outline</mat-icon>
+            <span>Assigned: {{ lead.assignedEmployeeName || lead.assignedStaff }}</span>
+          </div>
+          <div class="detail-item" *ngIf="lead.trialDate">
+            <mat-icon class="detail-icon">event</mat-icon>
+            <span>Trial: {{ lead.trialDate | date:'mediumDate' }}</span>
+          </div>
+        </div>
+
+        <div class="lead-card-actions" (click)="$event.stopPropagation()">
+          <a mat-button color="primary" class="touch-action-btn" [href]="'tel:' + lead.phone">
+            <mat-icon>call</mat-icon>
+            <span>Call</span>
+          </a>
+          <button mat-button color="accent" class="touch-action-btn" (click)="openWhatsAppDialog(lead)">
+            <mat-icon>chat</mat-icon>
+            <span>WhatsApp</span>
+          </button>
+          <button mat-flat-button color="primary" class="touch-action-btn" (click)="openConvertDialog(lead)">
+            <mat-icon>autorenew</mat-icon>
+            <span>Convert</span>
+          </button>
+          <button mat-icon-button [matMenuTriggerFor]="leadMoreMenu" class="more-btn">
+            <mat-icon>more_vert</mat-icon>
+          </button>
+          <mat-menu #leadMoreMenu="matMenu">
+            <button mat-menu-item (click)="openEditLeadDialog(lead)">
+              <mat-icon>edit</mat-icon>
+              <span>Edit Lead Details</span>
+            </button>
+            <button mat-menu-item (click)="confirmDeleteLead(lead)">
+              <mat-icon color="warn">delete</mat-icon>
+              <span>Delete Lead</span>
+            </button>
+          </mat-menu>
+        </div>
+      </app-mobile-card>
+    </div>
+
+    <ng-template #emptyMobileLeads>
+      <app-empty-state 
+        icon="filter_alt_off" 
+        title="No Leads Found" 
+        message="No leads match your search query or status filter." 
+        actionLabel="Add New Lead" 
+        actionIcon="person_add" 
+        (actionClick)="openAddLeadDialog()">
+      </app-empty-state>
+    </ng-template>
+  </div>
+</ng-container>
+
+<ng-template #desktopLeads>
 <div class="leads-page-wrapper">
   <!-- Page Header -->
   <div class="page-header">
@@ -667,3 +781,4 @@
     </mat-tab>
   </mat-tab-group>
 </div>
+</ng-template>

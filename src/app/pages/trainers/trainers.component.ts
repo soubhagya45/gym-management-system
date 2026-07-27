@@ -15,9 +15,12 @@ import { TrainerDialogComponent } from './trainer-dialog.component';
 import { ConfirmDialogComponent } from '../members/confirm-dialog.component';
 import { Observable, combineLatest } from 'rxjs';
 import { map, take } from 'rxjs/operators';
-import { Router } from '@angular/router';
-
-import { RouterModule } from '@angular/router';
+import { Router, ActivatedRoute, RouterModule } from '@angular/router';
+import { ResponsiveLayoutService } from '../../core/services/responsive-layout.service';
+import { SearchHeaderComponent } from '../../shared/components/mobile/search-header.component';
+import { MobileCardComponent } from '../../shared/components/mobile/mobile-card.component';
+import { StatusChipComponent } from '../../shared/components/mobile/status-chip.component';
+import { EmptyStateComponent } from '../../shared/components/mobile/empty-state.component';
 
 @Component({
   selector: 'app-trainers',
@@ -31,7 +34,11 @@ import { RouterModule } from '@angular/router';
     MatDialogModule,
     MatSnackBarModule,
     MatTooltipModule,
-    MatDividerModule
+    MatDividerModule,
+    SearchHeaderComponent,
+    MobileCardComponent,
+    StatusChipComponent,
+    EmptyStateComponent
   ],
   templateUrl: './trainers.component.html',
   styleUrls: ['./trainers.component.scss']
@@ -41,6 +48,7 @@ export class TrainersComponent implements OnInit {
   canManageTrainers$: Observable<boolean>;
   isLimitReached$: Observable<boolean>;
   currentTrainersCount = 0;
+  searchQuery = '';
 
   constructor(
     private trainerState: TrainerState,
@@ -48,7 +56,9 @@ export class TrainersComponent implements OnInit {
     private subscriptionService: SubscriptionService,
     private dialog: MatDialog,
     private snackBar: MatSnackBar,
-    private router: Router
+    private router: Router,
+    private route: ActivatedRoute,
+    public responsiveLayout: ResponsiveLayoutService
   ) {
     this.canManageTrainers$ = this.gymState.activeGymFeatures$.pipe(
       map(features => features ? features.canManageTrainers : false)
@@ -67,8 +77,17 @@ export class TrainersComponent implements OnInit {
     );
   }
 
+  trackByTrainerId(index: number, trainer: Trainer): string {
+    return trainer.id;
+  }
+
   ngOnInit(): void {
     this.trainers$ = this.trainerState.trainers$;
+    this.route.queryParams.subscribe(params => {
+      if (params['action'] === 'add') {
+        this.openAddTrainerDialog();
+      }
+    });
   }
 
 

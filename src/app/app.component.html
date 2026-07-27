@@ -63,14 +63,23 @@
     </mat-sidenav>
 
     <!-- Main Content Layout -->
-    <mat-sidenav-content class="main-content">
+    <mat-sidenav-content class="main-content" [class.mobile-content-layout]="isMobile">
+      <!-- Offline Network Status Banner -->
+      <app-offline-banner *ngIf="isMobile"></app-offline-banner>
+
       <!-- Top Sticky Toolbar -->
       <mat-toolbar class="top-navbar glass-panel">
         <button mat-icon-button (click)="toggleSidenav()" class="menu-toggle-btn">
           <mat-icon>menu</mat-icon>
         </button>
 
-        <span class="toolbar-title">{{ pageTitle }}</span>
+        <!-- Mobile Header Branding -->
+        <div class="mobile-brand-header show-on-mobile" *ngIf="isMobile">
+          <mat-icon class="mobile-logo-icon">fitness_center</mat-icon>
+          <span class="mobile-brand-title">APEX<span class="logo-highlight">FIT</span></span>
+        </div>
+
+        <span class="toolbar-title hide-on-mobile">{{ pageTitle }}</span>
 
         <!-- Active Gym Tenant Indicator & Subscription Plan Badge -->
         <div class="tenant-branding-block hide-on-mobile" *ngIf="activeGym$ | async as gym" style="display: flex; align-items: center; gap: 8px;">
@@ -87,7 +96,7 @@
           <!-- Branch Switcher (If canManageBranches is enabled and gym has branches) -->
           <ng-container *ngIf="activeFeatureFlags$ | async as flags">
             <ng-container *ngIf="flags.canManageBranches && gym.branches && gym.branches.length > 0">
-              <button mat-button [matMenuTriggerFor]="branchMenu" class="branch-switcher-btn" style="margin-left: 4px; display: inline-flex; align-items: center; gap: 4px; height: 32px; line-height: 32px; padding: 0 12px; border-radius: 16px; background: rgba(255, 255, 255, 0.05); border: 1px solid var(--border-color); color: var(--text-primary);">
+              <button mat-button [matMenuTriggerFor]="branchMenu" class="branch-switcher-btn">
                 <mat-icon style="font-size: 16px; width: 16px; height: 16px; margin: 0; display: inline-flex; align-items: center; justify-content: center;">place</mat-icon>
                 <span>Branch: {{ (activeBranch$ | async)?.name || 'Select Branch' }}</span>
                 <mat-icon style="font-size: 16px; width: 16px; height: 16px; margin: 0; display: inline-flex; align-items: center; justify-content: center;">expand_more</mat-icon>
@@ -203,9 +212,81 @@
       </mat-toolbar>
 
       <!-- Main Dynamic Content Wrapper -->
-      <div class="content-body">
+      <div class="content-body" [class.mobile-body-padding]="isMobile">
         <router-outlet></router-outlet>
       </div>
+
+      <!-- Context-Aware Mobile Floating Action Button (FAB) -->
+      <app-fab 
+        *ngIf="isMobile" 
+        [icon]="fabIcon" 
+        [label]="fabLabel" 
+        (fabClick)="onFabClick()">
+      </app-fab>
+
+      <!-- Native Mobile Bottom Navigation Bar (5 Primary Tabs) -->
+      <nav class="mobile-bottom-nav show-on-mobile" *ngIf="isMobile">
+        <a routerLink="/dashboard" routerLinkActive="active" class="bottom-nav-item">
+          <mat-icon class="bottom-nav-icon">dashboard</mat-icon>
+          <span class="bottom-nav-label">Dashboard</span>
+        </a>
+        <a routerLink="/members" routerLinkActive="active" class="bottom-nav-item">
+          <mat-icon class="bottom-nav-icon">people</mat-icon>
+          <span class="bottom-nav-label">Members</span>
+        </a>
+        <a routerLink="/payments" routerLinkActive="active" class="bottom-nav-item">
+          <mat-icon class="bottom-nav-icon">account_balance_wallet</mat-icon>
+          <span class="bottom-nav-label">Payments</span>
+        </a>
+        <a routerLink="/attendance" routerLinkActive="active" class="bottom-nav-item">
+          <mat-icon class="bottom-nav-icon">check_circle</mat-icon>
+          <span class="bottom-nav-label">Attendance</span>
+        </a>
+        <button type="button" (click)="toggleMoreMenu()" class="bottom-nav-item" [class.active]="isMoreMenuOpen">
+          <mat-icon class="bottom-nav-icon">grid_view</mat-icon>
+          <span class="bottom-nav-label">More</span>
+        </button>
+      </nav>
+
+      <!-- Native Mobile "More" Drawer Sheet -->
+      <app-bottom-sheet 
+        [isOpen]="isMoreMenuOpen" 
+        title="Modules & Management" 
+        (close)="isMoreMenuOpen = false">
+        <div class="more-menu-grid">
+          <ng-container *ngFor="let item of menuItems$ | async">
+            <!-- Regular Nav Item -->
+            <a *ngIf="!item.subItems" [routerLink]="[item.route]" class="more-menu-tile" [class.active-tile]="isTileActive(item.route)" (click)="isMoreMenuOpen = false">
+              <div class="active-dot" *ngIf="isTileActive(item.route)"></div>
+              <div class="more-icon-box" [ngStyle]="getTileColorStyle(item.route, item.icon)">
+                <mat-icon>{{ item.icon }}</mat-icon>
+              </div>
+              <span>{{ item.label }}</span>
+            </a>
+
+            <!-- Nav Item with subItems -->
+            <ng-container *ngIf="item.subItems">
+              <a *ngFor="let sub of item.subItems" [routerLink]="[sub.route]" class="more-menu-tile" [class.active-tile]="isTileActive(sub.route)" (click)="isMoreMenuOpen = false">
+                <div class="active-dot" *ngIf="isTileActive(sub.route)"></div>
+                <div class="more-icon-box" [ngStyle]="getTileColorStyle(sub.route, sub.icon)">
+                  <mat-icon>{{ sub.icon }}</mat-icon>
+                </div>
+                <span>{{ sub.label }}</span>
+              </a>
+            </ng-container>
+          </ng-container>
+
+          <!-- Always include My Profile in More Menu -->
+          <a routerLink="/profile" class="more-menu-tile" [class.active-tile]="isTileActive('/profile')" (click)="isMoreMenuOpen = false">
+            <div class="active-dot" *ngIf="isTileActive('/profile')"></div>
+            <div class="more-icon-box" [ngStyle]="getTileColorStyle('/profile', 'person')">
+              <mat-icon>person</mat-icon>
+            </div>
+            <span>My Profile</span>
+          </a>
+        </div>
+      </app-bottom-sheet>
+
     </mat-sidenav-content>
   </mat-sidenav-container>
 </ng-container>

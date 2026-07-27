@@ -48,6 +48,12 @@ interface SalesCRMStats {
   estPipelineValue: number;
 }
 
+import { ResponsiveLayoutService } from '../../core/services/responsive-layout.service';
+import { SearchHeaderComponent, FilterOption } from '../../shared/components/mobile/search-header.component';
+import { MobileCardComponent } from '../../shared/components/mobile/mobile-card.component';
+import { StatusChipComponent } from '../../shared/components/mobile/status-chip.component';
+import { EmptyStateComponent } from '../../shared/components/mobile/empty-state.component';
+
 @Component({
   selector: 'app-leads',
   standalone: true,
@@ -70,7 +76,11 @@ interface SalesCRMStats {
     MatTabsModule,
     MatDividerModule,
     DragDropModule,
-    MatMenuModule
+    MatMenuModule,
+    SearchHeaderComponent,
+    MobileCardComponent,
+    StatusChipComponent,
+    EmptyStateComponent
   ],
   templateUrl: './leads.component.html',
   styleUrls: ['./leads.component.scss']
@@ -129,6 +139,15 @@ export class LeadsComponent implements OnInit, AfterViewInit {
 
 
 
+  leadFilterOptions: FilterOption[] = [
+    { id: 'all', label: 'All' },
+    { id: 'New', label: 'New' },
+    { id: 'Follow Up', label: 'Follow Up' },
+    { id: 'Trial Scheduled', label: 'Trial' },
+    { id: 'Converted', label: 'Converted' },
+    { id: 'Lost', label: 'Lost' }
+  ];
+
   @ViewChild(MatPaginator) paginator!: MatPaginator;
   @ViewChild(MatSort) sort!: MatSort;
 
@@ -140,8 +159,18 @@ export class LeadsComponent implements OnInit, AfterViewInit {
     private snackBar: MatSnackBar,
     private router: Router,
     private exportService: ExportService,
-    public submissionGuard: SubmissionGuardService
+    public submissionGuard: SubmissionGuardService,
+    public responsiveLayout: ResponsiveLayoutService
   ) {}
+
+  trackByLeadId(index: number, lead: Lead): string {
+    return lead.id;
+  }
+
+  onMobileFilterChange(statusId: string): void {
+    this.selectedStatus = statusId;
+    this.applyFilters();
+  }
 
   ngOnInit(): void {
     // Subscribe to Leads, Employees, and Plans simultaneously to compute leaderboard and dashboards reactively

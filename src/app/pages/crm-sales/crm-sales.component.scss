@@ -43,8 +43,17 @@
 // Tab Selector Menu
 .tabs-nav-bar {
   display: flex;
+  align-items: center;
   padding: 6px;
   gap: 8px;
+  overflow-x: auto;
+  flex-wrap: nowrap;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: none;
+
+  &::-webkit-scrollbar {
+    display: none;
+  }
 
   .nav-tab-btn {
     display: flex;
@@ -59,6 +68,8 @@
     border-radius: 10px;
     cursor: pointer;
     transition: all 0.2s ease;
+    flex-shrink: 0;
+    white-space: nowrap;
 
     mat-icon {
       font-size: 18px;
@@ -218,6 +229,72 @@
       margin: 0;
       font-size: 12.5px;
       color: var(--text-secondary);
+    }
+  }
+}
+
+// Monthly Revenue SVG Chart Styling
+.charts-container {
+  width: 100%;
+  max-width: 100%;
+  box-sizing: border-box;
+  overflow: hidden;
+}
+
+.chart-box {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.svg-container {
+  width: 100%;
+  height: auto;
+  position: relative;
+  overflow: hidden;
+  border-radius: 12px;
+  background: rgba(0, 0, 0, 0.15);
+  padding: 12px 8px;
+  border: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.svg-line-chart {
+  width: 100%;
+  height: auto;
+  display: block;
+}
+
+.chart-labels {
+  display: grid;
+  grid-template-columns: repeat(12, 1fr);
+  gap: 4px;
+  width: 100%;
+  text-align: center;
+  padding-top: 8px;
+
+  .label-item {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 2px;
+    min-width: 0;
+
+    span {
+      font-size: 11px;
+      font-weight: 600;
+      color: var(--text-secondary);
+      text-transform: uppercase;
+    }
+
+    strong {
+      font-size: 11.5px;
+      font-weight: 700;
+      color: #818cf8;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      max-width: 100%;
     }
   }
 }
@@ -821,3 +898,201 @@ table {
   }
 }
 
+/* --- Mobile Responsive Rules for CRM Sales Center --- */
+@media (max-width: 767.98px) {
+  .crm-sales-container {
+    gap: 16px;
+    padding: 8px 0 110px 0;
+  }
+
+  .crm-header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 14px;
+    padding: 16px !important;
+
+    .crm-header-info {
+      h1 {
+        font-size: 20px;
+      }
+      p {
+        font-size: 12px;
+      }
+    }
+
+    .crm-header-actions {
+      width: 100%;
+
+      button {
+        width: 100%;
+        height: 44px;
+        font-size: 14px;
+      }
+    }
+  }
+
+  .tabs-nav-bar {
+    padding: 4px !important;
+    gap: 4px;
+
+    .nav-tab-btn {
+      padding: 8px 12px;
+      font-size: 12.5px;
+      border-radius: 8px;
+
+      mat-icon {
+        font-size: 16px;
+        width: 16px;
+        height: 16px;
+      }
+    }
+  }
+
+  .kpi-grid {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 10px;
+  }
+
+  .kpi-card {
+    padding: 12px;
+    gap: 10px;
+
+    .kpi-icon-wrapper {
+      width: 36px;
+      height: 36px;
+      border-radius: 8px;
+
+      mat-icon {
+        font-size: 18px;
+        width: 18px;
+        height: 18px;
+      }
+    }
+
+    .kpi-data {
+      h3 {
+        font-size: 9.5px;
+        letter-spacing: 0.3px;
+      }
+      h2 {
+        font-size: 15px;
+      }
+      span {
+        font-size: 9.5px;
+      }
+    }
+  }
+
+  .chart-card, 
+  .tasks-card, 
+  .leaderboard-card, 
+  .trainer-sales-card, 
+  .ref-summary-card, 
+  .target-settings-card, 
+  .employee-targets-card, 
+  .performance-deep-dive-card, 
+  .attribution-exports-card {
+    padding: 14px !important;
+
+    .card-header {
+      margin-bottom: 14px;
+      h3 {
+        font-size: 16px;
+      }
+      p {
+        font-size: 11.5px;
+      }
+    }
+  }
+
+  .chart-card {
+    overflow: hidden !important;
+  }
+
+  .charts-container {
+    width: 100%;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;
+    padding-bottom: 6px;
+
+    &::-webkit-scrollbar {
+      display: none;
+    }
+  }
+
+  .chart-box {
+    min-width: 520px;
+  }
+
+  .chart-labels {
+    display: grid;
+    grid-template-columns: repeat(12, 1fr);
+    gap: 4px;
+    width: 100%;
+
+    .label-item {
+      span {
+        font-size: 9.5px;
+      }
+      strong {
+        font-size: 10px;
+      }
+    }
+  }
+
+  .leaderboard-highlights {
+    gap: 10px;
+
+    .award-card {
+      flex: 1 1 100%;
+      padding: 12px;
+    }
+  }
+
+  .table-container {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    margin: 0 -4px;
+  }
+
+  table {
+    min-width: 540px;
+
+    th, td {
+      padding: 10px 8px !important;
+      font-size: 12px !important;
+    }
+  }
+
+  .exports-grid {
+    grid-template-columns: 1fr;
+    gap: 10px;
+
+    button {
+      height: 44px;
+      font-size: 13px;
+    }
+  }
+
+  .target-form-row {
+    flex-direction: column;
+    align-items: stretch;
+
+    .target-input-field {
+      width: 100%;
+      min-width: unset;
+    }
+
+    .target-save-btn {
+      width: 100%;
+      height: 44px;
+    }
+  }
+
+  .employee-target-row {
+    grid-template-columns: 1fr;
+    gap: 10px;
+    padding: 12px;
+  }
+}

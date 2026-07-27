@@ -1,3 +1,113 @@
+<ng-container *ngIf="responsiveLayout.isMobile; else desktopMembers">
+  <!-- Native Mobile Members View -->
+  <div class="mobile-members-container">
+    <div class="mobile-members-header">
+      <div class="mobile-title-area">
+        <h2 class="mobile-title">Members Directory</h2>
+        <span class="mobile-subtitle">{{ totalCount }} total members</span>
+      </div>
+      <button mat-raised-button color="primary" class="mobile-add-member-btn" (click)="openAddMemberDialog()">
+        <mat-icon>person_add</mat-icon>
+        <span>Add Member</span>
+      </button>
+    </div>
+
+    <app-search-header 
+      placeholder="Search name, phone, email, plan..." 
+      [(searchQuery)]="searchQuery" 
+      (searchQueryChange)="applyFilters()" 
+      [filterOptions]="memberFilterOptions" 
+      [selectedFilter]="selectedStatus" 
+      (filterChange)="onMobileFilterChange($event)">
+    </app-search-header>
+
+    <div class="mobile-cards-list" *ngIf="dataSource.data.length > 0; else emptyMobileState">
+      <app-mobile-card 
+        *ngFor="let member of dataSource.data; trackBy: trackByMemberId" 
+        [clickable]="true" 
+        (cardClick)="viewProfile(member)">
+        <div class="member-card-header">
+          <div class="member-avatar-box">
+            <img [src]="member.avatarUrl || 'assets/default-avatar.png'" [alt]="member.name" class="avatar-img">
+          </div>
+          <div class="member-main-info flex-1">
+            <div class="member-name-row">
+              <span class="member-name">{{ member.name }}</span>
+              <app-status-chip [status]="member.status"></app-status-chip>
+            </div>
+            <div class="member-sub-info">
+              <span class="plan-name-badge">{{ member.planName }}</span>
+              <span class="bullet">•</span>
+              <span class="expiry-date">Expires {{ member.endDate | date:'mediumDate' }}</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="member-card-contact">
+          <mat-icon class="contact-icon">phone</mat-icon>
+          <span class="phone-number">{{ member.phone }}</span>
+        </div>
+
+        <div class="member-card-actions" (click)="$event.stopPropagation()">
+          <a mat-button color="primary" class="touch-action-btn" [href]="'tel:' + member.phone">
+            <mat-icon>call</mat-icon>
+            <span>Call</span>
+          </a>
+          <button mat-button color="accent" class="touch-action-btn" (click)="openWhatsAppDialog(member)">
+            <mat-icon>chat</mat-icon>
+            <span>WhatsApp</span>
+          </button>
+          <button mat-button color="primary" class="touch-action-btn" (click)="viewProfile(member)">
+            <mat-icon>visibility</mat-icon>
+            <span>View</span>
+          </button>
+          <button mat-icon-button [matMenuTriggerFor]="memberMoreMenu" class="more-btn">
+            <mat-icon>more_vert</mat-icon>
+          </button>
+          <mat-menu #memberMoreMenu="matMenu">
+            <button mat-menu-item (click)="openEditMemberDialog(member)">
+              <mat-icon>edit</mat-icon>
+              <span>Edit Member</span>
+            </button>
+            <button mat-menu-item (click)="confirmDeleteMember(member)">
+              <mat-icon color="warn">delete</mat-icon>
+              <span>Delete Account</span>
+            </button>
+          </mat-menu>
+        </div>
+      </app-mobile-card>
+
+      <!-- Server Paginator Navigation -->
+      <div class="mobile-paginator-row">
+        <button mat-stroked-button class="paginator-btn" [disabled]="pageIndex === 0" (click)="onPageChange({ pageIndex: pageIndex - 1, pageSize: pageSize })">
+          <mat-icon>chevron_left</mat-icon>
+          <span>Prev</span>
+        </button>
+        <div class="page-indicator-box">
+          <span class="page-indicator">Page {{ pageIndex + 1 }} of {{ getTotalPages() }}</span>
+          <span class="total-count-lbl">({{ totalCount }} Total Members)</span>
+        </div>
+        <button mat-stroked-button class="paginator-btn" [disabled]="(pageIndex + 1) * pageSize >= totalCount" (click)="onPageChange({ pageIndex: pageIndex + 1, pageSize: pageSize })">
+          <span>Next</span>
+          <mat-icon>chevron_right</mat-icon>
+        </button>
+      </div>
+    </div>
+
+    <ng-template #emptyMobileState>
+      <app-empty-state 
+        icon="people_outline" 
+        title="No Members Found" 
+        message="No members match your search or selected filter chips." 
+        actionLabel="Register Member" 
+        actionIcon="person_add" 
+        (actionClick)="openAddMemberDialog()">
+      </app-empty-state>
+    </ng-template>
+  </div>
+</ng-container>
+
+<ng-template #desktopMembers>
 <div class="members-page-wrapper">
   <!-- Decorative background blobs for glassmorphic depth -->
   <div class="glass-blob blob-1"></div>
@@ -190,3 +300,4 @@
     <mat-paginator [length]="totalCount" [pageSize]="pageSize" [pageIndex]="pageIndex" [pageSizeOptions]="[5, 10, 20]" (page)="onPageChange($event)" showFirstLastButtons aria-label="Select page of members"></mat-paginator>
   </div>
 </div>
+</ng-template>

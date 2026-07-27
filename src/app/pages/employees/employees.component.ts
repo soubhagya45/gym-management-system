@@ -27,6 +27,12 @@ import { FILE_STORAGE_REPOSITORY_TOKEN, IFileStorageRepository } from '../../cor
 import { SubmissionGuardService } from '../../services/submission-guard.service';
 import { TenantContextService } from '../../domain/tenancy/tenant-context.service';
 
+import { ResponsiveLayoutService } from '../../core/services/responsive-layout.service';
+import { SearchHeaderComponent, FilterOption } from '../../shared/components/mobile/search-header.component';
+import { MobileCardComponent } from '../../shared/components/mobile/mobile-card.component';
+import { StatusChipComponent } from '../../shared/components/mobile/status-chip.component';
+import { EmptyStateComponent } from '../../shared/components/mobile/empty-state.component';
+
 @Component({
   selector: 'app-employees',
   standalone: true,
@@ -46,7 +52,11 @@ import { TenantContextService } from '../../domain/tenancy/tenant-context.servic
     MatDialogModule,
     MatTooltipModule,
     MatDividerModule,
-    MatRadioModule
+    MatRadioModule,
+    SearchHeaderComponent,
+    MobileCardComponent,
+    StatusChipComponent,
+    EmptyStateComponent
   ],
   templateUrl: './employees.component.html',
   styleUrls: ['./employees.component.scss']
@@ -93,6 +103,14 @@ export class EmployeesComponent implements OnInit {
     { value: UserRole.Staff, label: 'Staff' }
   ];
 
+  mobileRoleFilterOptions: FilterOption[] = [
+    { id: 'all', label: 'All Roles' },
+    { id: UserRole.Owner, label: 'Gym Owner' },
+    { id: UserRole.Manager, label: 'Branch Manager' },
+    { id: UserRole.Trainer, label: 'Trainer' },
+    { id: UserRole.Staff, label: 'Staff' }
+  ];
+
   departments = ['Management', 'Fitness', 'Front Desk', 'Finance', 'Operations'];
   shifts = ['Morning', 'Evening', 'General'];
 
@@ -134,7 +152,8 @@ export class EmployeesComponent implements OnInit {
     private router: Router,
     public submissionGuard: SubmissionGuardService,
     @Inject(FILE_STORAGE_REPOSITORY_TOKEN) private fileStorage: IFileStorageRepository,
-    private tenantContext: TenantContextService
+    private tenantContext: TenantContextService,
+    public responsiveLayout: ResponsiveLayoutService
   ) {
     this.employees$ = this.employeeState.employees$;
     this.attendance$ = this.employeeState.attendance$;
@@ -189,6 +208,10 @@ export class EmployeesComponent implements OnInit {
     }
   }
 
+  trackByEmployeeId(index: number, emp: Employee): string {
+    return emp.id;
+  }
+
   ngOnInit(): void {
     this.initForms();
 
@@ -216,8 +239,11 @@ export class EmployeesComponent implements OnInit {
 
     // Check for active tab query param
     this.route.queryParams.subscribe(params => {
-      if (params['tab']) {
+      if (params['tab'] !== undefined) {
         this.activeTab = parseInt(params['tab'], 10);
+      }
+      if (params['action'] === 'add') {
+        this.activeTab = 1;
       }
       this.searchQuery = params['search'] || '';
       this.roleFilter = params['role'] || 'all';
@@ -229,6 +255,16 @@ export class EmployeesComponent implements OnInit {
         this.onRoleChange(params['prefillRole']);
       }
     });
+  }
+
+  onMobileRoleFilterChange(roleId: string): void {
+    this.roleFilter = roleId;
+    this.applyFilters();
+  }
+
+  onMobileStatusFilterChange(status: string): void {
+    this.statusFilter = status;
+    this.applyFilters();
   }
 
   initForms(): void {

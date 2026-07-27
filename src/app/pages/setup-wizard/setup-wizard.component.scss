@@ -900,4 +900,47 @@
     0%, 100% { box-shadow: 0 0 16px rgba(99, 102, 241, 0.35); }
     50% { box-shadow: 0 0 24px rgba(99, 102, 241, 0.65); }
   }
+
+  @media (max-width: 768px) {
+    padding: 8px;
+    gap: 16px;
+
+    .glass-header {
+      padding: 20px 16px;
+
+      .header-logo .logo-text {
+        font-size: 19px;
+      }
+      .header-desc {
+        font-size: 13px;
+      }
+    }
+
+    .glass-card {
+      padding: 16px 12px !important;
+    }
+
+    .onboarding-stepper {
+      ::ng-deep .mat-horizontal-stepper-header-container {
+        overflow-x: auto;
+        padding-bottom: 8px;
+        white-space: nowrap;
+        -webkit-overflow-scrolling: touch;
+      }
+    }
+
+    .step-actions {
+      flex-direction: row;
+      justify-content: space-between;
+      gap: 8px;
+      margin-top: 20px;
+      padding-top: 16px;
+
+      button {
+        flex: 1;
+        justify-content: center;
+        font-size: 13px;
+      }
+    }
+  }
 }

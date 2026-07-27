@@ -1,3 +1,70 @@
+<ng-container *ngIf="responsiveLayout.isMobile; else desktopTrainers">
+  <!-- Native Mobile Trainers View -->
+  <div class="mobile-trainers-container">
+    <app-search-header 
+      placeholder="Search trainer name, phone, specialty..." 
+      [(searchQuery)]="searchQuery">
+    </app-search-header>
+
+    <ng-container *ngIf="trainers$ | async as trainersList">
+      <div class="mobile-cards-list" *ngIf="trainersList.length > 0; else emptyMobileTrainers">
+        <app-mobile-card *ngFor="let trainer of trainersList; trackBy: trackByTrainerId">
+          <div class="trainer-card-header">
+            <div class="trainer-photo-box">
+              <img [src]="trainer.avatarUrl || 'assets/default-avatar.png'" [alt]="trainer.name" class="trainer-img">
+            </div>
+            <div class="trainer-info flex-1">
+              <div class="trainer-name-row">
+                <span class="trainer-name">{{ trainer.name }}</span>
+                <app-status-chip [status]="trainer.status"></app-status-chip>
+              </div>
+              <span class="specialization-text">{{ trainer.specialty || 'Personal Trainer' }}</span>
+            </div>
+          </div>
+
+          <div class="trainer-stats-row">
+            <div class="stat-pill">
+              <span class="lbl">Clients</span>
+              <span class="val">{{ trainer.membersCount || 0 }}</span>
+            </div>
+            <div class="stat-pill">
+              <span class="lbl">Rating</span>
+              <span class="val">★ 4.9</span>
+            </div>
+            <div class="stat-pill">
+              <span class="lbl">Phone</span>
+              <span class="val">{{ trainer.phone }}</span>
+            </div>
+          </div>
+
+          <div class="trainer-card-actions">
+            <a mat-button color="primary" class="touch-action-btn" [href]="'tel:' + trainer.phone">
+              <mat-icon>call</mat-icon>
+              <span>Call</span>
+            </a>
+            <button mat-button color="accent" class="touch-action-btn" (click)="openEditTrainerDialog(trainer)">
+              <mat-icon>edit</mat-icon>
+              <span>Edit</span>
+            </button>
+          </div>
+        </app-mobile-card>
+      </div>
+
+      <ng-template #emptyMobileTrainers>
+        <app-empty-state 
+          icon="sports" 
+          title="No Trainers Registered" 
+          message="No trainers added yet. Register your team of fitness instructors." 
+          actionLabel="Add Trainer" 
+          actionIcon="group_add" 
+          (actionClick)="openAddTrainerDialog()">
+        </app-empty-state>
+      </ng-template>
+    </ng-container>
+  </div>
+</ng-container>
+
+<ng-template #desktopTrainers>
 <div class="trainers-page-wrapper">
   <!-- Page Header -->
   <div class="page-header">
@@ -104,4 +171,5 @@
     </div>
   </div>
 </div>
+</ng-template>
 

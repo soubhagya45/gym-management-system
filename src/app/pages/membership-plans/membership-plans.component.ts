@@ -14,6 +14,10 @@ import { PlanDialogComponent } from './plan-dialog.component';
 import { ConfirmDialogComponent } from '../members/confirm-dialog.component';
 import { Observable } from 'rxjs';
 
+import { ResponsiveLayoutService } from '../../core/services/responsive-layout.service';
+import { MobileCardComponent } from '../../shared/components/mobile/mobile-card.component';
+import { EmptyStateComponent } from '../../shared/components/mobile/empty-state.component';
+
 @Component({
   selector: 'app-membership-plans',
   standalone: true,
@@ -24,7 +28,9 @@ import { Observable } from 'rxjs';
     MatButtonModule,
     MatDialogModule,
     MatSnackBarModule,
-    MatDividerModule
+    MatDividerModule,
+    MobileCardComponent,
+    EmptyStateComponent
   ],
   templateUrl: './membership-plans.component.html',
   styleUrls: ['./membership-plans.component.scss']
@@ -38,8 +44,13 @@ export class MembershipPlansComponent implements OnInit {
     private planState: MembershipPlanState,
     private ptState: PTState,
     private dialog: MatDialog,
-    private snackBar: MatSnackBar
+    private snackBar: MatSnackBar,
+    public responsiveLayout: ResponsiveLayoutService
   ) {}
+
+  trackByPlanId(index: number, plan: MembershipPlan): string {
+    return plan.id;
+  }
 
   ngOnInit(): void {
     this.plans$ = this.planState.plans$;

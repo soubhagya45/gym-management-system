@@ -1278,4 +1278,225 @@
   50% { transform: translateY(-4px); }
 }
 
+/* --- Dedicated Native Mobile Dashboard Styles --- */
+.mobile-dashboard-container {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+
+  .mobile-greeting-card {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 16px;
+    background: var(--bg-card, rgba(30, 41, 59, 0.7));
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    border-radius: 20px;
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.2);
+
+    .user-greeting-info {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+
+      .mobile-user-avatar {
+        width: 48px;
+        height: 48px;
+        border-radius: 50%;
+        object-fit: cover;
+        border: 2px solid var(--accent-color, #6366f1);
+      }
+
+      .greeting-subtitle {
+        font-size: 0.75rem;
+        color: var(--text-secondary, #94a3b8);
+      }
+
+      .user-greeting-name {
+        font-size: 1.125rem;
+        font-weight: 700;
+        color: var(--text-primary, #f8fafc);
+        margin: 0;
+      }
+    }
+
+    .active-gym-pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 6px 12px;
+      border-radius: 16px;
+      background: rgba(99, 102, 241, 0.12);
+      color: var(--accent-color, #6366f1);
+      font-size: 0.75rem;
+      font-weight: 600;
+
+      mat-icon {
+        font-size: 16px;
+        width: 16px;
+        height: 16px;
+      }
+    }
+  }
+
+  .mobile-onboarding-banner {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 14px 16px;
+    background: rgba(245, 158, 11, 0.12);
+    border: 1px solid rgba(245, 158, 11, 0.25);
+    border-radius: 16px;
+    gap: 12px;
+
+    .onboarding-content {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+
+      .onboarding-text {
+        display: flex;
+        flex-direction: column;
+        font-size: 0.8125rem;
+        color: #fef08a;
+
+        strong {
+          font-weight: 700;
+        }
+      }
+    }
+  }
+
+  .mobile-metrics-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 12px;
+  }
+
+  .mobile-section-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-top: 8px;
+    margin-bottom: -4px;
+
+    h3 {
+      font-size: 1.125rem;
+      font-weight: 700;
+      color: var(--text-primary, #f8fafc);
+      margin: 0;
+    }
+
+    .see-all-link {
+      font-size: 0.8125rem;
+      font-weight: 600;
+      color: var(--accent-color, #6366f1);
+      text-decoration: none;
+    }
+  }
+
+  .mobile-chart-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 12px;
+
+    .chart-title {
+      font-size: 0.875rem;
+      color: var(--text-secondary, #94a3b8);
+    }
+    .chart-value {
+      font-size: 1.125rem;
+      color: var(--accent-color, #6366f1);
+    }
+  }
+
+  .mobile-svg-chart-container {
+    width: 100%;
+    height: 120px;
+
+    .mobile-revenue-svg {
+      width: 100%;
+      height: 100%;
+      overflow: visible;
+    }
+  }
+
+  .mobile-card-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    margin-bottom: 12px;
+
+    .member-avatar-box {
+      width: 44px;
+      height: 44px;
+      border-radius: 50%;
+      overflow: hidden;
+      border: 1px solid rgba(255, 255, 255, 0.1);
+
+      .avatar-img {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+      }
+    }
+
+    .card-info {
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+
+      &.flex-1 {
+        flex: 1;
+      }
+
+      .card-title {
+        font-size: 0.9375rem;
+        font-weight: 600;
+        color: var(--text-primary, #f8fafc);
+      }
+
+      .card-subtitle {
+        font-size: 0.75rem;
+        color: var(--text-secondary, #94a3b8);
+      }
+    }
+
+    .card-amount {
+      display: flex;
+      flex-direction: column;
+      align-items: flex-end;
+      gap: 4px;
+
+      .amount-text {
+        font-size: 1rem;
+        font-weight: 700;
+        color: var(--text-primary, #f8fafc);
+      }
+    }
+  }
+
+  .mobile-card-actions {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding-top: 10px;
+    border-top: 1px solid rgba(255, 255, 255, 0.08);
+
+    .touch-action-btn {
+      flex: 1;
+      height: 44px;
+      border-radius: 12px;
+      font-weight: 600;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+    }
+  }
+}
+
+
 

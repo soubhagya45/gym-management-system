@@ -23,6 +23,11 @@ import { PTSession } from '../../core/models/pt-session.entity';
 import { MemberPTPlan } from '../../core/models/member-pt-plan.entity';
 import { Trainer } from '../../core/models/trainer.entity';
 
+import { ResponsiveLayoutService } from '../../core/services/responsive-layout.service';
+import { MobileCardComponent } from '../../shared/components/mobile/mobile-card.component';
+import { StatusChipComponent } from '../../shared/components/mobile/status-chip.component';
+import { EmptyStateComponent } from '../../shared/components/mobile/empty-state.component';
+
 @Component({
   selector: 'app-pt-sessions',
   standalone: true,
@@ -42,7 +47,10 @@ import { Trainer } from '../../core/models/trainer.entity';
     MatSelectModule,
     MatDatepickerModule,
     MatNativeDateModule,
-    MatSnackBarModule
+    MatSnackBarModule,
+    MobileCardComponent,
+    StatusChipComponent,
+    EmptyStateComponent
   ],
   templateUrl: './pt-sessions.component.html',
   styleUrls: ['./pt-sessions.component.scss']
@@ -61,8 +69,13 @@ export class PtSessionsComponent implements OnInit {
     private ptState: PTState,
     private trainerState: TrainerState,
     private dialog: MatDialog,
-    private snackBar: MatSnackBar
+    private snackBar: MatSnackBar,
+    public responsiveLayout: ResponsiveLayoutService
   ) {}
+
+  trackBySessionId(index: number, s: PTSession): string {
+    return s.id;
+  }
 
   ngOnInit(): void {
     // Subscribe to PT sessions

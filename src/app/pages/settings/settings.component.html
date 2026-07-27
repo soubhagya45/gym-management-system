@@ -1,3 +1,42 @@
+<ng-container *ngIf="responsiveLayout.isMobile; else desktopSettings">
+  <!-- Native Mobile Settings View -->
+  <div class="mobile-settings-container">
+    <div class="mobile-settings-header">
+      <h2>App & Gym Settings</h2>
+      <p>Configure gym profile, notifications, and branch options.</p>
+    </div>
+
+    <!-- Scrollable Horizontal Tabs -->
+    <div class="mobile-settings-tabs-scroll">
+      <button 
+        *ngFor="let tab of tabs" 
+        class="mobile-tab-chip" 
+        [class.active]="activeTab === tab.id" 
+        (click)="setTab(tab.id)">
+        <mat-icon>{{ tab.icon }}</mat-icon>
+        <span>{{ tab.label }}</span>
+      </button>
+    </div>
+
+    <!-- Active Settings Section Container -->
+    <div class="mobile-settings-card-body">
+      <ng-container [ngSwitch]="activeTab">
+        <app-gym-profile *ngSwitchCase="'profile'"></app-gym-profile>
+        <app-branches *ngSwitchCase="'branches'"></app-branches>
+        <app-membership-config *ngSwitchCase="'memberships'"></app-membership-config>
+        <app-payment-settings *ngSwitchCase="'payments'"></app-payment-settings>
+        <app-invoice-settings *ngSwitchCase="'invoices'"></app-invoice-settings>
+        <app-notification-settings *ngSwitchCase="'notifications'"></app-notification-settings>
+        <app-branding *ngSwitchCase="'branding'"></app-branding>
+        <app-integrations *ngSwitchCase="'integrations'"></app-integrations>
+        <app-attendance-devices *ngSwitchCase="'attendance-devices'"></app-attendance-devices>
+        <app-audit-logs *ngSwitchCase="'audit-logs'"></app-audit-logs>
+      </ng-container>
+    </div>
+  </div>
+</ng-container>
+
+<ng-template #desktopSettings>
 <div class="settings-workspace-wrapper">
   <!-- Desktop Left Sidebar Tabs, Mobile Top Horizontal Tabs -->
   <div class="settings-tabs-sidebar glass-panel">
@@ -39,3 +78,4 @@
     </ng-container>
   </div>
 </div>
+</ng-template>

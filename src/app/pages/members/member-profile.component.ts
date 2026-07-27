@@ -177,6 +177,8 @@ export class MemberProfileComponent implements OnInit {
     
     const dialogRef = this.dialog.open(MemberDialogComponent, {
       width: '600px',
+      maxWidth: '96vw',
+      maxHeight: '92vh',
       data: this.member
     });
 
